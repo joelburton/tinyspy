@@ -345,6 +345,17 @@ export type GArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
 /** One styled run of a clue: plain, or the italic an `<em>` marked. */
 export type GClueSeg = { text: string; italic: boolean }
 
+/** The clue the AI explainer is asked about, read off the cursor when asked. */
+export type GClueAsked = {
+  // How the dialog names it: "12A".
+  label: string
+  cells: GCellPos[]
+  // The plain clue, its emphasis stripped.
+  clueText: string
+  // `(7)`, `(4,3)`: off the board's edge marks.
+  enumeration: string
+}
+
 /** The explainer dialog's state — mirrors crossplay's ExplainPopover states,
  *  minus the scratchpad (native thinking is never returned to the client). */
 export type GExplainState =
@@ -399,6 +410,39 @@ export type GGridKeysOptions = {
    *  current mark and advances it. */
   onMark: (row: number, col: number, side: GMarkSide) => void
 }
+
+/** What a write changes on one cell: the keys it sets, and nothing else. */
+export type GCellChanges = Partial<Omit<GCell, 'id' | 'row' | 'col'>>
+
+/**
+ * My writes the blob does not carry yet, laid over my board (`usePendingWrites`):
+ * the board as it is drawn, and what a trip to the server calls around its RPC.
+ */
+export type GPendingWrites = {
+  // `gd.me.board` with every pending write laid over it, in the order made.
+  board: GBoard
+  // A write is made: it shows at once. Answers its handle, for the two below.
+  add: (cellId: string, changes: GCellChanges) => number
+  // Its RPC answered with the revision its rebuild wrote: the write leaves once
+  // the blob carries that revision or a later one.
+  settle: (handle: number, revision: number) => void
+  // Its RPC failed: the write leaves now.
+  drop: (handle: number) => void
+}
+
+/**
+ * Every answer crosswords gives about a move — the whole roster of what this
+ * game tells anybody. `lib/answer.ts` says what each one reads as
+ * (docs/outcomes.md → How a game does it).
+ *
+ * A check's red marks and a reveal's letters are their real answers, drawn on
+ * the grid; what the slot adds is only that a check passed over penciled
+ * cells. A keystroke's refusal is not an answer: it is a race or a fault, and
+ * its envelope says so.
+ */
+export type GAnswer =
+  | { answerType: 'checked'; skippedPencil: boolean }
+  | { answerType: 'revealed' }
 
 // ─── The page blobs ─────────────────────────────────────────
 

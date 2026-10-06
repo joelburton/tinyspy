@@ -9,8 +9,7 @@ import {
   BORDER_TOP,
   computeBorderMask,
 } from '../lib/cursor'
-import type { GPuzzleCell as CellT, GPuzzleTemplate, GRebusPostCommit } from '../types'
-import { type CellsMap } from '../hooks/useCells'
+import type { GBoard, GPuzzleCell as CellT, GPuzzleTemplate, GRebusPostCommit } from '../types'
 import { cellKey } from '../lib/cellKey'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
@@ -54,10 +53,11 @@ function overlayStyle(row: number, col: number, gridWidth: number): CSSPropertie
 
 type Props = {
   meta: GPuzzleTemplate
-  cells: CellsMap
+  // The board as drawn, my pending writes included.
+  board: GBoard
   cursorRow: number
   cursorCol: number
-  /** `${row}:${col}` for every cell in the active word. */
+  /** The id of every cell in the active word. */
   highlighted: Set<string>
   onCellClick: (row: number, col: number) => void
   /** The rebus overlay target (Shift+Enter), or null. */
@@ -67,13 +67,12 @@ type Props = {
   /** The read-only zoom-peek (Shift+Space): the cell + its fill, or null.
    *  Mutually exclusive with `rebus` (typing wins over peeking). */
   peek: { row: number; col: number; value: string } | null
-  /** The answer grid — used to fill blank cells with the revealed answer
-   *  (grayed). Null until the post-game "Reveal board" menu item fetches it
-   *  (mid-game the solution is shielded server-side). */
+  /** The answer grid, drawn over the fills (grayed where it differs) while
+   *  this viewer has "Reveal solution" on; null otherwise. */
   solution: (string[] | null)[][] | null
-  /** `${row}:${col}` → CSS color, for teammates' cursor frames (coop). */
+  /** A cell's id → CSS color, for teammates' cursor frames (coop). */
   peerCells: Map<string, string>
-  /** `${row}:${col}` → CSS color: a teammate JUST filled this cell (coop);
+  /** A cell's id → CSS color: a teammate JUST filled this cell (coop);
    *  the fill flashes in their color for a few seconds. */
   recentFills: Map<string, string>
   /** Display-only preference: when true, a multi-char rebus fill renders as
@@ -83,7 +82,7 @@ type Props = {
 }
 
 export function Grid({
-  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, peek, solution, peerCells, recentFills, collapseRebus,
+  meta, board, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, peek, solution, peerCells, recentFills, collapseRebus,
 }: Props) {
   const { width, height, cells: template } = meta
 
@@ -115,12 +114,13 @@ export function Grid({
     >
       {template.map((row, r) =>
         row.map((t, c) => {
-          const key = `${r}:${c}`
+          const key = cellKey(r, c)
           if (t.kind === 'block') {
             return <Cell key={key} mask={masks[r]![c]!} hidden={t.hidden === true} />
           }
           const given = t.given === true
-          const live = given ? undefined : cells.get(cellKey(r, c))
+          // A given has no place on the board.
+          const live = given ? undefined : board.cellsById[key]
           const liveFill = given ? (t.fill ?? null) : (live?.fill ?? null)
           // Post-game "Reveal board": the author's grid, exactly as shipped.
           // It REPLACES the player's fill rather than filling only the blanks —

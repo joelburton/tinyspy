@@ -49,7 +49,6 @@ import { describe, expect, it } from 'vitest'
  */
 const KNOWN: string[] = [
   // → crosswords
-  'src/crosswords/components/PlayArea.tsx › CheckAnswer',
   'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',
   'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx › LibraryAnswer',
   // → e2e

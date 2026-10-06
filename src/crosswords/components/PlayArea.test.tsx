@@ -1,34 +1,33 @@
 // cs-unmet
 
 /**
- * Render smoke + wiring tests for crosswords' PlayArea — the one game that
- * lacked a PlayArea test (every sibling has one). Deliberately shallow: the
- * game logic lives in pgTAP (the RPCs) and the lib unit tests (`cursor`,
- * `enumeration`, `useCells`); here we only prove the coordinator mounts and
- * wires the right affordances per mode / play-state.
+ * crosswords' PlayArea, mounted on the blob the page would hand it
+ * (`ZTest_makeCrosswordsCtx`): the coordinator wires the right affordances per
+ * mode and per ending, the grid's keys reach the right RPCs, and the menu
+ * lists crossplay's rows. The game logic lives in pgTAP (the RPCs) and the
+ * lib and hook tests (`cursor`, `enumeration`, `makeGameData`, the pending
+ * writes, the teammate flash).
  *
- * The three live-data hooks (`useGame`, `useCells`, `usePeerCursors`) and `db`
- * are mocked so no client/network is needed; the Grid, ClueLists, Controls,
- * keyboard, and menu wiring all render for real.
+ * Only the teammates' Realtime room (`usePeerCursors`), the RPC transport and
+ * the explainer's edge function are stubbed; the grid, the clue lists, the
+ * strip, the keyboard and the menu render for real.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { KeyList } from '@/common/actions/KeyList'
 import { getActions } from '@/common/actions/actionsStore'
 import { menuRow, type MenuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import type { CrosswordsGame } from '../hooks/useGame'
-import type { CellsMap, CellState } from '../hooks/useCells'
-import type { GPuzzleTemplate } from '../types'
-import { PlayArea } from './PlayArea'
+import {
+  ZTest_CONCEDED,
+  ZTest_makeCrosswordsCtx,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
+import { PlayAreaLoader } from './PlayArea'
 
 // Only `runEdgeFn` is stubbed — the AI explainer's transport. `runRpc` stays
 // REAL so every RPC path exercises the envelope it actually receives.
@@ -42,105 +41,48 @@ const edgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 // view). Stub it so the effect is a no-op instead of throwing.
 Element.prototype.scrollIntoView = vi.fn()
 
-// A mutable holder each mocked hook reads per render — set before render().
 const h = vi.hoisted(() => ({
-  game: null as CrosswordsGame | null,
-  cells: new Map() as CellsMap,
-  setCell: vi.fn(),
-  setMark: vi.fn(),
   rpc: vi.fn(),
-  broadcastFills: vi.fn(),
   broadcastNote: vi.fn(),
 }))
 
-vi.mock('../hooks/useGame', () => ({ useGame: () => ({ game: h.game, loading: false }) }))
-vi.mock('../hooks/useCells', () => ({
-  useCells: () => ({ cells: h.cells, setCell: h.setCell, setMark: h.setMark }),
-}))
 vi.mock('../hooks/usePeerCursors', () => ({
-  usePeerCursors: () => ({
-    peers: new Map(),
-    recentFills: new Map(),
-    broadcastFill: vi.fn(),
-    broadcastFills: h.broadcastFills,
-    broadcastNote: h.broadcastNote,
-  }),
+  usePeerCursors: () => ({ peers: new Map(), broadcastNote: h.broadcastNote }),
 }))
-vi.mock('../db', () => ({
-  db: {
-    rpc: h.rpc,
-    from: () => ({
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-    }),
-  },
-}))
+vi.mock('../db', () => ({ db: { rpc: h.rpc } }))
 
-/** A minimal 2×2 all-open template — answers C A / T S, one across + one down
- *  clue each. Enough for the Grid + cursor + keyboard to mount for real. */
-function template(): GPuzzleTemplate {
-  const cell = (number: number | null) => ({ kind: 'cell' as const, number, fill: null })
-  return {
-    id: 'toy', title: 'Toy', author: 'T', copyright: '', note: '',
-    width: 2, height: 2,
-    clues: {
-      across: [{ number: 1, text: '1 across' }, { number: 3, text: '3 across' }],
-      down: [{ number: 1, text: '1 down' }, { number: 2, text: '2 down' }],
-    },
-    cells: [
-      [cell(1), cell(2)],
-      [cell(3), cell(null)],
-    ],
-  }
-}
+/** Me (u1) and moth (u2). */
+const TWO = [
+  { id: 'u1', username: 'me', color: 'red' },
+  { id: 'u2', username: 'moth', color: 'blue' },
+]
 
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
+/** The page's props for a two-player game, from the game's facts. */
+const makeCtx = (facts: ZTest_GameDataFacts = {}) => ZTest_makeCrosswordsCtx({ players: TWO, ...facts })
+
+/** A two-player race. */
+const competeFacts = (facts: ZTest_GameDataFacts = {}): ZTest_GameDataFacts => ({ mode: 'compete', ...facts })
+
+/** The facts of a game that has ended, everyone's outcome as the server wrote it. */
+function endedFacts(
+  mode: 'coop' | 'compete',
+  ending: NonNullable<ZTest_GameDataFacts['ending']>,
+  outcome: 'won' | 'lost' | 'neutral',
+): ZTest_GameDataFacts {
   return {
-    gameId: 'g1',
-    brand: 'CrossPlay',
-    title: 'Toy',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: { source: 'library', timer: { kind: 'none' } },
-    status: null,
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
+    mode,
+    ending,
+    outcome,
+    players: TWO.map((p) => ({ ...p, outcome })),
   }
 }
 
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Any test that TYPES needs it: the grid's keys are actions, and a bare
  *  `render` binds them with nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: PlayAreaLoaderProps) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** What each RPC answers on the happy path, by name. */
@@ -148,51 +90,43 @@ const OK_DATA: Record<string, unknown> = {
   check_cells: { result: 'checked', wrong_count: 0 },
   reveal_cells: { result: 'revealed', solved: false },
   export_solution: { result: 'exported', solution: [] },
-  set_cell: { result: 'set', version: 1, solved: false },
-  set_mark: { result: 'marked', version: 1 },
+  set_cell: { result: 'set', revision: 2, solved: false },
+  set_mark: { result: 'marked', revision: 2 },
 }
 
-beforeEach(() => {
-  h.game = { mode: 'coop', puzzleId: 'p1', meta: template() }
-  h.cells = new Map()
-  h.setCell.mockReset().mockResolvedValue({ version: 1, solved: false })
-  h.setMark.mockReset().mockResolvedValue({ version: 1 })
-  // Every RPC this component calls answers in an ENVELOPE, and `runRpc` reads
-  // the SHAPE — a bare `{ error: null }` is not one and would fault. Each call
-  // site asserts its OWN `result`, so the reply has to name the right one:
-  // answering `checked` to a reveal sends it to the scream, which is the
-  // branch chain doing its job.
-  h.rpc.mockReset().mockImplementation((name: string) => Promise.resolve({
+/** An envelope as `runRpc` reads it. */
+function envelope(data: unknown) {
+  return {
     data: {
-      type: 'ok',
-      data: OK_DATA[name] ?? { result: name },
-      outcome: null, severity: null, message: null,
+      type: 'ok', data, outcome: null, severity: null, message: null,
       field: null, meta: null, dbcode: null, detail: null,
     },
     error: null,
     status: 200,
-  }))
-  h.broadcastFills.mockReset()
+  }
+}
+
+beforeEach(() => {
+  // Every RPC this surface calls answers in an ENVELOPE, and each call site
+  // asserts its OWN `result`, so the reply names the right one.
+  h.rpc.mockReset().mockImplementation((name: string) => Promise.resolve(envelope(OK_DATA[name] ?? { result: name })))
   h.broadcastNote.mockReset()
   edgeFn.mockReset()
 })
 
-/** RPC names db.rpc was called with (the ⌥-shortcut tests assert on these). */
+/** RPC names db.rpc was called with. */
 function rpcNames(): string[] {
   return h.rpc.mock.calls.map((c) => c[0] as string)
 }
 
-/** A control by WHICH action it is, since its words vary per state. The pen
- *  and pencil caps are one action wearing two names, so that pair keeps a
- *  second discriminator. */
+/** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
 /** What an action says about itself right now. */
 const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 /** A keystroke at the page, the way a player types with nothing focused.
- *  Awaited, because an action's run is single-flight: a second press before the
- *  first has settled is dropped. */
+ *  Awaited, because an action's run is single-flight. */
 const press = (init: KeyboardEventInit) =>
   act(async () => {
     fireEvent.keyDown(document.body, init)
@@ -200,17 +134,15 @@ const press = (init: KeyboardEventInit) =>
 
 describe('crosswords PlayArea — render smoke + wiring', () => {
   it('coop play shows Stop, not Concede, and offers Reveal', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(control('act-stop-game')).toBeInTheDocument()
     expect(control('act-concede')).toBeNull()
-    // Reveal is coop-only.
     expect(control('act-reveal-word')).toBeInTheDocument()
     expect(control('act-check-word')).toBeInTheDocument()
   })
 
   it('compete play shows Concede, not Stop, and hides Reveal (Check stays)', () => {
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx(competeFacts())} />)
     expect(control('act-concede')).toBeInTheDocument()
     expect(control('act-stop-game')).toBeNull()
     // Revealing your own grid would trivially win a race — no Reveal in compete.
@@ -218,69 +150,59 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(control('act-check-word')).toBeInTheDocument()
   })
 
-  it('renders the terminal state without crashing (Back to club, no action row)', () => {
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    // Two "Back to club" affordances at terminal: the chrome strip + the modal.
+  it('once the game has ended the tools go and Back to club is there', () => {
+    render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
     expect(screen.getAllByRole('button', { name: /back to club/i }).length).toBeGreaterThan(0)
-    // The play-time action row is gone at terminal.
     expect(control('act-stop-game')).toBeNull()
     expect(control('act-check-word')).toBeNull()
   })
 
-  /**
-   * The compete collective losses both land on play_state `lost_compete` and
-   * are told apart only by `status.reason` — the two-places trap's third
-   * surface (summaryFor asserts the club card; nothing else asserts the in-game
-   * verdict). These pin buildOver to the terminals the server actually writes:
-   * common.concede → 'lost_compete' + reason 'conceded',
-   * crosswords.submit_timeout → 'lost_compete' + 'timeout' (compete) /
-   * 'lost' + 'timeout' (coop).
-   */
-  describe('terminal loss verdicts', () => {
-    const terminalCtx = (playState: string, reason: string) =>
-      makeCtx({ isTerminal: true, playState, status: { reason } })
+  describe('the verdicts, read off the ending the server wrote', () => {
+    it('coop solved', () => {
+      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+      expect(screen.getAllByText('Won: grid complete').length).toBeGreaterThan(0)
+    })
 
-    it('compete all-conceded (lost_compete + outcome conceded) says so', () => {
-      h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-      render(<PlayArea {...terminalCtx('lost_compete', 'conceded')} />)
+    it('a race lost to a rival names them', () => {
+      const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' }, 'won')
+      facts.players = [{ ...TWO[0]!, outcome: 'lost' }, { ...TWO[1]!, outcome: 'won' }]
+      render(<PlayAreaLoader {...makeCtx(facts)} />)
+      expect(screen.getAllByText('solved it first').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('moth').length).toBeGreaterThan(0)
+    })
+
+    it('compete all-conceded says so', () => {
+      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null }, 'lost'))} />)
       expect(screen.getAllByText('Lost: all conceded').length).toBeGreaterThan(0)
     })
 
-    it('compete timeout (lost_compete + outcome timeout) blames the clock', () => {
-      h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-      render(<PlayArea {...terminalCtx('lost_compete', 'timeout')} />)
+    it('compete timeout blames the clock', () => {
+      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'timeout', detail: 'timeout', by: null, winner: null }, 'lost'))} />)
       expect(screen.getAllByText('Out of time — no winner').length).toBeGreaterThan(0)
     })
 
-    it('coop clock (lost + outcome timeout) is a plain loss', () => {
-      render(<PlayArea {...terminalCtx('lost', 'timeout')} />)
+    it('coop clock is a plain loss', () => {
+      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'timeout', detail: 'timeout', by: null, winner: null }, 'lost'))} />)
       expect(screen.getAllByText('Lost: out of time').length).toBeGreaterThan(0)
     })
   })
 
-  /** A CellState with the given overrides (defaults = empty writable cell). */
-  function cellState(over: Partial<CellState> = {}): CellState {
-    return {
-      fill: null, pencil: false, revealed: false, wrong: false,
-      markRight: null, markBottom: null, version: 1, ...over,
-    }
-  }
-
   it('flags that Check skips pencil when the checked scope holds a pencil mark', async () => {
-    // Cursor starts at 0,0; a penciled fill there is in every scope (letter +
-    // whichever word direction), so Check word surfaces the notice.
-    h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: true })]])
-    render(<PlayArea {...makeCtx()} />)
+    // The cursor starts at (0,0); a penciled fill there is in every scope.
+    render(<PlayAreaLoader {...makeCtx({ cells: [{ row: 0, col: 0, fill: 'C', pencil: true }] })} />)
     fireEvent.click(control('act-check-word')!)
     expect(await screen.findByText('Check skips pencil marks')).toBeInTheDocument()
     expect(rpcNames()).toContain('check_cells')
   })
 
+  it('does NOT flag pencil when the checked scope has only letters in pen', async () => {
+    render(<PlayAreaLoader {...makeCtx({ cells: [{ row: 0, col: 0, fill: 'C' }] })} />)
+    fireEvent.click(control('act-check-word')!)
+    await waitFor(() => expect(rpcNames()).toContain('check_cells'))
+    expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
+  })
+
   it('a clicked tool-bar square does not keep focus — Enter must not check the word again', async () => {
-    // The grid's keys are read off the window, and a bare Enter is bound to
-    // nothing on purpose. A square left holding focus would answer that Enter
-    // itself and re-fire the check; the grid cells and clue rows already refuse
-    // focus on mousedown, and the squares must too.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     const square = control('act-check-word')!
@@ -291,19 +213,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(rpcNames().filter((n) => n === 'check_cells')).toHaveLength(1)
   })
 
-  it('does NOT flag pencil when the checked scope has only committed (pen) fills', async () => {
-    h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: false })]])
-    render(<PlayArea {...makeCtx()} />)
-    fireEvent.click(control('act-check-word')!)
-    await waitFor(() => expect(rpcNames()).toContain('check_cells'))
-    expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
-  })
-
-  /** Every TOP-LEVEL row the menu would draw, in order — a row is an
-   *  action now, so its words, glyph, key hint and availability come from the
-   *  action rather than from the list. A hidden row is dropped, the way the menu
-   *  drops it. A submenu parent appears once, as itself; its children are on
-   *  `.children`. */
+  /** Every TOP-LEVEL row the menu would draw, in order. A hidden row is
+   *  dropped, the way the menu drops it; a submenu parent appears once. */
   function menuRows(ctx: PlayAreaLoaderProps): MenuRow[] {
     const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
     const sections = (setSections.mock.calls.at(-1)?.[0] ?? []) as MenuSection[]
@@ -319,13 +230,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
 
   it('populates the full crossplay-order menu with shortcut hints (coop)', () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
-    // Check + Reveal are ONE row each — six flat rows collapsed into two
-    // submenus (this menu already runs long enough to scroll).
+    render(<PlayAreaLoader {...ctx} />)
     expect(menuRows(ctx).map((r) => r.id)).toEqual([
-      // Help + chat are `buildGameMenu`'s framing pair, above every game's own
-      // sections: chat has a header bubble and a `/` shortcut, and this row is
-      // the labeled twin that writes that shortcut down (gameMenu.ts).
       'act-help', 'act-open-chat',
       'act-pencil', 'act-rebus', 'act-collapse-rebuses',
       // No Scratchpad row: ⌥S is the header mark's action, and nothing binds it
@@ -336,12 +242,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       // Concede hides itself in coop, so the exits are Stop + Back to club.
       'act-stop-game', 'act-back-to-club',
     ])
-    // The children keep their full names under the parent — the same action is
-    // listed in Help with no parent to lend it the verb.
     expect(submenuOf(ctx, 'check').map((r) => r.label)).toEqual(['Check letter', 'Check word', 'Check grid'])
     expect(submenuOf(ctx, 'reveal').map((r) => r.label)).toEqual(['Reveal letter', 'Reveal word', 'Reveal grid'])
-    // The hints ride the CHILDREN — a submenu parent isn't a command, so it
-    // carries none. ⌥C = check letter, ⌥⇧C = check word.
     const check = new Map(submenuOf(ctx, 'check').map((r) => [r.id, r]))
     expect(check.get('act-check-letter')?.shortcut).toBe('⌥C')
     expect(check.get('act-check-word')?.shortcut).toBe('⌥⇧C')
@@ -353,8 +255,6 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(rows.get('act-rebus')?.shortcut).toBe('⇧↵')
     expect(rows.get('act-collapse-rebuses')?.disabled).toBe(false)
     expect(rows.get('act-download-ipuz')?.disabled).toBe(false)
-    // Restart (what "Clear board" became) is live mid-game — it's confirmed,
-    // not disabled; the solution reveal stays terminal-only.
     expect(rows.get('act-restart')?.disabled).toBe(false)
     expect(rows.get('act-reveal')?.disabled).toBe(true)
     expect(rows.get('act-reveal')?.label).toBe('Reveal solution')
@@ -364,21 +264,17 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
 
   it('names the pencil toggle for where it takes you', async () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     expect(rowsById(ctx).get('act-pencil')?.label).toBe('Switch to pencil')
     act(() => rowsById(ctx).get('act-pencil')!.run())
     await waitFor(() => expect(rowsById(ctx).get('act-pencil')?.label).toBe('Switch to pen'))
   })
 
   it('omits the coop-only Reveal submenu and shows Concede in compete', () => {
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    const ctx = makeCtx(competeFacts())
+    render(<PlayAreaLoader {...ctx} />)
     const ids = menuRows(ctx).map((r) => r.id)
-    // All three Reveal children hide themselves, and a submenu with nothing left
-    // to show is not a row you can open — so the whole family is gone.
     expect(ids).not.toContain('reveal')
-    // Check + pencil still present; compete shows Concede (not Stop game).
     expect(ids).toContain('check')
     expect(submenuOf(ctx, 'check').map((r) => r.id)).toContain('act-check-letter')
     expect(ids).toContain('act-pencil')
@@ -386,27 +282,44 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(ids).not.toContain('act-stop-game')
   })
 
-  it('gates the answer-key PDF in compete: disabled mid-play, enabled at terminal', () => {
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    // Mid-play: an answer key would give away the race, so it's disabled.
-    const playing = makeCtx()
-    const { unmount } = render(<PlayArea {...playing} />)
+  it('gates the answer-key PDF in compete: disabled mid-play, enabled once ended', () => {
+    const playing = makeCtx(competeFacts())
+    const { unmount } = render(<PlayAreaLoader {...playing} />)
     expect(rowsById(playing).get('act-print-solution')?.disabled).toBe(true)
     unmount()
 
-    // Terminal: the game's over, so it's allowed.
-    const done = makeCtx({ isTerminal: true, playState: 'won_compete' })
-    render(<PlayArea {...done} />)
+    const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won')
+    const done = makeCtx(facts)
+    render(<PlayAreaLoader {...done} />)
     expect(rowsById(done).get('act-print-solution')?.disabled).toBe(false)
   })
 })
 
 describe('crosswords PlayArea — the grid keys, through the one dispatcher', () => {
-  it('a letter typed on the board fills the cursor cell', () => {
+  it('a letter typed on the board goes to set_cell for the cursor cell, and shows at once', async () => {
     render(<WithKeys {...makeCtx()} />)
-    fireEvent.keyDown(document.body, { key: 'A' })
-    // The cursor seeds at the first fillable cell (0,0); a letter writes it.
-    expect(h.setCell).toHaveBeenCalledWith(0, 0, 'A', false)
+    await press({ key: 'A' })
+    // The cursor seeds at the first fillable cell (0,0).
+    expect(h.rpc).toHaveBeenCalledWith('set_cell', {
+      p_game_id: 'g1', p_row: 0, p_col: 0, p_fill: 'A', p_pencil: false,
+    })
+    // The letter is drawn before any blob carries it.
+    expect(document.querySelector('[data-row="0"][data-col="0"]')).toHaveAttribute('data-fill', 'A')
+  })
+
+  it('a refused letter leaves the grid and says why', async () => {
+    h.rpc.mockImplementation(() => Promise.resolve({
+      data: {
+        type: 'not-ok', data: null, outcome: 'lost', severity: 'race', message: 'Game over',
+        field: null, meta: null, dbcode: 'PN486', detail: null,
+      },
+      error: null,
+      status: 200,
+    }))
+    render(<WithKeys {...makeCtx()} />)
+    await press({ key: 'A' })
+    expect(await screen.findByText('Game over')).toBeInTheDocument()
+    expect(document.querySelector('[data-row="0"][data-col="0"]')).toHaveAttribute('data-fill', '')
   })
 
   it('a letter typed inside a text input (e.g. chat) is ignored', () => {
@@ -415,7 +328,7 @@ describe('crosswords PlayArea — the grid keys, through the one dispatcher', ()
     document.body.appendChild(input)
     input.focus()
     fireEvent.keyDown(input, { key: 'A' })
-    expect(h.setCell).not.toHaveBeenCalled()
+    expect(rpcNames()).not.toContain('set_cell')
     input.remove()
   })
 })
@@ -425,7 +338,8 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
     render(<WithKeys {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
     expect(rpcNames()).toContain('check_cells')
-    // ⌥C = letter scope = just the cursor cell (1); ⌥⇧C = word scope (2 here).
+    // ⌥C = letter scope = just the cursor cell; ⌥⇧C = word scope, the two open
+    // cells of row 0 before its block.
     const letterCall = h.rpc.mock.calls.find((c) => c[0] === 'check_cells')
     expect((letterCall?.[1] as { p_cells: unknown[] }).p_cells.length).toBe(1)
 
@@ -455,14 +369,11 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
 
   it('revealing the whole GRID asks first — and canceling writes nothing', async () => {
     const ctx = makeCtx()
-    render(<><PlayArea {...ctx} /><ConfirmationHost /></>)
+    render(<><PlayAreaLoader {...ctx} /><ConfirmationHost /></>)
     h.rpc.mockClear()
 
     await revealGrid(ctx)
 
-    // The modal, not the RPC: filling every answer ends the puzzle for the
-    // whole table, and the row sits one mis-click below "Word". The question is
-    // the registry's, asked by the shared run.
     expect(await screen.findByText('Reveal the whole grid?')).toBeInTheDocument()
     expect(rpcNames()).not.toContain('reveal_cells')
 
@@ -472,13 +383,13 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
 
   it('…and confirming it goes through', async () => {
     const ctx = makeCtx()
-    render(<><PlayArea {...ctx} /><ConfirmationHost /></>)
+    render(<><PlayAreaLoader {...ctx} /><ConfirmationHost /></>)
     h.rpc.mockClear()
     await revealGrid(ctx)
     await screen.findByText('Reveal the whole grid?')
-    // The tool bar's own "Reveal grid" square shares the name — which is the
-    // point, they are the same action. The square says which action it is and
-    // the modal's confirm does not, so that is what tells them apart.
+    // The tool bar's own "Reveal grid" square shares the name — they are the
+    // same action. The square says which action it is and the modal's confirm
+    // does not, so that is what tells them apart.
     const confirm = screen
       .getAllByRole('button', { name: 'Reveal grid' })
       .find((b) => b.dataset.action === undefined)!
@@ -495,56 +406,31 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   })
 
   it('⌥R does NOT reveal in compete (reveal is coop-only)', () => {
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    render(<WithKeys {...makeCtx()} />)
+    render(<WithKeys {...makeCtx(competeFacts())} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     expect(rpcNames()).not.toContain('reveal_cells')
   })
 
-  it('⌥N opens the note dialog when the puzzle has a setter note', () => {
-    h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Theme: fruit' } }
-    render(<WithKeys {...makeCtx()} />)
+  it('⌥N opens the note and asks teammates to open it too, when the puzzle has one', () => {
+    const ctx = makeCtx()
+    ;(ctx.gameData as { puzzle: { note: string } }).puzzle.note = 'Theme: fruit'
+    render(<WithKeys {...ctx} />)
     fireEvent.keyDown(document.body, { code: 'KeyN', key: '˜', altKey: true })
     expect(screen.getByText('Theme: fruit')).toBeInTheDocument()
-  })
-
-  it('⌥ shortcuts are inert at terminal (read-only board)', () => {
-    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
-    expect(rpcNames()).not.toContain('check_cells')
-  })
-})
-
-describe('crosswords PlayArea — peer broadcasts (note + reveal flash)', () => {
-  it('Show note broadcasts so teammates open it too (coop)', () => {
-    h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Theme: fruit' } }
-    render(<WithKeys {...makeCtx()} />)
-    fireEvent.keyDown(document.body, { code: 'KeyN', key: '˜', altKey: true })
     expect(h.broadcastNote).toHaveBeenCalled()
   })
 
-  it('a coop reveal flashes the revealed cells on teammates’ grids', async () => {
-    render(<WithKeys {...makeCtx()} />)
-    fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
-    // handleReveal awaits the RPC, then broadcasts the revealed coords.
-    await waitFor(() => expect(h.broadcastFills).toHaveBeenCalled())
-    expect(h.broadcastFills.mock.calls[0]?.[0]).toHaveLength(1) // ⌥R = reveal letter (cursor cell)
-  })
-
-  it('a failed reveal does not broadcast a flash', async () => {
-    h.rpc.mockResolvedValue({ error: { message: 'nope' } })
-    render(<WithKeys {...makeCtx()} />)
-    fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
-    await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
-    expect(h.broadcastFills).not.toHaveBeenCalled()
+  it('⌥ shortcuts are inert once the game has ended (read-only board)', () => {
+    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+    fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
+    expect(rpcNames()).not.toContain('check_cells')
   })
 })
 
 /**
  * The page's own chords, through the dispatcher: the pencil toggle, the AI
  * explainer, the two overlays the grid keys open, and New game — which here
- * opens the club's setup dialog rather than creating a game, since a crossword
- * names a puzzle and "the same again" would re-serve the grid just solved.
+ * opens the club's setup dialog rather than creating a game.
  */
 describe('crosswords PlayArea — the page chords', () => {
   const pencilCap = () =>
@@ -561,8 +447,9 @@ describe('crosswords PlayArea — the page chords', () => {
 
   it('⌥X asks the explainer when the puzzle has a note', async () => {
     edgeFn.mockResolvedValue({ type: 'ok', data: { result: 'unsolved' } })
-    h.game = { mode: 'coop', puzzleId: 'p1', meta: { ...template(), note: 'Cryptic' } }
-    render(<WithKeys {...makeCtx()} />)
+    const ctx = makeCtx()
+    ;(ctx.gameData as { puzzle: { note: string } }).puzzle.note = 'Cryptic'
+    render(<WithKeys {...ctx} />)
     expect(stateOf('act-explain-clue')).toBe('active')
     await press({ key: '≈', code: 'KeyX', altKey: true })
     await waitFor(() =>
@@ -592,9 +479,9 @@ describe('crosswords PlayArea — the page chords', () => {
     expect(screen.getByRole('dialog', { name: 'Jump to clue number' })).toBeInTheDocument()
   })
 
-  it('+ at terminal goes to the club’s setup dialog with no question', async () => {
+  it('+ once the game has ended goes to the club’s setup dialog with no question', async () => {
     window.history.replaceState(null, '', '/')
-    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the navigation proves none was asked.
@@ -618,28 +505,19 @@ describe('crosswords PlayArea — the page chords', () => {
     expect(window.location.search).toBe('')
   })
 
+  /** A race in which I have conceded and moth races on. */
+  const concededFacts = () => competeFacts({ players: [{ ...TWO[0]!, ...ZTest_CONCEDED }, TWO[1]!] })
+
   it('a conceded racer’s grid keys are inert', async () => {
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    render(
-      <WithKeys
-        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
-      />,
-    )
+    render(<WithKeys {...makeCtx(concededFacts())} />)
     expect(stateOf('act-fill-cell')).toBe('disabled')
     expect(stateOf('act-move-cursor')).toBe('disabled')
     await press({ key: 'A' })
-    expect(h.setCell).not.toHaveBeenCalled()
+    expect(rpcNames()).not.toContain('set_cell')
   })
 
   it('a conceded racer keeps the one flag — Stop for all, not a hidden Concede', () => {
-    // Conceding is spent; stopping the game for all is open to anyone in it, so
-    // Stop takes Concede's place in the "You conceded" row.
-    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
-    render(
-      <WithKeys
-        {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), ZTest_gp('u2', 'moth', 'blue')] })}
-      />,
-    )
+    render(<WithKeys {...makeCtx(concededFacts())} />)
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
@@ -648,8 +526,7 @@ describe('crosswords PlayArea — the page chords', () => {
 
 /**
  * The help list, generated from the same actions the dispatcher fires. What
- * it shows is each key's label and what the action is CALLED at that moment —
- * which for the check/reveal ladder is the registry's scope word alone.
+ * it shows is each key's label and what the action is CALLED at that moment.
  */
 describe('crosswords PlayArea — the key list', () => {
   /** The rows as [key, words] pairs. */
@@ -662,7 +539,7 @@ describe('crosswords PlayArea — the key list', () => {
   it('lists the page chords and the four check/reveal rows by scope word', () => {
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <KeyList />
       </>,
     )
@@ -671,8 +548,6 @@ describe('crosswords PlayArea — the key list', () => {
     expect(rows).toContainEqual(['⇧↵', 'Enter rebus'])
     expect(rows).toContainEqual(['A–Z', 'Fill the cell'])
     expect(rows).toContainEqual(['⌥⌫', 'Stop game'])
-    // The ladder: with no submenu parent to lend the verb, a check and a reveal
-    // of the same scope must still read apart.
     expect(rows).toContainEqual(['⌥C', 'Check letter'])
     expect(rows).toContainEqual(['⌥⇧C', 'Check word'])
     expect(rows).toContainEqual(['⌥R', 'Reveal letter'])

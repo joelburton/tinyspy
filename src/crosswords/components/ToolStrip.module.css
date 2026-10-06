@@ -1,0 +1,24 @@
+/* cs-unmet */
+
+/* The strip under the clue lists (ToolStrip.tsx). */
+
+/* @@ */ .strip {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+/* The tool row. Everything in it — the fill toggle, check/reveal, and the
+ * Stop / Concede action — is laid out by <Controls>, which owns the grouping
+ * and the rules between groups (Controls.module.css). */
+/* @@ */ .toolRow {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+/* @@ */ .actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}

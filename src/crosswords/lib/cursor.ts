@@ -11,7 +11,7 @@
  * on the static template grid alone.
  */
 
-import type { GArrowKey, GCellPos, GCursor, GDirection, GPuzzleCell } from '../types'
+import type { GArrowKey, GCellPos, GCursor, GDirection, GPuzzleCell, GScope } from '../types'
 
 const DELTA: Record<GArrowKey, { dr: number; dc: number; dir: GDirection }> = {
   ArrowLeft: { dr: 0, dc: -1, dir: 'across' },
@@ -353,4 +353,16 @@ export function jumpClue(
   const nextIdx = (baseIdx + delta + starts.length) % starts.length
   const target = starts[nextIdx]!
   return { row: target.row, col: target.col, dir: target.dir }
+}
+
+/** The cells a check or a reveal acts on: the cursor's cell, the word under
+ *  the cursor, or every open cell of the grid. */
+export function listScopeCells(cells: GPuzzleCell[][], cursor: GCursor, scope: GScope): GCellPos[] {
+  if (scope === 'letter') return [{ row: cursor.row, col: cursor.col }]
+  if (scope === 'word') return wordCells(cells, cursor.row, cursor.col, cursor.dir)
+  const out: GCellPos[] = []
+  cells.forEach((row, r) => row.forEach((cell, c) => {
+    if (cell.kind === 'cell') out.push({ row: r, col: c })
+  }))
+  return out
 }
