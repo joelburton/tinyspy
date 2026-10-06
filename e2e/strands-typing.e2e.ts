@@ -125,7 +125,9 @@ test.describe('strands typed input', () => {
     // and what this is checking.
     await page.keyboard.press('h')
     await submit.click()
-    await expect(page.getByText(/too short/i)).toBeVisible({ timeout: 10000 })
+    // The feedback line's verdict; the log's row for the same attempt says
+    // "too short" too, once the page has re-read the game.
+    await expect(page.getByText('CH — too short', { exact: true })).toBeVisible({ timeout: 10000 })
 
     await ctx.close()
   })

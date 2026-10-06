@@ -217,14 +217,18 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
 
 /**
  * The props `<GamePage>` hands strands' `PlayArea`, from the game's facts: the
- * `game_data` blob, and shell_data's roster read off it, viewed by `auth`
- * (`u1` unless said otherwise).
+ * `game_data` and `static_game_data` blobs, and shell_data's roster read off
+ * them, viewed by `auth` (`u1` unless said otherwise).
  */
 export function ZTest_makeStrandsCtx(
   facts: ZTest_GameDataFacts = {},
-  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData' | 'staticGameData'> = {},
 ): PlayAreaLoaderProps {
   const raw = ZTest_makeGameDataRaw(facts)
+  // The two blobs the page hands down, split as the builders write them: what
+  // create fixed, the prompt and the tiles included, in the static one; the
+  // rest, the puzzle words included, in game_data.
+  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle, ...changing } = raw
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -234,7 +238,11 @@ export function ZTest_makeStrandsCtx(
     players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    gameData: raw,
+    gameData: { ...changing, puzzle: { puzzleWords: puzzle.puzzleWords } },
+    staticGameData: {
+      id, gametype, brand, club, mode, coop, compete, oneBoard, setup,
+      puzzle: { title: puzzle.title, tiles: puzzle.tiles },
+    },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

@@ -112,9 +112,9 @@ select is(
 );
 
 select is(
-  (select game_data->'puzzle'->>'title' from common.games where id = (select id from game)),
+  (select static_game_data->'puzzle'->>'title' from common.games where id = (select id from game)),
   'Rows of nonsense',
-  'game_data carries the puzzle title — it is the prompt, not the answer'
+  'static_game_data carries the puzzle title — it is the prompt, not the answer'
 );
 
 -- ============================================================

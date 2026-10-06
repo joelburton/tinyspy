@@ -18,7 +18,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to strands (docs/games/strands.md has the rest):
 --   - THE SHIELD. The solution is hidden by a column grant, and `game_data`
@@ -171,13 +172,19 @@ drop function if exists strands._write_statuses(uuid, boolean);
 -- A tile's id is its place, "r,c" — the key `_path_key` compares by — and
 -- every path in a blob is a list of tile ids, in the order it was traced.
 --
---   game_data, strands' part:
---     puzzle: {title, tiles, puzzleWords}  frozen at create: the theme prompt;
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, strands' part:
+--     puzzle: {title, tiles}               frozen at create: the theme prompt;
 --                                          all 48 tiles, each {id, letter, row,
---                                          col}, row by row; the puzzle words,
---                                          each {word, tileIds, spangram},
---                                          spangram first, null until the game
---                                          ends
+--                                          col}, row by row
+--
+--   game_data, strands' part:
+--     puzzle: {puzzleWords}                the puzzle words, each {word, tileIds,
+--                                          spangram}, spangram first, null until
+--                                          the game ends
 --     team: {nFoundPuzzleWords, nHintsUsed, hintPoints}
 --                                          what the team shares: the puzzle words
 --                                          found, the players' hints summed, the
@@ -263,8 +270,9 @@ $$;
 
 revoke execute on function strands._make_json_puzzle_words(jsonb) from public;
 
--- The prompt, the tiles, and the puzzle words once the game has ended (the
--- column grant keeps them from any client read).
+-- The puzzle's part of game_data: the puzzle words once the game has ended (the
+-- column grant keeps them from any client read). The prompt and the tiles are
+-- static (`_make_json_static_game_data`).
 create or replace function strands._make_json_puzzle(sg strands.games, p_ended boolean)
 returns jsonb
 language sql
@@ -272,8 +280,6 @@ immutable
 set search_path = strands, common, public, extensions
 as $$
   select jsonb_build_object(
-    'title', sg.puzzle_title,
-    'tiles', strands._make_json_tiles(sg.board),
     'puzzleWords', case when p_ended then strands._make_json_puzzle_words(sg.solution) end);
 $$;
 
@@ -405,6 +411,24 @@ $$;
 
 revoke execute on function strands._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the prompt and the
+-- tiles on top. Nothing in it changes after create_game.
+create or replace function strands._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', jsonb_build_object(
+             'title', sg.puzzle_title,
+             'tiles', strands._make_json_tiles(sg.board)))
+    from strands.games sg
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function strands._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: the numbers a list of games shows for this one. A race's
 -- winners share a rank only on the same hints, so any one of them says it.
 create or replace function strands._make_json_summary_data(
@@ -472,12 +496,32 @@ $$;
 revoke execute on function strands._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- strands._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function strands._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = strands._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function strands._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- strands._rebuild_data_cols_for_all — every strands game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every strands game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every strands game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function strands._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -491,6 +535,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('strands_coop', 'strands_compete')
   loop
+    perform strands._write_static_game_data(v_game_id);
     perform strands._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -796,6 +841,7 @@ begin
   insert into strands.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) as uid;
 
+  perform strands._write_static_game_data(new_id);
   perform strands._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a

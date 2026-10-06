@@ -1,14 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: strands' page blobs — game_data, summary_data, and shell_data beside them
+-- Test: strands' page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `strands._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/strands.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/strands.sql → The page blobs). This file
+-- pins what the page gets:
 --
---   1. A fresh game: the board as 48 tiles row by row, the title, no words;
---      coop's team at nothing and no team in compete; each player fresh, with
+--   1. A fresh game: the board as 48 tiles row by row and the title in
+--      static_game_data, no words in game_data's puzzle; coop's team at
+--      nothing and no team in compete; each player fresh, with
 --      an empty board; both fresh summaries
 --   2. Mid-game coop: a find, three hint words, a spent hint and a miss in the
 --      log, each path as tile ids in trace order; the shared board and the
@@ -20,8 +22,8 @@
 --      every teammate; a race's winner and the hints she won on;
 --      shell_data rewritten
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every strands game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every strands game, its static
+--      blob included, without re-dating it
 --
 -- The board is setup.psql's: one puzzle word per row, row 4 the spangram, and
 -- each of rows 0–3 starting with a four-letter hint word.
@@ -32,7 +34,7 @@ set search_path = strands, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(23);
+select plan(24);
 
 select pg_temp.strands_hint_words();
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
@@ -62,6 +64,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: strands' keys sit beside it.
@@ -85,16 +89,21 @@ create function pg_temp.own_keys(player jsonb) returns jsonb language sql as
 -- ─── (1) A fresh game ───
 select is(
   (select jsonb_build_object(
-     'nTiles', jsonb_array_length(gd -> 'puzzle' -> 'tiles'),
-     'first',  gd -> 'puzzle' -> 'tiles' -> 0,
-     'last',   gd -> 'puzzle' -> 'tiles' -> 47,
-     'title',  gd -> 'puzzle' -> 'title',
-     'puzzleWords', gd -> 'puzzle' -> 'puzzleWords')
-     from (select pg_temp.game_data(pg_temp.coop()) gd) x),
+     'nTiles', jsonb_array_length(sgd -> 'puzzle' -> 'tiles'),
+     'first',  sgd -> 'puzzle' -> 'tiles' -> 0,
+     'last',   sgd -> 'puzzle' -> 'tiles' -> 47,
+     'title',  sgd -> 'puzzle' -> 'title',
+     'keys',   (select jsonb_agg(k order by k) from jsonb_object_keys(sgd -> 'puzzle') k))
+     from (select pg_temp.static_game_data(pg_temp.coop()) sgd) x),
   '{"nTiles": 48, "first": {"id": "0,0", "letter": "z", "row": 0, "col": 0},
     "last": {"id": "7,5", "letter": "r", "row": 7, "col": 5},
-    "title": "Rows of nonsense", "puzzleWords": null}'::jsonb,
-  'the puzzle: the board as 48 tiles row by row, the title, no puzzle words mid-game'
+    "title": "Rows of nonsense", "keys": ["tiles", "title"]}'::jsonb,
+  'the static puzzle: the board as 48 tiles row by row, the title'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
+  '{"puzzleWords": null}'::jsonb,
+  'game_data''s puzzle: the puzzle words alone, withheld mid-game'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
@@ -281,12 +290,16 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(strands._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every strands game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null
       and status_changed_at = '2026-01-01'),
   2,
   '… every blob is back, and no game is re-dated'
