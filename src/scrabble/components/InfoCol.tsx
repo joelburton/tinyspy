@@ -1,304 +1,133 @@
 // cs-unmet
 
-import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
-import { type Member, type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
-import type { SetupRow } from '@/common/setup-form/types'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { PlayerRow, EventRow } from '../hooks/useGame'
-import type { GRankedMove, GSetup, GSuggestState } from '../types'
+import type { useSuggestMove } from '../hooks/useSuggestMove'
+import type { GActions } from '../reactTypes'
+import type { GGameData, GHistoryView, GPlayer } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
+import { SuggestPanel } from './SuggestPanel'
 import shared from '@/common/info-sheet/infoCol.module.css'
-import styles from './InfoCol.module.css'
-
-/** "15" / "-3" / "19.5" — the rating, bare (no "+"; the score beside it keeps
- *  its plus), decimals only when the leave's half-point weights put them there. */
-const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
 
 /**
- * scrabble's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/playarea.md → Info-column readouts): turn/score
- * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
- * command arrives as an action this column places; the one callback up is
- * `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other games' columns for the
- * same idea (docs/playarea.md).
+ * scrabble's info column, in the canonical order (docs/playarea.md →
+ * Info-column readouts): **state → opponents (compete) → turn line → action
+ * row → help → suggestions → setup disclosure → event log**. Every command
+ * arrives as an action this column places, and the log opens a past turn
+ * through `historyView`; PlayArea owns the coordination.
  */
 export function InfoCol({
-  // Props are grouped by the region they drive (mirroring the render order below), so
-  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
-  // block below name each group. Names are shared with the other games' columns for the
-  // same idea — see docs/playarea.md.
-  isCompete,
-  isMyTurn,
-  over,
-  isLocallyTerminal,
-  isTerminal,
-  isTurnBased,
-  turnHolderId,
-  currentMember,
-  teamScore,
-  bagCount,
-  players,
-  myId,
-  playerStates,
-  concededIds,
-  actStopGame,
-  actConcede,
-  actRestart,
-  actNewGame,
-  actBackToClub,
-  suggest,
-  actSuggestMove,
-  onApplySuggestion,
-  setupRows,
-  plays,
-  historyId,
-  onShowHistory,
+  gd,
+  endingMessage,
+  actions,
+  historyView,
+  suggestion,
 }: {
-  // ── Mode + phase ──
-  isCompete: boolean
-  /** The page's `isMyTurn` — for the compete state line's "Your turn". */
-  isMyTurn: boolean
-  /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
-  /** The page's `isLocallyTerminal` (in this game only by conceding) — drives
-   *  the "You conceded" row. */
-  isLocallyTerminal: boolean
-  isTerminal: boolean
-  /** The page's `isTurnBased`. In turn-by-turn coop the shared TurnStatusLine
-   *  shows below the team-score line; compete names the turn in its state line
-   *  above instead. */
-  isTurnBased: boolean
-  /** The page's `turnHolderId`, for the TurnStatusLine. */
-  turnHolderId: string | null
-
-  // ── State readout (turn / team score + the bag) ──
-  /** The player whose turn it is (compete) — its color + name drive the "Turn: ● name"
-   *  line; undefined in coop / when unknown. */
-  currentMember: Member | undefined
-  /** The coop team score (null in compete). */
-  teamScore: number | null
-  bagCount: number
-
-  // ── Players (the OpponentStrip) ──
-  /** The roster (GamePlayer — carries the concede/result bits terminalOutcomeVerb reads). */
-  players: GamePlayer[]
-  myId: string
-  playerStates: PlayerRow[]
-  concededIds: Set<string>
-
-  // ── Action row (Stop/Concede, back-to-club at terminal) ──
-  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
-  actStopGame: Action
-  /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: Action
-  /** Deal this game again from scratch — same setup, roster and seats, fresh bag
-   *  and racks. scrabble's grid is the standard layout, so a replay is a re-deal
-   *  rather than a puzzle reset. */
-  actRestart: Action
-  /** Start a fresh follow-up game — same setup + roster, a NEW game id. Disables
-   *  itself while the create is in flight. */
-  actNewGame: Action
-  /** Leave for the club — the shell's own action, off `ctx.menu`. */
-  actBackToClub: Action
-
-  // ── Suggest-a-move (docs/games/scrabble.md §11) ──
-  /** The suggest box's state, or null to not render it at all (compete — the
-   *  mode never changes mid-game, so its absence is not a reflow). */
-  suggest: GSuggestState | null
-  /** Ask the AI for a move — it grays itself while a request is out and where
-   *  the ask isn't available; the box below collapses entirely when idle. */
-  actSuggestMove: Action
-  /** Stage a suggested move's tiles on the board (BoardCol applies it). */
-  onApplySuggestion: (move: GRankedMove) => void
-
-  // ── Setup disclosure ──
-  setup: GSetup
-  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
-  setupRows: SetupRow[]
-
-  // ── Turn-history log (Moves) ──
-  plays: EventRow[]
-  /** The play currently open in the board viewer, or null. */
-  historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
-  onShowHistory: (id: number, n: number) => void
+  gd: GGameData
+  // The ending that applies to me — the game's once it has ended, else mine
+  // while the others race on — or null while I play.
+  endingMessage: TerminalMessage | null
+  actions: GActions
+  historyView: GHistoryView
+  // Coop's suggester: its panel's state, and the way a picked move is staged.
+  suggestion: ReturnType<typeof useSuggestMove>
 }) {
-  // ── The score strip's roster: every seat, in seat order ──
-  // A bot is a player like anyone, so `players` already holds it; what the
-  // common roster has no notion of is SEAT ORDER, which is this game's and
-  // lives on `playerStates`. Ordering by it keeps the strip reading left to
-  // right the way the table is dealt.
-  const scoreRoster: Member[] = [...playerStates]
-    .sort((a, b) => a.seat - b.seat)
-    .flatMap((p) => players.find((m) => m.user_id === p.user_id) ?? [])
-  const scoreOf = (player: Member): number =>
-    playerStates.find((p) => p.user_id === player.user_id)?.score ?? 0
-  const outcomeOf = (player: Member): string =>
-    terminalOutcomeVerb(players.find((m) => m.user_id === player.user_id))
+  const actionRowMessage: InfoActionsMessage | undefined = endingMessage
+    ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
+    : undefined
+
+  /** A player's cell in the strip: their score, live — every word was played on
+   *  the open board; "out" once they have ended; and their verdict beside it
+   *  once the game has ended, the one thing telling a player who conceded from
+   *  one who played on and lost. */
+  function getScoreOrOut(player: GPlayer) {
+    if (gd.ended) {
+      const verdict = player.outcome === 'won' ? 'won' : player.conceded ? 'conceded' : 'lost'
+      return `${player.score} (${verdict})`
+    }
+    if (player.ending !== null) return 'out'
+    return `${player.score}`
+  }
+
+  // Help on how to lay a move out, while I still may.
+  const isHelpShown = gd.me.stillPlaying && !gd.ended
 
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
-            state → opponent strip → action row → help → setup disclosure → log. */}
-
-        {/* State — whose turn (compete) / team score (coop) + the bag count. The
-            SAME <StateLine> the mobile status bar renders above the board (they
-            must never drift). */}
         <p className={shared.infoState}>
-          <StateLine
-            isCompete={isCompete}
-            isTerminal={isTerminal}
-            isMyTurn={isMyTurn}
-            currentMember={currentMember}
-            teamScore={teamScore}
-            bagCount={bagCount}
-          />
+          <StateLine gd={gd} />
         </p>
-        {/* Coop turn-order: whose turn it is, as a separate line below the team
-            score (compete's turn line is inline above). Only for a turn-order
-            coop game; fixed at create-time, so no reflow. */}
-        {!isCompete && isTurnBased && (
-          <TurnStatusLine
-            turnHolderId={turnHolderId}
-            players={players}
-            myId={myId}
-            isTerminal={isTerminal}
-          />
-        )}
 
-        {/* Opponent strip (compete) — every SEAT's score on one line, identity on a
-            leading disc. Scores aren't hidden (the board reveals them).
-
-            AI seats ride the same strip as synthetic Members, though bots aren't
-            in the common roster: a second line of their own drifts (two "Score:"
-            labels, disagreeing about which of the label / name / number is
-            bold). One roster, one label, one typography.
-            Seat order, so the strip reads in turn order (orderSelfFirst still
-            hoists the viewer). */}
-        {isCompete && (
+        {gd.compete && (
           <OpponentStrip
-            players={scoreRoster}
-            myId={myId}
+            players={gd.players}
+            myId={gd.me.id}
             metricLabel="Score"
-            metricFor={(player) => {
-              // Mid-game a conceder reads as "out".
-              if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : scoreOf(player)
-              // At terminal the per-seat OUTCOME rides along, and it earns its
-              // place: the action row beneath names only the winner, so
-              // this is the only thing distinguishing a player who CONCEDED from one
-              // who played to the end and lost — which matters the moment there
-              // are three seats rather than two.
-              //
-              // Parenthesized, not `·`-joined. `·` is the strip's PLAYER
-              // separator, so the old "Lost · 260" made
-              // "You: Lost · 260 · AI 1: 333" run three separators doing two
-              // different jobs. Score first, because the number is what the eye
-              // is scanning for; the verb is an annotation on it.
-              return `${scoreOf(player)} (${outcomeOf(player).toLowerCase()})`
-            }}
+            metricFor={getScoreOrOut}
           />
         )}
 
-        {/* Action row — Stop (coop) / Concede (compete) during play; the "You
-            conceded" terminal look once I've dropped out (others race on); at
-            terminal the bold outcome line + a compact back-to-club button. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options left of the leave option (Club): deal this table
-                again, or spin up the next game. */}
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : isLocallyTerminal ? (
-          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and Stop comes out in its place — one
-                flag, since anyone in a game may stop it for all. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {/* Both exits are placed; each hides itself in the mode that isn't
-                its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actStopGame} show="icon" />
-            {/* Suggest-a-move (coop) — the AI hint lives with the other action
-                buttons; its results render in the reserved box below the help
-                text. It hides itself in a race. */}
-            <ActionButton action={actSuggestMove} show="icon" />
-          </InfoActionsRow>
+        {/* Coop's turn order, when it has one; compete names the turn in its
+            state line above. */}
+        {gd.coop && gd.turns !== null && (
+          <TurnStatusLine
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
+          />
         )}
 
-        {/* Help — only while the player can act on it (never silently swapped). */}
-        {!over && (
+        {/* One row, one order, every action listed once (docs/playarea.md).
+            Each action answers whether it shows. The line is the ending that
+            applies to me. ICON-ONLY; the menu is the glyphs' legend. */}
+        <InfoActionsRow message={actionRowMessage}>
+          <ActionButton action={actions.actSuggestMove} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon" />
+          <ActionButton action={actions.actStopGame} show="icon" />
+          {/* Right of the bar is about the END of the game rather than
+              playing it; the bar hides itself when nothing is left of it. */}
+          <span className={shared.actionsDivider} />
+          <ActionButton action={actions.actRestart} show="icon" />
+          <ActionButton action={actions.actNewGame} show="icon" />
+          {/* Filled once the game has ended: the weight is the placement's
+              choice, not the action's (docs/ui.md → What a `<button>` is). */}
+          <ActionButton
+            action={actions.actBackToClub}
+            show="icon"
+            weight={gd.ended ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
+
+        {isHelpShown && (
           <p className={shared.infoHelp}>
             Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways
             arrow turns it ↓). Enter plays.
           </p>
         )}
 
-        {/* Suggest-a-move results (coop; the button is up in the action row).
-            When idle the box renders NOTHING and claims no space — a deliberate
-            exception to the pre-claim-space rule (Joel's call): an empty
-            reserved gap below the help text read as clutter. Once it holds
-            content (loading / results / error) it snaps to a FIXED height so a
-            suggestion arriving never shifts the sections BELOW it relative to
-            "Thinking…" — see the module css. The one accepted shift is
-            idle→shown, which the player triggers by clicking Suggest. Clicking
-            a row stages that move's tiles on the board; the suggester never
-            submits. */}
-        {suggest && suggest.status !== 'idle' && (
-          <div className={styles.suggestBox} data-zone="suggest">
-            {suggest.status === 'loading' && <p>Thinking…</p>}
-            {suggest.status === 'error' && <p className={styles.suggestError}>{suggest.message}</p>}
-            {suggest.status === 'ready' && suggest.moves.length === 0 && (
-              <p>No legal moves — swap tiles?</p>
-            )}
-            {suggest.status === 'ready' &&
-              suggest.moves.map((move, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={styles.suggestRow}
-                  onClick={() => onApplySuggestion(move)}
-                  title="Stage these tiles on the board"
-                >
-                  <span className={styles.suggestWords}>
-                    {move.words.map((w) => w.word).join(', ')}
-                  </span>
-                  <span className={styles.suggestScore}>+{move.score}</span>
-                  {/* The overall rating — equity = score + the leave heuristic
-                      (how good the kept rack is), the value the list is
-                      actually sorted by. Muted on purpose (Joel's spec): the
-                      score is the headline, this is the "but really" number. */}
-                  <span className={styles.suggestRating}>({rating(move.equity)})</span>
-                </button>
-              ))}
-          </div>
-        )}
+        <SuggestPanel suggestion={suggestion} />
 
-        {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-        <SetupDisclosure rows={setupRows} />
+        {/* Setup — LAST before the log, behind a disclosure. */}
+        <SetupDisclosure rows={gd.setupRows} />
       </div>
 
+      {/* The log scrolls inside its own box, so a growing log never moves
+          anything above it. */}
       <GameEventLog
-        plays={plays}
-        players={players}
-        myId={myId}
-        mode={isCompete ? 'compete' : 'coop'}
-        historyId={historyId}
-        onShowHistory={onShowHistory}
+        events={gd.events}
+        players={gd.players}
+        myId={gd.me.id}
+        mode={gd.mode}
+        historyView={historyView}
       />
     </div>
   )

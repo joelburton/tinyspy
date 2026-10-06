@@ -32,21 +32,6 @@
   harness is the work, not the assertions. (Moved here from
   `common/board-marks/todo.md`.)
 
-- **One play is formatted for a reader in two places.** `BoardCol`'s
-  `historyLabelFor(play, nameOf)` builds the history banner's line ("#1 moth: +10
-  APPLE, BERRY" / "#5 moth passed" / "#5 moth exchanged 3 tiles"), and
-  `PlayArea`'s `moveText(play)` builds the same four branches for the print
-  moves table, minus the `#N` and the name. Its own comment says it mirrors the
-  other, and it is marked SPIKE. Two copies of one game's phrasing drift the
-  first time a `kind` is added or a wording is tuned — a forfeit already reads
-  "ended — N tiles unplayed" in both, by hand.
-
-  What makes it more than a tidy: the banner and the printed sheet are the two
-  places a player READS a turn back, so they are exactly the pair that should
-  not disagree. The shapes differ in what they prefix, so the fix is one
-  formatter with the prefix as a parameter, or a shared core the two wrap.
-  Found 2026-09-16 in the history-names sweep.
-
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 4.4rem` — and `- 6.1rem` in its other case —
@@ -64,54 +49,6 @@
   the play surface against the window, and this is the slack one level in,
   inside the board column.
 
-- **Collapse the info-column action row's branches.** This game still FORKS on
-  `over ? … : locally done ? … : …` and lists a different set of buttons in
-  each, which is how a state can quietly lose a button — every one of these
-  rows is missing back-to-club while a race runs on without you. psychicnum is
-  the worked example (2026-09-14); copy its shape.
-
-  **The shape.** One `<InfoActionsRow>`, every action listed once in one
-  order, and the only thing that varies is the optional `{ text, outcome }`
-  line. Which buttons are on screen is each action's own answer —
-  `<ActionButton>` draws nothing for an action that says `hidden`.
-
-  **The state rule** (Joel, 2026-09-14): `hidden` is *not even possible in
-  this state* — you cannot end a game that has ended, or reveal an answer you
-  are still hunting. `disabled` is *possible here, just not right now*, and it
-  carries a tooltip saying why — a hint when you have used your last one. Most
-  games' gate variable folds several of these together and has to be split
-  before the actions can be honest; psychicnum's `canGuess` hid "terminal"
-  inside "out of guesses" and is now `isStillPlaying`.
-
-  **Two answer their asker differently**, which is what `ActionAsker` is for:
-  Restart and New game are reachable all game from the menu and their keys —
-  the confirmations are written for exactly that ("will be shelved, not lost",
-  "Keep playing") — and get a BUTTON only at terminal. `describe: (asker) =>
-  asker === 'button' && !isTerminal ? 'hidden' : 'active'`. Restart's is
-  already done in `useStandardGameActions`; each game's own `act-new-game` is
-  not.
-
-  **Two things the collapse destroys if you are not watching.** Back-to-club
-  is `weight={over ? 'primary' : 'secondary'}` — filled only once the game is
-  over; hoisting the terminal branch's `weight="primary"` into the single list
-  makes it shout all game. And the gray `shared.actionsDivider` span goes
-  between the actions you take WHILE PLAYING and the ones about the END of the
-  game — both sides are pressable mid-game, so nothing but the bar says where
-  the meaning changes. It hides itself when nothing is left on its left.
-
-  **A test gotcha:** `menuItems` reads the rows a game PUSHED, and `hidden` is
-  what the menu drops at draw time — so "not in the menu" asserts `?.hidden
-  === true`, not `toBeUndefined()`.
-
-- **The manual-end terminal is hand-written and reads differently from every
-  other game.** `PlayArea.tsx` returns `{ pillText: 'Ended', infoColText:
-  'Ended', outcome: 'neutral' }` where thirteen games call the shared
-  `buildGameEndedMessageNeutral(mode)` (`Game ended` / `Game ended — no winner`,
-  info-column line `Game over`). Beyond the drift, `pillText` and
-  `infoColText` are the same string, which is the one thing the terminal
-  message type exists to separate, and no comment says why. Almost certainly
-  `return buildGameEndedMessageNeutral(mode)`; if the divergence is wanted it
-  needs a comment instead.
 - **A raw `<button>` takes focus on click**, where every `StandardButton`
   suppresses it: the AI suggestion rows (`InfoCol.tsx`). (The history banner's ✕
   was the other one; it left this game on 2026-09-16 when the banner became the

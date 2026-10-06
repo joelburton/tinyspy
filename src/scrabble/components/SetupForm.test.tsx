@@ -25,9 +25,9 @@ import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
 const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
-] as Member[]
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
+] satisfies Member[]
 
 function draw({ mode = 'compete' as 'coop' | 'compete', values = {}, errors = {} as FormErrors } = {}) {
   const set = vi.fn()
@@ -41,7 +41,7 @@ function draw({ mode = 'compete' as 'coop' | 'compete', values = {}, errors = {}
       numberOfPlayers={[2, 4]}
       values={{
         ...DEFAULT_SCRABBLE_SETUP,
-        player_user_ids: new Set(MEMBERS.map((m) => m.user_id)),
+        player_user_ids: new Set(MEMBERS.map((m) => m.id)),
         ...values,
       }}
       set={set}

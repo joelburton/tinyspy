@@ -6,60 +6,48 @@
  *
  *   1. It defaults to the aggregate in BOTH modes. Even compete is one shared
  *      board, so "All" is what you're actually looking at.
- *   2. **AI seats are pickable people.** A bot is an account with a profile and
- *      a `game_players` row, so its plays carry its user_id and it takes its
+ *   2. **A bot is pickable like anyone.** It is an account with a profile and a
+ *      `game_players` row, so its plays are its own and it takes its
  *      alphabetical place in the dropdown like anyone else.
  *
- * A pure presentational component — no supabase mocking, just RTL with props.
+ * A pure presentational component — no supabase mocking, just RTL with props
+ * built the way `gd` builds them.
  * The definition popover and the `#N` viewer handle are exercised elsewhere.
  */
 
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { Member } from '@/common/members/member'
-import type { EventRow } from '../hooks/useGame'
+import { makeGameData } from '../hooks/useGame'
+import { ZTest_leftovers, ZTest_makeGameDataRaw, ZTest_word, type ZTest_PlayerFacts } from '../lib/gameData.fixture'
+import type { GEvent, GHistoryView } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
-// ada and bea are people, ada-bot is one of the three AI opponents. All three
-// are on the common roster, which is the whole point: a bot is pickable, and
-// nameable, like anyone.
-const PLAYERS: Member[] = [
-  { user_id: 'u1', username: 'ada', color: 'red' },
-  { user_id: 'u2', username: 'bea', color: 'blue' },
-  { user_id: 'bot1', username: 'ada-bot', color: 'brown' },
+// ada and bea are people, ada-bot is one of the bots. All three are players,
+// which is the whole point: a bot is pickable, and nameable, like anyone.
+const PLAYERS: ZTest_PlayerFacts[] = [
+  { id: 'u1', username: 'ada', color: 'red' },
+  { id: 'u2', username: 'bea', color: 'blue' },
+  { id: 'bot1', username: 'ada-bot', color: 'brown', aiLevel: 'strong' },
 ]
 
-const play = (o: Partial<EventRow>): EventRow => ({
-  user_id: 'u1',
-  seat: 0,
-  id: 1,
-  kind: 'word',
-  placements: null,
-  words: ['QUARTZ'],
-  score: 30,
-  tile_count: null,
-  created_at: '2026-08-02T18:00:00Z',
-  ...o,
-})
+const NO_VIEW = { viewedEventId: null, show: () => {} } as unknown as GHistoryView
 
-const PLAYS: EventRow[] = [
-  play({ id: 1, user_id: 'u1', seat: 0, words: ['ADAWORD'] }),
-  play({ id: 2, user_id: 'u2', seat: 1, words: ['BEAWORD'] }),
-  // A bot's play — attributed to its account, like any other row.
-  play({ id: 3, user_id: 'bot1', seat: 2, words: ['BOTWORD'] }),
-]
+/** The log's rows and players as `gd` hands them over. */
+function makeLog(mode: 'coop' | 'compete', players: ZTest_PlayerFacts[], events = [
+  ZTest_word(1, 'u1', ['7,7:a'], ['adaword'], 30),
+  ZTest_word(2, 'u2', ['8,7:b'], ['beaword'], 30),
+  // A bot's play — its own row, like any other.
+  ZTest_word(3, 'bot1', ['9,7:c'], ['botword'], 30),
+]) {
+  const gd = makeGameData(ZTest_makeGameDataRaw({ mode, players, events: events.filter((e) => players.some((p) => p.id === e.userId)) }), 'u1')
+  return { events: gd.events as GEvent[], players: gd.players }
+}
 
-function renderLog(mode: 'coop' | 'compete' = 'compete', players: Member[] = PLAYERS) {
+function renderLog(mode: 'coop' | 'compete' = 'compete', players: ZTest_PlayerFacts[] = PLAYERS) {
+  const log = makeLog(mode, players)
   return render(
-    <GameEventLog
-      plays={PLAYS}
-      players={players}
-      myId="u1"
-      mode={mode}
-      historyId={null}
-      onShowHistory={() => {}}
-    />,
+    <GameEventLog events={log.events} players={log.players} myId="u1" mode={mode} historyView={NO_VIEW} />,
   )
 }
 
@@ -90,7 +78,7 @@ describe('scrabble GameEventLog — the whose-moves picker', () => {
     expect(screen.queryByText('BOTWORD')).not.toBeInTheDocument()
   })
 
-  it('narrows to the BOT’s plays — by its user_id, like any other player', async () => {
+  it('narrows to the BOT’s plays — by its id, like any other player', async () => {
     renderLog()
     await pickFilter('ada-bot')
     expect(screen.getByText('BOTWORD')).toBeInTheDocument()
@@ -106,17 +94,17 @@ describe('scrabble GameEventLog — the whose-moves picker', () => {
   })
 
   it('never says a filtered-empty log is "hidden" — every play is public here', async () => {
-    render(
-      <GameEventLog
-        plays={[PLAYS[0]]}
-        players={PLAYERS}
-        myId="u1"
-        mode="compete"
-        historyId={null}
-        onShowHistory={() => {}}
-      />,
-    )
+    const log = makeLog('compete', PLAYERS, [ZTest_word(1, 'u1', ['7,7:a'], ['adaword'], 30)])
+    render(<GameEventLog events={log.events} players={log.players} myId="u1" mode="compete" historyView={NO_VIEW} />)
     await pickFilter('bea')
     expect(screen.getByText('No moves yet.')).toBeInTheDocument()
+  })
+})
+
+describe('scrabble GameEventLog — the rows an ending writes', () => {
+  it('reads a leftovers row as its cost and its tiles', () => {
+    const log = makeLog('compete', PLAYERS.slice(0, 2), [ZTest_leftovers(1, 'u1', -7, 3)])
+    render(<GameEventLog events={log.events} players={log.players} myId="u1" mode="compete" historyView={NO_VIEW} />)
+    expect(screen.getByText('-7 for 3 tiles left')).toBeInTheDocument()
   })
 })

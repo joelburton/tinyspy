@@ -1,11 +1,10 @@
 /* cs-unmet */
 
-/* scrabble InfoCol — the coop suggest-a-move results box (docs/games/scrabble.md
- * S5; the Suggest button itself sits in the shared action row). Everything
- * else in the column comes from common/info-sheet/infoCol.module.css. */
+/* scrabble's coop suggest-a-move results box (docs/games/scrabble.md S5; the
+ * Suggest button itself sits in the shared action row). */
 
 /* The box is only in the tree once it has content (loading / results / error);
- * when idle it renders nothing and claims no space (InfoCol gates it — a
+ * when idle it renders nothing and claims no space (SuggestPanel gates it — a
  * deliberate exception to the pre-claim-space rule). WHILE shown it holds a
  * FIXED height so the top-5 list arriving never grows the column or shifts the
  * setup disclosure / Moves log below it relative to "Thinking…" (fixed
@@ -43,6 +42,8 @@
 }
 
 /* @@ */ .suggestWords {
+  /* The words are the data's lowercase; the list shows their capitals. */
+  text-transform: uppercase;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
