@@ -2,18 +2,15 @@
 
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
-import { useMark, type Mark } from '@/common/board-marks/useMark'
-import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
-import { useBindAction } from '@/common/actions/useBindAction'
+import type { Mark } from '@/common/board-marks/useMark'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
-import { exposedIds } from '../lib/board'
 import { answerMessage } from '../lib/answer'
 import { useWordMove } from '../hooks/useWordMove'
-import type { GGameData, GHistoryView, GPeerWordMark, GTile } from '../types'
+import { useBoardColActions } from '../hooks/useBoardColActions'
+import type { GGameData, GHistoryView, GPeerWordMark } from '../types'
 import { Board } from './Board'
 import { WordEntry } from './WordEntry'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -85,20 +82,8 @@ export function BoardCol({
 
   // ─── The pending move ─────────────────────────────────────────
   // The word being built and its trip to the server (`useWordMove`), and the
-  // column's three keys.
+  // column's three commands (`useBoardColActions`).
   const move = useWordMove(gd, localFeedbackSlot)
-
-  // Send the word. A word is exactly five tiles, so that's the whole submit
-  // gate. The send is this action's run, so its `pending` is the word in flight.
-  const canSubmit = isInteractive && move.currentWord.tileIds.length === 5
-  const actSubmit = useBindAction('act-submit', {
-    describe: () => (canSubmit ? 'active' : 'disabled'),
-    run: () => move.submitWord(move.currentWord.tileIds),
-  })
-
-  // May I pick or take back a tile right now? The board responds to me, and no
-  // word is with the server.
-  const canPick = isInteractive && !actSubmit.pending
 
   // The tiles not drawn: the stack to show's, and — live — the word being
   // built and an accepted word not yet gone from the blob, less a teammate's
@@ -115,85 +100,12 @@ export function BoardCol({
     move.currentWord.pendingRemoved, heldTileIds,
   ])
 
-  // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
-  // the candidates outline red for a beat. Purely this column's input feedback.
-  const [ambiguousMark, flashTiles] = useMark<{ tileIds: ReadonlySet<string> }>(
-    AMBIGUOUS_PICK_FLASH_MS,
-  )
-  const ambiguousTileIds = ambiguousMark?.value.tileIds ?? NO_TILES
-
-  // A tile click extends the word. Filling the fifth slot deliberately does NOT submit: the word sits there
-  // until you commit it with the Submit button or Enter, so a wrong fifth tile
-  // is recoverable — the last tile is just another tile.
-  function pickTile(tile: GTile) {
-    if (!canPick) return
-    move.clearFlash() // starting a new word drops any lingering word flash
-    localFeedbackSlot.dismiss() // …and the previous move's result (next-move-dismisses rule)
-    move.currentWord.appendTile(tile.id)
-  }
-
-  // Take a tile back. The predicate also drives the button's `disabled`, so the key and the
-  // button can't disagree about what's possible right now.
-  const canDelete = canPick && move.currentWord.tileIds.length > 0
-
-  /** Return the most recent tile — the ⌫ button and physical Backspace share it. */
-  function deleteLast() {
-    if (!canDelete) return
-    // A ⌫ click is a move like any keystroke, so it dismisses a result the
-    // same way (the WordEntryArea rule — it matters most on touch, where there is
-    // no next keystroke to do it).
-    localFeedbackSlot.dismiss()
-    move.currentWord.retractTo(move.currentWord.tileIds.length - 1)
-  }
-
-  // The column's other two keys. Each is ONE action behind both its control and its key, as Submit is.
-  // DISABLED rather than hidden where they don't apply: the ⌫ / Submit buttons
-  // keep their slot so the region never reflows (the reserve-the-slot rule,
-  // docs/ui.md). A control that stayed live over a frozen board would be lying
-  // about what it can do.
-  const actDeleteLast = useBindAction('act-delete-last', {
-    // A word here is picked-up TILES, so this returns the last one rather than
-    // erasing a letter — the registry's name would say the wrong thing.
-    describe: () => ({
-      state: canDelete ? 'active' : 'disabled',
-      label: 'Return the last tile',
-    }),
-    run: deleteLast,
-  })
+  const actions = useBoardColActions({ gd, isInteractive, move, offTileIds, localFeedbackSlot })
 
   // Any key is the next move, so any key drops the previous move's result —
   // the rule every game follows, bound here because stackdown mounts no
   // WordEntryArea.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
-
-  // A letter plays the matching tile — but ONLY if exactly one exposed tile
-  // bears it: the word is the pick order, so an ambiguous letter can't
-  // pick for you. 0 matches is an error; >1 flashes the candidates and asks you
-  // to click one. A pattern action, so it is handed whichever letter fired it.
-  useBindAction('act-pick-tile', {
-    describe: () => (canPick ? 'active' : 'disabled'),
-    run: (key) => {
-      const letter = (key ?? '').toUpperCase()
-      // Any handled keystroke is a "next move" — dismiss the previous result.
-      // The no-match / ambiguous branches below show a fresh one after this.
-      localFeedbackSlot.dismiss()
-      // `offTileIds` is exactly the set the exposure check needs: the tiles
-      // cleared so far and the ones picked into the word.
-      const exposed = exposedIds(gd.puzzle.tiles, offTileIds)
-      const matches = gd.puzzle.tiles.filter((t) => exposed.has(t.id) && t.letter === letter)
-      if (matches.length === 1) {
-        pickTile(matches[0]!)
-      } else if (matches.length === 0) {
-        localFeedbackSlot.show(FeedbackMessage.result('lost', `No “${letter}” tile is on top`))
-      } else {
-        // Ambiguous — point out the candidates with a brief red outline.
-        flashTiles({ tileIds: new Set(matches.map((m) => m.id)) })
-        localFeedbackSlot.show(
-          FeedbackMessage.result('warning', `${matches.length} “${letter}” tiles are on top — click one`),
-        )
-      }
-    },
-  })
 
   // ─── Render ───────────────────────────────────────────────────
 
@@ -213,16 +125,16 @@ export function BoardCol({
       <Board
         tiles={gd.puzzle.tiles}
         offTileIds={offTileIds}
-        isInteractive={canPick}
+        isInteractive={actions.canPick}
         isViewingHistory={historyView.isViewing}
         marks={{
-          ambiguousTileIds: historyView.isViewing ? NO_TILES : ambiguousTileIds,
+          ambiguousTileIds: historyView.isViewing ? NO_TILES : actions.ambiguousTileIds,
           litTileIds: historyView.litTileIds,
           attentionTileIds,
           answer: boardAnswer,
           heldTileIds,
         }}
-        onPick={pickTile}
+        onPick={actions.pickTile}
       />
 
       <div className={styles.belowBoard}>
@@ -243,11 +155,11 @@ export function BoardCol({
             reflows (the reserve-the-slot rule, docs/ui.md). The ⌫ is the
             touch-reachable twin of physical Backspace, which is the real gain:
             stackdown has a supported phone layout and no keyboard there. */}
-        <WordEntryRow className={styles.moveArea} actDelete={actDeleteLast} actSubmit={actSubmit}>
+        <WordEntryRow className={styles.moveArea} actDelete={actions.actDeleteLast} actSubmit={actions.actSubmit}>
           <WordEntry
             tiles={gd.puzzle.tiles}
             currentWord={move.currentWord.tileIds}
-            active={canPick && !move.isRefused}
+            active={actions.canPick && !move.isRefused}
             onRetract={move.currentWord.retractTo}
             flash={move.flash}
             verdict={move.refusedOutcome}

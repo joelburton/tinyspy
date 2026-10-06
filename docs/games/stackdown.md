@@ -391,7 +391,9 @@ sketch at its top.
 header, and marked on their tiles), `useHistoryView` and `useActionsAndMenu`
 (the hint ladder through `lib/askForHintOrSpoiler.ts`). `BoardCol`'s:
 `useWordMove` — the word being built (`useCurrentWord`) and its trip to the
-server, with the marks my own answer wears. No `MobileStatusBar`: the stack on
+server, with the marks my own answer wears — and `useBoardColActions`: the
+three commands (Submit, ⌫, a typed letter), with the gate `canPick` and the
+red ambiguous-letter flash. No `MobileStatusBar`: the stack on
 screen is the progress.
 
 **The word being built is private in both modes**: picks are never sent, so

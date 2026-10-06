@@ -114,6 +114,12 @@ keeps no flag of its own. The word is read through its group
 the puzzle's tiles, so nothing changes case in state. No `MobileStatusBar`
 (Joel, 2026-10-05: "no, it shouldn't get a mobilestatusbar").
 
+Decomposed after the strands survey (2026-10-05, Joel: "start"): the column's
+three commands moved into `useBoardColActions` — the siblings' name — which
+hands back `canPick`, `pickTile` and the ambiguous tiles. `offTileIds` stays in
+BoardCol and is handed in, since the typed letter's exposure check reads it.
+BoardCol went from 265 lines to 177.
+
 ## The Board pass
 
 Step 11 (2026-10-05): the tile is its own piece, `Tile.tsx` with
