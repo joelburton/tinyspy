@@ -118,10 +118,10 @@ select is(
 );
 
 select is(
-  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
+  (select count(*)::int from jsonb_array_elements((select static_game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
     where not (w->>'bonus')::boolean),
   19,
-  'compete mid-game / bea: game_data.puzzle.words carries the required set (the page gates the reveal on the ending)'
+  'compete mid-game / bea: static_game_data.puzzle.words carries the required set (the page gates the reveal on the ending)'
 );
 
 -- ============================================================
@@ -197,10 +197,10 @@ select ok(
 -- full required list, which game_data's words carry throughout.
 
 select is(
-  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
+  (select count(*)::int from jsonb_array_elements((select static_game_data->'puzzle'->'words' from common.games where id = (select id from g))) w
     where not (w->>'bonus')::boolean),
   19,
-  'compete, ended / bea: game_data.puzzle.words carries the required set (19 entries) — cat B "nobody found" source'
+  'compete, ended / bea: static_game_data.puzzle.words carries the required set (19 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================

@@ -209,7 +209,12 @@ drop function if exists wordwheel._write_statuses(uuid, boolean);
 -- builders are these, line for line: the two bee games share one blob shape
 -- (src/shared/bee-games/doc.md).
 --
---   game_data, wordwheel's part:
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- wordwheel's puzzle is all of it: nothing in it waits for the game's end.
+--
+--   static_game_data, wordwheel's part:
 --     puzzle: {tiles, centerLetter, outerLetters,  frozen at create_game: the board's tiles,
 --              words, nReqdWords, reqdWordsScore}  the center first — a tile is {id, letter,
 --                                                  center}, its id its place as text — the
@@ -218,6 +223,8 @@ drop function if exists wordwheel._write_statuses(uuid, boolean);
 --                                                  bonus}; a bonus word is legal but not
 --                                                  required), and the required set's count and
 --                                                  score
+--
+--   game_data, wordwheel's part:
 --     team: {nFoundWords, foundWordsScore,        what the team shares, over every row, and the
 --            rankIdx, targetRankIdx}              rank it set out for; null in compete
 --                                                 (plans/team-facts.md)
@@ -381,8 +388,8 @@ $$;
 
 revoke execute on function wordwheel._make_json_players(uuid) from public;
 
--- The whole game_data blob: the common part, with wordwheel's puzzle, team,
--- log and players on top.
+-- The whole game_data blob: the common part, with wordwheel's team, log and
+-- players on top. The puzzle is static (`_make_json_static_game_data`).
 create or replace function wordwheel._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -390,15 +397,28 @@ stable
 set search_path = wordwheel, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'puzzle',     wordwheel._make_json_puzzle(g),
            'team',       wordwheel._make_json_team(p_game_id),
            'foundWords', wordwheel._make_json_found_words(p_game_id),
-           'players',    wordwheel._make_json_players(p_game_id))
+           'players',    wordwheel._make_json_players(p_game_id));
+$$;
+
+revoke execute on function wordwheel._make_json_game_data(uuid) from public;
+
+-- The whole static_game_data blob: the common part, with the puzzle on top.
+-- Nothing in it changes after create_game.
+create or replace function wordwheel._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordwheel, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', wordwheel._make_json_puzzle(g))
     from wordwheel.games g
    where g.game_id = p_game_id;
 $$;
 
-revoke execute on function wordwheel._make_json_game_data(uuid) from public;
+revoke execute on function wordwheel._make_json_static_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one.
 create or replace function wordwheel._make_json_summary_data(
@@ -462,12 +482,32 @@ $$;
 revoke execute on function wordwheel._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- wordwheel._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function wordwheel._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = wordwheel._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function wordwheel._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- wordwheel._rebuild_data_cols_for_all — every wordwheel game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every wordwheel game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every wordwheel game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function wordwheel._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -481,6 +521,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('wordwheel_coop', 'wordwheel_compete')
   loop
+    perform wordwheel._write_static_game_data(v_game_id);
     perform wordwheel._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -727,6 +768,7 @@ begin
     s_target_rank, s_required, s_legal
   );
 
+  perform wordwheel._write_static_game_data(new_id);
   perform wordwheel._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
