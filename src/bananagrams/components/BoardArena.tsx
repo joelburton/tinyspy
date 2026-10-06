@@ -6,7 +6,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
-import { type Cell, type DragSource } from '../hooks/usePlayerBoard'
+import type { GCell, GDragSource } from '../types'
 import { LETTER_SCALE } from '../lib/board'
 import { idx } from '../lib/board'
 import { cls } from '@/common/utils/cls'
@@ -52,9 +52,9 @@ export function BoardArena({
   board: string
   cursor: GridCursor
   /** The cell the drag is hovering (drop highlight), or null. */
-  hover: Cell | null
+  hover: GCell | null
   /** The live drag state (for the "lifting this board tile" dim), or null. */
-  drag: DragState<DragSource> | null
+  drag: DragState<GDragSource> | null
   /** Cells flagged red by a blocked winning peel. */
   invalidCells: ReadonlySet<number>
   onCellPointerDown: (x: number, y: number, e: ReactPointerEvent) => void

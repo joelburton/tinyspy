@@ -6,11 +6,10 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
-import {
-  bunchSizeError,
-  DEFAULT_BANANAGRAMS_SETUP,
-  type BananagramsSetup,
-} from './lib/setup'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
+import { bunchSizeError, DEFAULT_BANANAGRAMS_SETUP } from './lib/setup'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -33,6 +32,36 @@ import logoUrl from './logo.svg?url'
 // editing this one line. The codename (`bananagrams`) is unrelated and
 // stays lowercase everywhere in code.
 const BRAND = 'MonkeyGrams'
+
+/**
+ * The club line. The bunch is the race's clock — it is what everyone is
+ * drawing down — so the live line counts it. A race's one winner is the common
+ * `ending.winner`; the two no-winner losses, a countdown's end and everyone
+ * conceding, are told apart by the ending's reason.
+ */
+function makeLabel(summary: GSummaryData, members: readonly Member[]): string {
+  if (summary.ending === null) {
+    return statusLine(
+      verdict('Playing'),
+      count(summary.nBunchTiles, 'tile in the bunch', 'tiles in the bunch'),
+    )
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return wonBy(memberById(members, summary.ending.winner!)?.username)
+    case 'lost':
+      return summary.ending.reason === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(verdict('Lost', 'out of time'), 'nobody finished')
+    // A Stop.
+    case 'neutral':
+      return verdict('Ended')
+    default:
+      return outcome
+  }
+}
 
 export const bananagramsGame: GameManifest = {
   gametype: 'bananagrams',
@@ -67,7 +96,7 @@ export const bananagramsGame: GameManifest = {
     // Gate Start until the bunch can deal everyone a starter hand
     // (bunch_size ≥ playerCount × hand_size). create_game re-checks.
     validate: (setup, playerCount) =>
-      bunchSizeError(setup as BananagramsSetup, playerCount),
+      bunchSizeError(setup as GSetup, playerCount),
   },
 
   // Single gametype → no `mode` in the payload (the RPC writes
@@ -77,40 +106,13 @@ export const bananagramsGame: GameManifest = {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as BananagramsSetup,
-        player_user_ids: playerUserIds,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
       }),
     ),
 
-  // Per-row label for the ClubPage games list. Pure + synchronous.
-  // We don't write a mid-game status to common.games (progress lives
-  // on bananagrams.progress), so "in progress" is the live label; the
-  // 'won' label reads the winner from status, which is written when a
-  // player goes out — that terminal is detected inside `peel`, not by
-  // a dedicated RPC. play_state 'lost' covers the two no-winner
-  // terminals — a countdown timeout and an all-conceded race — told
-  // apart by status.reason.
-  summaryFor: (row) => {
-    const s = (row.status ?? {}) as { winner_username?: string; reason?: string; bunch_remaining?: number }
-    switch (row.play_state) {
-      case 'playing':
-        // The bunch is the race's clock — it's what everyone is drawing down.
-        return statusLine(verdict('Playing'), count(s.bunch_remaining, 'tile in the bunch', 'tiles in the bunch'))
-      case 'won':
-        return wonBy(s.winner_username)
-      // No-winner terminals (submit_timeout / everyone conceded), both
-      // play_state 'lost'. status.reason distinguishes them.
-      case 'lost':
-        return s.reason === 'conceded'
-          ? verdict('Lost', 'all conceded')
-          : statusLine(verdict('Lost', 'out of time'), 'nobody finished')
-      case 'ended':
-        return verdict('Ended')
-      default:
-        return row.play_state
-    }
-  },
+  summaryFor: (data, members) => makeLabel(data as GSummaryData, members),
 
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
   // collective loss (nobody went out in time) via bananagrams.submit_timeout.

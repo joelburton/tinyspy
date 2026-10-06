@@ -5,7 +5,8 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { cls } from '@/common/utils/cls'
-import { usePlayerBoard, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
+import { usePlayerBoard } from '../hooks/usePlayerBoard'
+import type { GCheckResult } from '../types'
 import { LETTER_SCALE } from '../lib/board'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
@@ -66,7 +67,7 @@ type Props = {
    *  red); `null` otherwise. */
   onPeel?: () => Promise<{ illegalCells: number[] } | null>
   /** Report a Check-words outcome up, so the coordinator can pill it. */
-  onCheckResult?: (r: BananagramsCheckResult) => void
+  onCheckResult?: (r: GCheckResult) => void
   /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
   onDump?: (letter: string) => void | Promise<void>
   /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load.

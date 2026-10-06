@@ -1,168 +1,92 @@
 // cs-unmet
 
-import { useEffect, useRef, useState } from 'react'
-import { db } from '../db'
-import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import type { Member } from '@/common/members/member'
-
-/** Cross-game vocabulary: a player in a bananagrams game is just a
- *  Member today (no per-game enrichment). Declared for parity with
- *  the other game folders' `Player` alias. */
-export type Player = Member
+import { useMemo } from 'react'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { makeSetupRows } from '../lib/setupRows'
+import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData } from '../types'
 
 /**
- * Per-gametype data hook for bananagrams — the caller's OWN player board.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
  *
- * Two split pieces (see the bananagrams.player_boards comment):
- *
- *   - `initialBoard` — the FE-owned placement grid, read ONCE for seeding.
- *     The FE owns the board after mount, so we never re-seed it (a realtime
- *     echo of our own snapshot must not clobber live local placements).
- *   - `tiles` — the SERVER-owned holdings, kept LIVE: a peel/dump updates it
- *     server-side and the realtime subscription folds the change in, so the
- *     derived hand grows/swaps without the FE ever writing `tiles`.
- *
- * **Filters on `user_id` explicitly.** The player_boards policy opens to club
- * members at terminal so the printout can show every player's grid, so
- * `eq(game_id)` alone matches every player's row there and a `maybeSingle()`
- * would take the first of them. A query that depends on a policy to be correct
- * breaks silently the day the policy moves, so this one says what it means.
- *
- * Pattern A: re-read on any change — the row is tiny and `tiles` changes only
- * at deal/peel/dump (board snapshots also echo here, but re-reading the
- * unchanged `tiles` is a harmless no-op).
+ * The seat rule: a rival's `tiles` and `board` are null until the game ends —
+ * the blob carries every seat's letters, and this is where a seat stops seeing
+ * the others'. Their two counts stay, so the strip shows how close each racer
+ * is. At the end every board shows, for the printout.
  */
-export function useGame(gameId: string, userId: string) {
-  const [initialBoard, setInitialBoard] = useState<string | null>(null)
-  const [tiles, setTiles] = useState('')
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
-  const seeded = useRef(false)
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  const players: GPlayer[] = raw.players.map((p) => (
+    raw.ended || p.id === myId ? p : { ...p, tiles: null, board: null }
+  ))
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  useRealtimeRefetch({
-    tables: { schema: 'bananagrams', table: 'player_boards', filter: `game_id=eq.${gameId}` },
-    channelPrefix: 'bananagrams-board',
-    id: gameId,
-    load: async ({ isCurrent }) => {
-      // No `.maybeSingle()`: `readRows` hands back rows, and (game, user) is the
-      // PK, so this is 0 or 1 of them.
-      const res = await readRows(
-        db
-          .from('player_boards')
-          .select('board, tiles')
-          .eq('game_id', gameId)
-          .eq('user_id', userId),
-      )
-      if (!isCurrent()) return
+  // Links that cannot miss get a bare lookup; an ending's `by` is null for a
+  // timeout.
+  const playerOf = (id: string | null) => (
+    id === null
+      ? null
+      : playersById[id]!)
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, plus a line naming which read it was.
-      if (res.type === 'not-ok') {
-        setFailure(res)
-        return
-      }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      setFailure(null)
+  // Every row is a seated player's: a player's rows go with their profile
+  // (`on delete cascade`), so the lookup cannot miss.
+  const events: GEvent[] = raw.events.map(({ userId, ...row }) => ({
+    ...row,
+    by: playersById[userId]!,
+  }))
 
-      // ZERO ROWS: no board for this player yet. Nothing to seed and nothing to
-      // correct — leave `initialBoard` null, which is what `loading` reads.
-      const data = res.data[0]
-      if (!data) return
-      if (!seeded.current) {
-        setInitialBoard(data.board)
-        seeded.current = true
-      }
-      setTiles(data.tiles)
-    },
-  })
+  // The gate has checked that I am seated, and my own letters are never
+  // withheld.
+  const me = playersById[myId]! as GGameData['me']
+  // What the state line shows: my tiles against the two piles.
+  const stateLineData: GStateLineData = {
+    nTiles: me.nTiles,
+    nBunchTiles: raw.nBunchTiles,
+    nBagTiles: raw.nBagTiles,
+  }
 
-  // `loading` is derived rather than a flag — the board arriving IS the end of
-  // loading. A failure has to end it too, or the read that never lands leaves
-  // the surface spinning behind a fault modal it can't explain.
-  return { initialBoard, tiles, loading: initialBoard === null && failure === null, failure }
-}
-
-/** One row of `bananagrams.progress` — the public per-player projection peers
- *  read: unplaced/placed counts + the done flag. The per-player `conceded`
- *  drop-out flag is NOT here — it moved to the shared `common.game_players`
- *  roster (read off ctx.players; see common.concede). */
-export type ProgressRow = {
-  user_id: string
-  unplaced: number
-  placed: number
-  solved: boolean
+  const { turns, ending, ...rest } = raw
+  return {
+    ...rest,
+    setupRows: makeSetupRows(raw.setup, raw.mode, players),
+    turns: turns === null ? null : { holder: playersById[turns.holder]! },
+    ending: ending === null
+      ? null
+      : {
+        reason: ending.reason,
+        detail: ending.detail,
+        by: playerOf(ending.by),
+        winner: playerOf(ending.winner),
+      },
+    events,
+    players,
+    playersById,
+    me,
+    stateLineData,
+  }
 }
 
 /**
- * Subscribe to every player's `bananagrams.progress` row for this game — the
- * thin realtime surface (counts only, never boards). `progress` is
- * club-readable, so the caller sees all players' rows; the PeersStrip renders
- * the opponents'. A hook apart from `useGame` because the two tables sit on
- * opposite sides of RLS: `player_boards` is owner-only during play. Pattern A
- * (refetch on any change) — the table is tiny
- * (one row per player) and updates at most on each player's debounced save.
- */
-export function useProgress(gameId: string): ProgressRow[] {
-  const [rows, setRows] = useState<ProgressRow[]>([])
-  useRealtimeRefetch({
-    tables: { schema: 'bananagrams', table: 'progress', filter: `game_id=eq.${gameId}` },
-    channelPrefix: 'bananagrams-progress',
-    id: gameId,
-    load: async ({ isCurrent }) => {
-      const res = await readRows(
-        db
-          .from('progress')
-          .select('user_id, unplaced, placed, solved')
-          .eq('game_id', gameId),
-      )
-      if (!isCurrent()) return
-      // The peers strip, not the board: a failed read has already raised the
-      // fault modal, and the honest thing left is to keep showing the last
-      // counts rather than blank the strip.
-      if (res.type === 'not-ok') return
-      setRows(res.data)
-    },
-  })
-  return rows
-}
-
-/**
- * Every player's finished board — for the printout's per-player columns.
+ * Per-gametype data hook for bananagrams: `gd`, built from the `game_data`
+ * blob the page was handed and who I am. No reads and no subscription: the
+ * page re-reads the blob on every move and every board save, and this is a
+ * pure function of it (plans/seat-view.md → The page is written, not
+ * assembled). My board as I edit it is not here: `usePlayerBoard` seeds it from
+ * `gd.me.board.letters` once and owns it after.
  *
- * **Terminal only, and that's an RLS fact, not a policy choice here.**
- * `player_boards` is owner-only while the race is on (a rival must not read
- * your grid or your rack), and opens to the club once the game ends. So this
- * asks only at terminal; before then the select would return one row anyway.
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
  *
- * Not realtime and not a `useRealtimeRefetch`: a terminal game's boards don't
- * move, so this is a single read once `isTerminal` flips. It deliberately does
- * NOT feed the play surface — the screen still shows only your own board, and
- * this exists so the PDF can put the finished grids side by side.
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
  */
-export function usePeerBoards(
-  gameId: string,
-  isTerminal: boolean,
-): { user_id: string; board: string }[] {
-  const [rows, setRows] = useState<{ user_id: string; board: string }[]>([])
-  useEffect(() => {
-    if (!isTerminal) return
-    let mounted = true
-    void (async () => {
-      const res = await readRows(
-        db.from('player_boards').select('user_id, board').eq('game_id', gameId),
-      )
-      // Feeds the PDF's per-player columns, nothing on screen. A failed read has
-      // already raised the fault modal; leaving `rows` empty is what the print
-      // menu item already reads as "not ready".
-      if (mounted && res.type === 'ok') setRows(res.data)
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [gameId, isTerminal])
-  return rows
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(
+      `no game_data; run bananagrams._rebuild_data_cols_for_all()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
 }

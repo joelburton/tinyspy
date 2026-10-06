@@ -6,7 +6,7 @@ import type { Action } from '@/common/actions/useBindAction'
 import { IconExchange } from '@/common/icons/icons'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
-import { type DragSource } from '../hooks/usePlayerBoard'
+import type { GDragSource } from '../types'
 import { DUMP_COUNT } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import infoPanel from '@/common/info-sheet/infoPanel.module.css'
@@ -44,7 +44,7 @@ export function HandCard({
   displayedHand: string
   /** The live drag state (for the "lifting this hand tile" dim + arming the dump),
    *  or null. */
-  drag: DragState<DragSource> | null
+  drag: DragState<GDragSource> | null
   /** A dragged tile is hovering the dump slot (greens it). */
   dumpHot: boolean
   /** The "you don't hold that tile" red flash, and a nonce so a repeat miss replays. */

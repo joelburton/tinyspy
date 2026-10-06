@@ -4,7 +4,8 @@ import type { Member } from '@/common/members/member'
 import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { WORD_CHECK_OPTIONS, type BananagramsSetup } from './setup'
+import { WORD_CHECK_OPTIONS } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * bananagrams's setup rows — ONE array, rendered by the info column and the
@@ -15,7 +16,7 @@ import { WORD_CHECK_OPTIONS, type BananagramsSetup } from './setup'
  * this game being the v3 layout exception — the rows are the same either way.
  */
 export function makeSetupRows(
-  setup: BananagramsSetup,
+  setup: GSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
@@ -26,7 +27,7 @@ export function makeSetupRows(
     {
       key: 'dump_to_bag',
       // `true` is the bag — out of play — and `false` is back into the bunch
-      // (`BananagramsSetup.dump_to_bag`); the spec beside this file pins which
+      // (`GSetup.dump_to_bag`); the spec beside this file pins which
       // is which.
       label: 'Dumped tiles',
       value: setup.dump_to_bag ? 'to the bag (out of play)' : 'back to the bunch',

@@ -5,8 +5,8 @@ import {
   bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
   BANANAGRAMS_BUNCH_MAX,
-  type BananagramsSetup,
 } from './setup'
+import type { GSetup } from '../types'
 
 /**
  * `bunchSizeError` is the gate the SetupGameModal runs (via the manifest's
@@ -18,7 +18,7 @@ import {
  * the headcount — so the key is asserted with the words each time.
  */
 const onBunch = (pattern: RegExp) => ({ bunch_size: expect.stringMatching(pattern) })
-const base = (over: Partial<BananagramsSetup> = {}): BananagramsSetup => ({
+const base = (over: Partial<GSetup> = {}): GSetup => ({
   ...DEFAULT_BANANAGRAMS_SETUP,
   ...over,
 })

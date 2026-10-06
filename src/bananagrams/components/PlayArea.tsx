@@ -21,12 +21,11 @@ import { useBindAction } from '@/common/actions/useBindAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { db } from '../db'
 import { useGame, usePeerBoards, useProgress } from '../hooks/useGame'
-import type { BananagramsSetup } from '../lib/setup'
+import type { GCheckResult, GSetup } from '../types'
 import { boardLetters, boardToGrid } from '../lib/board'
 import { boardWords } from '../lib/words'
 import { printBananagramsPdf } from '../pdf/printBananagramsPdf'
 import { PlayerBoard } from './PlayerBoard'
-import type { BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { PeersStrip } from './PeersStrip'
 import { makeSetupRows } from '../lib/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -89,7 +88,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // (common/setup-form/doc.md → Setup rows). bananagrams keeps its disclosure in this file
   // rather than an InfoCol, being the v3 layout exception.
   const setupRows = useMemo(
-    () => makeSetupRows(ctx.setup as unknown as BananagramsSetup, 'compete', ctx.players),
+    () => makeSetupRows(ctx.setup as unknown as GSetup, 'compete', ctx.players),
     [ctx.setup, ctx.players],
   )
   const progress = useProgress(ctx.gameId)
@@ -166,7 +165,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // separately so "all good" can't congratulate someone who hasn't placed a
   // tile.
   const showCheckResult = useCallback(
-    (r: BananagramsCheckResult) => {
+    (r: GCheckResult) => {
       const feedbackMsg =
         r.kind === 'clean'
           ? FeedbackMessage.result('won', 'Every word checks out, and the grid is one piece.')
@@ -295,7 +294,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: ctx.clubHandle,
-        setup: ctx.setup as unknown as BananagramsSetup,
+        setup: ctx.setup as unknown as GSetup,
         player_user_ids: ctx.players.map((p) => p.user_id),
       }),
     )

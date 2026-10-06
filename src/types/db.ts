@@ -7,7 +7,26 @@ export type Database = {
   
   "bananagrams": {
           Tables: {
-            "games": {
+            "events": {
+                  Row: {
+                    "created_at": string,"game_id": string,"id": number,"kind": string,"n_drawn": number,"tile": string | null,"took_turn": boolean,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"n_drawn": number,"tile"?: string | null,"took_turn"?: boolean,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"n_drawn"?: number,"tile"?: string | null,"took_turn"?: boolean,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "events_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    }
+                  ]
+                },"games": {
                   Row: {
                     "bag": string,"bunch": string,"bunch_at_setup": string,"dict_2": number,"dict_3plus": number,"dump_to_bag": boolean,"game_id": string,"hand_size": number,"word_check": string
                   }
@@ -39,45 +58,38 @@ isOneToOne: false
       referencedColumns: ["game_id"]
     }
                   ]
-                },"progress": {
-                  Row: {
-                    "game_id": string,"placed": number,"unplaced_count": number,"user_id": string
-                  }
-                  Insert: {
-                    "game_id": string,"placed"?: number,"unplaced_count": number,"user_id": string
-                  }
-                  Update: {
-                    "game_id"?: string,"placed"?: number,"unplaced_count"?: number,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "progress_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    }
-                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "_count_unplaced":
-{ Args: { "p_game_id": string,"p_user_ids": (string)[] }; Returns: boolean
-                           },
-"_full_bag":
+            "_full_bag":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "_main_block_size":
 { Args: { "p_board": string }; Returns: number
                            },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_win_blockers":
 { Args: { "p_board": string,"p_check_words": boolean,"p_dict_2": number,"p_dict_3plus": number }; Returns: (number)[]
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "check_board":
 { Args: { "p_game_id": string }; Returns: Json

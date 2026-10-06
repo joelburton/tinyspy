@@ -16,6 +16,8 @@
  * order is layered on top with `reconcileHandOrder`.
  */
 
+import type { GExtent } from '../types'
+
 export const GRID = 25
 export const DEFAULT_CELL = 40 // px per cell; the smallest zoom is computed to fit the grid
 export const MAX_CELL = 64
@@ -122,10 +124,8 @@ export function shuffleString(s: string): string {
   return out.join('')
 }
 
-export type Extent = { minX: number; maxX: number; minY: number; maxY: number }
-
 /** Bounding box of the placed tiles, or null when the board is empty. */
-export function tilesExtent(board: string): Extent | null {
+export function tilesExtent(board: string): GExtent | null {
   let minX = GRID,
     maxX = -1,
     minY = GRID,

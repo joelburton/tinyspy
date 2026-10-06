@@ -200,13 +200,15 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, targetWinPercent: null, topScore: 40 }, 'Stop'],
     ],
   },
+  // bananagrams._make_json_summary_data: the bunch's count beside the common part; the
+  // winner is the common `ending.winner`. Compete only, so one vocabulary.
   bananagrams: {
-    playing: { bunch_remaining: 12 },
+    live: { nBunchTiles: 12 },
     shared: [
-      ['won', W, 'someone went out'],
-      ['lost', { reason: 'timeout' }, 'timeout'],
-      ['lost', { reason: 'conceded' }, 'all conceded'],
-      ['ended', { reason: 'manual' }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'complete', winner: 'u-alice' }, { nBunchTiles: 0 }, 'someone went out'],
+      [{ outcome: 'lost', reason: 'timeout' }, { nBunchTiles: 12 }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { nBunchTiles: 12 }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { nBunchTiles: 12 }, 'Stop'],
     ],
   },
   // waffle._make_json_summary_data: `team` holds coop's swaps and is null in compete; the

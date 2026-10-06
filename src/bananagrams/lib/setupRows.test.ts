@@ -13,7 +13,7 @@ const rowValue = (rows: ReturnType<typeof makeSetupRows>, key: string) =>
 describe('bananagrams makeSetupRows', () => {
   it('says where a dumped tile goes, the right way round', () => {
     // `dump_to_bag: true` takes the tile OUT OF PLAY; `false` returns it to the
-    // bunch (`BananagramsSetup.dump_to_bag`). The printed record had these
+    // bunch (`GSetup.dump_to_bag`). The printed record had these
     // swapped, which is what this pins.
     expect(rowValue(makeSetupRows({ ...DEFAULTS, dump_to_bag: true }, 'compete', [me]), 'dump_to_bag'))
       .toBe('to the bag (out of play)')

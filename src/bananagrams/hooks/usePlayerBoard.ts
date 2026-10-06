@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
 } from 'react'
 import { db } from '../db'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -24,12 +23,13 @@ import {
   reconcileHandOrder,
   shuffleString,
 } from '../lib/board'
-import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
+import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { useBindAction } from '@/common/actions/useBindAction'
-import type { Action } from '@/common/actions/useBindAction'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import type { GDragSource } from '../types'
+import type { GBoardEditor, GBoardEditorInput } from '../reactTypes'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and
@@ -61,9 +61,6 @@ const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
 // reference and defeat memoization downstream.
 const NO_CELLS: ReadonlySet<number> = new Set()
 
-export type Cell = { x: number; y: number }
-export type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; x: number; y: number }
-
 // The board cursor is always present during play (you can type the moment the board
 // loads). It starts dead center — Bananagrams builds outward from the middle — and is
 // reset there after a recenter.
@@ -74,94 +71,6 @@ function overHandAtPoint(x: number, y: number): boolean {
 }
 function overDumpAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
-}
-
-/** What the engine needs from PlayArea (the outer coordinator). */
-/**
- * What a **Check words** round trip found. `clean` and `empty` are separated on
- * purpose — an empty board has no blockers either, and telling someone their
- * blank grid checks out is worse than saying nothing.
- */
-export type BananagramsCheckResult =
-  | { kind: 'clean' }
-  | { kind: 'empty' }
-  | { kind: 'invalid'; count: number }
-  | { kind: 'error'; message: string }
-
-export type UsePlayerBoardInput = {
-  gameId: string
-  /** The FE-owned placement grid at load — seeds local board state ONCE. */
-  initialBoard: string
-  /** Server-owned holdings (everything the player holds). LIVE: a peel/dump changes it
-   *  upstream and the derived hand follows. */
-  tiles: string
-  /** The board responds to me (the page's `isBoardInteractive`). False once the
-   *  game is over or THIS player has conceded (the game still live for the
-   *  others): freezes the board (no placing / dragging / typing) and disables
-   *  peel, check and dump. */
-  isBoardInteractive: boolean
-  /** Peel: draws a tile for everyone, or wins if the bunch can't refill the table.
-   *  Resolves to `{ illegalCells }` when a winning peel was BLOCKED by the legal-board
-   *  check (those cells get painted red); `null` otherwise. */
-  onPeel?: () => Promise<{ illegalCells: number[] } | null>
-  /** Report a Check-words outcome so the coordinator can pill it. */
-  onCheckResult?: (r: BananagramsCheckResult) => void
-  /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
-  onDump?: (letter: string) => void | Promise<void>
-  /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load. */
-  bunchCount?: number
-  /** Tiles in the out-of-play bag (status.bag_remaining) — counts toward what a dump
-   *  can draw (the bunch tops up from the bag when short). */
-  bagCount?: number
-  /** Optional out-param: kept pointed at the LIVE board string so the outer
-   *  coordinator can snapshot it on demand (the print menu reads it at click time)
-   *  without subscribing to every placement. */
-  reportBoardRef?: RefObject<string>
-}
-
-/** Everything the two views + the layout need to render. */
-export type PlayerBoardEngine = {
-  // ── Board arena ──
-  scrollRef: RefObject<HTMLDivElement | null>
-  board: string
-  cell: number
-  minCell: number
-  cursor: GridCursor
-  hover: Cell | null
-  drag: DragState<DragSource> | null
-  invalidCells: ReadonlySet<number>
-  onZoom: (next: number) => void
-  centerAndFit: () => void
-  onCellPointerDown: (x: number, y: number, e: ReactPointerEvent) => void
-  // ── Hand ──
-  displayedHand: string
-  derivedHand: string
-  dumpHot: boolean
-  errFlash: boolean
-  errNonce: number
-  onHandPointerDown: (index: number, letter: string, e: ReactPointerEvent) => void
-  onShuffle: () => void
-  // ── Actions ──
-  declaring: boolean
-  doPeel: () => Promise<void>
-  /** PEEL, as the action behind both its key and its button — the board cursor
-   *  binds it (Enter and Space come with the action) and hands it back so the
-   *  board's action row can place the same one. */
-  actPeel: Action
-  /** The hand's ⟲ rotate, and ⌥Z, as one action. */
-  actShuffle: Action
-  /** Ask the server whether the board is legal right now and paint what isn't. */
-  actCheckBoard: Action
-  /** Re-center the board and fit it to the viewport. A view control, live at
-   *  every phase. */
-  actZoomFit: Action
-  /** Ask the server whether the board is legal right now and paint what isn't
-   *  (the **Check words** button). Always offered, whatever `setup.word_check`
-   *  says — that option governs when the server ENFORCES words, not whether you
-   *  may ask about your own board. */
-  doWordCheck: () => Promise<void>
-  /** A Check-words round trip is in flight (grays its button). */
-  checking: boolean
 }
 
 /** What `bananagrams.save_player_board` puts in `data`. The two no-op results
@@ -190,7 +99,7 @@ export function usePlayerBoard({
   bunchCount,
   bagCount,
   reportBoardRef,
-}: UsePlayerBoardInput): PlayerBoardEngine {
+}: GBoardEditorInput): GBoardEditor {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
   // derived order. Reconciled against the live hand each render, so it survives
@@ -258,7 +167,7 @@ export function usePlayerBoard({
     // here is about whether something went wrong, and `runRpc` has raised the
     // modal by the time we see it.
     return runRpc<SavedBoard>(
-      db.rpc('save_player_board', { target_game: gameId, board: boardRef.current }),
+      db.rpc('save_player_board', { p_game_id: gameId, p_board: boardRef.current }),
     ).then((res) => {
       if (res.type === 'ok' && res.data?.result === 'saved') {
         // Stored, and `progress` recomputed for the peers strip.
@@ -394,7 +303,7 @@ export function usePlayerBoard({
 
   // --- Drag plumbing (shared hook owns the window listeners) ------------
   const finishDrag = useCallback(
-    (g: DragGesture<DragSource>, x: number, y: number) => {
+    (g: DragGesture<GDragSource>, x: number, y: number) => {
       const target = cellAtPoint(x, y)
       if (target) {
         const occupied = boardRef.current[idx(target.x, target.y)] !== '.'
@@ -428,11 +337,11 @@ export function usePlayerBoard({
   )
 
   // A plain tap on a board cell moves the keyboard cursor there.
-  const onTap = useCallback((g: DragGesture<DragSource>) => {
+  const onTap = useCallback((g: DragGesture<GDragSource>) => {
     if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
   }, [])
 
-  const { drag, hover, start } = useDragGesture<DragSource>({
+  const { drag, hover, start } = useDragGesture<GDragSource>({
     onDrop: finishDrag,
     onTap,
     // Any dragged tile (hand or board) can be dumped; light the slot when one hovers
@@ -502,7 +411,7 @@ export function usePlayerBoard({
     setChecking(true)
     try {
       await save()
-      const res = await runRpc<CheckedBoard>(db.rpc('check_board', { target_game: gameId }))
+      const res = await runRpc<CheckedBoard>(db.rpc('check_board', { p_game_id: gameId }))
       if (res.type === 'not-ok') {
         // Both are faults and `runRpc` has raised the modal; this line is what
         // the check panel says once it is dismissed.

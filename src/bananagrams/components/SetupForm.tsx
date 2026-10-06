@@ -12,8 +12,8 @@ import {
   WORD_CHECK_OPTIONS,
   BANANAGRAMS_BUNCH_MAX,
   tilesNeeded,
-  type BananagramsValues,
 } from '../lib/setup'
+import type { GSetupValues } from '../types'
 import styles from './SetupForm.module.css'
 import { NumberField } from '@/common/fields/NumberField'
 import { CheckboxField } from '@/common/fields/CheckboxField'
@@ -53,8 +53,8 @@ import { CheckboxField } from '@/common/fields/CheckboxField'
 export function SetupForm({
   members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as BananagramsValues
-  const set = setValue as SetupSetter<BananagramsValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   const needed = tilesNeeded(s, s.player_user_ids.size)
 
   // Disclosure summaries carry the current values so each section reads without

@@ -18,7 +18,8 @@ import { renderHook, act } from '@testing-library/react'
 import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GRID, idx, setChar } from '../lib/board'
-import { usePlayerBoard, type UsePlayerBoardInput } from './usePlayerBoard'
+import { usePlayerBoard } from './usePlayerBoard'
+import type { GBoardEditorInput } from '../reactTypes'
 
 const { keyCfg, mockStart, mockRpc } = vi.hoisted(() => ({
   keyCfg: { current: null as unknown as Record<string, (...a: never[]) => void> & { enabled: boolean } },
@@ -46,7 +47,7 @@ const C = Math.floor(GRID / 2)
 const CENTER = idx(C, C)
 const withCenter = (letter: string) => setChar(EMPTY, CENTER, letter)
 
-function render(input: Partial<UsePlayerBoardInput> = {}) {
+function render(input: Partial<GBoardEditorInput> = {}) {
   return renderHook(() =>
     usePlayerBoard({ gameId: 'g1', initialBoard: EMPTY, tiles: 'A', isBoardInteractive: true, ...input }),
   )
@@ -72,7 +73,7 @@ describe('persistence', () => {
     const { unmount } = render({ tiles: 'A', initialBoard: EMPTY })
     expect(mockRpc).not.toHaveBeenCalled() // no save while mounted + unchanged
     unmount()
-    expect(mockRpc).toHaveBeenCalledWith('save_player_board', { target_game: 'g1', board: EMPTY })
+    expect(mockRpc).toHaveBeenCalledWith('save_player_board', { p_game_id: 'g1', p_board: EMPTY })
   })
 
   it('debounces an autosave after a board edit', () => {
@@ -82,8 +83,8 @@ describe('persistence', () => {
     expect(mockRpc).not.toHaveBeenCalled() // not yet — it's debounced
     act(() => vi.advanceTimersByTime(800))
     expect(mockRpc).toHaveBeenCalledWith('save_player_board', {
-      target_game: 'g1',
-      board: withCenter('A'),
+      p_game_id: 'g1',
+      p_board: withCenter('A'),
     })
   })
 })

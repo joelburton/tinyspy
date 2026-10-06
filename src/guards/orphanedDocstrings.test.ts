@@ -48,8 +48,6 @@ import { describe, expect, it } from 'vitest'
  * **Not line numbers**, deliberately; `orphansIn` below says why.
  */
 const KNOWN: string[] = [
-  // → bananagrams
-  'src/bananagrams/hooks/usePlayerBoard.ts › BananagramsCheckResult',
   // → crosswords
   'src/crosswords/components/PlayArea.tsx › CheckAnswer',
   'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',
