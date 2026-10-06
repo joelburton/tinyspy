@@ -26,7 +26,7 @@ test.describe('scrabble — move preview (coop)', () => {
     const club = await createClubWithMembers(['alice', 'bob'])
     const [alice, bob] = club.members
     const game = await createScrabbleGame(club, 'coop') // seats both members
-    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
     const url = `/g/${game.gametype}/${game.id}`
 
     // Both players open the game (coop needs everyone present, or it pauses).
@@ -54,7 +54,7 @@ test.describe('scrabble — move preview (coop)', () => {
     const centerA = pageA.locator('[data-cell][data-x="7"][data-y="7"]')
     await centerA.click()
     await pageA.keyboard.type('CAT')
-    await expect(centerA, 'CAT staged on Alice\'s board').toContainText('C')
+    await expect(centerA, 'CAT staged on Alice\'s board').toContainText('c')
 
     // Alice shows it to the team (coop, ≥2 players → the Share button renders).
     await pageA.getByLabel('Show move to team').click()
@@ -65,7 +65,7 @@ test.describe('scrabble — move preview (coop)', () => {
     // …and CAT's tiles previewed on HIS board (they're not committed — this is the
     // read-only overlay of Alice's tentative move).
     const centerB = pageB.locator('[data-cell][data-x="7"][data-y="7"]')
-    await expect(centerB, "Alice's tile previews on Bob's board").toContainText('C')
+    await expect(centerB, "Alice's tile previews on Bob's board").toContainText('c')
 
     // Alice never sees her own preview — Broadcast doesn't echo to the sender.
     await expect(pageA.getByText(/showing:/)).toHaveCount(0)
@@ -73,7 +73,7 @@ test.describe('scrabble — move preview (coop)', () => {
     // Bob returns to the live board by typing (any keystroke exits the viewer).
     await pageB.keyboard.press('a')
     await expect(banner).toBeHidden()
-    await expect(centerB, 'the preview cleared on dismiss').not.toContainText('C')
+    await expect(centerB, 'the preview cleared on dismiss').not.toContainText('c')
 
     await ctxA.close()
     await ctxB.close()

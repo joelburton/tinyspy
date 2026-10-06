@@ -24,7 +24,7 @@ test.describe('scrabble — play a turn', () => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
     const game = await createScrabbleGame(club, 'coop')
-    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -42,7 +42,7 @@ test.describe('scrabble — play a turn', () => {
     const center = page.locator('[data-cell][data-x="7"][data-y="7"]')
     await center.click()
     await page.keyboard.type('CAT')
-    await expect(center, 'C staged at the center').toContainText('C')
+    await expect(center, 'C staged at the center').toContainText('c')
 
     // Enter submits the staged word.
     await page.keyboard.press('Enter')
@@ -55,7 +55,7 @@ test.describe('scrabble — play a turn', () => {
     // The version-reset rebuilt the rack (back to 7) and the played tile held on the
     // board through the commit (optimistic — it never blinked off).
     await expect(rackTiles).toHaveCount(7)
-    await expect(center, 'C stayed committed on the board').toContainText('C')
+    await expect(center, 'C stayed committed on the board').toContainText('c')
 
     await ctx.close()
   })
@@ -74,7 +74,7 @@ test.describe('scrabble replay + new game', () => {
   test('a committed word is wiped by "Restart" (the grid re-deals)', async ({ browser }) => {
     const club = await createSoloClub('screp')
     const game = await createScrabbleGame(club, 'coop')
-    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
@@ -87,7 +87,7 @@ test.describe('scrabble replay + new game', () => {
     await page.keyboard.type('CAT')
     await page.keyboard.press('Enter')
     await expect(page.getByText(/CAT \+\d/i)).toBeVisible({ timeout: 10000 })
-    await expect(center).toContainText('C')
+    await expect(center).toContainText('c')
 
     // Mid-game restart is confirmed through the styled ConfirmationBlockingModal (it wipes
     // the group's progress) — the browser alert went away 2026-08-03, so the
@@ -97,7 +97,7 @@ test.describe('scrabble replay + new game', () => {
     await page.getByRole('button', { name: 'Restart', exact: true }).click()
 
     // The center square is empty again — the re-deal landed.
-    await expect(center).not.toContainText('C', { timeout: 10000 })
+    await expect(center).not.toContainText('c', { timeout: 10000 })
     await ctx.close()
   })
 

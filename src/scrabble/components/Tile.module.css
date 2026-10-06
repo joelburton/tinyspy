@@ -24,7 +24,6 @@
 }
 /* @@ */ .rack {
   box-shadow: var(--scrabble-rack-shadow);
-  touch-action: manipulation;
 }
 
 /* ─── On the board ─── */

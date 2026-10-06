@@ -29,7 +29,7 @@ test.describe('scrabble — AI opponent (compete)', () => {
     })
     // Give the AI seat (seat 1) a rack with an easy opening word, and make it
     // the AI's turn so the move fires the moment alice's client loads.
-    pinScrabbleSeat(game.id, 1, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    pinScrabbleSeat(game.id, 1, ['c', 'a', 't', 's', 'e', 'r', 'o'])
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)

@@ -905,46 +905,51 @@ export async function createScrabbleGame(
   const res = await asUser(creator.session.access_token)
     .schema('scrabble')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup,
-      player_user_ids: playerUserIds,
-      mode,
+      p_club_handle: club.handle,
+      p_setup: setup,
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'scrabble.create_game'), gametype: `scrabble_${mode}` }
 }
 
 /** Pin one compete seat's rack + force it to be that seat's turn (superuser psql),
- *  so a test can drive a deterministic AI or human move. */
+ *  so a test can drive a deterministic AI or human move. Tiles are single
+ *  lowercase letters (or '?' for a blank), the data's case; validated to keep
+ *  the interpolation safe. The page blobs are rebuilt, so the page sees it. */
 export function pinScrabbleSeat(gameId: string, seat: number, rack: string[]): void {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   if (!Number.isInteger(seat) || seat < 0 || seat > 3) throw new Error(`bad seat: ${seat}`)
-  if (!rack.every((t) => /^[A-Z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
+  if (!rack.every((t) => /^[a-z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
   execFileSync(
     'psql',
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
-      '-c', `update scrabble.players set rack = '{${rack.join(',')}}' where game_id = '${gameId}' and seat = ${seat};`,
-      '-c', `update common.games set current_turn_user_id = (select user_id from scrabble.players where game_id = '${gameId}' and seat = ${seat}) where id = '${gameId}';`,
+      '-c', `update scrabble.players set rack = '{${rack.join(',')}}' where game_id = '${gameId}' and user_id = (select user_id from common.game_players where game_id = '${gameId}' and turn_seat = ${seat});`,
+      '-c', `update common.games set current_turn_user_id = (select user_id from common.game_players where game_id = '${gameId}' and turn_seat = ${seat}) where id = '${gameId}';`,
+      '-c', `select scrabble._rebuild_data_cols('${gameId}', p_update_status_changed_at => false);`,
     ],
     { stdio: 'pipe' },
   )
 }
 
-/** Pin a scrabble game's COOP shared rack to a known set, so a test can type a
+/** Pin a scrabble game's coop team rack to a known set, so a test can type a
  *  deterministic, dictionary-valid word (create_game draws a random rack). Reaches
  *  the base table directly via psql (superuser), the same test-only pattern as
- *  drainBananagramsPool — no prod grant required. Tiles are single uppercase letters
- *  (or '?' for a blank); validated to keep the interpolation safe. */
+ *  drainBananagramsPool — no prod grant required — and rebuilds the page blobs,
+ *  so the page sees it. Tiles are single lowercase letters (or '?' for a blank),
+ *  the data's case; validated to keep the interpolation safe. */
 export function setScrabbleRack(gameId: string, rack: string[]): void {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
-  if (!rack.every((t) => /^[A-Z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
+  if (!rack.every((t) => /^[a-z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
   execFileSync(
     'psql',
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
-      '-c', `update scrabble.games set shared_rack = '{${rack.join(',')}}' where id = '${gameId}';`,
+      '-c', `update scrabble.games set team_rack = '{${rack.join(',')}}' where game_id = '${gameId}';`,
+      '-c', `select scrabble._rebuild_data_cols('${gameId}', p_update_status_changed_at => false);`,
     ],
     { stdio: 'pipe' },
   )

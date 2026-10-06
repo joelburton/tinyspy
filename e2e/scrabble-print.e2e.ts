@@ -18,7 +18,7 @@ test.describe('scrabble — print board (jsPDF spike)', () => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
     const game = await createScrabbleGame(club, 'coop')
-    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)

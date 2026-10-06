@@ -18,10 +18,12 @@
   min-height: calc(var(--rack-tile-size) + 2 * 8px);
 }
 
-/* One slot: a tile's size and place in the tray; the tile fills it (Tile.tsx). */
+/* One slot: a tile's size and place in the tray; the tile fills it (Tile.tsx).
+   The slot takes the tap, so it is what stops a double tap from zooming. */
 /* @@ */ .slot {
   position: relative;
   flex: 0 0 auto;
   width: var(--rack-tile-size);
   height: var(--rack-tile-size);
+  touch-action: manipulation;
 }

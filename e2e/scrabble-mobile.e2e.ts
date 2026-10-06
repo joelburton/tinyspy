@@ -28,7 +28,7 @@ test.describe('scrabble mobile', () => {
     }) => {
       const club = await createSoloClub(`sm${tag[0]}`)
       const game = await createScrabbleGame(club, 'coop')
-      setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+      setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
 
       const ctx = await browser.newContext({
         viewport: { width: w, height: h },

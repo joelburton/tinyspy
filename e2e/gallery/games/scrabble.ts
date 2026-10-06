@@ -11,8 +11,8 @@ const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
 /** Standard Scrabble tile values — enough to report a plausible score. */
 const VALUE: Record<string, number> = {
-  A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2, H: 4, I: 1, J: 8, K: 5, L: 1, M: 3,
-  N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1, U: 1, V: 4, W: 4, X: 8, Y: 4, Z: 10,
+  a: 1, b: 3, c: 3, d: 2, e: 1, f: 4, g: 2, h: 4, i: 1, j: 8, k: 5, l: 1, m: 3,
+  n: 1, o: 1, p: 3, q: 10, r: 1, s: 1, t: 1, u: 1, v: 4, w: 4, x: 8, y: 4, z: 10,
 }
 
 function q(sql: string): string {
@@ -20,7 +20,9 @@ function q(sql: string): string {
 }
 
 /**
- * The acting rack: coop shares one, compete gives each seat its own.
+ * The acting rack: coop's team shares one, compete gives each seat its own.
+ * Lowercase, the data's case; a blank (`?`) is dropped, since the gallery
+ * spells only with lettered tiles.
  *
  * Read as the superuser — a rack is hidden from everyone but its owner, and the
  * gallery has to know it to play from it. Reading is fine here (friends, not
@@ -30,11 +32,11 @@ function q(sql: string): string {
 function rackOf(gameId: string, mode: 'coop' | 'compete'): string {
   const sql =
     mode === 'coop'
-      ? `select array_to_string(shared_rack, '') from scrabble.games where id = '${gameId}';`
+      ? `select array_to_string(team_rack, '') from scrabble.games where game_id = '${gameId}';`
       : `select array_to_string(p.rack, '') from scrabble.players p
            join common.games g on g.id = p.game_id
           where p.game_id = '${gameId}' and p.user_id = g.current_turn_user_id;`
-  return q(sql).replace(/[^A-Z]/g, '')
+  return q(sql).replace(/[^a-z]/g, '')
 }
 
 /**
@@ -52,7 +54,7 @@ function rackOf(gameId: string, mode: 'coop' | 'compete'): string {
  */
 function wordFromRack(rack: string, band: number): { word: string; score: number } | null {
   if (rack.length < 3) return null
-  const letters = [...new Set(rack.split(''))].join('').toLowerCase()
+  const letters = [...new Set(rack.split(''))].join('')
   const rows = q(
     `select word from common.words
       where length(word) between 3 and 5 and difficulty <= ${band}
@@ -61,15 +63,15 @@ function wordFromRack(rack: string, band: number): { word: string; score: number
   )
   for (const word of rows.split('\n').filter(Boolean)) {
     const pool = rack.split('')
-    const fits = [...word.toUpperCase()].every((ch) => {
+    const fits = [...word].every((ch) => {
       const at = pool.indexOf(ch)
       if (at < 0) return false
       pool.splice(at, 1)
       return true
     })
     if (fits) {
-      const score = [...word.toUpperCase()].reduce((s, ch) => s + (VALUE[ch] ?? 0), 0)
-      return { word: word.toUpperCase(), score }
+      const score = [...word].reduce((s, ch) => s + (VALUE[ch] ?? 0), 0)
+      return { word, score }
     }
   }
   return null
@@ -113,7 +115,7 @@ export const scrabbleGallery: GameGallery = {
       const holder = q(`select current_turn_user_id from common.games where id = '${id}';`)
       return club.members.find((m) => m.userId === holder) ?? viewer
     }
-    const version = () => Number(q(`select version from scrabble.games where id = '${id}';`))
+    const version = () => Number(q(`select version from scrabble.games where game_id = '${id}';`))
 
     /** Play a word off the acting rack onto `row`. False if the rack can't. */
     const playWord = async (row: number): Promise<boolean> => {
@@ -124,11 +126,11 @@ export const scrabbleGallery: GameGallery = {
       const res = await asUser(actor.session.access_token)
         .schema('scrabble')
         .rpc('play_word', {
-          target_game: id,
-          base_version: version(),
-          placements,
-          words: [pick.word],
-          score: pick.score,
+          p_game_id: id,
+          p_base_version: version(),
+          p_placements: placements,
+          p_words: [pick.word],
+          p_score: pick.score,
         })
       if (res.error) throw new Error(`scrabble.play_word(${pick.word}): ${res.error.message}`)
       return true
@@ -138,7 +140,7 @@ export const scrabbleGallery: GameGallery = {
       const actor = onTurn()
       const res = await asUser(actor.session.access_token)
         .schema('scrabble')
-        .rpc('pass_turn', { target_game: id, base_version: version() })
+        .rpc('pass_turn', { p_game_id: id, p_base_version: version() })
       if (res.error) throw new Error(`scrabble.pass_turn: ${res.error.message}`)
     }
 

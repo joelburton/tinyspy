@@ -29,7 +29,7 @@ test.describe('scrabble — suggest a move (coop)', () => {
     const [alice] = club.members
     const game = await createScrabbleGame(club, 'coop', [alice.userId])
     // A friendly rack: CATSERO on an empty board yields well over five moves.
-    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    setScrabbleRack(game.id, ['c', 'a', 't', 's', 'e', 'r', 'o'])
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)

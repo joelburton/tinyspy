@@ -207,18 +207,20 @@ const CASES: Case[] = [
       const game = await createScrabbleGame(club)
       // An EXCHANGE, not a pass: a pass is compete-only (PN454), and this is a
       // coop game. It needs no board and no dictionary — just a known tile on
-      // the shared rack to hand back.
-      setScrabbleRack(game.id, ['A', 'B', 'C', 'D', 'E', 'F', 'G'])
+      // the team rack to hand back.
+      setScrabbleRack(game.id, ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
       return {
         ...game,
         write: async (m) => {
-          const db = asUser(m.session.access_token).schema('scrabble')
-          const state = await db.from('games_state').select('version').eq('id', game.id).single()
-          if (state.error) throw new Error(`scrabble version: ${state.error.message}`)
-          const res = await db.rpc('exchange_tiles', {
-            target_game: game.id,
-            base_version: (state.data as { version: number }).version,
-            rack_tiles: ['A'],
+          const client = asUser(m.session.access_token)
+          // The move counter rides the page blob, as the page reads it.
+          const page = await client.schema('common').from('games')
+            .select('game_data').eq('id', game.id).single()
+          if (page.error) throw new Error(`scrabble version: ${page.error.message}`)
+          const res = await client.schema('scrabble').rpc('exchange_tiles', {
+            p_game_id: game.id,
+            p_base_version: (page.data as { game_data: { version: number } }).game_data.version,
+            p_rack_tiles: ['a'],
           })
           envelopeData(res, 'scrabble.exchange_tiles')
         },
