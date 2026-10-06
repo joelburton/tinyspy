@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -57,32 +57,31 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The solved board, the 21 tiles by position. Null until the game ends.
     solution: GLetterTile[] | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the swaps summed over every player's own,
+  // and the one board. Null in compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every swap, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the swaps summed over
- * every player's own. The budget they count against is `maxSwaps`, on every
- * player.
+ * waffle's facts (plans/team-facts.md): the swaps spent against the budget,
+ * and the board they are made on. A player carries them twice — spread on,
+ * their side's (the team's in coop, their own in compete); under `own`, their
+ * own. Par is the deal's (`puzzle.parSwaps`).
  */
-export type GTeam = {
+export type GFacts = {
   nSwapsUsed: number
+  // The swap budget: the team's in coop, each player's own in compete.
+  maxSwaps: number
+  // The 21 tiles, colored; null for a rival mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the state line shows — "Swaps 3/12 (9 left) · Par 10": the team's count
- * in coop, my own in compete, against the budget and par. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = {
-  nSwapsUsed: number
-  maxSwaps: number
-  parSwaps: number
+/** `GFacts` as the builders write them: the board is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /**
@@ -115,17 +114,11 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as waffle's game_data shows them: the common player, with the
- *  budget, their own count and this seat's board. */
-export type GPlayerRaw = PlayerRaw & {
-  // The swap budget: the team's in coop, each player's own in compete. The
-  // same on every player.
-  maxSwaps: number
-  // Swaps spent: this player's own, in every mode; the team's is `team`'s.
-  nSwapsUsed: number
-  // What this seat sees: one shared board in coop, each racer's own in
-  // compete.
-  board: GBoard
+/** A player as waffle's game_data shows them: the common player, with their
+ *  own facts. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own board; null in coop, whose one board is `team`'s.
+  board: GBoard | null
 }
 
 /*
@@ -147,7 +140,6 @@ export type GPlayerRaw = PlayerRaw & {
  *     dealtTiles                             # [{id, letter}, …], the 21 cells by position
  *     parSwaps
  *     solution                               # [{id, letter}, …]; null until the game ends
- *   team: {nSwapsUsed}                       # null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -156,13 +148,13 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nSwapsUsed, maxSwaps, parSwaps}   # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   maxSwaps                                 # the budget: the same on every player
- *   nSwapsUsed                               # own, in every mode
- *   board: {tiles}                           # what this seat sees; null for a rival mid-race
+ *   nSwapsUsed                               # the side's: the team's in coop, their own in compete
+ *   maxSwaps
+ *   board: {tiles}                           # coop's one board on every player; null for a rival mid-race
+ *   own: {nSwapsUsed, maxSwaps, board}       # this player's own
  *
  * tile:                                      # GTile
  *   id                                       # the cell's position, as text: '0'…'24', holes left out
@@ -184,7 +176,7 @@ export type GPlayerRaw = PlayerRaw & {
  * built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -204,14 +196,15 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's count in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the blob's player with
+ * waffle's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's board is null mid-race.
+ */
+export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat sees: the 21 tiles, by position. */
@@ -315,13 +308,13 @@ export type GSetup = SetupOf<GSetupValues>
  * there is no polished pair and no `Raw`; the play surface reads `game_data`
  * instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries: the team's count in coop, null
- * in compete, whose summary shows no progress; the winner's count is
- * compete's, null until the race is won and always null in coop (the winner is
- * the common `ending.winner`). `band` is the setup's dictionary band.
+ * `team` is the team's count in coop, null in compete, whose summary shows no
+ * progress; the winner's count is compete's, null until the race is won and
+ * always null in coop (the winner is the common `ending.winner`). `band` is
+ * the setup's dictionary band.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nSwapsUsed'> | null
   maxSwaps: number
   band: number
   nWinnerSwaps: number | null

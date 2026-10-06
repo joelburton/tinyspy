@@ -149,7 +149,6 @@ export function useActionsAndMenu({
           maxSwaps: gd.me.maxSwaps,
           parSwaps: gd.puzzle.parSwaps,
           players: gd.players,
-          team: gd.team,
           events: gd.events,
           myId: gd.me.id,
           solution: gd.puzzle.solution,

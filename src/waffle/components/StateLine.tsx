@@ -1,10 +1,11 @@
 // cs-unmet
 
-import type { GStateLineData } from '../types'
+import type { GFacts, GGameData } from '../types'
 
 /**
- * waffle's state line — "Swaps 3/12 (9 left) · Par 10" — drawn from
- * `gd.stateLineData`: the team's count in coop, my own in compete.
+ * waffle's state line — "Swaps 3/12 (9 left) · Par 10" — drawn from my side's
+ * facts, `gd.me`: the team's count in coop, my own in compete; par is the
+ * deal's.
  *
  * Rendered TWICE, in two places that must never drift: the info column's
  * `.infoState` line (desktop) and the mobile `<MobileStatusBar>` above the
@@ -14,15 +15,15 @@ import type { GStateLineData } from '../types'
  * The counters are bold and the labels aren't: the numbers are what's read at a
  * glance.
  */
-export function StateLine({ data }: { data: GStateLineData }) {
-  const nSwapsLeft = Math.max(0, data.maxSwaps - data.nSwapsUsed)
+export function StateLine({ facts, puzzle }: { facts: GFacts; puzzle: GGameData['puzzle'] }) {
+  const nSwapsLeft = Math.max(0, facts.maxSwaps - facts.nSwapsUsed)
   return (
     <>
       Swaps{' '}
       <strong>
-        {data.nSwapsUsed}/{data.maxSwaps}
+        {facts.nSwapsUsed}/{facts.maxSwaps}
       </strong>{' '}
-      ({nSwapsLeft} left) · Par <strong>{data.parSwaps}</strong>
+      ({nSwapsLeft} left) · Par <strong>{puzzle.parSwaps}</strong>
     </>
   )
 }

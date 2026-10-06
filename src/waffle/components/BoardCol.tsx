@@ -102,7 +102,7 @@ export function BoardCol({
           subtracts this row's height there too, or the square would overflow
           the viewport (the hard no-scroll invariant). */}
       <MobileStatusBar>
-        <StateLine data={gd.stateLineData}/>
+        <StateLine facts={gd.me} puzzle={gd.puzzle}/>
       </MobileStatusBar>
       <Board
         tiles={tiles}
@@ -121,7 +121,7 @@ export function BoardCol({
         // The swaps behind the board on show — the team's in coop, my own in
         // compete. The reveal leaves it alone, which is what tells the flash
         // that the board swapped in was not played into existence.
-        moveCount={gd.stateLineData.nSwapsUsed}
+        moveCount={gd.me.nSwapsUsed}
         onTap={picks.tap}
         onTogglePick={picks.toggle}
         onDrop={picks.drop}

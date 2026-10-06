@@ -77,7 +77,7 @@ export function InfoCol({
         {/* The SAME <StateLine> the mobile status bar renders above the board
             (they must never drift). */}
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData}/>
+          <StateLine facts={gd.me} puzzle={gd.puzzle}/>
         </p>
         {gd.turns !== null && (
           <TurnStatusLine

@@ -22,7 +22,7 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const outcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const nSwapsOverPar = gd.stateLineData.nSwapsUsed - gd.puzzle.parSwaps
+  const nSwapsOverPar = gd.me.nSwapsUsed - gd.puzzle.parSwaps
 
   return useMemo(
     () =>

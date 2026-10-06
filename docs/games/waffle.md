@@ -158,8 +158,8 @@ it into `game_data`, each key in its place.
 | blob | waffle's part |
 |---|---|
 | `static_game_data` | `puzzle: {dealtTiles, parSwaps}` — the deal as `{id, letter}` tiles, and par |
-| `game_data` | `puzzle: {solution}` — the solution as `{id, letter}` tiles, null until the game ends; `team: {nSwapsUsed}`, the sum of the players' own counts, null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player `maxSwaps`, their own `nSwapsUsed`, and `board: {tiles}` — their board as `GTile`s, the one shared board on every seat in coop |
-| `summary_data` | `team: {nSwapsUsed}`, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `nWinnerSwaps`, compete's once the race is won, null in coop |
+| `game_data` | `puzzle: {solution}` — the solution as `{id, letter}` tiles, null until the game ends; `team`, the team's facts sent once — the sum of the players' own counts and the one board, read off any row since they are in lock-step — null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player their own facts: `maxSwaps`, `nSwapsUsed`, and a racer's `board: {tiles}` as `GTile`s, null on a coop player |
+| `summary_data` | `team: {nSwapsUsed}`, the team's count, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `nWinnerSwaps`, compete's once the race is won, null in coop |
 
 **The builder writes every board and every swap.** What a racer may not see yet
 — a rival's swaps and board mid-race — is withheld by `useGame` (below), not by
@@ -458,8 +458,12 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
 - **`useGame`** builds `gd` through `makeGameData`, a pure function of the blob
   and who I am: the players with their links resolved, the seat rule (mid-race
   in compete a rival's rows leave `gd.events` and their `board` is null), the
-  setup rows, and `stateLineData` — the team's count in coop, mine in compete,
-  with the budget and par. It reads nothing and subscribes to nothing.
+  setup rows, and waffle's facts (`GFacts`: `nSwapsUsed`, `maxSwaps`, `board`)
+  on every player twice — spread on, the side's (the team's in coop, their own
+  in compete); under `own`, their own
+  ([plans/team-facts.md](../../plans/team-facts.md)). The state line reads
+  `gd.me` beside `gd.puzzle`, whose par is the deal's. It reads nothing and
+  subscribes to nothing.
 - **`PlayArea` picks the board to show:** a past swap's while one is open
   (`useHistoryView`), else the revealed solution, else `gd.me.board`. It wires
   the ending messages (`useGetGameEndingMessage`, `useGetPlayerEndingMessage`,

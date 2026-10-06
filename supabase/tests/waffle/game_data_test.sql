@@ -9,11 +9,12 @@
 -- pins what the page gets:
 --
 --   1. A fresh game: the deal as tiles and par in static_game_data, no
---      solution in game_data's puzzle; a team with nothing
---      used in coop and none in compete; each player fresh with the dealt
---      board, colored; both fresh summaries
+--      solution in game_data's puzzle; a team with nothing used and the dealt
+--      board, colored, in coop and none in compete; each player fresh, a coop
+--      one carrying no board; both fresh summaries
 --   2. Mid-game coop: the log's swap as two tiles with the letters before it,
---      each player's own count, the team's sum, one board on every seat
+--      each player's own count, the team's facts sent once — the sum and the
+--      one board
 --   3. Mid-game compete: each racer's own count and own board; the log carries
 --      every racer's rows (the hook withholds, not the builder)
 --   4. The endings: the solution arrives, the solve stamps the team, the
@@ -97,9 +98,9 @@ select is(
   'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nSwapsUsed": 0}'::jsonb,
-  'coop: a team with nothing used'
+  (pg_temp.game_data(pg_temp.coop()) -> 'team') - 'board',
+  '{"nSwapsUsed": 0, "maxSwaps": 6}'::jsonb,
+  'coop: a team with nothing used, and the budget'
 );
 select is(
   pg_temp.game_data(pg_temp.compete()) -> 'team',
@@ -124,10 +125,10 @@ select is(
      pg_temp.tile(b -> 'tiles', '0'),
      pg_temp.tile(b -> 'tiles', '1'),
      pg_temp.tile(b -> 'tiles', '2'))
-     from (select pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board' b) x),
+     from (select pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board' b) x),
   '[21, {"id": "0", "letter": "b", "color": "y"}, {"id": "1", "letter": "a", "color": "y"},
     {"id": "2", "letter": "c", "color": "g"}]'::jsonb,
-  'a player''s board is the dealt board as 21 colored tiles: the swapped pair yellow, the rest green'
+  'the team''s board is the dealt board as 21 colored tiles: the swapped pair yellow, the rest green'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
@@ -166,19 +167,19 @@ select is(
   'coop: each player''s own count — ada swapped, bea did not'
 );
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nSwapsUsed": 1}'::jsonb,
+  pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'nSwapsUsed',
+  '1'::jsonb,
   'coop: the team''s count, summed over the rows'
 );
 select is(
-  pg_temp.tile(pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board' -> 'tiles', '2'),
+  pg_temp.tile(pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board' -> 'tiles', '2'),
   '{"id": "2", "letter": "d", "color": "y"}'::jsonb,
-  'coop: every seat''s board shows the shared swap'
+  'coop: the team''s one board shows the swap'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board',
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
-  '… the same board on both seats'
+  (select jsonb_agg(p -> 'board') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
+  '[null, null]'::jsonb,
+  '… and is sent once: no coop player carries a board'
 );
 
 -- ─── (3) Mid-game compete: ada swaps cells 2 and 3 ───
@@ -231,8 +232,8 @@ select is(
   'coop solved: the solve stamps every teammate, and the team won'
 );
 select is(
-  pg_temp.counts(pg_temp.coop()) || jsonb_build_array(pg_temp.game_data(pg_temp.coop()) -> 'team'),
-  '[2, 1, {"nSwapsUsed": 3}]'::jsonb,
+  pg_temp.counts(pg_temp.coop()) || jsonb_build_array(pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'nSwapsUsed'),
+  '[2, 1, 3]'::jsonb,
   'coop: each player''s own count, and the team''s sum'
 );
 select is(
@@ -265,11 +266,11 @@ select set_config('request.jwt.claims', '', true);
 select is(
   jsonb_build_object(
     'counts',   pg_temp.counts(pg_temp.coop()),
-    'team',     pg_temp.game_data(pg_temp.coop()) -> 'team',
+    'team',     pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'nSwapsUsed',
     'events',   pg_temp.game_data(pg_temp.coop()) -> 'events',
     'solution', pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'solution',
-    'tile0',    pg_temp.tile(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board' -> 'tiles', '0')),
-  '{"counts": [0, 0], "team": {"nSwapsUsed": 0}, "events": [], "solution": null,
+    'tile0',    pg_temp.tile(pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board' -> 'tiles', '0')),
+  '{"counts": [0, 0], "team": 0, "events": [], "solution": null,
     "tile0": {"id": "0", "letter": "b", "color": "y"}}'::jsonb,
   'after a Restart: nothing used, no log, no solution, the dealt board again'
 );

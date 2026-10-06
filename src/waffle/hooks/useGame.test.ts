@@ -95,10 +95,11 @@ describe('waffle makeGameData — the links become players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.puzzle.dealtTiles).toHaveLength(21)
     expect(gd.puzzle.solution).toBeNull()
-    // My own swap; the team's two.
-    expect([gd.me.nSwapsUsed, gd.me.maxSwaps]).toEqual([1, 6])
-    expect(gd.team).toEqual({ nSwapsUsed: 2 })
-    expect(gd.stateLineData).toEqual({ nSwapsUsed: 2, maxSwaps: 6, parSwaps: 1 })
+    // The team's two swaps on every player; my own one under `own`.
+    expect([gd.me.nSwapsUsed, gd.me.maxSwaps]).toEqual([2, 6])
+    expect(gd.playersById.u2!.nSwapsUsed).toBe(2)
+    expect([gd.me.own.nSwapsUsed, gd.playersById.u2!.own.nSwapsUsed]).toEqual([1, 1])
+    expect(gd).not.toHaveProperty('team')
     expect(gd.brand).toBe('SyrupSwap')
   })
 
@@ -142,7 +143,9 @@ describe('waffle makeGameData — the seat rule', () => {
   it('coop withholds nothing: one board, one team', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(2)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    // The one board, the same object on every player and under `own`.
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a rival\'s count stays visible mid-race — the strip shows it', () => {
@@ -150,10 +153,10 @@ describe('waffle makeGameData — the seat rule', () => {
     expect(gd.playersById.u2!.nSwapsUsed).toBe(1)
   })
 
-  it('a race has no team, so the state line shows my own count', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nSwapsUsed: 1, maxSwaps: 6, parSwaps: 1 })
+    expect([gd.me.nSwapsUsed, gd.me.own.nSwapsUsed]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a conceder is still a player, with their ending', () => {

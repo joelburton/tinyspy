@@ -39,8 +39,8 @@ export type ZTest_PlayerFacts = {
   finalRanking?: number | null
   solvedAt?: string | null
   nSwapsUsed?: number
-  // This seat's board; the deal unless said otherwise. In coop every seat
-  // shows the shared board, which is `ZTest_GameDataFacts.board`'s.
+  // This racer's board; the deal unless said otherwise. A coop player carries
+  // none: the one board is the team's, `ZTest_GameDataFacts.board`.
   board?: ZTest_BoardFacts
 }
 
@@ -121,10 +121,10 @@ export function ZTest_swap(
 
 /**
  * Build the `game_data` blob `waffle._rebuild_data_cols` would write from these
- * facts: each player's own count (their rows in the log unless said), the
- * team's summed from them in coop, each seat's board as tiles — the shared one
- * in coop, each racer's own in compete — the solution once ended, and where
- * every player stands derived.
+ * facts: each player's own count (their rows in the log unless said); the
+ * team's facts in coop (the count summed, the one board), a racer's own board
+ * in compete, each board as tiles; the solution once ended; and where every
+ * player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -150,7 +150,6 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
-    const board = coop ? sharedBoard : (p.board ?? { letters: ZTest_DEALT, colors: ZTest_DEALT_COLORS })
     return {
       id: p.id,
       username: p.username,
@@ -168,7 +167,10 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       waitingForTurn: stillPlaying && !onTurn,
       maxSwaps,
       nSwapsUsed: usedOf(p),
-      board: { tiles: ZTest_makeTiles(board) },
+      // Coop's one board is the team's.
+      board: coop
+        ? null
+        : { tiles: ZTest_makeTiles(p.board ?? { letters: ZTest_DEALT, colors: ZTest_DEALT_COLORS }) },
     }
   })
 
@@ -191,7 +193,13 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       parSwaps,
       solution: ended ? makeLetterTiles(ZTest_SOLUTION) : null,
     },
-    team: coop ? { nSwapsUsed: players.reduce((sum, p) => sum + p.nSwapsUsed, 0) } : null,
+    team: coop
+      ? {
+        nSwapsUsed: players.reduce((sum, p) => sum + p.nSwapsUsed, 0),
+        maxSwaps,
+        board: { tiles: ZTest_makeTiles(sharedBoard) },
+      }
+      : null,
     events,
     players,
   }

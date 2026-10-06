@@ -5,7 +5,7 @@ import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
+import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
@@ -25,11 +25,18 @@ function maySeeRival(raw: GGameDataRaw): boolean {
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
 
-  const players: GPlayer[] = raw.players.map((p) => ({
-    ...p,
-    board: seeRival || isMine(p.id) ? p.board : null,
-  }))
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // Coop's one board is the same object on every player; a racer's own is
+  // theirs alone to see mid-race.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const board = team?.board ?? (seeRival || isMine(p.id) ? p.board : null)
+    const own: GFacts = { nSwapsUsed: p.nSwapsUsed, maxSwaps: p.maxSwaps, board }
+    return { ...p, ...(team ?? own), board, own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -46,11 +53,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // The gate has checked that I am seated, and my own board is never withheld.
   const me = playersById[myId] as GGameData['me']
-  // What the state line shows: the team's count where the game has one, else
-  // my own (plans/team-facts.md).
-  const teamOrMe = raw.team ?? me
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players, raw.puzzle.parSwaps),
@@ -67,11 +70,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData: {
-      nSwapsUsed: teamOrMe.nSwapsUsed,
-      maxSwaps: me.maxSwaps,
-      parSwaps: raw.puzzle.parSwaps,
-    },
   }
 }
 

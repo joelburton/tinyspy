@@ -366,7 +366,8 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --
 --   game_data, waffle's part:
 --     puzzle: {solution}                   null until the game ends; tiles as above
---     team: {nSwapsUsed}                   the swaps summed over every player's own;
+--     team: {nSwapsUsed, maxSwaps, board}  the team's facts, once: the swaps summed
+--                                          over every player's own, the one board;
 --                                          null in compete (plans/team-facts.md)
 --     events: [{id, userId, swaps, colors, at}, …]
 --                                          every swap, every player's; `swaps` the two
@@ -374,16 +375,16 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --                                          held before, `colors` the board's after;
 --                                          what a racer may see of a rival mid-race is
 --                                          the hook's rule
---     players: [player, …]                 the common player, plus:
+--     players: [player, …]                 the common player, plus this player's own facts:
 --       maxSwaps                           the budget, the same on every player
---       nSwapsUsed                         this player's own, in every mode
---       board: {tiles}                     what this seat sees, each tile
---                                          {id, letter, color}: one shared board in
---                                          coop, each racer's own in compete
+--       nSwapsUsed
+--       board: {tiles}                     a racer's own board, each tile
+--                                          {id, letter, color}; null in coop, whose
+--                                          one board is `team`'s
 --
 --   summary_data, waffle's part (the common part names and dates the game and
 --   carries its ending; the winner is `ending.winner`):
---     team: {nSwapsUsed}                   the same group; null in compete
+--     team: {nSwapsUsed}                   the team's count; null in compete
 --     maxSwaps
 --     band                                 the dictionary band, `setup.difficulty`
 --     nWinnerSwaps                         compete's, once the race is won; null in coop
@@ -443,10 +444,23 @@ $$;
 
 revoke execute on function waffle._make_json_events(uuid) from public;
 
--- What the team shares: the swaps summed over every row. Each row holds its
+-- A board as the page draws it: its tiles, colored against the solution.
+create or replace function waffle._make_json_board(p_board text, p_solution text)
+returns jsonb
+language sql
+immutable
+set search_path = waffle, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'tiles', waffle._make_json_tiles(p_board, waffle._board_colors(p_board, p_solution)));
+$$;
+
+revoke execute on function waffle._make_json_board(text, text) from public;
+
+-- The team's count: the swaps summed over every row. Each row holds its
 -- player's own count, so the sum counts every swap once. Null in compete,
--- where there is no team (plans/team-facts.md).
-create or replace function waffle._make_json_team(p_game_id uuid)
+-- where there is no team.
+create or replace function waffle._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -459,11 +473,34 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function waffle._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: its count, the budget, and the one board, read
+-- off any coop row since every row holds it in lock-step. Null in compete,
+-- where there is no team (plans/team-facts.md).
+create or replace function waffle._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select waffle._make_json_team_counts(p_game_id) || jsonb_build_object(
+           'maxSwaps', wg.max_swaps,
+           'board',    (select waffle._make_json_board(wp.board, wg.solution)
+                          from waffle.players wp
+                         where wp.game_id = p_game_id
+                         order by wp.user_id
+                         limit 1))
+    from waffle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function waffle._make_json_team(uuid) from public;
 
--- Every player as waffle's game_data shows them: the common player, with the
--- budget, their own count and this seat's board, colored against the
--- solution.
+-- Every player as waffle's game_data shows them: the common player, with
+-- their own facts — the budget, their count, and in compete their board.
 create or replace function waffle._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -474,13 +511,14 @@ as $$
            cp.player || jsonb_build_object(
              'maxSwaps',   wg.max_swaps,
              'nSwapsUsed', wp.n_swaps_used,
-             'board',      jsonb_build_object(
-                             'tiles', waffle._make_json_tiles(
-                                        wp.board, waffle._board_colors(wp.board, wg.solution))))
+             -- Coop's one board is sent once, in `team`.
+             'board',      case when cg.mode = 'compete'
+                             then waffle._make_json_board(wp.board, wg.solution) end)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join waffle.players wp on wp.game_id = p_game_id and wp.user_id = cp.id
-    join waffle.games wg on wg.game_id = p_game_id;
+    join waffle.games wg on wg.game_id = p_game_id
+    join common.games cg on cg.id = p_game_id;
 $$;
 
 revoke execute on function waffle._make_json_players(uuid) from public;
@@ -534,7 +572,7 @@ stable
 set search_path = waffle, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',         waffle._make_json_team(p_game_id),
+    'team',         waffle._make_json_team_counts(p_game_id),
     'maxSwaps',     wg.max_swaps,
     'band',         coalesce((cg.setup->>'difficulty')::int, 2),
     'nWinnerSwaps', case when cg.mode = 'compete' then

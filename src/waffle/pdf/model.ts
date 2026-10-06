@@ -4,7 +4,7 @@ import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { getTileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { boardWords, CELLS, coord } from '../lib/waffle'
-import type { GEvent, GLetterTile, GPlayer, GTeam, GTile } from '../types'
+import type { GEvent, GLetterTile, GPlayer, GTile } from '../types'
 
 /**
  * Build the waffle print model — the pure half, away from jsPDF.
@@ -60,11 +60,10 @@ export function buildWafflePrintModel(o: {
   isGameEnded: boolean
   maxSwaps: number
   parSwaps: number
-  // Each player as `gd` holds them: a compete rival's board is null mid-race
-  // (`useGame`'s seat rule), which is why they get no track then.
+  // Each player as `gd` holds them, with their side's count — the team's in
+  // coop: a compete rival's board is null mid-race (`useGame`'s seat rule),
+  // which is why they get no track then.
   players: Pick<GPlayer, 'id' | 'username' | 'board' | 'nSwapsUsed' | 'solved'>[]
-  // Coop's shared count; null in compete.
-  team: GTeam | null
   // Every swap the viewer can see (`gd.events`). Compete mid-game: only their
   // own.
   events: GEvent[]
@@ -83,7 +82,6 @@ export function buildWafflePrintModel(o: {
   const track = (
     who: string,
     p: (typeof o.players)[number],
-    nSwapsUsed: number,
     events: GEvent[],
     logNames: boolean,
   ): PrintTrack => ({
@@ -98,8 +96,8 @@ export function buildWafflePrintModel(o: {
       text: swapText(e),
     })),
     result: p.solved
-      ? `Solved in ${nSwapsUsed} swap${nSwapsUsed === 1 ? '' : 's'}`
-      : `${nSwapsUsed}/${o.maxSwaps} swaps used`,
+      ? `Solved in ${p.nSwapsUsed} swap${p.nSwapsUsed === 1 ? '' : 's'}`
+      : `${p.nSwapsUsed}/${o.maxSwaps} swaps used`,
   })
 
   // Coop is ONE shared board, so one track whose log names each swapper, and
@@ -109,15 +107,15 @@ export function buildWafflePrintModel(o: {
   const me = o.players.find((p) => p.id === o.myId)!
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
-    tracks = [track('Team', me, o.team!.nSwapsUsed, o.events, true)]
+    tracks = [track('Team', me, o.events, true)]
   } else if (o.isGameEnded) {
     tracks = o.players.flatMap((p) => {
       if (p.board === null) return []
       const who = p.id === o.myId ? `${p.username} (you)` : p.username
-      return [track(who, p, p.nSwapsUsed, o.events.filter((e) => e.by.id === p.id), false)]
+      return [track(who, p, o.events.filter((e) => e.by.id === p.id), false)]
     })
   } else {
-    tracks = [track('You', me, me.nSwapsUsed, o.events.filter((e) => e.by.id === o.myId), false)]
+    tracks = [track('You', me, o.events.filter((e) => e.by.id === o.myId), false)]
   }
 
   return {
