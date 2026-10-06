@@ -349,11 +349,9 @@ Joel, as psychicnum's front end converted first.
   the club list's row (`CommonGameListRow`), never a bare `ending`: a
   name with both a game and a player sense (ending, status, reason, outcome)
   says which it is.
-- **A game reloads through `useRefetchOnGameUpdate`**
-  (`common/game-page/`): its `useGame` hands it a load, rerun whenever
-  `commonGameUpdatedAt` or the page's `resubscribeCount` changes, and keeps no
-  subscription of its own. The count covers a read that failed while the
-  connection was down.
+- **A game reads nothing of its own**: its `useGame` is a pure function of the
+  `game_data` the page re-reads on its room's `changed` nudge
+  (src/common/realtime/doc.md), and keeps no subscription.
 - **The game page reads the mode off the row**: `cg.mode` is
   `common.games.mode`, not the manifest's. This narrows "the manifest is where
   the front end knows a gametype's mode" (Decided above) to the club page.

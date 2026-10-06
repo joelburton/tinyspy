@@ -112,10 +112,10 @@ type RealtimeRefetchOptions = {
  *     (initial load + reconnect catch-up) but not the refetch-per-event
  *     one.
  *
- * **A game's `useGame` does not use this.** It reloads off the page's
- * `common.games` subscription through `useRefetchOnGameUpdate`, since every
- * move writes that row; this is for a subscription of its own, over writes
- * that don't touch `common.games`.
+ * **The game page does not use this.** It re-reads on its room's `changed`
+ * nudge, which a trigger on `common.games` sends once per move (this folder's
+ * doc.md); this is for a subscription of its own, over writes that don't touch
+ * `common.games`.
  */
 export function useRealtimeRefetch({
   tables,

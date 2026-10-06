@@ -47,8 +47,8 @@ people are in, because suspending drags every one of them back to the club page.
 
 **`computePause` is a function and not a hook** because presence cannot have a
 channel of its own. supabase-js requires every `.on()` handler to be attached
-before `.subscribe()`, so one hook owns the game's channel and registers
-postgres_changes, broadcast and presence together; it derives the connected ids
+before `.subscribe()`, so one hook owns the game's channel and registers its
+broadcasts and presence together; it derives the connected ids
 there and calls this helper with them. A `usePause` would need either a second
 channel or a share of the first, and both are worse than a function.
 

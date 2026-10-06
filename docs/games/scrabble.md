@@ -747,7 +747,7 @@ words and score for the banner; a receiver whose board has moved on since
 
 | channel | opener | carries |
 |---|---|---|
-| `game:${gameId}` (stable) | `useCommonGame` | presence, pause, and the `common.games` row — every move rewrites its blobs, so this is how the page hears of every move and the end |
+| `game:${gameId}` (stable) | `useCommonGame` | presence, pause, and the `changed` nudge the `common.games` row's trigger sends once per move, so this is how the page hears of every move and the end |
 | `scrabble:${gameId}` (stable) | `useMovePreview` | **coop only** — the `show-move` Broadcast. Ephemeral, never stored; stable name so teammates merge into one room. |
 
 ### Printing the board (PDF)

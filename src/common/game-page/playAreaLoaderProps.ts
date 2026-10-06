@@ -32,10 +32,6 @@ export type PlayAreaLoaderProps = {
   gameData: unknown
   // The signed-in user: `auth.user.id`. Their player is `cg.me`.
   auth: Session
-  // How many times the page's channel has joined, reconnects included.
-  // `useRefetchOnGameUpdate` refetches on each too, so a read that failed while the connection was down retries
-  // when it comes back, even if nobody has moved since.
-  resubscribeCount: number
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls
   // `globalFeedbackSlot.show(FeedbackMessage.peer(…))`; a producer like

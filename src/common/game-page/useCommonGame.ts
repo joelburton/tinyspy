@@ -12,7 +12,6 @@
  *     displaySeconds
  *     expired
  *   sendSuspend
- *   resubscribeCount
  *   loading
  *   failure                               # null unless a read failed
  *
@@ -93,9 +92,6 @@ export function useCommonGame(
   timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
   // Shelve the game and send every peer, this tab included, to the club page.
   sendSuspend: () => void
-  // Counts the channel's joins, reconnects included; see
-  // `PlayAreaLoaderProps.resubscribeCount`.
-  resubscribeCount: number
   // True until the first read settles, however it settles.
   loading: boolean
   // A read that failed — not the same as the game being gone.
@@ -106,7 +102,6 @@ export function useCommonGame(
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
   )
-  const [resubscribeCount, setResubscribeCount] = useState(0)
   // The room's channel, in state so the senders re-render with it. Set from
   // the join effect on purpose: the channel IS the external system.
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
@@ -195,7 +190,6 @@ export function useCommonGame(
       ch.subscribe(function loadAndAssertCurrentView(status) {
         if (status === 'SUBSCRIBED') {
           load('subscribed')
-          setResubscribeCount((n) => n + 1)
           ch.track({ user_id: auth.user.id })
           // On every join, reconnects included: a member who reconnects
           // re-asserts they're viewing.
@@ -286,7 +280,6 @@ export function useCommonGame(
     pause: { ...pauseState, presentUserIds, sendManualPause, sendManualUnpause },
     timer: { mode: loaded?.timerMode ?? { kind: 'none' }, ...timer },
     sendSuspend,
-    resubscribeCount,
     loading: lastRead === null,
     failure: lastRead?.kind === 'failed' ? lastRead.failure : null,
   }

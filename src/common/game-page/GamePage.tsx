@@ -63,7 +63,6 @@ export function GamePage({
   pause,
   timer,
   sendSuspend,
-  resubscribeCount,
 }: Props) {
   // The header's feedback slot, shared with the PlayArea.
   const globalFeedbackSlot = useFeedbackSlot('global')
@@ -150,7 +149,6 @@ export function GamePage({
                 cg={cg}
                 gameData={gameData}
                 auth={auth}
-                resubscribeCount={resubscribeCount}
                 globalFeedbackSlot={globalFeedbackSlot}
                 menu={menu}
                 goToFollowUpGame={goToFollowUpGame}

@@ -17,7 +17,7 @@ import { signIn } from './helpers/session'
  *      wiring guard: load the home page and assert its `useRealtimeRefetch`
  *      channel logs the cause-tagged `refetch #N (attached)`.
  *   2. The game page, which hears a move as a `changed` Broadcast sent from
- *      the database (`common._nudge_game_page`, plans/broadcast-nudge.md) and
+ *      the database (`common._nudge_game_page`, src/common/realtime/doc.md) and
  *      has no attach re-read. A game stopped right after the page's room
  *      joins, on a Realtime tenant that is CPU-capped and just restarted —
  *      where a postgres_changes event would be dropped — must still show its

@@ -49,6 +49,14 @@ error and no symptom other than a page that stops changing, which is also why
 the console trail is always on for everyone rather than behind a debug flag —
 when a friend hits it, the evidence is already in their console.
 
+The game page is the exception: it watches no table. A move can write the game's
+row several times, and every row change would arrive as a message carrying the
+whole row twice, old and new, only to be thrown away for a re-read. So the row
+itself announces the move instead: a trigger sends the page's room one small
+Broadcast, `changed`, per transaction, and the page re-reads. That message comes
+from the database and has no attach step, so the page reads on the join and on
+each nudge, and that is all.
+
 Presence in this folder is the **club orbit**: who is around, which game they
 are looking at, and whether someone is in the middle of setting one up. It
 answers questions the club page asks — light the members who are here, clear a
@@ -77,8 +85,18 @@ and re-reads the rows.
   watches tables calls `useRealtimeRefetch`: it loads on mount, and reloads on
   every change event, on every `SUBSCRIBED`, and on the attach confirmation. A
   generation counter drops a slow load that a newer one has overtaken. A game's
-  `useGame` watches no table of its own: it reloads off the game page's room
-  through `useRefetchOnGameUpdate` (common/game-page/doc.md).
+  `useGame` watches nothing: it is a pure function of the `game_data` the game
+  page re-reads on its room's `changed` nudge (common/game-page/doc.md).
+- **The game page hears a move as a Broadcast from the database.**
+  `common._nudge_game_page`, a trigger on `common.games`, sends
+  `realtime.send('{}', 'changed', 'game:<id>', false)` after an update that
+  changes `updated_at` and after a delete. `updated_at` is stamped with `now()`,
+  the transaction's start time, so only a transaction's first write changes it:
+  one nudge per move, however many times the move writes the row. The send is
+  an insert into `realtime.messages`, delivered at the commit and never for a
+  rollback; it catches its own errors as a `WARNING`, so a failed send never
+  fails the move and the page is stale until its next re-read. The topic is
+  public: hearing that a game changed tells nobody anything.
 - **One hook, one channel ("Pattern B").** A hook that sends or receives
   Broadcast, or tracks Presence, opens one stable-name channel through
   `channelTeardown.ts` (its docstring has the shape), and any table changes it
@@ -116,17 +134,18 @@ and re-reads the rows.
   delivered. A refetch-on-event hook heals a mid-window loss at the next event
   that does arrive, so the damage is when the lost event is the LAST one — a
   coop win, a partner's final move. The width on hosted Realtime has not been
-  measured; the mechanism is protocol-level, so it exists there too.
+  measured; the mechanism is protocol-level, so it exists there too. It belongs
+  to `postgres_changes` alone: a Broadcast from the database committed at
+  `SUBSCRIBED` arrived every time, on a warm tenant and on one just restarted
+  (measured locally, 2026-10-06).
 - **The local tenant stops itself when nobody is connected**, after roughly
   12–15 idle minutes, and boots again on the next connection — so the first run
   after a break meets the slow-boot window, not only a restarted container.
-- **`e2e/realtime-deaf-window.e2e.ts` guards the attach refetch** in two
-  layers: a deterministic check that the `(attached)` refetch line follows
-  `system ok` on a plain page load, and a best-effort end-to-end test that
-  lands a terminal write inside a real window (CPU-capped tenant, restarted)
-  and asserts the verdict still arrives. The window's width depends on machine
-  load, so when no attempt can land inside it that test SKIPS with the widths
-  it measured rather than failing.
+- **`e2e/realtime-deaf-window.e2e.ts` guards both halves.** A deterministic
+  check that the home page's `useRealtimeRefetch` channel logs its `(attached)`
+  refetch, and a test that stops a game right after the game page's room joins
+  a CPU-capped, just-restarted tenant and asserts the verdict still arrives —
+  red if a Broadcast from the database ever grows a deaf window of its own.
 
 ## Reading the `[rt …]` trail
 
@@ -139,7 +158,7 @@ and re-reads the rows.
 | `<topic> — event UPDATE common.games` | a delivered row change, with the payload's `errors` when set |
 | `<topic> — broadcast "manualPause"` | a delivered broadcast |
 | `<topic> — refetch #3 (event)` | `useRealtimeRefetch` reloaded, and why: `mount` / `subscribed` / `attached` / `event` |
-| `game:<id> — load #2 (attached): ended=false players=2` | what `useCommonGame`'s load saw, and why, in the same four causes |
+| `game:<id> — load #2 (event): ended=false players=2` | what `useCommonGame`'s load saw, and why: `mount` / `subscribed` / `event` (a `changed` nudge) |
 | `<topic> — unsubscribing` / `teardown ok` | a deliberate leave, so it is not mistaken for a channel gone quiet |
 | `<topic> — teardown timed out` / `teardown FAILED` | a leave that did not complete; a timed-out one is what wedges a re-join of the same name |
 | `socket — heartbeat timeout` / `disconnected` | the socket itself is in trouble (routine pulses are not logged) |
@@ -157,7 +176,9 @@ behind `localStorage.setItem('puzpuzpuz:rt:verbose', '1')` and a reload.
    failure slower and hides it.
 2. **Did the server do its half?** Read the row the page should have heard
    about, `common.games.ended_at` for a game that should have ended. If it
-   changed, the fault is delivery, not game logic.
+   changed, the fault is delivery, not game logic. For the game page, also
+   look for the nudge:
+   `select inserted_at from realtime.messages where topic = 'game:<id>' order by inserted_at desc`.
 3. **Is the table published?** A table missing from `supabase_realtime` kills
    the whole channel silently ([docs/supabase.md → The publication
    invariant](../../../docs/supabase.md#the-publication-invariant-load-bearing)).

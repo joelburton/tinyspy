@@ -43,10 +43,8 @@ and the pointer sticks, or everybody does and it thrashes. A game's own
 no read: every move writes the room's `common.games` row through the game's
 status builder, the row's trigger sends the room one `changed` Broadcast per
 transaction (`common._nudge_game_page`), the page re-reads the blobs, and
-`useGame` is a pure function of the one it is handed. (A game not yet on the blobs still reloads its own
-rows through `useRefetchOnGameUpdate` when that row's `updated_at` moves; one
-not yet converted by plans/common-tables.md step 5 still opens a per-tab
-channel for them.)
+`useGame` is a pure function of the one it is handed
+(src/common/realtime/doc.md has the nudge).
 
 Leaving has three shapes, and one action — Back to club, placed by the menu, the
 info column's action row, the pause overlay and the device-block card alike —

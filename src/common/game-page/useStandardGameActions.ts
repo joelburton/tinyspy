@@ -165,7 +165,7 @@ export function useStandardGameActions({
 
   // Restart — restart THIS board for everyone. The reset reaches every client
   // through the game's `common.games` row, which the RPC's status builder
-  // writes (see `useRefetchOnGameUpdate`). A replayed board is a
+  // writes (see `common._nudge_game_page`). A replayed board is a
   // perfectly legal thing to replay again, so it stays offered at terminal;
   // the shared run's single flight is what stops a second wipe landing on a
   // board someone has already started guessing on.

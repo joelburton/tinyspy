@@ -162,7 +162,6 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
     },
     timer: { mode: { kind: 'none' }, displaySeconds: 0, expired: false },
     sendSuspend: vi.fn(),
-    resubscribeCount: 0,
     // `loading` false with a null shell_data is the shape `GamePageLoader` shows "no
     // such game" for. The page below it never sees that combination.
     loading: false,

@@ -521,7 +521,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
 
 describe('useCommonGame — the changed nudge', () => {
   // `common._nudge_game_page` sends the room one `changed` per transaction
-  // that writes the row (plans/broadcast-nudge.md); the page re-reads on it.
+  // that writes the row (src/common/realtime/doc.md); the page re-reads on it.
   it('re-reads the game when the room hears changed', async () => {
     await load()
 

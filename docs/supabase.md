@@ -200,9 +200,11 @@ around it, one of two ways:
 
 The frontend hears about writes through Realtime: `postgres_changes` (CDC) for
 table changes, Broadcast and Presence for peer-to-peer state that is never
-stored. Almost every data hook is refetch-on-any-event through
-`useRealtimeRefetch`; the hook shapes, the channel names, the reconnect story
-and the deaf window are
+stored. The game page is the exception to CDC: a trigger on `common.games`,
+`common._nudge_game_page`, sends its room one `changed` Broadcast per
+transaction, and the page re-reads. The other data hooks are
+refetch-on-any-event through `useRealtimeRefetch`; the hook shapes, the nudge,
+the channel names, the reconnect story and the deaf window are
 [src/common/realtime/doc.md](../src/common/realtime/doc.md)'s. Finding a channel
 is a search for `supabase.channel(` and `channelPrefix`.
 
