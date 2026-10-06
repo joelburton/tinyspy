@@ -93,7 +93,7 @@ export const COMPONENT_KEYGROUPS = {
   'keys-submit-clue': { label: 'Submit the clue', keys: [named('Enter', '↵')], inHelp: true },
 
   // ─── Crosswords' own overlays — focused inputs that answer for themselves ─
-  'keys-rebus-commit': { label: 'Commit the rebus and move on', keys: [named('Enter', '↵')], inHelp: false },
+  'keys-rebus-submit': { label: 'Submit the rebus and move on', keys: [named('Enter', '↵')], inHelp: false },
   'keys-rebus-jump': { label: 'Commit the rebus and jump a clue', keys: TAB_KEYS, inHelp: false },
   'keys-rebus-cancel': { label: 'Cancel the rebus', keys: [ESCAPE], inHelp: false },
   'keys-number-jump-go': { label: 'Go to that clue number', keys: [named('Enter', '↵')], inHelp: false },

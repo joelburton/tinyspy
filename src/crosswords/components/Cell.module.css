@@ -1,0 +1,164 @@
+/* cs-unmet */
+
+/* One square of the grid (Cell.tsx). Everything is sized in `em` off the
+ * grid's computed cell size (Grid.module.css), so a cell scales with it. */
+
+/* @@ */ .cell {
+  position: relative;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  background: var(--default-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* Transparent 1px on every side so the box size never shifts when the
+   * border mask flips a side to black. */
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+/* Border mask (from cursor.ts computeBorderMask). */
+/* @@ */ .borderTop { border-top-color: var(--crosswords-line); }
+/* @@ */ .borderRight { border-right-color: var(--crosswords-line); }
+/* @@ */ .borderBottom { border-bottom-color: var(--crosswords-line); }
+/* @@ */ .borderLeft { border-left-color: var(--crosswords-line); }
+
+/* @@ */ .block { background: var(--crosswords-block); cursor: default; }
+/* Irregular-grid void: transparent, no black square (named to avoid `void`). */
+/* @@ */ .voidCell { background: transparent; border-color: transparent; cursor: default; }
+
+/* Cursor cell + active-word highlight (cursor wins). */
+/* @@ */ .inWord { background: var(--crosswords-in-word); }
+/* @@ */ .cursor { background: var(--crosswords-cursor); }
+
+/* Theme decorations — semi-transparent so cursor/in-word tints show through. */
+/* @@ */ .circle {
+  position: absolute;
+  inset: 0.13em 0.05em 0.05em 0.13em;
+  border: 0.025em solid var(--crosswords-rule-color);
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* @@ */ .shade {
+  position: absolute;
+  inset: 0;
+  background: var(--crosswords-shade-color);
+  pointer-events: none;
+}
+
+/* Clue number — small superscript, white-padded so it stays legible over
+ * a circle / shade / highlight. */
+/* @@ */ .number {
+  position: absolute;
+  top: 0.06em;
+  left: 0.1em;
+  font-size: 0.3em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--crosswords-cell-ink-color);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* The fill letter (pen). Nudged down from dead-center so a tall letter
+ * clears the clue number in the cell's top-left corner. A rebus's shrink and
+ * centering are applied inline. */
+/* @@ */ .fill {
+  font-size: 0.62em;
+  font-weight: 600;
+  color: var(--crosswords-fill);
+  transform: translate(0.09em, 0.17em);
+  pointer-events: none;
+}
+/* @@ */ .pencil {
+  color: var(--crosswords-pencil);
+  font-weight: 500;
+  font-style: oblique;
+}
+/* @@ */ .given {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.06em;
+}
+/* The author's letter drawn where the players' differs, while the solution is
+ * shown. */
+/* @@ */ .solutionLetter {
+  color: var(--crosswords-pencil);
+}
+
+/* Wrong / revealed corner triangle (wrong wins). */
+/* @@ */ .mark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0.34em 0.34em 0;
+  border-color: transparent;
+  pointer-events: none;
+}
+/* @@ */ .markRevealed { border-right-color: var(--crosswords-revealed); }
+/* @@ */ .markWrong { border-right-color: var(--crosswords-wrong); }
+
+/* A teammate's cursor frame (coop peer cursors) — a thin inset border in the
+ * peer's color (set inline). Per-side border, not box-shadow, to avoid
+ * subpixel asymmetry at small cell sizes. */
+/* @@ */ .peerFrame {
+  position: absolute;
+  inset: 0;
+  border: 0.09em solid;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Cryptic edge marks (docs/games/crosswords.md) — player-drawn
+ * word-break / hyphen annotations on a cell boundary. Ported from
+ * crossplay's Cell.module.css. Em-sized so they scale with the cell;
+ * pointer-events:none so they never absorb a click meant for the cell. */
+
+/* Word break on the RIGHT edge: a thick bar centered on the boundary with
+ * the cell to the right. Sits "on top of" the 1px grid line. */
+/* @@ */ .markRightBreak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -0.07em;
+  width: 0.14em;
+  background: var(--crosswords-block-fill-color);
+  pointer-events: none;
+}
+/* @@ */ .markBottomBreak {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.07em;
+  height: 0.14em;
+  background: var(--crosswords-block-fill-color);
+  pointer-events: none;
+}
+
+/* Hyphen: a short dash perpendicular to the edge, centered on the boundary.
+ * Smaller than the break so the two are distinguishable at a glance. */
+/* @@ */ .markRightHyphen {
+  position: absolute;
+  top: 50%;
+  right: -0.18em;
+  width: 0.36em;
+  height: 0.08em;
+  background: var(--crosswords-block-fill-color);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+/* @@ */ .markBottomHyphen {
+  position: absolute;
+  left: 50%;
+  bottom: -0.18em;
+  width: 0.08em;
+  height: 0.36em;
+  background: var(--crosswords-block-fill-color);
+  transform: translateX(-50%);
+  pointer-events: none;
+}

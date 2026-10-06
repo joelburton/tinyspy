@@ -9,7 +9,7 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type { Action } from '@/common/actions/useBindAction'
-import type { GCursor, GRebusPostCommit, GScope } from './types'
+import type { GCursor, GRebusAfterSubmit, GScope } from './types'
 
 /** The three scopes of one assistance family, each its own action. */
 export type GScopeActions = Record<GScope, Action>
@@ -49,7 +49,7 @@ export type GGridEntry = {
   // The rebus box over a cell, with the fill it opened on; null when closed.
   rebus: { row: number; col: number; initial: string } | null
   // Enter writes it and steps on; Tab and Shift+Tab write it and jump a clue.
-  submitRebus: (value: string, post: GRebusPostCommit) => void
+  submitRebus: (value: string, post: GRebusAfterSubmit) => void
   cancelRebus: () => void
   // ⇧↵'s action, which is also a menu row.
   actRebus: Action

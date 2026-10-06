@@ -363,9 +363,9 @@ export type GExplainState =
   | { kind: 'ok'; explanation: string }
   | { kind: 'error'; message: string }
 
-/** What to do with the cursor after a rebus commit — Enter advances one cell,
+/** Where the cursor goes once a rebus is submitted — Enter advances one cell,
  *  Tab / Shift+Tab jumps to the next / previous clue (mirrors Tab elsewhere). */
-export type GRebusPostCommit = 'advance' | 'jumpNext' | 'jumpPrev'
+export type GRebusAfterSubmit = 'advance' | 'jumpNext' | 'jumpPrev'
 
 /** The live play state the grid's keys act on. PlayArea passes it fresh every
  *  render — there is no ref, because an action is asked what it does at the

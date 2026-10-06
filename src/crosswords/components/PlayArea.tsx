@@ -157,7 +157,7 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
   const { row, col, dir } = entry.cursor
 
   // The word under the cursor, and the two clues it sits in.
-  const highlighted = useMemo(
+  const wordCellIds = useMemo(
     () => new Set(wordCells(grid, row, col, dir).map((p) => cellKey(p.row, p.col))),
     [grid, row, col, dir],
   )
@@ -172,11 +172,11 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
     : { label: `${activeNumber}${dir === 'across' ? 'A' : 'D'}`, text: activeClueText }
 
   // Teammates' cursor cells and fresh fills, as the colors the grid draws.
-  const peerCells = useMemo(
+  const peerCursorColors = useMemo(
     () => new Map([...peers.values()].map((pc) => [cellKey(pc.row, pc.col), colorVarFor(pc.color)])),
     [peers],
   )
-  const fillColors = useMemo(
+  const fillFlashColors = useMemo(
     () => new Map([...teammateFills].map(([id, color]) => [id, colorVarFor(color)])),
     [teammateFills],
   )
@@ -194,19 +194,11 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
       <div className={styles.layout}>
         <div className={styles.boardSlot}>
           <Grid
-            meta={gd.puzzle}
+            puzzle={gd.puzzle}
             board={pendingWrites.board}
-            cursorRow={row}
-            cursorCol={col}
-            highlighted={highlighted}
-            onCellClick={entry.clickCell}
-            rebus={entry.rebus}
-            onRebusCommit={entry.submitRebus}
-            onRebusCancel={entry.cancelRebus}
-            peek={entry.peek}
+            entry={entry}
+            marks={{ wordCellIds, peerCursorColors, fillFlashColors }}
             solution={solutionReveal.revealed ? gd.puzzle.solution : null}
-            peerCells={peerCells}
-            recentFills={fillColors}
             collapseRebus={collapseRebus}
           />
         </div>

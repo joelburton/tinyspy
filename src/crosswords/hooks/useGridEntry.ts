@@ -6,7 +6,7 @@ import { cellKey } from '../lib/cellKey'
 import { advanceAfterFill, findCellByNumber, initialCursor, jumpClue } from '../lib/cursor'
 import { nextMarkState } from '../lib/marks'
 import type { GGridEntry } from '../reactTypes'
-import type { GBoard, GCursor, GMarkSide, GMarkType, GPuzzleCell, GRebusPostCommit } from '../types'
+import type { GBoard, GCursor, GMarkSide, GMarkType, GPuzzleCell, GRebusAfterSubmit } from '../types'
 import { useGridKeyboard } from './useGridKeyboard'
 
 /**
@@ -94,7 +94,7 @@ export function useGridEntry({
       : { row, col, dir: prev.dir }))
   }
 
-  function submitRebus(value: string, post: GRebusPostCommit) {
+  function submitRebus(value: string, post: GRebusAfterSubmit) {
     if (rebus === null) return
     setCell(rebus.row, rebus.col, value || null, pencil)
     // The cursor sits on the rebus cell, so both moves start there.

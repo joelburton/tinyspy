@@ -2,10 +2,6 @@
 
 ## Bugs
 
-- **"Collapse rebuses" does not collapse the letters.** `Grid.tsx`'s `Cell`
-  works out `displayFill` (a multi-letter fill's first letter when the
-  preference is on) and sizes the text by it, but draws `{fill}`, so the whole
-  rebus still shows, squeezed to one letter's size.
 
 - **Picture clues don't appear.** The NYT daily for 2026-09-06
   (<https://www.nytimes.com/crosswords/game/daily/2026/09/06>) has clues whose
