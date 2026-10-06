@@ -123,8 +123,6 @@ function PlayArea({
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
 
-  // The team's finds in coop, my own in compete.
-  const finds = gd.team ?? gd.me
 
   return (
     <div
@@ -148,7 +146,7 @@ function PlayArea({
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title={gd.ending?.detail === 'target' ? 'Target reached! 🎉' : 'You win! 🎉'}
-          body={`${finds.nFoundWords} words, ${finds.foundWordsScore} points.`}
+          body={`${gd.me.nFoundWords} words, ${gd.me.foundWordsScore} points.`}
           onClose={celebration.close}
         />
       )}

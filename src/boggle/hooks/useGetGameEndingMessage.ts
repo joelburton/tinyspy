@@ -21,9 +21,7 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const conceded = gd.me.conceded
   const winner = gd.ending?.winner ?? null
   const hasTarget = gd.setup.win_percent !== null
-  // The team's finds in coop, my own in compete.
-  const finds = gd.team ?? gd.me
-  const tally = `${finds.nFoundWords} words, ${finds.foundWordsScore} points`
+  const tally = `${gd.me.nFoundWords} words, ${gd.me.foundWordsScore} points`
   return useMemo(
     () =>
       outcome === null || reason === null

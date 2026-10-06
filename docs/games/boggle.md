@@ -321,8 +321,15 @@ it into `game_data`, each key in its place:
 | blob | boggle's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles, boardSideSize, minWordLength, words, nReqdWords, reqdWordsScore, nBonusWords, bonusWordsScore}`, as `create_game` froze it — a tile being `{id, letters}` with its cell's index as its id and its letters lowercase (`qu` for a two-letter tile, null for a blank), and every legal word `{word, points, bonus}`, the required ones first |
-| `game_data` | `team`, the six counts over every row, null in compete; `foundWords`, every find `{userId, word, points, bonus, at}` in the order found; on each player the six counts over their own finds |
-| `summary_data` | `team`, the same group; `targetWinPercent`; `topScore`, compete's best score among those who did not concede, null in coop and until the game ends |
+| `game_data` | `team`, the team's facts sent once — the six counts over every row — null in compete; `foundWords`, every find `{userId, word, points, bonus, at}` in the order found; on each player the six counts over their own finds |
+| `summary_data` | `team`, the six counts as `game_data` sends them; `targetWinPercent`; `topScore`, compete's best score among those who did not concede, null in coop and until the game ends |
+
+The six counts are boggle's facts (`GFacts`), on every player twice: spread
+on, the side's — the team's in coop, their own in compete; under `own`, their
+own ([plans/team-facts.md](../../plans/team-facts.md)). `gd` has no `team`;
+`foundWords` stays at the game level beside it, a record of who found what.
+The lists' totals are the puzzle's, the same for every side, and the state
+line reads `gd.me` beside `gd.puzzle`.
 
 **The client reads nothing from these tables.** The page is handed the blobs
 off `common.games` and re-reads them as the shell delivers each rewrite, and

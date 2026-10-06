@@ -67,19 +67,20 @@ describe('boggle makeGameData — the links become players', () => {
     expect(gd.setupRows.find((r) => r.key === BOARD_KEY)?.value).toBe('CQu-?T')
   })
 
-  it("the state line shows the team's finds in coop, against both word lists", () => {
+  it("coop: every player carries the team's finds, and their own under `own`", () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, foundWords: FINDS }), 'u1')
-    expect(gd.stateLineData).toEqual({
+    expect(gd.me).toMatchObject({
       nFoundReqdWords: 2, foundReqdWordsScore: 3, nFoundBonusWords: 1, foundBonusWordsScore: 1,
-      nReqdWords: 3, reqdWordsScore: 4, nBonusWords: 1, bonusWordsScore: 1,
     })
+    expect(gd.playersById.u2!.nFoundReqdWords).toBe(2)
+    expect([gd.me.own.nFoundReqdWords, gd.me.own.nFoundBonusWords]).toEqual([1, 0])
+    expect(gd).not.toHaveProperty('team')
   })
 
-  it('a race has no team, so the state line shows my own', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, foundWords: FINDS }), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData.nFoundReqdWords).toBe(1)
-    expect(gd.stateLineData.nFoundBonusWords).toBe(0)
+    expect([gd.me.nFoundReqdWords, gd.me.nFoundBonusWords]).toEqual([1, 0])
+    expect([gd.me.own.nFoundReqdWords, gd.me.own.nFoundBonusWords]).toEqual([1, 0])
   })
 })
 

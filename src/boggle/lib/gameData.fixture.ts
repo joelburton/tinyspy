@@ -8,7 +8,7 @@ import {
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import { DEFAULT_BOGGLE_SETUP_COOP } from './setup'
-import type { GFoundWordRaw, GGameDataRaw, GPlayerRaw, GSetup, GTeam, GTile, GWord } from '../types'
+import type { GFoundWordRaw, GGameDataRaw, GPlayerRaw, GSetup, GFacts, GTile, GWord } from '../types'
 
 /**
  * The facts a test sets up about one player. Where they stand is DERIVED the
@@ -68,7 +68,7 @@ export function ZTest_find(
 }
 
 /** The six counts over some rows, as `boggle._make_json_found_counts` counts them. */
-function countsOf(rows: GFoundWordRaw[]): GTeam {
+function countsOf(rows: GFoundWordRaw[]): GFacts {
   const reqd = rows.filter((r) => !r.bonus)
   const bonus = rows.filter((r) => r.bonus)
   const score = (rs: GFoundWordRaw[]) => rs.reduce((sum, r) => sum + r.points, 0)

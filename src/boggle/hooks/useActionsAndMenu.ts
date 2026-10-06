@@ -100,8 +100,6 @@ export function useActionsAndMenu({
             ? { points: r.points ?? 0, who: memberById(gd.players, r.userId)?.username ?? 'someone' }
             : null,
       }))
-      // The team's finds in coop, my own in compete.
-      const finds = gd.team ?? gd.me
       printBogglePdf({
         brand: gd.brand,
         gameTitle: gd.title,
@@ -111,7 +109,7 @@ export function useActionsAndMenu({
         // only what there is to find.
         summary: gd.compete
           ? `${gd.puzzle.nReqdWords} word${gd.puzzle.nReqdWords === 1 ? '' : 's'} to find`
-          : `${finds.nFoundWords} / ${gd.puzzle.nReqdWords} words · ${finds.foundWordsScore} pts`,
+          : `${gd.me.nFoundWords} / ${gd.puzzle.nReqdWords} words · ${gd.me.foundWordsScore} pts`,
         board: makeDisplayGrid(gd.puzzle.tiles, gd.puzzle.boardSideSize),
         mode: gd.mode,
         setupRows: gd.setupRows,

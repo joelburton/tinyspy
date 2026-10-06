@@ -46,7 +46,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        <StateLine data={gd.stateLineData} />
+        <StateLine facts={gd.me} puzzle={gd.puzzle} />
 
         {gd.compete && (
           <OpponentStrip

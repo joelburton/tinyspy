@@ -1,7 +1,7 @@
 // cs-unmet
 
 import styles from '@/shared/rank-ladder/Stats.module.css'
-import type { GStateLineData } from '../types'
+import type { GFacts, GGameData } from '../types'
 
 /** `found / total` as a whole-number percent; 0 total reads as 0% (nothing to find). */
 function formatPercent(found: number, total: number): string {
@@ -17,35 +17,35 @@ function formatPercent(found: number, total: number): string {
  *   Bonus / Words  bonus words found / on the board
  *   Bonus / Score  their points / the bonus total
  *
- * Drawn from `gd.stateLineData`: the team's figures in coop, my own in
- * compete, decided once in `useGame`. Its own component because it's rendered
+ * Drawn from my side's facts, `gd.me` — the team's figures in coop, my own in
+ * compete — against the puzzle's two lists. Its own component because it's rendered
  * TWICE, in two places that must never drift: the top of the info column
  * (desktop) and the mobile `<MobileStatusBar>` above the board.
  */
-export function StateLine({ data: d }: { data: GStateLineData }) {
+export function StateLine({ facts, puzzle }: { facts: GFacts; puzzle: GGameData['puzzle'] }) {
   // Each label is a [kind, metric] PAIR, stacked on two lines ("Req" over
   // "Words"): four cells side by side are narrow, narrower still above the
   // board on a phone.
   const cells = [
     {
       label: ['Req', 'Words'] as const,
-      found: d.nFoundReqdWords,
-      total: d.nReqdWords,
+      found: facts.nFoundReqdWords,
+      total: puzzle.nReqdWords,
     },
     {
       label: ['Req', 'Score'] as const,
-      found: d.foundReqdWordsScore,
-      total: d.reqdWordsScore,
+      found: facts.foundReqdWordsScore,
+      total: puzzle.reqdWordsScore,
     },
     {
       label: ['Bonus', 'Words'] as const,
-      found: d.nFoundBonusWords,
-      total: d.nBonusWords,
+      found: facts.nFoundBonusWords,
+      total: puzzle.nBonusWords,
     },
     {
       label: ['Bonus', 'Score'] as const,
-      found: d.foundBonusWordsScore,
-      total: d.bonusWordsScore,
+      found: facts.foundBonusWordsScore,
+      total: puzzle.bonusWordsScore,
     },
   ]
   return (

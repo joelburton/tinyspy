@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { makeTraceBoard } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GFoundWord, GGameData, GGameDataRaw, GPlayer } from '../types'
+import type { GFacts, GFoundWord, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
@@ -23,8 +23,22 @@ function maySeeRival(raw: GGameDataRaw): boolean {
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
 
-  const players: GPlayer[] = raw.players
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const own: GFacts = {
+      nFoundWords: p.nFoundWords,
+      foundWordsScore: p.foundWordsScore,
+      nFoundReqdWords: p.nFoundReqdWords,
+      foundReqdWordsScore: p.foundReqdWordsScore,
+      nFoundBonusWords: p.nFoundBonusWords,
+      foundBonusWordsScore: p.foundBonusWordsScore,
+    }
+    return { ...p, ...(team ?? own), own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -39,11 +53,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // The gate has checked that I am seated.
   const me = playersById[myId]!
-  // What the state line shows: the team's finds where the game has one, else
-  // my own (plans/team-facts.md).
-  const teamOrMe = raw.team ?? me
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     puzzle: {
@@ -65,16 +75,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData: {
-      nFoundReqdWords: teamOrMe.nFoundReqdWords,
-      foundReqdWordsScore: teamOrMe.foundReqdWordsScore,
-      nFoundBonusWords: teamOrMe.nFoundBonusWords,
-      foundBonusWordsScore: teamOrMe.foundBonusWordsScore,
-      nReqdWords: raw.puzzle.nReqdWords,
-      reqdWordsScore: raw.puzzle.reqdWordsScore,
-      nBonusWords: raw.puzzle.nBonusWords,
-      bonusWordsScore: raw.puzzle.bonusWordsScore,
-    },
   }
 }
 

@@ -55,7 +55,7 @@ export function BoardCol({
       {/* The state line above the board, on a phone only; see `<MobileStatusBar>`. */}
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine facts={gd.me} puzzle={gd.puzzle} />
         </div>
       </MobileStatusBar>
       <Board

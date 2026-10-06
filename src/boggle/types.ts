@@ -14,7 +14,7 @@
  * and `GFoundWord` / `GFoundWordRaw` are the same pair, one level down.
  */
 
-import type { GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { SetupOf, SetupRow } from '../common/setup-form/types.ts'
@@ -31,8 +31,9 @@ import type { LADDERS } from './lib/solver.ts'
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   puzzle: GPuzzle
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the players' finds summed. Null in compete,
+  // where there is no team.
+  team: GFacts | null
   // Every found word, in the order found, each with its finder.
   foundWords: GFoundWordRaw[]
   players: GPlayerRaw[]
@@ -73,11 +74,14 @@ export type GPuzzle = {
 }
 
 /**
- * What one player, or the team, has found: every find, then the required and
- * bonus finds apart. A target counts the required points alone; the strip and
- * a race with no target count them all.
+ * boggle's facts (plans/team-facts.md): what one player, or the team, has
+ * found — every find, then the required and bonus finds apart. A target counts
+ * the required points alone; the strip and a race with no target count them
+ * all. A player carries them twice — spread on, their side's (the team's in
+ * coop, their own in compete); under `own`, their own. The lists' totals are
+ * the puzzle's, the same for every side.
  */
-export type GTeam = {
+export type GFacts = {
   nFoundWords: number
   foundWordsScore: number
   nFoundReqdWords: number
@@ -88,9 +92,13 @@ export type GTeam = {
 
 /** A player as boggle's game_data shows them: the common player, with their
  *  own finds. A seat has no board of its own: the tiles are the puzzle's. */
-export type GPlayerRaw = PlayerRaw & GTeam
+export type GPlayerRaw = PlayerRaw & GFacts
 
-export type GPlayer = GPlayerRaw
+/** A player as `gd` holds them: the common player with boggle's facts twice —
+ *  spread on, their side's; under `own`, their own (plans/team-facts.md). */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
+}
 
 /** One found word, as the blob carries it: `gd` turns `userId` into the
  *  player (`GFoundWord`). A row is its player and its word. */
@@ -105,22 +113,6 @@ export type GFoundWordRaw = {
 /** One found word, as `gd` holds it: the blob's row, with its finder. */
 export type GFoundWord = Omit<GFoundWordRaw, 'userId'> & {
   by: GPlayer
-}
-
-/**
- * What the state line shows — its four cells' found and total figures: the
- * team's finds in coop, my own in compete, against both word lists. Decided
- * once, in `makeGameData`, so the state line draws it and picks nothing.
- */
-export type GStateLineData = {
-  nFoundReqdWords: number
-  foundReqdWordsScore: number
-  nFoundBonusWords: number
-  foundBonusWordsScore: number
-  nReqdWords: number
-  reqdWordsScore: number
-  nBonusWords: number
-  bonusWordsScore: number
 }
 
 /*
@@ -149,13 +141,6 @@ export type GStateLineData = {
  *     reqdWordsScore
  *     nBonusWords
  *     bonusWordsScore
- *   team                                     # null in compete
- *     nFoundWords
- *     foundWordsScore
- *     nFoundReqdWords
- *     foundReqdWordsScore
- *     nFoundBonusWords
- *     foundBonusWordsScore
  *   turns                                    # always null: no turn order
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -164,24 +149,17 @@ export type GStateLineData = {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData
- *     nFoundReqdWords
- *     foundReqdWordsScore
- *     nFoundBonusWords
- *     foundBonusWordsScore
- *     nReqdWords
- *     reqdWordsScore
- *     nBonusWords
- *     bonusWordsScore
  *
  * player:
  *   the common player
- *   nFoundWords                              # own, in every mode
+ *   nFoundWords                              # the side's: the team's in coop, their own in compete
  *   foundWordsScore
  *   nFoundReqdWords
  *   foundReqdWordsScore
  *   nFoundBonusWords
  *   foundBonusWordsScore
+ *   own: {nFoundWords, foundWordsScore, nFoundReqdWords, foundReqdWordsScore, nFoundBonusWords, foundBonusWordsScore}
+ *                                            # this player's own
  *
  * tile:                                      # puzzle.tiles[], row by row
  *   id                                       # the cell's index, as text
@@ -199,7 +177,7 @@ export type GStateLineData = {
  * turned into players, the setup rows built, and the seat rule applied.
  * Read-only: `makeGameData` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'foundWords' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending' | 'foundWords' | 'players'> & {
   // The puzzle, with its tiles by id beside the list — what a held tile id is
   // looked up in — and the board as the tracer walks it.
   puzzle: GPuzzle & { tilesById: ReadonlyMap<string, GTile>; traceBoard: GBoard }
@@ -222,13 +200,12 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'foun
   playersById: Record<string, GPlayer>
   // My entry in `playersById`: the same object.
   me: GPlayer
-  stateLineData: GStateLineData
 }
 
 /** boggle's `summary_data`: the common part, with the team's progress (null in
  *  compete), the target, and compete's top score. */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: GFacts | null
   // The share of the required points that wins; null for no target.
   targetWinPercent: number | null
   // The best score among those who did not concede; null in coop, and until
