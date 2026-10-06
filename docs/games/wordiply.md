@@ -201,8 +201,8 @@ rule is the page's (see §2); the scores are null in the blobs until the end.
 Both tables need only the membership gate (`games_select`, `events_select`).
 Who may see a rival's words mid-race is the page's rule — `makeGameData`'s
 seat rule over `game_data` — and nothing reads the tables from the client.
-Both stay in `supabase_realtime`, pinned centrally by
-`supabase/tests/common/realtime_publication_test.sql`.
+Neither is in `supabase_realtime`: the page hears a move through the
+`changed` Broadcast (src/common/realtime/doc.md).
 
 ### The page blobs
 

@@ -138,8 +138,8 @@ Every table needs only the membership gate (`games_select`, `players_select`,
 `events_select`, through `common._is_club_member`), and the column grants hide
 `solution` and `players.board`. What a racer may see of a rival mid-race is the
 page's rule — `makeGameData`'s seat rule over `game_data`, below — and nothing
-reads the tables from the client. All three stay in `supabase_realtime`, pinned
-centrally by `supabase/tests/common/realtime_publication_test.sql`.
+reads the tables from the client. None is in `supabase_realtime`: the page
+hears a move through the `changed` Broadcast (src/common/realtime/doc.md).
 
 ### The page blobs
 

@@ -6,13 +6,11 @@ import { signIn } from './helpers/session'
 import { boardReady } from './helpers/ready'
 
 /**
- * Live-update smoke test for wordiply (WordWire). Guards the load-bearing
- * realtime-publication invariant (BOTH wordiply.games AND wordiply.events
- * must be in supabase_realtime — see the migration + the shared memory): a
- * submitted guess must land on the BOARD via the postgres-changes event, not
- * a refetch. The board rows come from useGame's realtime `guesses` (the
- * optimistic own-move pill is separate), so a guess appearing in the board
- * without a reload can only happen through the live channel.
+ * Live-update smoke test for wordiply (WordWire): a submitted guess must land
+ * on the BOARD without a reload. The board's rows come from `game_data`, which
+ * the page re-reads when the room hears the `changed` Broadcast
+ * (src/common/realtime/doc.md); the optimistic own-move pill is separate, so a
+ * guess on the board can only have come through that re-read.
  *
  * Solo club so it doesn't presence-pause with one viewer.
  */

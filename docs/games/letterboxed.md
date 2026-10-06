@@ -141,8 +141,8 @@ Every table needs only the membership gate (`games_select`, `players_select`,
 `players.chain`. What a racer may see of a rival mid-race is the page's rule —
 `makeGameData`'s seat rule over `game_data`, below — and nothing reads the
 tables from the client. No INSERT/UPDATE/DELETE policies — writes go through
-the security-definer RPCs. All three tables stay in `supabase_realtime`, pinned
-centrally by `supabase/tests/common/realtime_publication_test.sql`.
+the security-definer RPCs. None is in `supabase_realtime`: the page hears a
+move through the `changed` Broadcast (src/common/realtime/doc.md).
 
 ### The page blobs
 

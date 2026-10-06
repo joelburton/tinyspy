@@ -30,22 +30,19 @@
 --     re-add fails this test and has to justify itself).
 --
 -- Where the subscriptions live:
---   common     useCommonGame / useGameInvitations / useScratchpad /
---              useClubChat / useClubGames / HomePage
---   <game>     each game's hooks/useGame.ts (codenamesduet also
---              useBoard; spellingbee + wordwheel via the shared
---              makeBeeGame factory)
+--   common.games             useClubGames (the club page's list)
+--   common.game_players      useGameInvitations
+--   common.game_scratchpads  useScratchpad
+--   common.messages          useClubChat
+--   common.clubs_members     HomePage
 --
 -- Deliberately NOT subscribed, therefore NOT published (their absence
 -- from the list is itself the assertion):
 --   common.clubs, common.profiles   no live subscriber
---   crosswords.games, .grids         the page reads the blobs on common.games
---   bananagrams.games, .events       the page reads the blobs on common.games;
---                                    player_boards is still listed from before
---                                    the conversion, with no subscriber, until
---                                    the sweep after the last game
---                                    (plans/seat-view.md → When every game has
---                                    converted)
+--   every game's own tables          a game page reads the blobs on
+--                                    common.games and hears a move through
+--                                    the `changed` Broadcast, not a row change
+--                                    (src/common/realtime/doc.md)
 
 begin;
 
@@ -75,61 +72,7 @@ select set_eq(
       ('common', 'game_players'),
       ('common', 'game_scratchpads'),
       ('common', 'messages'),
-      ('common', 'clubs_members'),
-      -- codenamesduet (useGame + useBoard)
-      ('codenamesduet', 'games'),
-      ('codenamesduet', 'words'),
-      ('codenamesduet', 'events'),
-      -- psychicnum
-      ('psychicnum', 'games'),
-      ('psychicnum', 'players'),
-      ('psychicnum', 'events'),
-      -- connections
-      ('connections', 'games'),
-      ('connections', 'players'),
-      ('connections', 'events'),
-      -- spellingbee (makeBeeGame)
-      ('spellingbee', 'games'),
-      ('spellingbee', 'found_words'),
-      -- bananagrams (listed, unsubscribed; see above)
-      ('bananagrams', 'player_boards'),
-      -- waffle
-      ('waffle', 'games'),
-      ('waffle', 'players'),
-      ('waffle', 'events'),
-      -- wordle
-      ('wordle', 'games'),
-      ('wordle', 'players'),
-      ('wordle', 'events'),
-      -- stackdown
-      ('stackdown', 'games'),
-      ('stackdown', 'players'),
-      ('stackdown', 'events'),
-      -- scrabble
-      ('scrabble', 'games'),
-      ('scrabble', 'players'),
-      ('scrabble', 'events'),
-      -- boggle
-      ('boggle', 'games'),
-      ('boggle', 'found_words'),
-      -- wordwheel (makeBeeGame)
-      ('wordwheel', 'games'),
-      ('wordwheel', 'found_words'),
-      -- wordiply
-      ('wordiply', 'games'),
-      ('wordiply', 'events'),
-      -- strands (useGame refetch: games + players + events)
-      ('strands', 'games'),
-      ('strands', 'players'),
-      ('strands', 'events'),
-      -- letterboxed (useGame refetch: games + players + events)
-      ('letterboxed', 'games'),
-      ('letterboxed', 'players'),
-      ('letterboxed', 'events'),
-      -- setgame (useGame refetch: games + players + events)
-      ('setgame', 'games'),
-      ('setgame', 'players'),
-      ('setgame', 'events')
+      ('common', 'clubs_members')
   $$,
   'supabase_realtime membership == the FE postgres_changes subscription registry (missing ⇒ live updates die; extra ⇒ replication overhead)'
 );

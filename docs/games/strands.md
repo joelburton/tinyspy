@@ -213,9 +213,9 @@ publishes:
     compete during play  →  your own rows only; a rival's board, bar and count null
     compete once ended   →  everyone's
 
-**Realtime publishes all three tables** — `games`, `players`, `events`; the
-registry test (`supabase/tests/common/realtime_publication_test.sql`) guards
-the set.
+**None of the three tables is in the Realtime publication:** the page hears a
+move through the `changed` Broadcast (src/common/realtime/doc.md), and
+`supabase/tests/common/realtime_publication_test.sql` pins the absence.
 
 #### Why hints share the guess table
 
@@ -223,8 +223,8 @@ A spent hint is a log row, and it lives in `events` rather than a
 `strands.hints` sibling for one concrete reason: **the history viewer replays a
 turn by folding the rows before it** (`lib/history.ts`). Two tables would mean
 merging two streams by timestamp, with cross-table ordering ties left
-nondeterministic — plus a second publication entry, a second policy, and a
-second delete in `replay_board`. One table keeps the log a single sequence.
+nondeterministic — plus a second policy and a second delete in
+`replay_board`. One table keeps the log a single sequence.
 `scrabble.events` is the same pattern (`kind in ('word','exchange','pass',
 'leftovers')`).
 
@@ -785,9 +785,6 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 | `terminal_test.sql` | the endings + the reveal gate |
 | `game_data_test.sql` | the page blobs: a fresh game whole, mid-game coop and compete, the endings, a Restart, a rebuild of every game without re-dating it |
 | `rls_test.sql` | the solution shield, and the member gate |
-
-The publication registry (`supabase/tests/common/realtime_publication_test.sql`)
-carries the three strands rows.
 
 **FE Vitest** (`src/strands/`), all on `lib/gameData.fixture.ts`, which builds
 the blob from facts as the builder would: `hooks/useGame.test.ts` (the links,

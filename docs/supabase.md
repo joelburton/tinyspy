@@ -218,11 +218,13 @@ is a search for `supabase.channel(` and `channelPrefix`.
 **Every table a channel subscribes to via `postgres_changes` must be in the
 `supabase_realtime` publication.** The Realtime server rejects the channel's
 *entire* subscription if any one bound table is unpublished — live updates die
-for every table on that channel, with no error. Each game's migration adds its
-tables at the bottom, and `tests/common/realtime_publication_test.sql` checks
-both directions: what is subscribed is published, and what is deliberately left
-out stays out. Nothing is published without a subscriber — a published table
-nobody reads is replication overhead.
+for every table on that channel, with no error. Only `common`'s subscribed
+tables are published — `games`, `game_players`, `game_scratchpads`, `messages`,
+`clubs_members`; no game's own table is, since no client subscribes to one.
+`tests/common/realtime_publication_test.sql` checks both directions: what is
+subscribed is published, and what is deliberately left out stays out. Nothing
+is published without a subscriber — a published table nobody reads is
+replication overhead.
 
 A channel whose tables are all published can still report `SUBSCRIBED` and
 deliver nothing ([realtime/doc.md → A page that has stopped

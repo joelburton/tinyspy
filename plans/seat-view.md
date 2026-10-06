@@ -818,19 +818,10 @@ board the page owns, crosswords' packed grids and the overlay of my writes).
 
 Sweeps that wait for the last game, done once across all of them:
 
-- **The e2e helpers' `create_game` calls.** Most of `e2e/helpers/fixtures.ts`
-  still sends the old argument names (`target_club`, `setup`,
-  `player_user_ids`, `mode`, the game's own board or puzzle key) where each
-  RPC now takes `p_club_handle`, `p_setup`, `p_player_user_ids`, `p_mode`, …,
-  so every e2e spec that creates one of those games fails before its page
-  loads. The converted games' helpers are fixed; the rest are swept together,
-  each checked against its RPC's signature and the keys its `create_game`
-  reads, and then each game's specs run (2026-10-04).
-- **The `supabase_realtime` publication.** Every game's migration added its
-  tables to the publication so the page could subscribe to them. A converted
-  page subscribes to `common.games` alone, but no conversion removed its
-  game's tables from the publication (scrabble's `players` and `plays`,
-  bananagrams' `player_boards`, …), so they are listed with nobody
-  listening. One migration drops every game table from the publication once
-  the last game has converted, beside the Broadcast-nudge work (Joel,
-  2026-10-05).
+- **The e2e helpers' `create_game` calls — done.** Every helper in
+  `e2e/helpers/fixtures.ts` sends `p_` names, and the full e2e run of
+  2026-10-06 was green.
+- **The `supabase_realtime` publication — done 2026-10-06.**
+  `20261006000002_realtime_drop_game_tables.sql` drops every game table from
+  the publication; only `common`'s five subscribed tables stay, and
+  `realtime_publication_test.sql` pins them.

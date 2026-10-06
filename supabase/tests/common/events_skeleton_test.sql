@@ -29,9 +29,6 @@
 --   spellingbee · boggle · wordwheel   `found_words` is a SET, not a log
 --   crosswords                         no log at all
 --
--- The companion guard is realtime_publication_test.sql, which names every
--- log table by schema and name: between them, a table cannot be renamed
--- without both files agreeing about what it is now called.
 
 begin;
 

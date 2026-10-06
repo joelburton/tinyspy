@@ -25,27 +25,19 @@ import { boardOf, claim, findSetOn } from './helpers/setgame'
 import { signIn } from './helpers/session'
 
 /**
- * Every game's `events` subscription is LIVE — one test per table.
+ * Every event-log game's log reaches an open page LIVE — one test per game.
  *
- * The frontend subscribes with `{ schema, table, filter }` STRINGS
- * (`common/realtime/useRealtimeRefetch.ts`), so a wrong table name fails
- * silently: no error, no warning, just a game whose log stops filling. Nothing
- * else in the suite would catch it, because a unit test mocks the Supabase
- * client and pgTAP never opens a browser — and the ten tables were all renamed
- * at once, which is exactly when a typo gets made.
+ * A move writes the game's `events` row and rebuilds its `game_data`; the
+ * `common.games` trigger sends the room one `changed` Broadcast, and the page
+ * re-reads (src/common/realtime/doc.md). A builder that leaves the log out of
+ * the blob, or a write that skips the rebuild, fails silently: no error, just a
+ * game whose log stops filling. Nothing else in the suite would catch it,
+ * because a unit test mocks the Supabase client and pgTAP never opens a
+ * browser.
  *
  * **The row is written from OUTSIDE the browser**, through the game's own RPC
  * as the signed-in player. The page did nothing: it never submitted, so no local
- * state and no optimistic update can explain the row appearing. (None of the ten
- * `PlayArea`s calls `load()` after a move either — every one of them waits for
- * the event.)
- *
- * **What that proves is a live binding on the named table**, which is the bug
- * being hunted — not that a postgres-changes event specifically delivered the
- * row. `useRealtimeRefetch` also refetches when the server confirms the attach,
- * so a write that lands before that confirmation is picked up by the refetch.
- * Either way a wrong table name fails the channel join, and then NOTHING
- * arrives: no attach, no event, no row.
+ * state and no optimistic update can explain the row appearing.
  *
  * The assertion is the same everywhere: the log's `#N` handle
  * (`[data-history-handle]`) goes from absent to present. It is the one marker
