@@ -16,7 +16,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to wordle (src/wordle/doc.md has the rest):
 --   - The answer is hidden by a column grant: no client can select `target`,
@@ -171,6 +172,12 @@ revoke execute on function wordle._sync_title(uuid) from public;
 -- common part (supabase/sql/common.sql → The page blobs' common parts) with
 -- wordle's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
+--
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- wordle's is the common part alone: its puzzle is only the answer, which
+-- waits for the game's end.
 --
 --   game_data, wordle's part:
 --     puzzle: {target}                     null until the game ends
@@ -433,12 +440,32 @@ $$;
 revoke execute on function wordle._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- wordle._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change. wordle adds nothing to the common part.
+create or replace function wordle._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = common._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function wordle._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- wordle._rebuild_data_cols_for_all — every wordle game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every wordle game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every wordle game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function wordle._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -452,6 +479,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('wordle_coop', 'wordle_compete')
   loop
+    perform wordle._write_static_game_data(v_game_id);
     perform wordle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -630,6 +658,7 @@ begin
   insert into wordle.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
+  perform wordle._write_static_game_data(new_id);
   perform wordle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even

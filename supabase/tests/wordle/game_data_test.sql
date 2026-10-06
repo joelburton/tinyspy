@@ -1,14 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: wordle's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: wordle's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `wordle._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/wordle.sql → The page blobs).
--- This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/wordle.sql → The page blobs). This file
+-- pins what the page gets:
 --
---   1. A fresh coop game's game_data, as a whole: the common part, the target
---      withheld, no log, and every player fresh with an empty board
+--   1. A fresh coop game's static_game_data and game_data, as a whole: the
+--      common parts, the target withheld, no log, and every player fresh with
+--      an empty board
 --   2. Mid-game coop: the log, the team's count on every player, one board on
 --      every seat
 --   3. Mid-game compete: each racer's own count and own board; the log carries
@@ -18,7 +20,8 @@
 --   5. `tieBrokenByClock`: for a tie, for two solvers on different counts, and
 --      for a conceder on the winner's count
 --   6. A Restart empties it all again
---   7. `_rebuild_data_cols_for_all` rewrites every wordle game without re-dating it
+--   7. `_rebuild_data_cols_for_all` rewrites every wordle game, its static blob
+--      included, without re-dating it
 --
 -- The target is random, so each game's answer is read back as the superuser
 -- and a legal wrong guess picked beside it, as statuses tests did.
@@ -29,7 +32,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(40);
+select plan(41);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -61,6 +64,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: wordle's keys sit beside it.
@@ -102,7 +107,7 @@ $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
 select is(
-  pg_temp.game_data(pg_temp.coop()),
+  pg_temp.static_game_data(pg_temp.coop()),
   jsonb_build_object(
     'id',       pg_temp.coop(),
     'gametype', 'wordle_coop',
@@ -112,8 +117,13 @@ select is(
     'coop',     true,
     'compete',  false,
     'oneBoard', true,
+    'setup',    pg_temp.wordle_setup(5)),
+  'the whole static_game_data of a fresh coop game: the common part alone'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()),
+  jsonb_build_object(
     'title',    'New game',
-    'setup',    pg_temp.wordle_setup(5),
     'turns',    null,
     'ending',   null,
     'ended',    false,
@@ -422,12 +432,16 @@ select is(
 );
 
 -- ─── (7) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(wordle._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every wordle game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );
