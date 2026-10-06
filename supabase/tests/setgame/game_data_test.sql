@@ -1,15 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: setgame's page blobs — game_data and summary_data
+-- Test: setgame's page blobs — static_game_data, game_data and summary_data
 -- ============================================================
 -- `setgame._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/setgame.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/setgame.sql → The page blobs). This file
+-- pins what the page gets:
 --
 --   1. A fresh game: the table as tiles in slot order, the deck's count and
 --      never the deck; coop's team at nothing and no team in compete; each
---      player fresh; a fresh summary
+--      player fresh; a fresh summary; the static blob the common part alone
 --   2. Mid-game coop: a claim and a hint in the log, each with its tiles and
 --      the table after; each player's own counts and the team's sum
 --   3. Mid-game compete: every racer's rows and counts are in the blob — a
@@ -17,8 +18,8 @@
 --   4. The endings: a race's winners and the sets they share; a coop clear
 --      stamps every teammate, and says whether it was a perfect clear
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every setgame game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every setgame game, its static
+--      blob included, without re-dating it
 --
 -- A board is a shuffle, so every assertion is against the tables the blob
 -- is built from, never a fixed deal.
@@ -29,7 +30,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(23);
+select plan(24);
 
 -- A board as the blob writes it: each tile `{id}`, in slot order.
 create function pg_temp.sg_tiles_json(p smallint[]) returns jsonb
@@ -75,6 +76,10 @@ select ok(
   (select not (game_data ? 'deck') and not (game_data ? 'puzzle')
      from common.games where id = (select id from g where mode = 'coop')),
   'the deck itself is not in the blob — nothing shows its order');
+select is(
+  (select static_game_data from common.games where id = (select id from g where mode = 'coop')),
+  common._make_json_static_game_data((select id from g where mode = 'coop')),
+  'static_game_data is the common part alone: setgame adds nothing to it');
 select is(
   (select game_data->'team' from common.games where id = (select id from g where mode = 'coop')),
   '{"nSetsFound": 0, "nHintsUsed": 0}'::jsonb,
@@ -212,14 +217,16 @@ select is(
 -- ─── (6) _rebuild_data_cols_for_all ───
 create temp table dated on commit drop as
 select status_changed_at from common.games where id = (select id from g where mode = 'coop');
-update common.games set game_data = '{}'::jsonb where id = (select id from g where mode = 'coop');
+update common.games set game_data = '{}'::jsonb, static_game_data = null
+ where id = (select id from g where mode = 'coop');
 select is(setgame._rebuild_data_cols_for_all() >= 2, true,
   '_rebuild_data_cols_for_all rewrites every setgame game');
 select is(
-  (select jsonb_build_object('rebuilt', game_data ? 'board', 'dated', status_changed_at)
+  (select jsonb_build_object('rebuilt', game_data ? 'board', 'static', static_game_data ? 'setup',
+                             'dated', status_changed_at)
      from common.games where id = (select id from g where mode = 'coop')),
-  jsonb_build_object('rebuilt', true, 'dated', (select status_changed_at from dated)),
-  'the blob is back, and the game is not re-dated');
+  jsonb_build_object('rebuilt', true, 'static', true, 'dated', (select status_changed_at from dated)),
+  'both blobs are back, and the game is not re-dated');
 
 select * from finish();
 rollback;
