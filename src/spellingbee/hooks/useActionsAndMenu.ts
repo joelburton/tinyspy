@@ -100,7 +100,6 @@ export function useActionsAndMenu({
             ? { points: r.points ?? 0, who: memberById(gd.players, r.userId)?.username ?? 'someone' }
             : null,
       }))
-      const sld = gd.stateLineData
       printSpellingbeePdf({
         brand: gd.brand,
         gameTitle: gd.title,
@@ -109,8 +108,8 @@ export function useActionsAndMenu({
         // Compete's are per player — each section carries its own — so the
         // header states only the shared targets.
         summary: gd.compete
-          ? `Target: ${sld.reqdWordsScore} pts · ${sld.nReqdWords} words`
-          : `${sld.rankName} · Score ${sld.foundWordsScore} / ${sld.reqdWordsScore} · Words ${sld.nFoundWords} / ${sld.nReqdWords}`,
+          ? `Target: ${gd.puzzle.reqdWordsScore} pts · ${gd.puzzle.nReqdWords} words`
+          : `${gd.me.rankName} · Score ${gd.me.foundWordsScore} / ${gd.puzzle.reqdWordsScore} · Words ${gd.me.nFoundWords} / ${gd.puzzle.nReqdWords}`,
         outerLetters: gd.puzzle.outerLetters.split(''),
         centerLetter: gd.puzzle.centerLetter,
         mode: gd.mode,

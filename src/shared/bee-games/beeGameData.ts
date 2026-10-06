@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { SetupRow } from '@/common/setup-form/types'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
@@ -60,11 +60,13 @@ export type BeePuzzle = {
 }
 
 /**
- * What one player, or the team, has found — the count and the points, bonus
+ * A bee game's facts as the builders write them (plans/team-facts.md): what
+ * one player, or the team, has found — the count and the points, bonus
  * included, and the rank that score reaches (`common._rank_idx`) — and the
- * rank they set out for.
+ * rank they set out for. The required set they count against is the
+ * puzzle's, the same for every side.
  */
-export type BeeTeam = {
+export type BeeFactsRaw = {
   nFoundWords: number
   foundWordsScore: number
   rankIdx: number
@@ -74,19 +76,30 @@ export type BeeTeam = {
   targetRankIdx: number | null
 }
 
-/** The names of a `BeeTeam`'s two ranks, from `RANKS`. */
+/** The names of a side's two ranks, from `RANKS`. */
 export type BeeRankNames = {
   rankName: string
   // Null for coop's open hunt.
   targetRankName: string | null
 }
 
+/** A bee game's facts as `gd` holds them: the blob's, with the names of the
+ *  two ranks beside their indexes. */
+export type BeeFacts = BeeFactsRaw & BeeRankNames
+
 /** A player as the bee games' game_data shows them: the common player, with
  *  their own finds. A seat has no board of its own: the tiles are the
- *  puzzle's, and a seat's state is its rows and these three counts. */
-export type BeePlayerRaw = PlayerRaw & BeeTeam
+ *  puzzle's, and a seat's state is its rows and these counts. */
+export type BeePlayerRaw = PlayerRaw & BeeFactsRaw
 
-export type BeePlayer = BeePlayerRaw & BeeRankNames
+/**
+ * A player as `gd` holds them: the common player with the facts twice —
+ * spread on, their side's (the team's in coop, their own in compete); under
+ * `own`, their own (plans/team-facts.md).
+ */
+export type BeePlayer = PlayerRaw & FactsApart<BeeFacts> & {
+  own: BeeFacts
+}
 
 /** One found word, as the blob carries it: `gd` turns `userId` into the
  *  player (`BeeFoundWord`). The table has no row id; a row is its player and
@@ -115,22 +128,12 @@ export type BeeFoundWord = Omit<BeeFoundWordRaw, 'userId'> & {
 export type BeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: Setup
   puzzle: BeePuzzle
-  // What the team shares; null in compete, where there is no team.
-  team: BeeTeam | null
+  // The team's facts, sent once: the players' finds summed. Null in compete,
+  // where there is no team.
+  team: BeeFactsRaw | null
   // Every found word, in the order found, each with its finder.
   foundWords: BeeFoundWordRaw[]
   players: BeePlayerRaw[]
-}
-
-/**
- * What the state line shows — the ladder and the figures under it: the team's
- * finds in coop, my own in compete, against the required set and the target.
- * Decided once, in `makeBeeGameData`, so the state line draws it and picks
- * nothing.
- */
-export type BeeStateLineData = BeeTeam & BeeRankNames & {
-  nReqdWords: number
-  reqdWordsScore: number
 }
 
 /*
@@ -149,7 +152,6 @@ export type BeeStateLineData = BeeTeam & BeeRankNames & {
  *   setup
  *   setupRows
  *   puzzle: {tiles, tilesById, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}
- *   team: {nFoundWords, foundWordsScore, rankIdx, rankName, targetRankIdx, targetRankName}   # what the team shares; null in compete
  *   turns                                            # always null: no turn order
  *   ending: {reason, detail, by, winner}             # null while playing; by and winner are players
  *   ended
@@ -158,16 +160,17 @@ export type BeeStateLineData = BeeTeam & BeeRankNames & {
  *   players: [player, …]                             # seat order
  *   playersById
  *   me                                               # same object as playersById[auth.user.id]
- *   stateLineData: {nFoundWords, foundWordsScore, rankIdx, rankName, nReqdWords, reqdWordsScore, targetRankIdx, targetRankName}
  *
  * player:
  *   the common player
- *   nFoundWords                                      # own, in every mode
- *   foundWordsScore                                  # own, in every mode
- *   rankIdx                                          # own
+ *   nFoundWords                                      # the side's: the team's in coop, their own in compete
+ *   foundWordsScore
+ *   rankIdx
  *   rankName
  *   targetRankIdx                                    # the rank that wins; the same on every player
  *   targetRankName
+ *   own: {nFoundWords, foundWordsScore, rankIdx, rankName, targetRankIdx, targetRankName}
+ *                                                    # this player's own
  *
  * tile:                                              # puzzle.tiles[], the center first
  *   id                                               # the tile's place, as text
@@ -194,8 +197,6 @@ export type BeeGameData<Setup> = Omit<
   // The puzzle, with its tiles by id beside the list: what a held tile id
   // (a wordwheel claim) is looked up in.
   puzzle: BeePuzzle & { tilesById: ReadonlyMap<string, BeeTile> }
-  // What the team shares; null in compete, where there is no team.
-  team: (BeeTeam & BeeRankNames) | null
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -215,13 +216,12 @@ export type BeeGameData<Setup> = Omit<
   playersById: Record<string, BeePlayer>
   // My entry in `playersById`: the same object.
   me: BeePlayer
-  stateLineData: BeeStateLineData
 }
 
 /** A bee game's `summary_data`: the common part, with the team's progress
  *  (null in compete) and what it is measured against. */
 export type BeeSummaryData = SummaryData & {
-  team: BeeTeam | null
+  team: BeeFactsRaw | null
   nReqdWords: number
   reqdWordsScore: number
   targetRankIdx: number | null
@@ -237,12 +237,15 @@ function maySeeRival(raw: BeeGameDataRaw<unknown>): boolean {
   return raw.coop || raw.ended
 }
 
-/** A team or player, with the names of its two ranks beside their indexes. */
-function addRankNames<T extends BeeTeam>(t: T): T & BeeRankNames {
+/** A side's facts, with the names of its two ranks beside their indexes. */
+function addRankNames(f: BeeFactsRaw): BeeFacts {
   return {
-    ...t,
-    rankName: RANKS[t.rankIdx]!,
-    targetRankName: t.targetRankIdx === null ? null : RANKS[t.targetRankIdx]!,
+    nFoundWords: f.nFoundWords,
+    foundWordsScore: f.foundWordsScore,
+    rankIdx: f.rankIdx,
+    targetRankIdx: f.targetRankIdx,
+    rankName: RANKS[f.rankIdx]!,
+    targetRankName: f.targetRankIdx === null ? null : RANKS[f.targetRankIdx]!,
   }
 }
 
@@ -258,8 +261,16 @@ export function makeBeeGameData<Setup>(
 ): BeeGameData<Setup> {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
+  const teamFacts = team === null ? null : addRankNames(team)
 
-  const players: BeePlayer[] = raw.players.map(addRankNames)
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  const players: BeePlayer[] = raw.players.map(function makePlayer(p) {
+    const own = addRankNames(p)
+    return { ...p, ...(teamFacts ?? own), own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -274,16 +285,10 @@ export function makeBeeGameData<Setup>(
 
   // The gate has checked that I am seated.
   const me = playersById[myId]!
-  // What the state line shows: the team's finds where the game has one, else my
-  // own (plans/team-facts.md).
-  const team = raw.team === null ? null : addRankNames(raw.team)
-  const teamOrMe = team ?? me
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     puzzle: { ...raw.puzzle, tilesById: new Map(raw.puzzle.tiles.map((t) => [t.id, t])) },
-    team,
     setupRows: makeSetupRows(players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
@@ -298,15 +303,5 @@ export function makeBeeGameData<Setup>(
     players,
     playersById,
     me,
-    stateLineData: {
-      nFoundWords: teamOrMe.nFoundWords,
-      foundWordsScore: teamOrMe.foundWordsScore,
-      rankIdx: teamOrMe.rankIdx,
-      rankName: teamOrMe.rankName,
-      targetRankIdx: teamOrMe.targetRankIdx,
-      targetRankName: teamOrMe.targetRankName,
-      nReqdWords: raw.puzzle.nReqdWords,
-      reqdWordsScore: raw.puzzle.reqdWordsScore,
-    },
   }
 }

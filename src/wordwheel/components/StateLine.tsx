@@ -2,13 +2,13 @@
 
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
-import type { GStateLineData } from '../types'
+import type { GFacts, GPuzzle } from '../types'
 
 /**
  * wordwheel's core live-state readout — the rank ladder, and the score and the
- * word count under it against the required set — drawn from
- * `gd.stateLineData`: the team's figures in coop, my own in compete, decided
- * once in `useGame`.
+ * word count under it against the required set — drawn from my side's facts,
+ * `gd.me`: the team's figures in coop, my own in compete; the required set is
+ * the puzzle's.
  *
  * Its own component because it's rendered TWICE, in two places that must never
  * drift: the top of the info column (desktop) and the mobile
@@ -16,20 +16,20 @@ import type { GStateLineData } from '../types'
  * the info column is off-canvas in the InfoSheet). A bare fragment — each
  * caller supplies its own wrapper.
  */
-export function StateLine({ data }: { data: GStateLineData }) {
+export function StateLine({ facts, puzzle }: { facts: GFacts; puzzle: GPuzzle }) {
   return (
     <>
       <RankBar
-        rankIdx={data.rankIdx}
-        rankName={data.rankName}
-        total={data.reqdWordsScore}
-        targetIdx={data.targetRankIdx}
+        rankIdx={facts.rankIdx}
+        rankName={facts.rankName}
+        total={puzzle.reqdWordsScore}
+        targetIdx={facts.targetRankIdx}
       />
       <Stats
-        foundWordsScore={data.foundWordsScore}
-        reqdWordsScore={data.reqdWordsScore}
-        nFoundWords={data.nFoundWords}
-        nReqdWords={data.nReqdWords}
+        foundWordsScore={facts.foundWordsScore}
+        reqdWordsScore={puzzle.reqdWordsScore}
+        nFoundWords={facts.nFoundWords}
+        nReqdWords={puzzle.nReqdWords}
       />
     </>
   )

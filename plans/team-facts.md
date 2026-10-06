@@ -160,9 +160,10 @@ top-level board, and the pgTAP pins of the blob.
 ## Settled in psychicnum (Joel, 2026-10-06)
 
 - **`gd.stateLineData` goes** where it only copied the side's facts:
-  `StateLine` takes `facts: GFacts` and is handed `gd.me`. A game whose line
-  adds something of its own (the bee pair's rank names) decides when it is
-  reached.
+  `StateLine` takes `facts: GFacts` and is handed `gd.me`. The bee pair's
+  rank names are computed onto every player's facts beside the indexes, so
+  its `stateLineData` went too; strands' `hintBarData`, which copied
+  `gd.me.hintPoints` and `gd.setup.hint_cost`, went the same way.
 - **A key sent in `team` alone is null on each coop player**, every key
   present: `GPlayerRaw`'s `board` is `GBoardRaw | null`, and `team` is
   `GFactsRaw | null`. `useGame` gives a coop player's `own.board` the one

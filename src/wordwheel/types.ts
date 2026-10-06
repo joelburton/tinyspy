@@ -18,11 +18,11 @@ import type {
   BeeGameData,
   BeeGameDataRaw,
   BeePlayer,
+  BeeFacts,
+  BeeFactsRaw,
   BeePlayerRaw,
   BeePuzzle,
-  BeeStateLineData,
   BeeSummaryData,
-  BeeTeam,
   BeeTile,
   BeeWord,
 } from '@/shared/bee-games/beeGameData'
@@ -41,10 +41,10 @@ export type GPlayer = BeePlayer
 export type GPuzzle = BeePuzzle
 export type GTile = BeeTile
 export type GWord = BeeWord
-export type GTeam = BeeTeam
+export type GFacts = BeeFacts
+export type GFactsRaw = BeeFactsRaw
 export type GFoundWordRaw = BeeFoundWordRaw
 export type GFoundWord = BeeFoundWord
-export type GStateLineData = BeeStateLineData
 export type GSummaryData = BeeSummaryData
 
 /**

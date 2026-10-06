@@ -169,12 +169,19 @@ hook merges it into `game_data`, each key in its place:
 | blob | spellingbee's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first |
-| `game_data` | `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
-| `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
+| `game_data` | `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, the team's facts, sent once — its finds summed and the rank it set out for; null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
+| `summary_data` | `team`, the team's facts as `game_data` sends them; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `A·CHIORT` —
 written once at creation and never changed, so one board reads one way in the
 club's history whatever the local shuffle.
+
+The facts (`GFacts`: `nFoundWords`, `foundWordsScore`, `rankIdx`,
+`targetRankIdx`, with the two rank names beside them) are on every player
+twice — spread on, the side's (the team's in coop, their own in compete);
+under `own`, their own ([plans/team-facts.md](../../plans/team-facts.md)).
+`gd` has no `team`; `foundWords` stays at the game level beside it, a record
+of who found what. The required set is the puzzle's, the same for every side.
 
 **The client reads nothing from these tables.** The page is handed the blobs
 off `common.games` and re-reads them as the shell delivers each rewrite, and
@@ -455,7 +462,7 @@ What is spellingbee's own:
   bonus included. The list is the shared `WordList`, found words in their finder's
   color, pangrams bold, bonus words dotted.
 - **The state line** (`StateLine`) is the shared rank-ladder pieces drawn from
-  `gd.stateLineData`, mirrored above the hive on a phone by `MobileStatusBar` so the readout stays on the
+  `gd.me` beside `gd.puzzle`, mirrored above the hive on a phone by `MobileStatusBar` so the readout stays on the
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
 - **The ending** is the pill and the row's line, in sentences wordwheel shares

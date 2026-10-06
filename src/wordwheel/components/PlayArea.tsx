@@ -132,7 +132,6 @@ function PlayArea({
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage
-  const sld = gd.stateLineData
 
   return (
     <div
@@ -161,9 +160,9 @@ function PlayArea({
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={
-            `Reached "${sld.rankName}"` +
+            `Reached "${gd.me.rankName}"` +
             `${gd.compete ? ' first' : ''} — ` +
-            `${sld.foundWordsScore}/${sld.reqdWordsScore} points.`
+            `${gd.me.foundWordsScore}/${gd.puzzle.reqdWordsScore} points.`
           }
           onClose={celebration.close}
         />

@@ -21,7 +21,8 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
   const winner = gd.ending?.winner ?? null
-  const { foundWordsScore, rankIdx, targetRankIdx, reqdWordsScore } = gd.stateLineData
+  const { foundWordsScore, rankIdx, targetRankIdx } = gd.me
+  const reqdWordsScore = gd.puzzle.reqdWordsScore
   return useMemo(
     () =>
       outcome === null || reason === null
@@ -31,7 +32,8 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
             gameEnding: { outcome, reason },
             playerOutcome,
             winner,
-            stateLineData: gd.stateLineData,
+            facts: gd.me,
+            puzzle: gd.puzzle,
           }),
     // `winner` is a player object the blob rebuilds; its id is what matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps

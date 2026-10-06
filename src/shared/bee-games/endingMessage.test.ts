@@ -10,19 +10,20 @@ import type { BeePlayer } from './beeGameData'
 import { buildBeeGameEndingMessage, buildBeePlayerEndingMessage } from './endingMessage'
 
 /** 47 of 50 points is rank 5 (Amazing); the target is rank 6 (Genius). */
-const stateLineData = { nFoundWords: 20, foundWordsScore: 47, rankIdx: 5, rankName: 'Amazing', targetRankIdx: 6, targetRankName: 'Genius', nReqdWords: 30, reqdWordsScore: 50 }
+const facts = { nFoundWords: 20, foundWordsScore: 47, rankIdx: 5, rankName: 'Amazing', targetRankIdx: 6, targetRankName: 'Genius' }
+const puzzle = { reqdWordsScore: 50 }
 const alice = { id: 'u2', username: 'alice', color: 'blue' } as BeePlayer
 
 describe('coop', () => {
   it('a win names the rank the team set out for, not the one it reached', () => {
     expect(buildBeeGameEndingMessage({
-      mode: 'coop', gameEnding: { outcome: 'won', reason: 'reached_goal' }, playerOutcome: 'won', winner: null, stateLineData,
+      mode: 'coop', gameEnding: { outcome: 'won', reason: 'reached_goal' }, playerOutcome: 'won', winner: null, facts, puzzle,
     })).toEqual({ pillText: 'Won: "Genius" 47/50 points', infoColText: 'You won!', outcome: 'won' })
   })
 
   it('a loss is the clock beating an unreached target', () => {
     expect(buildBeeGameEndingMessage({
-      mode: 'coop', gameEnding: { outcome: 'lost', reason: 'timeout' }, playerOutcome: 'lost', winner: null, stateLineData,
+      mode: 'coop', gameEnding: { outcome: 'lost', reason: 'timeout' }, playerOutcome: 'lost', winner: null, facts, puzzle,
     })).toEqual({ pillText: 'Lost: ran out of time', infoColText: 'Out of time', outcome: 'lost' })
   })
 
@@ -30,7 +31,7 @@ describe('coop', () => {
     for (const reason of ['timeout', 'stopped'] as const) {
       expect(buildBeeGameEndingMessage({
         mode: 'coop', gameEnding: { outcome: 'neutral', reason }, playerOutcome: 'neutral', winner: null,
-        stateLineData: { ...stateLineData, targetRankIdx: null, targetRankName: null },
+        facts: { ...facts, targetRankIdx: null, targetRankName: null }, puzzle,
       })).toEqual({ pillText: 'Ended: Amazing 47/50 points', infoColText: 'Amazing', outcome: 'neutral' })
     }
   })
@@ -40,27 +41,27 @@ describe('compete', () => {
   const won = { outcome: 'won', reason: 'reached_goal' } as const
 
   it('my win names the target rank', () => {
-    expect(buildBeeGameEndingMessage({ mode: 'compete', gameEnding: won, playerOutcome: 'won', winner: alice, stateLineData }))
+    expect(buildBeeGameEndingMessage({ mode: 'compete', gameEnding: won, playerOutcome: 'won', winner: alice, facts, puzzle }))
       .toEqual({ pillText: 'Won: "Genius" 47/50 points', infoColText: 'You won!', outcome: 'won' })
   })
 
   it("somebody else's win names them as the actor, with no Lost prefix", () => {
-    expect(buildBeeGameEndingMessage({ mode: 'compete', gameEnding: won, playerOutcome: 'lost', winner: alice, stateLineData }))
+    expect(buildBeeGameEndingMessage({ mode: 'compete', gameEnding: won, playerOutcome: 'lost', winner: alice, facts, puzzle }))
       .toEqual({ pillText: 'won at "Genius"', infoColText: 'alice won', outcome: 'lost', actor: alice })
   })
 
   it('the two collective losses are told apart by the reason', () => {
     expect(buildBeeGameEndingMessage({
-      mode: 'compete', gameEnding: { outcome: 'lost', reason: 'conceded' }, playerOutcome: 'lost', winner: null, stateLineData,
+      mode: 'compete', gameEnding: { outcome: 'lost', reason: 'conceded' }, playerOutcome: 'lost', winner: null, facts, puzzle,
     })).toEqual({ pillText: 'Lost: all conceded', infoColText: 'All conceded', outcome: 'lost' })
     expect(buildBeeGameEndingMessage({
-      mode: 'compete', gameEnding: { outcome: 'lost', reason: 'timeout' }, playerOutcome: 'lost', winner: null, stateLineData,
+      mode: 'compete', gameEnding: { outcome: 'lost', reason: 'timeout' }, playerOutcome: 'lost', winner: null, facts, puzzle,
     })).toEqual({ pillText: 'Lost: ran out of time', infoColText: 'Out of time', outcome: 'lost' })
   })
 
   it('a Stop is the shared neutral sentence', () => {
     expect(buildBeeGameEndingMessage({
-      mode: 'compete', gameEnding: { outcome: 'neutral', reason: 'stopped' }, playerOutcome: 'neutral', winner: null, stateLineData,
+      mode: 'compete', gameEnding: { outcome: 'neutral', reason: 'stopped' }, playerOutcome: 'neutral', winner: null, facts, puzzle,
     }).outcome).toBe('neutral')
   })
 })

@@ -95,39 +95,28 @@ describe('makeBeeGameData — the links become players', () => {
     expect(gd.puzzle.words.map((w) => [w.word, w.bonus])).toEqual([['bead', false], ['faced', false]])
     expect(gd.puzzle.tiles).toHaveLength(7)
     expect(gd.puzzle.reqdWordsScore).toBe(6)
-    expect([gd.me.nFoundWords, gd.me.foundWordsScore]).toEqual([1, 1])
-    expect([gd.playersById.u2!.nFoundWords, gd.playersById.u2!.foundWordsScore]).toEqual([1, 5])
+    // The team's finds on every player; my own and theirs under `own`.
+    expect([gd.me.nFoundWords, gd.me.foundWordsScore]).toEqual([2, 6])
+    expect([gd.me.own.nFoundWords, gd.me.own.foundWordsScore]).toEqual([1, 1])
+    expect([gd.playersById.u2!.own.nFoundWords, gd.playersById.u2!.own.foundWordsScore]).toEqual([1, 5])
+    expect(gd).not.toHaveProperty('team')
   })
 
-  it("the state line shows the team's finds in coop, against the required set and the target", () => {
+  it('every player carries their side\'s ranks and their own, by name', () => {
     const gd = makeBeeGameData(
       ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS, targetRankIdx: 3 }),
       'u1',
       noRows,
     )
-    expect(gd.stateLineData).toEqual({
-      nFoundWords: 2, foundWordsScore: 6,
-      rankIdx: gd.team!.rankIdx, rankName: RANKS[gd.team!.rankIdx],
-      targetRankIdx: 3, targetRankName: 'Nice',
-      nReqdWords: 2, reqdWordsScore: 6,
-    })
-  })
-
-  it('every player and the team carry their ranks by name', () => {
-    const gd = makeBeeGameData(
-      ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS, targetRankIdx: 3 }),
-      'u1',
-      noRows,
-    )
-    for (const t of [gd.team!, ...gd.players]) {
-      expect(t.rankName).toBe(RANKS[t.rankIdx])
-      expect(t.targetRankName).toBe('Nice')
+    for (const facts of gd.players.flatMap((p) => [p, p.own])) {
+      expect(facts.rankName).toBe(RANKS[facts.rankIdx])
+      expect(facts.targetRankIdx).toBe(3)
+      expect(facts.targetRankName).toBe('Nice')
     }
   })
 
   it("an open hunt's target has no name", () => {
     const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO }), 'u1', noRows)
-    expect(gd.stateLineData.targetRankName).toBeNull()
     expect(gd.me.targetRankName).toBeNull()
   })
 })
@@ -158,12 +147,11 @@ describe('makeBeeGameData — the seat rule', () => {
   it('coop withholds nothing: one list, one team', () => {
     const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO, foundWords: FINDS }), 'u1', noRows)
     expect(gd.foundWords).toHaveLength(2)
-    expect(gd.team).not.toBeNull()
   })
 
-  it('a race has no team, so the state line shows my own counts', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeBeeGameData(race(), 'u1', noRows)
-    expect(gd.team).toBeNull()
-    expect([gd.stateLineData.nFoundWords, gd.stateLineData.foundWordsScore]).toEqual([1, 1])
+    expect([gd.me.nFoundWords, gd.me.foundWordsScore]).toEqual([1, 1])
+    expect([gd.me.own.nFoundWords, gd.me.own.foundWordsScore]).toEqual([1, 1])
   })
 })

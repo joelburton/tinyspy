@@ -2,7 +2,7 @@
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/terminal/gameEnding'
 import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
-import type { BeePlayer, BeeStateLineData } from './beeGameData'
+import type { BeeFacts, BeePlayer, BeePuzzle } from './beeGameData'
 
 /**
  * What a bee game — spellingbee or wordwheel — says once the game is over, for
@@ -40,7 +40,8 @@ export function buildBeeGameEndingMessage({
   gameEnding,
   playerOutcome,
   winner,
-  stateLineData,
+  facts,
+  puzzle,
 }: {
   mode: 'coop' | 'compete'
   // How the GAME ended (`gd.outcome`, `gd.ending.reason`).
@@ -50,14 +51,16 @@ export function buildBeeGameEndingMessage({
   playerOutcome: EndOutcome | null
   // The player ranked first (`gd.ending.winner`), or null when nobody was.
   winner: BeePlayer | null
-  // What the state line shows: the team's figures in coop, my own in compete.
-  stateLineData: BeeStateLineData
+  // My side's facts (`gd.me`): the team's in coop, my own in compete.
+  facts: BeeFacts
+  // The required set's points, the score's denominator.
+  puzzle: Pick<BeePuzzle, 'reqdWordsScore'>
 }): TerminalMessage {
-  const rankName = stateLineData.rankName
-  const points = `${stateLineData.foundWordsScore}/${stateLineData.reqdWordsScore} points`
+  const rankName = facts.rankName
+  const points = `${facts.foundWordsScore}/${puzzle.reqdWordsScore} points`
   // The rank NAMED in a win is the one they set out for; the score can
   // overshoot it. Only a game with a target can be won.
-  const targetRankName = stateLineData.targetRankName
+  const targetRankName = facts.targetRankName
 
   if (mode === 'compete') {
     if (gameEnding.outcome === 'won') {
