@@ -14,7 +14,7 @@ the tile-feedback pass against [tile-feedback.md](../tile-feedback.md).
 
 ## The conversion — rulings
 
-Joel, 2026-10-06, answering plans/crosswords-conversion.md before and during
+Joel, 2026-10-06, answering the conversion proposal (deleted at the close) before and during
 the build:
 
 - **No `BoardCol` or `InfoCol`.** The crossplay layout stays.

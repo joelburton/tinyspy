@@ -162,7 +162,7 @@ const CASES: Case[] = [
         write: async (m) => {
           const res = await asUser(m.session.access_token)
             .schema('strands')
-            .rpc('submit_path', { target_game: game.id, path: themeWord.coords })
+            .rpc('submit_path', { p_game_id: game.id, p_path: themeWord.coords })
           envelopeData(res, `strands.submit_path(${themeWord.word})`)
         },
       }

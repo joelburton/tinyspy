@@ -171,7 +171,6 @@ feedback) is read when app-audit opens a game's area.
 | [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per conversion, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is three builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
-| [plans/crosswords-conversion.md](plans/crosswords-conversion.md) | **Answered, being built.** crosswords' seat-view conversion: the grid on the blobs, my letters overlaid, the flash by comparing; no BoardCol or InfoCol |
 | [plans/team-facts.md](plans/team-facts.md) | **Decided, not started.** `gd.team` holds what the team shares, null when there is no team; a player's keys are their own in every mode; a loose copy of a path is spelled `group_leaf` |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |

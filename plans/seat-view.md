@@ -809,9 +809,10 @@ plans/areas/connections.md → The convenience RLS.
 ## Owed when the problem children open
 
 crosswords (one shared grid, per-cell authors), scrabble (one board, private
-racks, a shared bag) and bananagrams (per-player boards, a shared bag) may not
-fit "a seat's view" cleanly. Decide the exception, if any, when each area
-opens, with the simple games already on the shape.
+racks, a shared bag) and bananagrams (per-player boards, a shared bag) did not
+fit "a seat's view" cleanly. Each decided its exception in its own conversion,
+and each done line above says what it is (scrabble's board string, bananagrams'
+board the page owns, crosswords' packed grids and the overlay of my writes).
 
 ## When every game has converted
 

@@ -4,7 +4,7 @@
 -- crosswords: one jsonb per grid, and a revision on the game
 -- ============================================================
 -- Two changes, settled with Joel on 2026-10-06 when crosswords' seat-view
--- conversion opened (plans/crosswords-conversion.md):
+-- conversion opened (plans/areas/crosswords.md → The conversion — rulings):
 --
 --   GRIDS      `crosswords.grids` holds each grid as one sparse jsonb keyed
 --              by place ("row,col"), holding only the cells with something in
