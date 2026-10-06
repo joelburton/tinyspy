@@ -100,7 +100,7 @@ create table setgame.games (
   -- game, so a claimed card is replaced IN PLACE rather than the board
   -- closing up (which would shift every card a player was mid-scan on).
   -- Bounded at 21 because a set-free collection tops out at 20 cards —
-  -- see MAX_BOARD in src/setgame/lib/cards.ts.
+  -- see MAX_BOARD in src/setgame/lib/tiles.ts.
   board smallint[] not null check (cardinality(board) between 0 and 21),
 
   created_at timestamptz not null default now()

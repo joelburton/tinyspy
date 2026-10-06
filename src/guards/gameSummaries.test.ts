@@ -56,8 +56,12 @@ type GameEndingFamily = {
   compete?: GameEndingCase[]
 }
 
-/** The club a label names its players from; every case's winner and ender is alice. */
-const MEMBERS: Member[] = [{ id: 'u-alice', username: 'alice', color: 'red' }]
+/** The club a label names its players from; every case's winner and ender is alice, and bob
+ *  shares a tie. */
+const MEMBERS: Member[] = [
+  { id: 'u-alice', username: 'alice', color: 'red' },
+  { id: 'u-bob', username: 'bob', color: 'blue' },
+]
 
 /** A family in the new shape, told apart from an old one by its `live` blob. */
 function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFamily {
@@ -286,53 +290,24 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
-  // setgame's status is public in BOTH modes — every claim happened face-up on
-  // a shared table — so unlike wordle's or stackdown's compete blobs there is
-  // nothing withheld mid-game. The interesting labels are the two endings the
-  // rest of the roster doesn't have: a coop win that STRANDS cards (the normal
-  // ending; a full clear is ~2% of games and says so), and a compete tie, which
-  // is a real reason here because the ranking has no speed tiebreak.
+  // setgame._make_json_summary_data: `team` holds coop's counts and is null in compete; nothing
+  // is withheld mid-game, since every claim happened face-up. The two endings the rest of the
+  // roster doesn't have: a coop win that STRANDS tiles (the normal ending; a full clear is ~2% of
+  // games and says so), and a compete tie, a real result because there is no speed tiebreak.
   setgame: {
-    // The deck is a SETUP fact, and the label needs it: "perfect clear" is
-    // `sets * 3 === deck size`, derived rather than stored.
-    setup: { deck: 'full' },
-    playing: { sets_found: 6, deck_left: 45 },
+    live: { team: { nSetsFound: 6, nHintsUsed: 1 }, nTableSetsFound: 6, nTilesInDeck: 45, perfectClear: null, winnerIds: null, nWinnerSets: null },
     coop: [
-      ['won', { reason: 'cleared', sets_found: 24 }, 'deck cleared'],
-      ['won', { reason: 'cleared', sets_found: 27 }, 'perfect clear'],
-      ['lost', { reason: 'timeout', sets_found: 9 }, 'timeout'],
-      ['ended', { reason: 'manual', sets_found: 9 }, 'manual end'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 24, nHintsUsed: 1 }, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: false, winnerIds: null, nWinnerSets: null }, 'deck cleared'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 27, nHintsUsed: 1 }, nTableSetsFound: 27, nTilesInDeck: 0, perfectClear: true, winnerIds: null, nWinnerSets: null }, 'perfect clear'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'Stop'],
     ],
     compete: [
-      [
-        'won_compete',
-        {
-          reason: 'cleared',
-          sets_found: 24,
-          winner_username: 'alice',
-          leaderboard: [
-            { user_id: 'a', username: 'alice', sets_found: 14, won: true },
-            { user_id: 'b', username: 'bob', sets_found: 10, won: false },
-          ],
-        },
-        'most sets',
-      ],
-      [
-        'won_compete',
-        {
-          reason: 'timeout',
-          sets_found: 24,
-          winner_user_id: null,
-          leaderboard: [
-            { user_id: 'a', username: 'alice', sets_found: 12, won: true },
-            { user_id: 'b', username: 'bob', sets_found: 12, won: true },
-          ],
-        },
-        'tied — co-winners',
-      ],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
-      ['lost_compete', { reason: 'timeout' }, 'nobody scored'],
-      ['ended', { reason: 'manual', sets_found: 9 }, 'manual end'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'cleared', winner: 'u-alice' }, { team: null, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: null, winnerIds: ['u-alice'], nWinnerSets: 14 }, 'most sets'],
+      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, nTableSetsFound: 24, nTilesInDeck: 30, perfectClear: null, winnerIds: ['u-alice', 'u-bob'], nWinnerSets: 12 }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'all conceded'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nTableSetsFound: 0, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'nobody scored'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'Stop'],
     ],
   },
   // letterboxed._make_json_summary_data: `team` holds coop's chain and is null in compete; the

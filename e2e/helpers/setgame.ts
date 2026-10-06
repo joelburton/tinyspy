@@ -5,7 +5,7 @@ import { asUser, envelopeData, type E2EClub, type E2EMember } from './fixtures'
 /**
  * setgame's card algebra, for the specs and the gallery.
  *
- * Restated here rather than imported from `src/setgame/lib/cards.ts` — nothing
+ * Restated here rather than imported from `src/setgame/lib/tiles.ts` — nothing
  * else under `e2e/` reaches into `src/`, and this is six lines. The TS suite
  * proves the real implementation; what these need is only a way to FIND a legal
  * move on whatever board a game dealt, since setgame has no fixture board (a

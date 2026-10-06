@@ -303,7 +303,7 @@ letters?)
 - **HT:** coop-only, and PRIVATE — the ring shows only to the asker, since
   being handed a card you didn't ask for is being played FOR; the COUNT is the
   table's, and the log names who asked. Computed on the FE, which can: the board
-  is face-up and `lib/cards.ts` holds the same algebra the server does, so
+  is face-up and `lib/tiles.ts` holds the same algebra the server does, so
   `record_hint` records who asked and which cards they were shown (checking
   they are a genuine partial set). Three asks walk a ladder to a full set, and
   the third one claims it.

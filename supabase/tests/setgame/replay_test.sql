@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: replay_board — the same deck, dealt again
 -- ============================================================
--- Restart rewinds the deal position instead of reshuffling, so the cards come
+-- Restart rewinds the deal position instead of reshuffling, so the tiles come
 -- back in exactly the order they came the first time. That is the whole point
 -- of storing the deck whole and frozen: a reshuffle would make Restart just
 -- another New game.
@@ -48,20 +48,20 @@ reset role;
 select is(
   pg_temp.sg_board((select id from g)),
   (select board from opening),
-  'the SAME opening board comes back, card for card and slot for slot');
+  'the SAME opening board comes back, tile for tile and slot for slot');
 -- Rewound to wherever the OPENING deal stopped, which is what `opening` holds
 -- — not a fixed 69, since a board that opened set-free was dealt past twelve.
 select is(
-  (select deck_left + cardinality(board) from setgame.games_state where game_id = (select id from g)),
+  pg_temp.sg_tiles_in_deck((select id from g)) + cardinality(pg_temp.sg_board((select id from g))),
   81, 'the deal position is rewound to the opening');
 select is(
   (select count(*)::int from setgame.events where kind = 'claim' and game_id = (select id from g)),
   0, 'the claims are gone');
 select is(
-  (select sum(sets_found)::int from setgame.players where game_id = (select id from g)),
+  (select sum(n_sets_found)::int from setgame.players where game_id = (select id from g)),
   0, 'every count is back to zero');
 select is(
-  (select sum(hints_used)::int from setgame.players where game_id = (select id from g)),
+  (select sum(n_hints_used)::int from setgame.players where game_id = (select id from g)),
   0, 'hints spent do not carry over — a replay is a genuine second try');
 select is(
   (select title from common.games where id = (select id from g)),

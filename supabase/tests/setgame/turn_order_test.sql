@@ -10,7 +10,7 @@
 -- The rule this pins is setgame's own, and it is about HINTS as much as
 -- claims: **a turn is one successful claim.** Asking for a hint happens on
 -- your turn and does NOT pass it, so a stuck player can climb the whole
--- ladder — one card, two, then three, which claims — and only then hand over.
+-- ladder — one tile, two, then three, which claims — and only then hand over.
 -- If a hint advanced the turn, that player would be handed a ring they are no
 -- longer allowed to use, which is the opposite of help.
 --
@@ -20,7 +20,7 @@
 --   3. an accepted claim advances the pointer
 --   4. an out-of-turn HINT is rejected (it charges shared state)
 --   5. an in-turn hint is accepted and does NOT advance
---   6. a rejected claim (cards that aren't a set) does NOT advance
+--   6. a rejected claim (tiles that aren't a set) does NOT advance
 --   7. free-for-all leaves the pointer null and both RPCs ungated
 --
 -- Every move is derived from whatever board the shuffle dealt (see setup.psql)
@@ -69,7 +69,7 @@ select pg_temp.envelope_is(
 );
 reset role;
 select is(
-  (select sum(sets_found)::int from setgame.players where game_id = (select id from g)),
+  (select sum(n_sets_found)::int from setgame.players where game_id = (select id from g)),
   0, 'turns: the refused claim scored nothing'
 );
 
@@ -99,7 +99,7 @@ select is(
   'turns: a hint does NOT pass the turn'
 );
 select is(
-  (select hints_used from setgame.players
+  (select n_hints_used from setgame.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1, 'turns: the hint was charged to the asker'
@@ -112,7 +112,7 @@ select pg_temp.envelope_is(
   setgame.submit_set((select id from g), pg_temp.sg_not_a_set((select id from g))),
   '{"type":"not-ok","severity":"fault","dbcode":"PN278",
     "message":"BUG: bad set"}'::jsonb,
-  'turns: three cards that are not a set are refused'
+  'turns: three tiles that are not a set are refused'
 );
 reset role;
 select is(

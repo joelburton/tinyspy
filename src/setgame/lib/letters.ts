@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { MAX_BOARD } from './cards'
+import { MAX_BOARD } from './tiles'
 
 /**
  * The keyboard address of each board slot.
@@ -9,11 +9,11 @@ import { MAX_BOARD } from './cards'
  *
  *   1. **Letters must read left-to-right.** People scan a row, not a column, so
  *      A B C D across the top is what a hand reaches for.
- *   2. **A letter must never change which card it means.** Dealing three cards
+ *   2. **A letter must never change which tile it means.** Dealing three tiles
  *      adds a COLUMN, and two games in three do that at least once. If the
  *      letters ran A B C D / E F G H across a four-column board, growing to
- *      five would re-letter eight of the twelve cards already on the table —
- *      and a player typing from muscle memory would silently claim a card they
+ *      five would re-letter eight of the twelve tiles already on the table —
+ *      and a player typing from muscle memory would silently claim a tile they
  *      never looked at.
  *
  * Both hold at once by lettering a FIXED 3 x 7 grid — seven being the widest
@@ -23,10 +23,10 @@ import { MAX_BOARD } from './cards'
  *      H  I  J  K  | L  M  N
  *      O  P  Q  R  | S  T  U
  *
- * At twelve cards the left four columns are on the table; the fifth column
+ * At twelve tiles the left four columns are on the table; the fifth column
  * arrives as E / L / S and disturbs nothing. The cost is that the rows are not
  * contiguous (row two starts at H, not E), which nobody has to know: a letter
- * here is an address to read off a card, never a sequence to recite.
+ * here is an address to read off a tile, never a sequence to recite.
  */
 
 /** The widest the board can ever be — MAX_BOARD.full, as columns of three. */
@@ -39,7 +39,7 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTU'
 
 if (LETTERS.length < ROWS * MAX_COLS) {
   // A build-time sanity check: if the ceiling ever moves, the board would
-  // silently render blank labels on its last cards.
+  // silently render blank labels on its last tiles.
   throw new Error(`setgame: a ${ROWS}x${MAX_COLS} grid needs ${ROWS * MAX_COLS} letters`)
 }
 

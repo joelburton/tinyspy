@@ -9,7 +9,7 @@
 -- covers:
 --   1. the gates it inherits — signed out, non-member, unknown mode
 --   2. its own two refusals: the deck kind and the first player
---   3. the happy path: a deck is dealt, twelve cards are on the board
+--   3. the happy path: a deck is dealt, twelve tiles are on the board
 --
 -- Every refusal here is a FAULT: the setup form offers a deck picker with two
 -- options and a first-player list drawn from the checked players, so none of
@@ -149,7 +149,7 @@ select ok(
       and array_length(board, 1) % 3 = 0
       and setgame._find_set(board) is not null
      from setgame.games where game_id = (select id from g)),
-  'the opening board is playable — twelve or more cards, with a set on it'
+  'the opening board is playable — twelve or more tiles, with a set on it'
 );
 
 -- ============================================================

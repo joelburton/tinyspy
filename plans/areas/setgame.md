@@ -29,6 +29,115 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/setgame.md` instead; a note here never stands in for either)*
 
+## The conversion — rulings before step 1
+
+Joel, 2026-10-05, opening the seat-view conversion:
+
+- **The claim's marks are simplified.** A found set wears a RING in the won
+  color — not a filled background, which hides the colored symbols — for
+  `WORD_ANSWER_MS`, then goes; tiles newly ADDED to the table wear the shared
+  yellow attention flash (`useMoveAttention`, `ATTENTION_FLASH_MS`). A tile
+  moved or rearranged by the claim (the tail compaction) does not flash; a
+  grow's three appended tiles do. The claimer wears the shared in-flight dim
+  from the third click until the answer, then the same ring as everyone; the
+  `held` mark goes. Everyone holds the found set for the same ring length
+  after the claim lands, so the claimer still cannot see replacements early.
+  The `--setgame-leaving-bg` / `-arriving-bg` / `-held-veil` colors go, and
+  `lib/flash.ts` with them. Built in the Board pass; the ruling moves into
+  plans/tile-feedback.md (whose "keep the choreography exactly" it replaces)
+  and the game's doc there.
+- **Card → Tile, everywhere in code** (Joel: "yes, we should rename card to
+  tiles. The only place to keep 'card' is user-facing text, like in help").
+  The piece on the board, the deck's contents, the 0–80 value, the libraries,
+  the SQL — all "tile"; `Card.tsx` → `Tile.tsx`. Help and other copy a player
+  reads keep "card".
+- **A `GTile` is `{id, num}`** (Joel: "get rid of tile.card; it'll be
+  confusing … `.num` … to be the number of the id"): `id` the string key,
+  `num` the same tile as the 0–80 number the set arithmetic works on.
+
+## The sketch (step 2) — answered
+
+Joel, 2026-10-05: the table is a top-level `gd.board: {tiles, tilesById}`;
+no `puzzle` key (nothing shows the deck's order) and `nTilesInDeck` sits
+top-level; no seat rule — every row and count is public in both modes;
+`stateLineData` shows what the page shows today; the builder writes the
+summary's `perfectClear` and `winnerIds`; the hint ring is a BoardCol hook,
+not a `gd` key.
+
+## Steps 3–8
+
+- **The migration** `20261005000006_setgame_tiles.sql` converts every stored
+  tile (the deck, the board, each event's tiles and board) to four digits of
+  1..3 with a count check and a shape check, renames `events.cards` →
+  `tiles`, `players.sets_found` → `n_sets_found` and `hints_used` →
+  `n_hints_used`. Applied locally over 876 games and 19,637 events.
+- **The SQL** says "tile" throughout; `_third` works per digit; `create_game`
+  shuffles the digit deck; the builders and `_rebuild_data_cols(_for_all)`
+  replace `_write_statuses`; `games_state` is dropped and `_deck_size` is no
+  longer granted. `submit_set` answers no outcome.
+- **pgTAP**: `game_data_test.sql` (22) pins the blobs; `statuses_test.sql` is
+  gone; every other file follows the renames and the digit form.
+- **The frontend's data**: `types.ts`; `lib/cards.ts` → `lib/tiles.ts` on
+  `GTile`; `hint`, `picks`, `history` and `letters` on tiles; `useGame` is
+  `makeGameData`; `lib/gameData.fixture.ts`; the manifest's labels read
+  `summary_data`; setgame joined `CONVERTED_GAMES` and `gameSummaries`.
+- **Left for the passes**: every component, `SetupForm`, `pdf/`, and
+  `e2e/helpers/setgame.ts` (still the 0..80 algebra and `games_state`, fixed
+  before e2e runs).
+
+## The summary's table count
+
+Joel, 2026-10-05: the club card counts the table's sets in compete too —
+`summary_data.nTableSetsFound`, one key in both modes ("a … otherwise, i'll
+take your recs"). The old label read stale status keys and printed 0; the
+conversion had dropped the count until this.
+
+## The PlayArea pass (step 9)
+
+Joel took the recs. `PlayAreaLoader` (`useGame`) → `PlayArea(gd)`; the
+loading, failure and not-found screens and their classes went. The endings
+are `lib/gameEndingMessage.ts` / `lib/playerEndingMessage.ts` behind
+`useGetGameEndingMessage` / `useGetPlayerEndingMessage`, `buildOver`'s words
+kept, the winners every player ranked first. The answers are `lib/answer.ts`'s
+`answerMessage` (claim, claim_peer, hint, not_a_set) and `eventToOutcome`;
+`ANSWER_OUTCOME` went. A teammate's claim is `useShowTeammateMoves` (free-for-all
+coop only, as before); the commands and the menu are `useActionsAndMenu`, whose
+New game hides its button mid-game as the siblings' does; the history view is
+`useHistoryView`. The printer reads `gd`. The move (picks, the claim, the hint
+and its ring, the letter keys) is the BoardCol pass's.
+
+## The inventory (step 1)
+
+- **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,
+  club_handle, mode, deck_kind, board, deck_left` — three of which the view
+  no longer has: the frontend is stale against the 2026-09-28 common tables),
+  `setgame.players` (`sets_found, hints_used`) and `setgame.events` (`kind,
+  cards, board_after`), and subscribes to all three through
+  `useRealtimeRefetch`. PlayArea reads the old page props (`isTerminal`,
+  `status`, `authSession`, `isBoardInteractive`…).
+- **The convenience RLS.** No policy or view mentions `auth.uid()` or
+  `ended_at`: `games_select`, `players_select` and `events_select` are each a
+  club-member gate, in both modes, with no end-of-game unlock — nothing in
+  this game is private but the deck's order. `games` is column-granted
+  without `deck`; that grant stays. `setgame.games_state` (a
+  `security_invoker` view adding `deck_left`) is dropped by name.
+- **The status keys** `_write_statuses` writes: `game_status
+  {deck_remaining_count}`, `player_status {found_sets_count, hints_count,
+  player_ended_reason}`, `clubpage_info {found_sets_count,
+  deck_remaining_count, deck_kind, winner_user_ids,
+  winner_found_sets_count}`. What the page shows of them: the sets found,
+  the deck left and the hints, and compete's winners and their sets. The
+  frontend reads none of them by their written names today (`status.sets_found`,
+  `status.leaderboard`, `status.reason` — all stale).
+- **A coop solve** is the last claim clearing the table: `_finish` ranks every
+  player 1 through `common._end_game`, so every teammate is stamped by the one
+  ending. There is no per-player solve in either mode.
+- **Ties** are ordinary in compete (no speed tiebreak): every tied player is
+  ranked 1. `ending.winner` is one of them; the game names all, from
+  `finalRanking`, as letterboxed does.
+- **e2e:** setgame, setgame-flash, setgame-mobile, setgame-print,
+  setgame-turn-order; `createSetgameGame` in `e2e/helpers/fixtures.ts`.
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*

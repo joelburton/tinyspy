@@ -11,7 +11,7 @@
  */
 
 /** One labeled number, as `<Counts>` wants it. */
-export type CountItem = { label: string; value: number }
+type CountItem = { label: string; value: number }
 
 /**
  * The readouts, for the info column (desktop) or the status bar (mobile).

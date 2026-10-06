@@ -6,7 +6,7 @@
 -- What the frontend calls:
 --
 --   create_game     deals a new game
---   submit_set      claims three cards
+--   submit_set      claims three tiles
 --   record_hint     records a coop hint the page computed and showed
 --   concede         a racer drops out of a compete game
 --   stop_game       stops the game for everyone, with no result
@@ -14,10 +14,12 @@
 --   replay_board    the same deck, dealt again from the top
 --
 -- What is particular to setgame (docs/games/setgame.md has the rest):
---   - A card is a smallint 0..80, four base-3 digits; three cards are a set
---     when every digit is all-same or all-different, and the SQL algebra
---     (_third) mirrors src/setgame/lib/cards.ts.
---   - One board, contended by everyone: a claim takes cards off it, the deck
+--   - A tile is a smallint of four digits, each 1..3 — count, color, fill,
+--     shape, so `3121` is three symbols, the first color, the second fill,
+--     the first shape. Three tiles are a set when every digit is all-same or
+--     all-different, and the SQL algebra (_third) mirrors
+--     src/setgame/lib/tiles.ts.
+--   - One board, contended by everyone: a claim takes tiles off it, the deck
 --     tops it back up, and the deal-three rule keeps a set on the table.
 --   - The deck running dry ends the game for everyone at once; nobody
 --     finishes alone.
@@ -34,7 +36,7 @@ grant usage on schema setgame to authenticated;
 -- and unlike every other shielded column on the roster NOTHING ever reveals
 -- it — there is no end-of-game unlock, because the leftover order is of no
 -- interest once the game is over. `deck_pos` IS granted: paired with the
--- public `deck_kind` it gives "how many cards are left" without saying which.
+-- public `deck_kind` it says how many tiles are left without saying which.
 grant select (game_id, deck_kind, palette, deck_pos, board)
   on setgame.games to authenticated;
 drop policy if exists games_select on setgame.games;
@@ -61,7 +63,7 @@ create policy players_select on setgame.players
   );
 
 -- Events are club-readable in BOTH modes, with no end-of-game gate — see the
--- table comment in the migration. The cards were face-up and everyone watched
+-- table comment in the migration. The tiles were face-up and everyone watched
 -- them leave; a rival's claim history says nothing about what is coming, and a
 -- hint row says only that someone asked.
 grant select on setgame.events to authenticated;
@@ -81,32 +83,27 @@ drop view if exists setgame.games_state;
 -- ============================================================
 -- setgame._third — the algebra
 -- ============================================================
--- The one card that completes a set with `p_a` and `p_b`.
+-- The one tile that completes a set with `p_a` and `p_b`.
 --
--- Per base-3 digit the third value is whatever makes the three sum to 0 mod 3,
--- which is `(6 - x - y) % 3` — one expression covering both cases, since two
--- equal digits give back the same digit and two different ones give the
--- remaining value. (`src/setgame/lib/cards.ts` writes the same rule as an
--- explicit same/different branch, which reads better in the place a person
--- goes to LEARN the rule; the two agree on all 6561 pairs and the TS suite
--- checks exactly that.)
+-- Per digit: two equal digits give the same digit back, and two different
+-- ones give the remaining value, `6 - x - y` (the three values sum to 6).
+-- `src/setgame/lib/tiles.ts` writes the same rule for the board's own checks.
 drop function if exists setgame._third(smallint, smallint);
 create or replace function setgame._third(p_a smallint, p_b smallint)
 returns smallint
 language sql
 immutable
 as $$
-  select (((6 - (p_a / 27) % 3 - (p_b / 27) % 3) % 3) * 27
-        + ((6 - (p_a /  9) % 3 - (p_b /  9) % 3) % 3) *  9
-        + ((6 - (p_a /  3) % 3 - (p_b /  3) % 3) % 3) *  3
-        + ((6 -  p_a       % 3 -  p_b       % 3) % 3)     )::smallint;
+  select sum(case when x = y then x else 6 - x - y end * place)::smallint
+    from (select (p_a / place) % 10 as x, (p_b / place) % 10 as y, place
+            from unnest(array[1000, 100, 10, 1]) as place) d;
 $$;
 revoke execute on function setgame._third(smallint, smallint) from public;
 
 -- ============================================================
--- setgame._is_set — are these three cards a set?
+-- setgame._is_set — are these three tiles a set?
 -- ============================================================
--- Assumes three DISTINCT cards; submit_set checks distinctness before it
+-- Assumes three DISTINCT tiles; submit_set checks distinctness before it
 -- gets here.
 drop function if exists setgame._is_set(smallint, smallint, smallint);
 create or replace function setgame._is_set(p_a smallint, p_b smallint, p_c smallint)
@@ -121,33 +118,33 @@ revoke execute on function setgame._is_set(smallint, smallint, smallint) from pu
 -- ============================================================
 -- setgame._find_set — the first set on the board
 -- ============================================================
--- The first set on `p_cards`, or NULL if it holds none — the question behind
+-- The first set on `p_tiles`, or NULL if it holds none — the question behind
 -- both "deal three more" and the coop hint.
 --
--- Pairs, not triples: every pair names its completing card outright, so this
--- asks "is that card also here?" instead of testing every combination. At the
+-- Pairs, not triples: every pair names its completing tile outright, so this
+-- asks "is that tile also here?" instead of testing every combination. At the
 -- largest board that can exist (21) it is 210 iterations.
 drop function if exists setgame._find_set(smallint[]);
-create or replace function setgame._find_set(p_cards smallint[])
+create or replace function setgame._find_set(p_tiles smallint[])
 returns smallint[]
 language plpgsql
 immutable
 as $$
 declare
-  cards smallint[] := p_cards;
-  n int := coalesce(cardinality(p_cards), 0);
+  tiles smallint[] := p_tiles;
+  n int := coalesce(cardinality(p_tiles), 0);
   i int;
   j int;
   t smallint;
 begin
   for i in 1 .. n - 1 loop
     for j in i + 1 .. n loop
-      t := setgame._third(cards[i], cards[j]);
-      -- A pair of DISTINCT cards can never be completed by either of itself;
+      t := setgame._third(tiles[i], tiles[j]);
+      -- A pair of DISTINCT tiles can never be completed by either of itself;
       -- the guard is for a malformed board with a duplicate, which would
       -- otherwise report a set that isn't one.
-      if t <> cards[i] and t <> cards[j] and t = any(cards) then
-        return array[cards[i], cards[j], t]::smallint[];
+      if t <> tiles[i] and t <> tiles[j] and t = any(tiles) then
+        return array[tiles[i], tiles[j], t]::smallint[];
       end if;
     end loop;
   end loop;
@@ -157,33 +154,33 @@ $$;
 revoke execute on function setgame._find_set(smallint[]) from public;
 
 -- ============================================================
--- setgame._find_set_with — the first set using one card
+-- setgame._find_set_with — the first set using one tile
 -- ============================================================
--- The first set on `p_cards` that USES `p_card`, or NULL. Only the hint needs
--- this: a second hint press must ring another card of the set the first press
+-- The first set on `p_tiles` that USES `p_tile`, or NULL. Only the hint needs
+-- this: a second hint press must ring another tile of the set the first press
 -- pointed at, not of some other set.
 drop function if exists setgame._find_set_with(smallint[], smallint);
-create or replace function setgame._find_set_with(p_cards smallint[], p_card smallint)
+create or replace function setgame._find_set_with(p_tiles smallint[], p_tile smallint)
 returns smallint[]
 language plpgsql
 immutable
 as $$
 declare
-  cards smallint[] := p_cards;
-  card  smallint := p_card;
+  tiles smallint[] := p_tiles;
+  tile  smallint := p_tile;
   other smallint;
   t     smallint;
 begin
-  if not (card = any(cards)) then
+  if not (tile = any(tiles)) then
     return null;
   end if;
-  foreach other in array cards loop
-    if other = card then
+  foreach other in array tiles loop
+    if other = tile then
       continue;
     end if;
-    t := setgame._third(card, other);
-    if t <> card and t <> other and t = any(cards) then
-      return array[card, other, t]::smallint[];
+    t := setgame._third(tile, other);
+    if t <> tile and t <> other and t = any(tiles) then
+      return array[tile, other, t]::smallint[];
     end if;
   end loop;
   return null;
@@ -194,7 +191,7 @@ revoke execute on function setgame._find_set_with(smallint[], smallint) from pub
 -- ============================================================
 -- setgame._deck_size / _board_min — the deck's two numbers
 -- ============================================================
--- Cards in a deck: junior drops shading, so it is a third of the full deck.
+-- Tiles in a deck: junior drops the fill, so it is a third of the full deck.
 -- And the floor a board is topped back up to after a claim: junior deals
 -- nine, the same "three rows" shape one column narrower.
 drop function if exists setgame._deck_size(text);
@@ -206,11 +203,6 @@ as $$
   select case p_deck_kind when 'junior' then 27 else 81 end;
 $$;
 revoke execute on function setgame._deck_size(text) from public;
--- Granted, unlike the other helpers here, because games_state is a
--- security_invoker view and computes `deck_left` with it — the view body runs
--- as the reader, so the reader needs EXECUTE. Safe: it takes a string and
--- returns a constant, touching no table.
-grant execute on function setgame._deck_size(text) to authenticated;
 
 drop function if exists setgame._board_min(text);
 create or replace function setgame._board_min(p_deck_kind text)
@@ -225,19 +217,19 @@ revoke execute on function setgame._board_min(text) from public;
 -- ============================================================
 -- setgame._deal_to_playable — the deal-three rule, run to a fixpoint
 -- ============================================================
--- Append three cards at a time until the board is both big enough AND has a
+-- Append three tiles at a time until the board is both big enough AND has a
 -- set to find, or the deck runs out. Both halves of the rule live here:
 -- "fewer than twelve" and "no set present" are the same loop.
 --
--- Running to a FIXPOINT rather than dealing once matters: three fresh cards
+-- Running to a FIXPOINT rather than dealing once matters: three fresh tiles
 -- can leave the board still set-free (rare, but the whole reason 15- and
--- 18-card boards exist), and a single pass would hand the players a dead
+-- 18-tile boards exist), and a single pass would hand the players a dead
 -- table. Termination is guaranteed twice over — the deck is finite, and a
 -- board of 21 always contains a set, so the loop cannot even reach the deck's
 -- end on the "no set" branch.
 --
--- Cards appended here go on the END of the board, which is what makes a
--- growing board add a column on the right instead of disturbing the cards
+-- Tiles appended here go on the END of the board, which is what makes a
+-- growing board add a column on the right instead of disturbing the tiles
 -- already on the table. (Refilling the HOLES left by a claim is submit_set's
 -- job, and deliberately different — see there.)
 drop function if exists setgame._deal_to_playable(smallint[], int, smallint[], text);
@@ -264,46 +256,195 @@ end;
 $$;
 revoke execute on function setgame._deal_to_playable(smallint[], int, smallint[], text) from public;
 
--- ============================================================
--- setgame.games_state — what the FE reads
--- ============================================================
--- Everything the board needs, and no `deck`. `deck_left` is computed from the
--- two public columns rather than from the deck itself, which is what lets this
--- stay a plain security_invoker view with no definer helper behind it: the
--- shield is the column grant, full stop.
-create view setgame.games_state with (security_invoker = true) as
-  select g.game_id,
-         g.deck_kind,
-         g.palette,
-         g.board,
-         setgame._deck_size(g.deck_kind) - g.deck_pos as deck_left
-    from setgame.games g;
-grant select on setgame.games_state to authenticated;
+drop function if exists setgame._write_statuses(uuid, boolean);
 
 -- ============================================================
--- setgame._write_statuses — the page's copies of the game
+-- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from setgame's own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always present,
--- null when it has no value:
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- setgame's own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- setgame's facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
 --
---   game_status    { deck_remaining_count } — the cards still to be dealt
---   player_status  { found_sets_count, hints_count, player_ended_reason }
---                  — that player's own claims and hints (a coop page sums
---                  them for the team)
---   clubpage_info  { found_sets_count, deck_remaining_count, deck_kind,
---                    winner_user_ids, winner_found_sets_count }
---                  — the table's sets found (the sum of every player's),
---                  what is left in the deck and which deck it is; compete's
---                  winners once there are any, one or more (a tie is an
---                  ordinary result here, and the summary names each), and
---                  the count they share
+-- A tile is `{id}`, its four digits as text ("3121"). Nothing here is
+-- private to a seat: the table is face-up and every claim was made in front
+-- of everyone, in both modes. The deck's order is the one thing the blob
+-- leaves out; only its count is here.
+--
+--   game_data, setgame's part:
+--     board: {tiles}                       the one table, in slot order: a
+--                                          tile's slot is its place on screen
+--                                          and its key letter
+--     nTilesInDeck                         the tiles still to be dealt
+--     team: {nSetsFound, nHintsUsed}       what the team shares: the players'
+--                                          counts, summed; null in compete
+--                                          (plans/team-facts.md)
+--     events: [{id, userId, kind, tiles, boardAfter, tookTurn, at}, …]
+--                                          every row, every player's: a
+--                                          claim's three tiles or a hint's
+--                                          one to three, and the table right
+--                                          after
+--     players: [player, …]                 the common player, plus:
+--       nSetsFound, nHintsUsed             this player's own, in every mode
+--
+--   summary_data, setgame's part (the common part names and dates the game
+--   and carries its ending):
+--     team                                 the same group; null in compete
+--     nTableSetsFound                      the sets the whole table has taken,
+--                                          in both modes — a race's too
+--     nTilesInDeck
+--     perfectClear                         a coop win that left the table
+--                                          empty; null unless a coop win
+--     winnerIds                            every player ranked first — a tie
+--                                          is an ordinary result here; null
+--                                          in coop, or with no winner
+--     nWinnerSets                          the sets the winners share; null
+--                                          in coop, or with no winner
+
+-- Tiles, in the order given, each `{id}`.
+create or replace function setgame._make_json_tiles(p_tiles smallint[])
+returns jsonb
+language sql
+immutable
+set search_path = setgame, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', t::text) order by o), '[]'::jsonb)
+    from unnest(p_tiles) with ordinality as x(t, o);
+$$;
+
+revoke execute on function setgame._make_json_tiles(smallint[]) from public;
+
+-- The log: every row, in the order of play.
+create or replace function setgame._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = setgame, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',         e.id,
+           'userId',     e.user_id,
+           'kind',       e.kind,
+           'tiles',      setgame._make_json_tiles(e.tiles),
+           'boardAfter', setgame._make_json_tiles(e.board_after),
+           'tookTurn',   e.took_turn,
+           'at',         e.created_at) order by e.id), '[]'::jsonb)
+    from setgame.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function setgame._make_json_events(uuid) from public;
+
+-- What the team shares: the sets found and the hints asked, the players'
+-- counts summed. Null in compete, where there is no team (plans/team-facts.md).
+create or replace function setgame._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = setgame, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'nSetsFound', (select sum(sp.n_sets_found)::int from setgame.players sp
+                           where sp.game_id = p_game_id),
+           'nHintsUsed', (select sum(sp.n_hints_used)::int from setgame.players sp
+                           where sp.game_id = p_game_id)) end
+    from common.games cg
+   where cg.id = p_game_id;
+$$;
+
+revoke execute on function setgame._make_json_team(uuid) from public;
+
+-- Every player as setgame's game_data shows them: the common player, with
+-- their own counts.
+create or replace function setgame._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = setgame, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'nSetsFound', sp.n_sets_found,
+             'nHintsUsed', sp.n_hints_used)
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join setgame.players sp on sp.game_id = p_game_id and sp.user_id = cp.id;
+$$;
+
+revoke execute on function setgame._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with setgame's table, deck
+-- count, team, log and players on top.
+create or replace function setgame._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = setgame, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'board',        jsonb_build_object('tiles', setgame._make_json_tiles(sg.board)),
+           'nTilesInDeck', setgame._deck_size(sg.deck_kind) - sg.deck_pos,
+           'team',         setgame._make_json_team(p_game_id),
+           'events',       setgame._make_json_events(p_game_id),
+           'players',      setgame._make_json_players(p_game_id))
+    from setgame.games sg
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function setgame._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function setgame._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = setgame, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',            setgame._make_json_team(p_game_id),
+    'nTableSetsFound', (select sum(sp.n_sets_found)::int from setgame.players sp
+                         where sp.game_id = p_game_id),
+    'nTilesInDeck',    setgame._deck_size(sg.deck_kind) - sg.deck_pos,
+    'perfectClear', case when cg.mode = 'coop' and cg.game_ended_reason = 'reached_goal'
+                         then cardinality(sg.board) = 0 end,
+    'winnerIds',    (select jsonb_agg(gp.user_id order by gp.turn_seat, gp.user_id)
+                       from common.game_players gp
+                      where gp.game_id = p_game_id
+                        and cg.mode = 'compete'
+                        and gp.final_ranking = 1),
+    'nWinnerSets',  (select max(sp.n_sets_found)
+                       from setgame.players sp
+                       join common.game_players gp
+                         on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+                      where sp.game_id = p_game_id
+                        and cg.mode = 'compete'
+                        and gp.final_ranking = 1))
+    from setgame.games sg
+    join common.games cg on cg.id = sg.game_id
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function setgame._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- setgame._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from setgame's own tables, assigning
+-- each whole. Every RPC calls it after a move; it is also the repair for one
+-- game by hand. Every key is always present, null when it has no value; the
+-- shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function setgame._write_statuses(
+create or replace function setgame._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -313,49 +454,53 @@ security definer
 set search_path = setgame, common, public, extensions
 as $$
 declare
-  g setgame.games%rowtype;
-  v_mode text;
-  v_winners jsonb;
+  v_status_changed_at timestamptz;
 begin
-  select * into g from setgame.games where game_id = p_game_id;
-  select mode into v_mode from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'found_sets_count', p.sets_found,
-           'hints_count', p.hints_used,
-           'player_ended_reason', gp.player_ended_reason)
-    from setgame.players p
-   where gp.game_id = p_game_id
-     and p.game_id = gp.game_id
-     and p.user_id = gp.user_id;
-
-  select jsonb_agg(user_id order by user_id)
-    into v_winners
-    from common.game_players
-   where game_id = p_game_id and final_ranking = 1;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set game_status = jsonb_build_object(
-           'deck_remaining_count', setgame._deck_size(g.deck_kind) - g.deck_pos),
-         clubpage_info = jsonb_build_object(
-           'found_sets_count', (select coalesce(sum(sets_found), 0)::int
-                                  from setgame.players where game_id = p_game_id),
-           'deck_remaining_count', setgame._deck_size(g.deck_kind) - g.deck_pos,
-           'deck_kind', g.deck_kind,
-           'winner_user_ids', case when v_mode = 'compete' then v_winners end,
-           'winner_found_sets_count', case when v_mode = 'compete' then (
-             select max(p.sets_found) from setgame.players p
-               join common.game_players gp
-                 on gp.game_id = p.game_id and gp.user_id = p.user_id
-              where p.game_id = p_game_id and gp.final_ranking = 1) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+     set game_data = setgame._make_json_game_data(p_game_id),
+         summary_data = setgame._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;
 
-revoke execute on function setgame._write_statuses(uuid, boolean) from public;
+revoke execute on function setgame._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- setgame._rebuild_data_cols_for_all — every setgame game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every setgame game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function setgame._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = setgame, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('setgame_coop', 'setgame_compete')
+  loop
+    perform setgame._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function setgame._rebuild_data_cols_for_all() from public;
+
 
 drop function if exists setgame.create_game(text, jsonb, uuid[], text);
 
@@ -415,12 +560,13 @@ begin
   -- only these two.
   v_palette := coalesce(p_setup->>'palette', 'traditional');
 
-  -- The shuffle. Junior keeps only the solid cards, which is digit 0 in the
-  -- shade place — the same filter src/setgame/lib/cards.ts applies.
-  select array_agg(c order by random())::smallint[]
+  -- The shuffle: every tile, four digits of 1..3. Junior keeps only the solid
+  -- tiles, fill 1 — the same deck src/setgame/lib/tiles.ts builds.
+  select array_agg(n * 1000 + c * 100 + f * 10 + s order by random())::smallint[]
     into v_deck
-    from generate_series(0, 80) as g(c)
-   where v_deck_kind = 'full' or (c / 3) % 3 = 0;
+    from generate_series(1, 3) n, generate_series(1, 3) c,
+         generate_series(1, 3) f, generate_series(1, 3) s
+   where v_deck_kind = 'full' or f = 1;
 
   -- Deal the opening board, then run the deal-three rule until it holds a set.
   v_deck_pos := setgame._board_min(v_deck_kind);
@@ -467,7 +613,7 @@ begin
   insert into setgame.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
-  perform setgame._write_statuses(new_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -499,8 +645,8 @@ drop function if exists setgame._finish(uuid, text);
 -- by the clock ('timeout'). Rankings (docs/win-lose.md):
 --
 --   coop, cleared     reached_goal: the team, every player ranked 1. Clearing
---                     means no sets left to find, NOT using every card —
---                     stranding six or nine cards is the normal ending (a full
+--                     means no sets left to find, NOT using every tile —
+--                     stranding six or nine tiles is the normal ending (a full
 --                     clear happens in about 2% of games), so nothing grades
 --                     the leftovers
 --   coop, timeout     nobody ranked — a loss
@@ -537,13 +683,13 @@ begin
     select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
       into v_rankings
       from (
-        select p.user_id, rank() over (order by p.sets_found desc) as ranking
+        select p.user_id, rank() over (order by p.n_sets_found desc) as ranking
           from setgame.players p
           join common.game_players gp
             on gp.game_id = p.game_id and gp.user_id = p.user_id
          where p.game_id = p_game_id
            and gp.player_ended_reason is distinct from 'conceded'
-           and p.sets_found > 0
+           and p.n_sets_found > 0
       ) ranked;
   end if;
 
@@ -563,22 +709,22 @@ revoke execute on function setgame._finish(uuid, text, uuid) from public;
 drop function if exists setgame.submit_set(uuid, smallint[]);
 
 -- ============================================================
--- setgame.submit_set — claim three cards
+-- setgame.submit_set — claim three tiles
 -- ============================================================
 -- The server re-checks everything the board already checked, because the
 -- board is not the authority — but an INVALID selection normally never gets
--- here at all: every card is face-up, so the FE knows the rule and rejects a
+-- here at all: every tile is face-up, so the FE knows the rule and rejects a
 -- non-set before it leaves the client. That is also why there is no
 -- wrong-guess penalty to design. The one rejection that happens in real play
--- is PN277: a rival claimed a card out from under this selection.
+-- is PN277: a rival claimed a tile out from under this selection.
 --
 -- The `for update` lock on the games row is what makes that rejection safe
 -- rather than a race — two players claiming overlapping sets serialize, the
--- first commits, and the second finds a card missing from the board.
+-- first commits, and the second finds a tile missing from the board.
 --
 -- The claim that leaves the deck spent AND the table without a set ends the
 -- game ('cleared'), the claimer as who ended it.
-create or replace function setgame.submit_set(p_game_id uuid, p_cards smallint[])
+create or replace function setgame.submit_set(p_game_id uuid, p_tiles smallint[])
 returns jsonb
 language plpgsql
 security definer
@@ -593,11 +739,11 @@ declare
   n            int;
   positions    int[] := '{}';
   p            int;
-  card         smallint;
+  tile         smallint;
   new_board    smallint[];
   new_pos      int;
   head_holes   int[] := '{}';
-  tail_cards   smallint[] := '{}';
+  tail_tiles   smallint[] := '{}';
   k            int;
   out_terminal boolean := false;
 begin
@@ -629,45 +775,45 @@ begin
   perform common._require_turn(p_game_id, caller_id);
 
   -- ─── Validate the selection ────────────────────────────────
-  if cardinality(p_cards) is distinct from 3
-     or (select count(distinct e) from unnest(p_cards) e) <> 3 then
-    raise exception 'BUG: claim that was not three different cards'
+  if cardinality(p_tiles) is distinct from 3
+     or (select count(distinct e) from unnest(p_tiles) e) <> 3 then
+    raise exception 'BUG: claim that was not three different tiles'
       using errcode = 'PN276', hint = 'fault', column = '_',
-      detail = 'a claim is exactly three distinct cards';
+      detail = 'a claim is exactly three distinct tiles';
   end if;
 
-  -- Every card must still be on the board. This is the contention check, and
+  -- Every tile must still be on the board. This is the contention check, and
   -- the error the FE turns into "gone — someone got there first".
   n := cardinality(g.board);
-  foreach card in array p_cards loop
-    p := array_position(g.board, card);
+  foreach tile in array p_tiles loop
+    p := array_position(g.board, tile);
     if p is null then
       -- THE contention race, and the only one on the roster that is ordinary
       -- rather than exotic: one table, everyone claiming off it, so a rival's
       -- claim lands between your click and your submit. No local gate can see
-      -- it — the cards leave the board by realtime.
+      -- it — the tiles leave the board by realtime.
       raise exception 'Someone got there first'
         using errcode = 'PN277', hint = 'race', column = '_',
-        detail = 'a claimed card is no longer on the board';
+        detail = 'a claimed tile is no longer on the board';
     end if;
     positions := positions || p;
   end loop;
 
-  if not setgame._is_set(p_cards[1], p_cards[2], p_cards[3]) then
+  if not setgame._is_set(p_tiles[1], p_tiles[2], p_tiles[3]) then
     -- The whole board is face-up and the FE runs the same algebra before it
-    -- submits (src/setgame/lib/cards.ts), so a non-set arriving is a bug.
+    -- submits (src/setgame/lib/tiles.ts), so a non-set arriving is a bug.
     raise exception 'BUG: bad set'
       using errcode = 'PN278', hint = 'fault', column = '_',
-      detail = 'those three cards are not a set';
+      detail = 'those three tiles are not a set';
   end if;
 
-  -- ─── Take the cards off the board ──────────────────────────
+  -- ─── Take the tiles off the board ──────────────────────────
   board_min := setgame._board_min(g.deck_kind);
   deck_size := setgame._deck_size(g.deck_kind);
   new_pos   := g.deck_pos;
 
   if n - 3 < board_min and new_pos < deck_size then
-    -- The ordinary case: replace the claimed cards IN PLACE. Every other card
+    -- The ordinary case: replace the claimed tiles IN PLACE. Every other tile
     -- keeps its slot, its screen position and its keyboard letter, so a claim
     -- never disturbs a scan someone else is in the middle of.
     new_board := g.board;
@@ -678,9 +824,9 @@ begin
   else
     -- The board is coming DOWN (it was above the floor, or the deck is spent),
     -- so three slots have to disappear. Rather than closing the whole board up
-    -- — which would shift every card after the first hole — drop the last
+    -- — which would shift every tile after the first hole — drop the last
     -- three slots and move their survivors into the holes left behind. At most
-    -- three cards move, and they are the ones at the end of the layout.
+    -- three tiles move, and they are the ones at the end of the layout.
     for k in 1 .. 3 loop
       if positions[k] <= n - 3 then
         head_holes := head_holes || positions[k];
@@ -688,12 +834,12 @@ begin
     end loop;
     for k in n - 2 .. n loop
       if not (k = any(positions)) then
-        tail_cards := tail_cards || g.board[k];
+        tail_tiles := tail_tiles || g.board[k];
       end if;
     end loop;
     new_board := g.board[1 : n - 3];
     for k in 1 .. coalesce(cardinality(head_holes), 0) loop
-      new_board[head_holes[k]] := tail_cards[k];
+      new_board[head_holes[k]] := tail_tiles[k];
     end loop;
   end if;
 
@@ -711,16 +857,16 @@ begin
   -- replay of the deal rule — see the events table comment in the migration.
   -- A claim is the move here, so it spends a go — the one that empties the
   -- deck included.
-  insert into setgame.events (game_id, user_id, kind, cards, board_after, took_turn)
-  values (p_game_id, caller_id, 'claim', p_cards, new_board, true);
+  insert into setgame.events (game_id, user_id, kind, tiles, board_after, took_turn)
+  values (p_game_id, caller_id, 'claim', p_tiles, new_board, true);
 
   update setgame.players
-     set sets_found = sets_found + 1
+     set n_sets_found = n_sets_found + 1
    where game_id = p_game_id and user_id = caller_id;
 
   -- ─── Is that the end? ──────────────────────────────────────
   -- The deck is spent AND the table is dead. Both halves matter: a board with
-  -- no set is refilled while cards remain, and a spent deck is only the end
+  -- no set is refilled while tiles remain, and a spent deck is only the end
   -- once the leftovers hold nothing.
   if new_pos >= deck_size and setgame._find_set(new_board) is null then
     out_terminal := true;
@@ -731,12 +877,12 @@ begin
     perform common._advance_turn(p_game_id);
   end if;
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-  -- No message: a claim that lands shows itself, in the cards leaving the
+  -- No message: a claim that lands shows itself, in the tiles leaving the
   -- board.
   return common._ok_envelope(
-    jsonb_build_object('result', 'claimed', 'terminal', out_terminal), 'won');
+    jsonb_build_object('result', 'claimed', 'terminal', out_terminal));
 
 exception when others then
   get stacked diagnostics
@@ -756,16 +902,16 @@ drop function if exists setgame.record_hint(uuid, smallint[]);
 -- setgame.record_hint — the tally, not the hint
 -- ============================================================
 -- The hint itself is computed ON THE CLIENT and never stored. It can be: the
--- board is face-up and `src/setgame/lib/cards.ts` holds the same algebra this
+-- board is face-up and `src/setgame/lib/tiles.ts` holds the same algebra this
 -- file does, so there is nothing to look up. That buys two things — the ring
 -- appears on the keystroke instead of after a round trip (it also SELECTS the
--- cards, so a lag would be felt), and there is no private column to mask.
+-- tiles, so a lag would be felt), and there is no private column to mask.
 --
 -- What is recorded is the EVENT: who asked, and what they were shown
--- (`p_cards`). The ring on the board is transient UI; the asking is history,
+-- (`p_tiles`). The ring on the board is transient UI; the asking is history,
 -- and belongs in the turn log next to the claims.
 --
--- `p_cards` comes from the client, so it is CHECKED — one to three cards, all
+-- `p_tiles` comes from the client, so it is CHECKED — one to three tiles, all
 -- on the board, and a genuine partial set. Not for cheating (the trust model
 -- answers that, and a hint costs nothing anyway) but to keep a nonsense row
 -- out of a log people read.
@@ -775,8 +921,8 @@ drop function if exists setgame.record_hint(uuid, smallint[]);
 -- free and generative, so in a race it is a win button.
 --
 -- No message and no outcome: asking for a hint shows itself, in the ring the
--- client already drew. `hints_used` is the count this call just moved.
-create or replace function setgame.record_hint(p_game_id uuid, p_cards smallint[])
+-- client already drew. `n_hints_used` is the count this call just moved.
+create or replace function setgame.record_hint(p_game_id uuid, p_tiles smallint[])
 returns jsonb
 language plpgsql
 security definer
@@ -785,7 +931,7 @@ as $$
 declare
   caller_id uuid;
   g         setgame.games%rowtype;
-  card      smallint;
+  tile      smallint;
   v_used    int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -826,51 +972,51 @@ begin
   -- gated but never advances — asking three times is how a stuck player
   -- finishes their own turn rather than a way to spend someone else's. Gated
   -- on the server as well as in the FE (which hides the button off-turn)
-  -- because `hints_used` is shared state and the count is what the table sees.
+  -- because `n_hints_used` is shared state and the count is what the table sees.
   -- No-op for free-for-all, where the pointer is null.
   perform common._require_turn(p_game_id, caller_id);
 
-  if cardinality(p_cards) not between 1 and 3
-     or (select count(distinct e) from unnest(p_cards) e) <> cardinality(p_cards) then
-    raise exception 'BUG: hint that was not one to three cards'
+  if cardinality(p_tiles) not between 1 and 3
+     or (select count(distinct e) from unnest(p_tiles) e) <> cardinality(p_tiles) then
+    raise exception 'BUG: hint that was not one to three tiles'
       using errcode = 'PN282', hint = 'fault', column = '_',
-      detail = 'a hint is one to three distinct cards';
+      detail = 'a hint is one to three distinct tiles';
   end if;
 
-  foreach card in array p_cards loop
-    if not (card = any(g.board)) then
-      raise exception 'BUG: hint naming a card that is not on the board'
+  foreach tile in array p_tiles loop
+    if not (tile = any(g.board)) then
+      raise exception 'BUG: hint naming a tile that is not on the board'
         using errcode = 'PN283', hint = 'fault', column = '_',
-        detail = 'a hinted card is not on the board';
+        detail = 'a hinted tile is not on the board';
     end if;
   end loop;
 
-  -- Two cards must belong to one set, and three must BE one. A single card
+  -- Two tiles must belong to one set, and three must BE one. A single tile
   -- can't be wrong on its own, so it is taken as given.
-  if cardinality(p_cards) = 3 and not setgame._is_set(p_cards[1], p_cards[2], p_cards[3]) then
-    raise exception 'BUG: three-card hint that is not a set'
+  if cardinality(p_tiles) = 3 and not setgame._is_set(p_tiles[1], p_tiles[2], p_tiles[3]) then
+    raise exception 'BUG: three-tile hint that is not a set'
       using errcode = 'PN284', hint = 'fault', column = '_',
-      detail = 'a three-card hint must be a set';
-  elsif cardinality(p_cards) = 2
-        and not (setgame._third(p_cards[1], p_cards[2]) = any(g.board)) then
-    raise exception 'BUG: two-card hint with no third card on the board'
+      detail = 'a three-tile hint must be a set';
+  elsif cardinality(p_tiles) = 2
+        and not (setgame._third(p_tiles[1], p_tiles[2]) = any(g.board)) then
+    raise exception 'BUG: two-tile hint with no third tile on the board'
       using errcode = 'PN285', hint = 'fault', column = '_',
-      detail = 'a two-card hint must be part of a set that is on the board';
+      detail = 'a two-tile hint must be part of a set that is on the board';
   end if;
 
   update setgame.players
-     set hints_used = hints_used + 1
+     set n_hints_used = n_hints_used + 1
    where game_id = p_game_id and user_id = caller_id
-  returning hints_used into v_used;
+  returning n_hints_used into v_used;
 
   -- A hint is part of the asker's turn rather than one of its own.
-  insert into setgame.events (game_id, user_id, kind, cards, board_after, took_turn)
-  values (p_game_id, caller_id, 'hint', p_cards, g.board, false);
+  insert into setgame.events (game_id, user_id, kind, tiles, board_after, took_turn)
+  values (p_game_id, caller_id, 'hint', p_tiles, g.board, false);
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
-    jsonb_build_object('result', 'recorded', 'hints_used', v_used));
+    jsonb_build_object('result', 'recorded', 'n_hints_used', v_used));
 
 exception when others then
   get stacked diagnostics
@@ -918,7 +1064,7 @@ begin
   perform setgame._finish(p_game_id, 'timeout',
     (select current_turn_user_id from common.games where id = p_game_id));
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -963,7 +1109,7 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1008,7 +1154,7 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1029,7 +1175,7 @@ drop function if exists setgame.replay_board(uuid);
 -- setgame.replay_board — run the same deck back
 -- ============================================================
 -- The "Restart" game-menu item: reset the working state on the SAME game row.
--- The DECK IS KEPT and merely rewound, so the cards come out in exactly the
+-- The DECK IS KEPT and merely rewound, so the tiles come out in exactly the
 -- order they did the first time — the same game, played again. (That is why
 -- the deck is stored whole and frozen rather than drawn lazily: a reshuffle
 -- would make Restart just another New game.) No title to restore: it is the
@@ -1076,11 +1222,11 @@ begin
 
   delete from setgame.events where game_id = p_game_id;
 
-  update setgame.players set sets_found = 0, hints_used = 0 where game_id = p_game_id;
+  update setgame.players set n_sets_found = 0, n_hints_used = 0 where game_id = p_game_id;
 
   perform common._reset_game(p_game_id);
 
-  perform setgame._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform setgame._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

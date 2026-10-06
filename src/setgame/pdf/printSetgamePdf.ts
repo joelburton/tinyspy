@@ -3,9 +3,9 @@
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, drawSetup, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { twoColGeom } from '@/common/pdf/eventLog'
-import { decode, type Card } from '../lib/cards'
-import { CARD_BOX, SYMBOL_ASPECT, SYMBOL_BOX } from '../lib/shapes'
-import type { Palette } from '../lib/setup'
+import { decode } from '../lib/tiles'
+import { SYMBOL_ASPECT, SYMBOL_BOX, TILE_BOX } from '../lib/shapes'
+import type { GPalette, GTile } from '../types'
 import type { PrintTurn, SetgamePrintModel } from './model'
 
 /**
@@ -24,40 +24,40 @@ import type { PrintTurn, SetgamePrintModel } from './model'
  * cheaper approximations both failed when looked at: a light TINT reads as a
  * muted solid rather than as stripes, and unclipped lines overflow a diamond.
  *
- * The pitch and the card size are set together. At the first size (15pt wide)
+ * The pitch and the tile size are set together. At the first size (15pt wide)
  * the hatch had two or three lines in it and, again, just looked like a muted
  * solid; a symbol about 16pt tall with a 3pt pitch reads as stripes at arm's
  * length, which is the bar — a printout is looked at, not zoomed.
  *
- * Only the card's WIDTH is chosen here. Its height and its symbols' height both
+ * Only the tile's WIDTH is chosen here. Its height and its symbols' height both
  * come from `lib/shapes.ts`, so a reshape on screen (the 2.5 → 2.1 symbol, which
- * also shortened the card) lands on paper without anyone remembering to.
+ * also shortened the tile) lands on paper without anyone remembering to.
  *
  * Color is MEANING here and can't be moved onto shape or line weight, since
- * both are already attributes. The cards print in whatever palette the game was
+ * both are already attributes. The tiles print in whatever palette the game was
  * played with, and a table that chose the colorblind-safe one also gets a
  * printout whose grayscale lightnesses are evenly spaced (L* 46 / 61 / 70) —
  * close to this doc's three-shade ramp, so it survives a mono printer.
  */
 
 /** The two palettes as RGB — `theme.css`'s values, which a PDF can't read. */
-const PIGMENT: Record<Palette, Record<string, [number, number, number]>> = {
+const PIGMENT: Record<GPalette, Record<string, [number, number, number]>> = {
   traditional: { red: [212, 42, 42], green: [18, 146, 47], purple: [123, 45, 142] },
   colorblind: { red: [0, 114, 178], green: [230, 159, 0], purple: [204, 121, 167] },
 }
 
 /**
- * Card geometry in points. The width is chosen so the hatching reads (above);
- * the height FOLLOWS the shared card proportion rather than being typed in.
+ * Tile geometry in points. The width is chosen so the hatching reads (above);
+ * the height FOLLOWS the shared tile proportion rather than being typed in.
  */
-const CARD = {
+const TILE = {
   w: 30,
-  h: (30 * CARD_BOX.height) / CARD_BOX.width,
+  h: (30 * TILE_BOX.height) / TILE_BOX.width,
   gap: 3,
 }
-/** One log row: the card, plus a little air. */
-const ROW_H = CARD.h + 4
-/** Gap between hatch lines. Wide enough to read as stripes at this card size. */
+/** One log row: the tile, plus a little air. */
+const ROW_H = TILE.h + 4
+/** Gap between hatch lines. Wide enough to read as stripes at this tile size. */
 const HATCH_PITCH = 3
 
 /**
@@ -101,7 +101,7 @@ function drawSymbol(
   }
   if (shape === 'oval') {
     // Narrower than its slot. A diamond tapers and a squiggle is a ribbon, so
-    // only the oval is at full width the whole way down — at three pips they
+    // only the oval is at full width the whole way down — at three symbols they
     // crowd their neighbors while the other two look airy. The inset costs
     // nothing (the shape is still plainly an oval) and evens the three out.
     const ow = w * 0.78
@@ -119,32 +119,32 @@ function drawSymbol(
 }
 
 /**
- * One card: its border, then `pips` symbols in the game's palette. The symbols
- * share the card's width, so a three-pip card's are narrow — exactly as on
+ * One tile: its border, then `count` symbols in the game's palette. The symbols
+ * share the tile's width, so a three-symbol tile's are narrow — exactly as on
  * screen, where the count is read off how many there are, not how big they are.
  */
-function drawCard(doc: jsPDF, card: Card, x: number, y: number, palette: Palette) {
-  const { pips, color, shade, shape } = decode(card)
+function drawTile(doc: jsPDF, tile: GTile, x: number, y: number, palette: GPalette) {
+  const { count, color, fill, shape } = decode(tile)
   const rgb = PIGMENT[palette][color]
 
   doc.setDrawColor(128, 128, 128).setLineWidth(0.4)
-  doc.roundedRect(x, y, CARD.w, CARD.h, 1.5, 1.5, 'S')
+  doc.roundedRect(x, y, TILE.w, TILE.h, 1.5, 1.5, 'S')
 
-  const sw = (CARD.w - 4) / 3.3
+  const sw = (TILE.w - 4) / 3.3
   // Derived, never guessed: a hand-picked height here would stretch the shapes
   // relative to the board the moment either proportion moved.
   const sh = sw * SYMBOL_ASPECT
-  const total = pips * sw + (pips - 1)
-  const left = x + (CARD.w - total) / 2
-  const top = y + (CARD.h - sh) / 2
+  const total = count * sw + (count - 1)
+  const left = x + (TILE.w - total) / 2
+  const top = y + (TILE.h - sh) / 2
 
-  for (let i = 0; i < pips; i++) {
+  for (let i = 0; i < count; i++) {
     const sx = left + i * (sw + 1)
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]).setLineWidth(0.8).setFillColor(rgb[0], rgb[1], rgb[2])
 
-    if (shade === 'solid') {
+    if (fill === 'solid') {
       drawSymbol(doc, shape, sx, top, sw, sh, 'FD')
-    } else if (shade === 'open') {
+    } else if (fill === 'open') {
       drawSymbol(doc, shape, sx, top, sw, sh, 'S')
     } else {
       // Hatched: clip to the shape, rule lines across it, then draw the outline
@@ -160,27 +160,27 @@ function drawCard(doc: jsPDF, card: Card, x: number, y: number, palette: Palette
   }
 }
 
-/** `#12  [card][card][card]   joel`, or a hint's one to three. */
-function drawTurn(doc: jsPDF, turn: PrintTurn, x: number, y: number, palette: Palette) {
+/** `#12  [tile][tile][tile]   joel`, or a hint's one to three. */
+function drawTurn(doc: jsPDF, turn: PrintTurn, x: number, y: number, palette: GPalette) {
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
-  doc.text(`#${turn.n}`, x, y + CARD.h / 2 + 3)
+  doc.text(`#${turn.n}`, x, y + TILE.h / 2 + 3)
 
-  let cardX = x + 20
+  let tileX = x + 20
   if (turn.kind === 'hint') {
-    // Named, because three cards with no label read as a find — exactly
+    // Named, because three tiles with no label read as a find — exactly
     // backwards. The screen says it twice (this word and an amber bar); paper
     // has the word.
-    doc.text('Hint', cardX, y + CARD.h / 2 + 3)
-    cardX += 20
+    doc.text('Hint', tileX, y + TILE.h / 2 + 3)
+    tileX += 20
   }
 
-  for (const card of turn.cards) {
-    drawCard(doc, card, cardX, y, palette)
-    cardX += CARD.w + CARD.gap
+  for (const tile of turn.tiles) {
+    drawTile(doc, tile, tileX, y, palette)
+    tileX += TILE.w + TILE.gap
   }
 
   doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
-  doc.text(turn.who, cardX + 6, y + CARD.h / 2 + 3)
+  doc.text(turn.who, tileX + 6, y + TILE.h / 2 + 3)
 }
 
 /** Generate the PDF and hand it to the browser as a download. */

@@ -60,7 +60,7 @@ export const ARRIVE_MS = 1200
  * above: `held` is the claimer's own dim, `leaving` is everyone else's view of
  * the same cards, `arriving` is the replacements.
  */
-export type FlashKind = 'held' | 'leaving' | 'arriving'
+type FlashKind = 'held' | 'leaving' | 'arriving'
 
 /**
  * What changed between the board on screen and the board the server now has.

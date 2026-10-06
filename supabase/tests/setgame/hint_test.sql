@@ -8,7 +8,7 @@
 -- the server does is charge the asker and write the EVENT, so the event log can
 -- show who asked for what.
 --
--- Which means the cards arrive FROM the client, and are checked — not against
+-- Which means the tiles arrive FROM the client, and are checked — not against
 -- cheating (a hint costs nothing, and the trust model answers that anyway) but
 -- to keep a nonsense row out of a log people read.
 --
@@ -34,18 +34,18 @@ select (setgame.create_game(
 
 reset role;
 select is(
-  (select sum(hints_used)::int from setgame.players where game_id = (select id from g)),
+  (select sum(n_hints_used)::int from setgame.players where game_id = (select id from g)),
   0, 'nobody has asked yet');
 
--- ── One card: taken as given, since a single card cannot be wrong ────
+-- ── One tile: taken as given, since a single tile cannot be wrong ────
 -- Asserted as an ENVELOPE, not merely `lives_ok`: the frontend's accept branch
 -- tests `data.result`, and nothing was holding that value to the contract —
 -- "it didn't raise" is true of an answer with no payload at all.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   setgame.record_hint((select id from g), (pg_temp.sg_live((select id from g)))[1:1]),
-  '{"type":"ok","outcome":null,"data":{"result":"recorded","hints_used":1}}'::jsonb,
-  'a one-card hint is recorded, and the answer names itself');
+  '{"type":"ok","outcome":null,"data":{"result":"recorded","n_hints_used":1}}'::jsonb,
+  'a one-tile hint is recorded, and the answer names itself');
 -- `"outcome":null` is written out on purpose: `envelope_is` is containment, so
 -- an expected envelope that simply omits the key would pass whatever the server
 -- put there. Asking for a hint shows itself, in the ring the client already
@@ -53,12 +53,12 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select hints_used from setgame.players
+  (select n_hints_used from setgame.players
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1, 'the asker is charged');
 select is(
-  (select hints_used from setgame.players
+  (select n_hints_used from setgame.players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   0, '…and only the asker — the tally is per player so the log can say WHO');
@@ -73,7 +73,7 @@ select is(
   (select took_turn from setgame.events
     where game_id = (select id from g) order by id desc limit 1),
   false, 'a hint spends no turn');
--- Asserted as an IDENTITY, not against the number 12. A hint changes no cards,
+-- Asserted as an IDENTITY, not against the number 12. A hint changes no tiles,
 -- so the row's snapshot must BE the live board — which is both a stronger claim
 -- and a stable one. Twelve was a lucky-deal assumption: create_game runs the
 -- deal-three rule before anyone sees the table, so about one opening in
@@ -85,33 +85,33 @@ select is(
   (select board from setgame.games where game_id = (select id from g)),
   'a hint row carries the board too, so the history viewer can show it');
 
--- ── The checks on client-supplied cards ──────────────────────────────
+-- ── The checks on client-supplied tiles ──────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   setgame.record_hint((select id from g), array[]::smallint[]),
   '{"type":"not-ok","severity":"fault","dbcode":"PN282",
-    "message":"BUG: hint that was not one to three cards"}'::jsonb,
+    "message":"BUG: hint that was not one to three tiles"}'::jsonb,
   'an empty hint is refused');
 
 select pg_temp.envelope_is(
   setgame.record_hint(
     (select id from g),
-    array[(select c from generate_series(0,80) c
-            where not (c = any(pg_temp.sg_board((select id from g)))) limit 1)]::smallint[]),
+    array[(select t from pg_temp.sg_every_tile() t
+            where not (t = any(pg_temp.sg_board((select id from g)))) limit 1)]::smallint[]),
   '{"type":"not-ok","severity":"fault","dbcode":"PN283",
-    "message":"BUG: hint naming a card that is not on the board"}'::jsonb,
-  'a card that is not on the board is refused');
+    "message":"BUG: hint naming a tile that is not on the board"}'::jsonb,
+  'a tile that is not on the board is refused');
 
 select pg_temp.envelope_is(
   setgame.record_hint((select id from g), pg_temp.sg_not_a_set((select id from g))),
   '{"type":"not-ok","severity":"fault","dbcode":"PN284",
-    "message":"BUG: three-card hint that is not a set"}'::jsonb,
-  'three cards that are not a set are refused');
+    "message":"BUG: three-tile hint that is not a set"}'::jsonb,
+  'three tiles that are not a set are refused');
 
 select lives_ok(
   format($$ select setgame.record_hint(%L, pg_temp.sg_live(%L)) $$,
          (select id from g), (select id from g)),
-  'a genuine three-card set is recorded');
+  'a genuine three-tile set is recorded');
 
 -- ── Compete: banned ─────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -136,7 +136,7 @@ reset role;
 delete from common.games where id = (select id from g);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  setgame.record_hint((select id from g), array[0]::smallint[]),
+  setgame.record_hint((select id from g), array[1111]::smallint[]),
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'record_hint into a deleted game is the shared race, not a fault'

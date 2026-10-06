@@ -3,35 +3,33 @@
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import type { SummaryData } from '@/common/manifest/summaryData'
-import { deckSize } from './lib/cards'
-import { CLAIM_SIZE } from './lib/picks'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
   DEFAULT_SETGAME_SETUP_COOP,
   setgameSetupError,
-  type SetgameSetup,
 } from './lib/setup'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
  * setgame's registration with the shell — **two manifests, one schema, one
  * folder.**
  *
- * "setgame" is the codename for our Set-style card game: eighty-one cards over
- * four ternary attributes, and a claim is three of them that are all-same or
+ * "setgame" is the codename for our Set-style card game: eighty-one tiles over
+ * four three-valued attributes, and a claim is three of them that are all-same or
  * all-different in every attribute. The codename is `setgame` rather than `set`
  * because `set` is a Postgres keyword, a TypeScript builtin, and on
  * docs/naming.md's banned-generic list. The user-facing brand is
  * **HareTrigger** (the `BRAND` const below).
  *
  * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame` and
- * CSS. The mode branches at render time on `game.mode` (read from
- * `setgame.games_state.mode`). The sibling-manifest pattern's canonical
+ * CSS. The mode branches at render time on `gd.mode`. The sibling-manifest
+ * pattern's canonical
  * write-up is in [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern).
  */
 
@@ -40,7 +38,7 @@ const helpLoader = lazy(() =>
 )
 
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 const setupFormLoader = lazy(() =>
@@ -57,19 +55,16 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as SetgameSetup,
-        player_user_ids: playerUserIds,
-        mode,
+        p_club_handle: clubHandle,
+        p_setup: setup as GSetup,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
       }),
     )
 }
 
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
-
-type StatusBlob = Record<string, unknown>
-type LeaderRow = { user_id?: string; username?: string; sets_found?: number; won?: boolean }
 
 /**
  * The single source of truth for this game's user-facing brand name. Both
@@ -79,74 +74,66 @@ type LeaderRow = { user_id?: string; username?: string; sets_found?: number; won
 const BRAND = 'HareTrigger'
 
 /**
- * COOP's club-list label: how many sets the table has taken, and how much game
- * is left. Both public — every claim happened face-up — so unlike wordle's or
- * stackdown's compete labels there is nothing to withhold.
+ * COOP's club line: how many sets the table has taken, and how much game is
+ * left. Both public — every claim happened face-up — so there is nothing to
+ * withhold.
  */
-function coopLabel(row: SummaryData): string {
-  const s = (row.status ?? {}) as StatusBlob
-  const sets = (s.sets_found as number | undefined) ?? 0
-  const left = (s.deck_left as number | undefined) ?? 0
-  // Cards left on the table, DERIVED: at the natural end the deck is spent, so
-  // every card is either claimed or still lying there. Nothing records it —
-  // a stored copy would be one more thing a replay could leave stale.
-  const setup = (row.setup ?? {}) as { deck?: 'full' | 'junior' }
-  const perfectClear = sets * CLAIM_SIZE === deckSize(setup.deck ?? 'full')
-
-  if (row.play_state === 'playing') {
-    return statusLine(verdict('Playing'), count(sets, 'set'), `${left} in the deck`)
+function makeCoopLabel(summary: GSummaryData): string {
+  const sets = count(summary.nTableSetsFound, 'set')
+  if (summary.ending === null) {
+    return statusLine(verdict('Playing'), sets, `${summary.nTilesInDeck} in the deck`)
   }
-  if (row.play_state === 'won') {
-    // No count of the cards left behind — see buildOver in components/PlayArea.
-    // A full clear is genuinely rare (~2% of games) and worth naming; every
-    // other win is the normal one and says only what was found.
-    return statusLine(
-      verdict('Won'),
-      count(sets, 'set'),
-      perfectClear ? 'perfect clear' : null,
-    )
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      // No count of the tiles left behind: stranding six or nine is the
+      // ordinary win. A full clear is genuinely rare (~2% of games) and worth
+      // naming.
+      return statusLine(verdict('Won'), sets, summary.perfectClear ? 'perfect clear' : null)
+    case 'lost':
+      return statusLine(verdict('Lost', 'out of time'), sets)
+    // A Stop.
+    case 'neutral':
+      return statusLine(verdict('Ended'), sets)
+    default:
+      return outcome
   }
-  if (row.play_state === 'lost') {
-    return statusLine(verdict('Lost', 'out of time'), count(sets, 'set'))
-  }
-  return statusLine(verdict('Ended'), count(sets, 'set'))
 }
 
 /**
  * COMPETE's label. The race does NOT end on anyone finishing — nobody finishes
- * alone; the deck running dry ends it for everybody — so a win names the player
- * with the most sets, and a tie names nobody (co-winners).
+ * alone; the deck running dry ends it for everybody — so a win names the
+ * players with the most sets, and a tie names every one of them (there is no
+ * speed tiebreak).
  */
-function competeLabel(row: SummaryData): string {
-  const s = (row.status ?? {}) as StatusBlob
-  const leaderboard = readLeaderboard<LeaderRow>(s)
-  const sets = (s.sets_found as number | undefined) ?? 0
-
-  if (row.play_state === 'playing') {
-    const left = (s.deck_left as number | undefined) ?? 0
-    return statusLine(verdict('Playing'), count(sets, 'set'), `${left} in the deck`)
-  }
-  if (row.play_state === 'won_compete') {
-    const winners = leaderboard.filter((e) => e.won)
-    const top = winners[0]?.sets_found ?? 0
-    if (winners.length > 1) {
-      // No speed tiebreak exists here, so ties are real and get their own
-      // sentence rather than an arbitrarily-picked name.
-      return statusLine(
-        verdict('Won', 'tied'),
-        winners.map((w) => w.username ?? 'someone').join(' & '),
-        count(top, 'set'),
-      )
-    }
-    return statusLine(wonBy(winners[0]?.username ?? (s.winner_username as string | undefined)), count(top, 'set'))
-  }
-  if (row.play_state === 'lost_compete') {
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  if (summary.ending === null) {
     return statusLine(
-      verdict('Lost', s.reason === 'conceded' ? 'all conceded' : null),
-      'nobody scored',
-    )
+      verdict('Playing'), count(summary.nTableSetsFound, 'set'), `${summary.nTilesInDeck} in the deck`)
   }
-  return statusLine(verdict('Ended'), count(sets, 'set'))
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won': {
+      // A won race has its winners and the sets they share.
+      const names = summary.winnerIds!.map((id) => memberById(members, id)?.username ?? 'someone')
+      const sets = count(summary.nWinnerSets!, 'set')
+      return names.length > 1
+        ? statusLine(verdict('Won', 'tied'), names.join(' & '), sets)
+        : statusLine(wonBy(names[0]), sets)
+    }
+    case 'lost':
+      return statusLine(
+        verdict('Lost', summary.ending.reason === 'conceded' ? 'all conceded' : null),
+        'nobody scored',
+      )
+    // A Stop.
+    case 'neutral':
+      return verdict('Ended')
+    default:
+      return outcome
+  }
 }
 
 export const setgameCoopGame: GameManifest = {
@@ -174,12 +161,12 @@ export const setgameCoopGame: GameManifest = {
       'One table, everyone hunting together. Claim three cards where each of number, color, shading and shape is either all the same or all different. You win by clearing the deck — that means no sets left to find, not using up every card.',
     Component: setupFormLoader,
     defaults: DEFAULT_SETGAME_SETUP_COOP,
-    validate: (setup) => setgameSetupError(setup as SetgameSetup),
+    validate: (setup) => setgameSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (row) => coopLabel(row),
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
 
   submitTimeout,
   stopGame,
@@ -209,12 +196,12 @@ export const setgameCompeteGame: GameManifest = {
       'Same table, same deck, everyone racing. A set you claim is gone for the others, and the most sets when the deck runs dry wins. Ties are ties — nobody is separated on speed.',
     Component: setupFormLoader,
     defaults: DEFAULT_SETGAME_SETUP_COMPETE,
-    validate: (setup) => setgameSetupError(setup as SetgameSetup),
+    validate: (setup) => setgameSetupError(setup as GSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (row) => competeLabel(row),
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
 
   submitTimeout,
   stopGame,

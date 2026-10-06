@@ -48,9 +48,9 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   '1/won', 'the player with the most sets wins');
 select is(
-  (select clubpage_info->'winner_user_ids' from common.games where id = (select id from g)),
+  (select summary_data->'winnerIds' from common.games where id = (select id from g)),
   '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
-  'a single winner is the club line''s one winner');
+  'a single winner is the summary''s one winner');
 select is(
   (select game_ended_by_user_id from common.games where id = (select id from g)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -61,11 +61,12 @@ select is(
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   'unranked/lost', 'the player who claimed nothing is unranked and lost');
 select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from g) and player_status ? 'found_sets_count'),
+  (select count(*)::int
+     from common.games, jsonb_array_elements(game_data->'players') p
+    where id = (select id from g) and p->'nSetsFound' is not null),
   2, 'every player carries a count, scorer or not');
 select is(
-  (select (clubpage_info->>'winner_found_sets_count')::int from common.games where id = (select id from g)),
+  (select (summary_data->>'nWinnerSets')::int from common.games where id = (select id from g)),
   (select claims::int from played),
   'the winner''s count is every set taken');
 
@@ -87,17 +88,17 @@ select setgame.submit_timeout((select id from g2));
 
 reset role;
 select is(
-  (select jsonb_array_length(clubpage_info->'winner_user_ids') from common.games where id = (select id from g2)),
+  (select jsonb_array_length(summary_data->'winnerIds') from common.games where id = (select id from g2)),
   2, 'a tie lists both winners — picking one would tell the other they lost');
 select is(
   (select count(*)::int from common.game_players
     where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
   2, 'both tied players are ranked 1, won');
 select is(
-  (select (clubpage_info->>'winner_user_ids') || '/' || (clubpage_info->>'winner_found_sets_count')
+  (select (summary_data->>'winnerIds') || '/' || (summary_data->>'nWinnerSets')
      from common.games where id = (select id from g2)),
   '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]/1',
-  'the club line lists both tied winners and the count they share');
+  'the summary lists both tied winners and the count they share');
 
 -- ── Conceding forfeits the win but keeps the count ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -118,11 +119,11 @@ select setgame.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select clubpage_info->'winner_user_ids' from common.games where id = (select id from g3)),
+  (select summary_data->'winnerIds' from common.games where id = (select id from g3)),
   '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
   'the conceder does not win, even holding more sets');
 select is(
-  (select sets_found from setgame.players
+  (select n_sets_found from setgame.players
     where game_id = (select id from g3)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2, 'the conceder keeps the sets she took — she just cannot be crowned');

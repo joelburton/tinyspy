@@ -1,16 +1,13 @@
 // cs-fixed-outcome-fix
 
-import type { Member } from '@/common/members/member'
-import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
-import type { Card } from '../lib/cards'
-import type { Palette } from '../lib/setup'
-import type { EventRow } from '../hooks/useGame'
+import type { PrintHeader } from '@/common/pdf/frame'
+import type { GGameData, GPalette, GTile } from '../types'
 
 /** One line of the log on paper. */
 export type PrintTurn = {
   n: number
   kind: 'claim' | 'hint'
-  cards: Card[]
+  tiles: GTile[]
   who: string
 }
 
@@ -38,68 +35,43 @@ export type SetgamePrintModel = PrintHeader & {
   scores: { name: string; sets: number; hints: number }[]
   /** The log, oldest first. */
   turns: PrintTurn[]
-  /** Which pigments to draw the cards in — the game's own setup choice. */
-  palette: Palette
+  /** Which pigments to draw the tiles in — the game's own setup choice. */
+  palette: GPalette
 }
 
 export function buildPrintModel({
-  brand,
-  gameTitle,
+  gd,
   date,
-  mode,
-  isTerminal,
-  teamFound,
-  deckLeft,
-  players,
-  foundByUser,
-  hintsByUser,
-  events,
   palette,
-  setupRows,
 }: {
-  brand: string
-  gameTitle: string
+  gd: GGameData
   date: string
-  mode: 'coop' | 'compete'
-  isTerminal: boolean
-  teamFound: number
-  deckLeft: number
-  players: Member[]
-  foundByUser: ReadonlyMap<string, number>
-  hintsByUser: ReadonlyMap<string, number>
-  events: EventRow[]
-  palette: Palette
-  setupRows: SetupRow[]
+  palette: GPalette
 }): SetgamePrintModel {
-  const sets = `${teamFound} ${teamFound === 1 ? 'set' : 'sets'}`
+  const nSetsFound = gd.players.reduce((n, p) => n + p.nSetsFound, 0)
+  const sets = `${nSetsFound} ${nSetsFound === 1 ? 'set' : 'sets'}`
   // The summary reads as a state line, matching what the info column says: how
   // much game is left during play, what the table got at the end. It does not
-  // count the cards left over — that is the ordinary ending, not a shortfall
-  // (see buildOver in components/PlayArea).
-  const summary = isTerminal ? `${sets} found` : `${sets} found · ${deckLeft} in the deck`
-
-  const byName = new Map(players.map((p) => [p.user_id, p.username]))
+  // count the tiles left over — that is the ordinary ending, not a shortfall
+  // (lib/gameEndingMessage.ts).
+  const summary = gd.ended ? `${sets} found` : `${sets} found · ${gd.nTilesInDeck} in the deck`
 
   return {
-    brand,
-    gameTitle,
+    brand: gd.brand,
+    gameTitle: gd.title,
     date,
     summary,
-    setupRows,
-    mode,
+    setupRows: gd.setupRows,
+    mode: gd.mode,
     palette,
-    scores: players
-      .map((p) => ({
-        name: p.username,
-        sets: foundByUser.get(p.user_id) ?? 0,
-        hints: hintsByUser.get(p.user_id) ?? 0,
-      }))
+    scores: gd.players
+      .map((p) => ({ name: p.username, sets: p.nSetsFound, hints: p.nHintsUsed }))
       .sort((a, b) => b.sets - a.sets),
-    turns: events.map((event, i) => ({
+    turns: gd.events.map((event, i) => ({
       n: i + 1,
       kind: event.kind,
-      cards: event.cards,
-      who: byName.get(event.user_id) ?? 'someone',
+      tiles: event.tiles,
+      who: event.by.username,
     })),
   }
 }

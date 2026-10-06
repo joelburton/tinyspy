@@ -46,17 +46,17 @@ select lives_ok(
   'the board and the deal position are readable — only the ORDER is withheld');
 
 select is(
-  (select deck_left + cardinality(board) from setgame.games_state where game_id = (select id from g))
+  pg_temp.sg_tiles_in_deck((select id from g)) + cardinality(pg_temp.sg_board((select id from g)))
     + 3 * (select count(*)::int from setgame.events
             where kind = 'claim' and game_id = (select id from g)),
-  81, 'games_state answers "how many are left" without the deck itself');
+  81, 'game_data says how many are left without the deck itself');
 
 select is(
-  (select count(*)::int from setgame.games_state where game_id = (select id from g)),
+  (select count(*)::int from setgame.games where game_id = (select id from g)),
   1, 'a player in the club sees the game');
 
 -- ── Peers ────────────────────────────────────────────────────────────
--- Compete, and bea can still see ada's claim. Deliberate: the cards were
+-- Compete, and bea can still see ada's claim. Deliberate: the tiles were
 -- face-up and bea watched them leave the table.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
@@ -69,7 +69,7 @@ select is(
 -- ── Outsiders ────────────────────────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from setgame.games_state where game_id = (select id from g)),
+  (select count(*)::int from setgame.games where game_id = (select id from g)),
   0, 'someone outside the club sees no game');
 select is(
   (select count(*)::int from setgame.events where kind = 'claim' and game_id = (select id from g)),

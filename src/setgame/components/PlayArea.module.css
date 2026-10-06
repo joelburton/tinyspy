@@ -25,12 +25,6 @@
 /* @@ */   --info-col-width: 22rem;
 }
 
-.loading,
-/* @@ */ .empty {
-  padding: 2rem;
-  color: var(--page-text-muted-color);
-}
-
 /* The board column FILLS the row and holds its board at the left, instead of
  * the shared column's hug-and-center. Both halves matter: a centered board slides
  * left when a deal adds a column (the whole table moving under a scan), and a

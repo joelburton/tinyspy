@@ -35,7 +35,7 @@ sum to 0 mod 3 in every place". Two consequences the whole game rests on:
   each pair names its completing card, so the question is "is that card also
   here?". At the largest board that can exist it is 210 iterations.
 
-Both implementations are a dozen lines — `src/setgame/lib/cards.ts` in TS,
+Both implementations are a dozen lines — `src/setgame/lib/tiles.ts` in TS,
 `setgame._third` / `_find_set` in plpgsql — which is what makes
 server-authority free here.
 
@@ -660,7 +660,7 @@ rather than exotic — one table, everyone claiming off it, and the cards leave 
 realtime so no local gate can see it coming. `PN486` "Game over" and
 `PN483` "Already conceded" are the usual two. Everything else is a fault the
 client should have prevented and says so: `BUG: bad set` (the board is face-up
-and `lib/cards.ts` runs the same algebra before submitting), `BUG: claim that
+and `lib/tiles.ts` runs the same algebra before submitting), `BUG: claim that
 was not three different cards`, `BUG: hint request in a race` (compete offers no
 hint button at all), and four `BUG: …` hint-shape checks.
 | `concede` / `submit_timeout` / `stop_game` / `replay_board` | the standard four: concede locks the row and `common._concede` decides it; Stop goes through `common._stop`. |
@@ -669,7 +669,7 @@ hint button at all), and four `BUG: …` hint-shape checks.
 ### Hints are private, computed on the client, and coop-only
 
 **The hint itself is never stored or sent.** It can be computed locally, and
-that is the whole design: the board is face-up and `lib/cards.ts` holds the same
+that is the whole design: the board is face-up and `lib/tiles.ts` holds the same
 algebra the server does, so a hint is a local search rather than a round trip.
 Two things follow — the ring appears on the keystroke (it also *selects* the
 cards, so a lag would be felt), and there is no private column for the server to
@@ -725,7 +725,7 @@ only the deal size differs (9, ceiling 12).
 
 ## 10. Tests
 
-- **`lib/cards.test.ts`** — exhaustive: all 81 codes round-trip, exactly 1080
+- **`lib/tiles.test.ts`** — exhaustive: all 81 codes round-trip, exactly 1080
   sets, `third` total and symmetric, no attribute ever two-and-one. The board
   ceiling is pinned by a **planted 20-card cap** (every other card in the deck
   extends it into a set), and junior's ceiling is **proved outright** by an
@@ -796,7 +796,7 @@ would file a bug report for.
   the rare deferral that needs a **forward migration** for the column rename on
   top of the in-place edit to `supabase/sql/setgame.sql` (CLAUDE.md → "Write a
   NEW migration; never edit an applied one"). The FE half includes
-  `components/Card.tsx`, `lib/cards.ts` and their tests.
+  `components/Card.tsx`, `lib/tiles.ts` and their tests.
 
   Worth doing when setgame's CSS/tile-feedback pass comes up, so the rename
   rides along with a pass that is already opening every one of these files.

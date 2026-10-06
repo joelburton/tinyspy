@@ -13,9 +13,11 @@
 -- from it, so a test asserts on RULES rather than on one lucky deal.
 --
 -- Helpers:
---   pg_temp.sg_live(gid)     — three cards that ARE a set on the board now
---   pg_temp.sg_not_a_set(gid) — three board cards that are NOT a set
+--   pg_temp.sg_live(gid)     — three tiles that ARE a set on the board now
+--   pg_temp.sg_not_a_set(gid) — three board tiles that are NOT a set
 --   pg_temp.sg_board(gid)     — the board, read past the column grant
+--   pg_temp.sg_tiles_in_deck(gid) — the tiles still to be dealt, off game_data
+--   pg_temp.sg_every_tile()   — every tile of the full deck, four digits of 1..3
 --   pg_temp.sg_play_out(gid, actors) — claim sets until the game ends
 --
 -- Every helper reads as postgres and restores the caller's identity
@@ -49,7 +51,21 @@ begin
 end;
 $$;
 
--- Three cards that form a set on the board RIGHT NOW. The deal-three rule
+-- The tiles still to be dealt, as the page is told (`game_data.nTilesInDeck`).
+create function pg_temp.sg_tiles_in_deck(gid uuid) returns int
+language sql as $$
+  select (game_data->>'nTilesInDeck')::int from common.games where id = gid;
+$$;
+
+-- Every tile of the full deck: count, color, fill and shape, each 1..3.
+create function pg_temp.sg_every_tile() returns setof smallint
+language sql as $$
+  select (n * 1000 + c * 100 + f * 10 + s)::smallint
+    from generate_series(1, 3) n, generate_series(1, 3) c,
+         generate_series(1, 3) f, generate_series(1, 3) s;
+$$;
+
+-- Three tiles that form a set on the board RIGHT NOW. The deal-three rule
 -- guarantees one exists while a game is playing, so a null return is itself a
 -- bug worth failing on.
 create function pg_temp.sg_live(gid uuid) returns smallint[]
@@ -65,9 +81,9 @@ begin
 end;
 $$;
 
--- Three cards on the board that are NOT a set: two arbitrary cards plus any
+-- Three tiles on the board that are NOT a set: two arbitrary tiles plus any
 -- third that isn't their completer. Only fails to exist on a board of three
--- cards that happen to be a set, which a playing game never has.
+-- tiles that happen to be a set, which a playing game never has.
 create function pg_temp.sg_not_a_set(gid uuid) returns smallint[]
 language plpgsql as $$
 declare

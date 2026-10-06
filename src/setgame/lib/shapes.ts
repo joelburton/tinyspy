@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Shape } from './cards'
+import type { GShape } from '../types'
 
 /**
  * The card's geometry — every number the card art needs, in one place, so the
@@ -41,7 +41,7 @@ export const SYMBOL_ASPECT = SYMBOL_BOX.height / SYMBOL_BOX.width
  * follow — the `aspect-ratio` in Board / Card / LastSet, and the board's
  * height-bound card-size term.
  */
-export const CARD_BOX = { width: 100, height: 94 } as const
+export const TILE_BOX = { width: 100, height: 94 } as const
 
 /**
  * How the 1–3 symbols sit on the face. Symbol size does NOT vary with the
@@ -71,7 +71,7 @@ export const SYMBOL_LAYOUT = {
  * point-symmetric about the box's center, and a rebuild that enforced that
  * symmetry strictly came out a peanut: the S needs the two halves to differ.
  */
-export const SHAPE_PATHS: Record<Shape, string> = {
+export const SHAPE_PATHS: Record<GShape, string> = {
   diamond: 'M 20 2 L 38 42 L 20 82 L 2 42 Z',
   squiggle:
     'M 6 20 C 6 6 18 0 28 4 C 37 8 39 20 34 32 C 30 42 26 46 24 52' +

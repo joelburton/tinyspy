@@ -12,7 +12,7 @@
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; the board, the info column and the action row render for real. The
- * card ALGEBRA is not retested here — `lib/cards.test.ts` owns that, and
+ * card ALGEBRA is not retested here — `lib/tiles.test.ts` owns that, and
  * `lib/letters.test.ts` owns the slot↔letter map; what this file proves is the
  * wiring between them.
  */
@@ -62,7 +62,7 @@ const okEnvelope = (data: unknown) => ({
 /**
  * Twelve cards whose FIRST THREE are a set and whose next three are not.
  *
- * A card is four base-3 digits (`lib/cards.ts`); 0/1/2 vary one attribute and
+ * A card is four base-3 digits (`lib/tiles.ts`); 0/1/2 vary one attribute and
  * hold the rest, which is a set, while 0/1/3 do not. Slots are what the
  * keyboard addresses, and the letters run DOWN each column of a fixed 3 × 7
  * grid — so slot 0 is `A`, slot 1 is `H`, slot 2 is `O`, slot 3 is `B`

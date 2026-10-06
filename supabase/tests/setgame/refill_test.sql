@@ -6,11 +6,11 @@
 -- Three things that only show up over a whole game:
 --
 --   1. A board coming DOWN from fifteen compacts from the TAIL — at most
---      three cards move, and they are the ones at the end of the layout.
---      Planted, because a fifteen-card board arises naturally in about 3% of
+--      three tiles move, and they are the ones at the end of the layout.
+--      Planted, because a fifteen-tile board arises naturally in about 3% of
 --      deals and a test that waits for one tests nothing most of the time.
 --   2. Playing to the natural end terminates, and lands on the right verdict.
---   3. The board is never dead while cards remain — every claim leaves a set
+--   3. The board is never dead while tiles remain — every claim leaves a set
 --      to find, which is what the fixpoint in _deal_to_playable is for.
 
 begin;
@@ -30,49 +30,49 @@ select (setgame.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop')->'data'->>'id')::uuid as id;
 
--- ── (1) Tail-compaction, on a planted fifteen-card board ─────────────
--- Cards 0..14 in slot order. 0,1,2 is a set (same count/color/shade, all
--- three shapes), and so is 12,13,14 — which matters, because the twelve left
+-- ── (1) Tail-compaction, on a planted fifteen-tile board ─────────────
+-- Fifteen tiles in slot order. 1111,1112,1113 is a set (same count, color and
+-- fill, all three shapes), and so is 1221,1222,1223 — which matters, because the twelve left
 -- behind must still hold a set or the deal rule would top the board back up
 -- and we would be measuring something else.
 reset role;
 update setgame.games
-   set board = array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]::smallint[]
+   set board = array[1111,1112,1113,1121,1122,1123,1131,1132,1133,1211,1212,1213,1221,1222,1223]::smallint[]
  where game_id = (select id from g);
 
 create temp table before_compact on commit drop as
-select deck_left from setgame.games_state where game_id = (select id from g);
+select pg_temp.sg_tiles_in_deck((select id from g)) as tiles_in_deck;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select setgame.submit_set((select id from g), array[0,1,2]::smallint[])->'data'->>'result'),
+  (select setgame.submit_set((select id from g), array[1111,1112,1113]::smallint[])->'data'->>'result'),
   'claimed', 'a set can be claimed off an oversized board');
 
 reset role;
 select is(
   pg_temp.sg_board((select id from g)),
-  array[12,13,14,3,4,5,6,7,8,9,10,11]::smallint[],
-  'the board came down to twelve by moving the LAST three cards into the holes');
+  array[1221,1222,1223,1121,1122,1123,1131,1132,1133,1211,1212,1213]::smallint[],
+  'the board came down to twelve by moving the LAST three tiles into the holes');
 
 select is(
-  (select deck_left from setgame.games_state where game_id = (select id from g)),
-  (select deck_left from before_compact),
+  pg_temp.sg_tiles_in_deck((select id from g)),
+  (select tiles_in_deck from before_compact),
   'an oversized board does not deal — it shrinks');
 
--- Slots 4..12 are the proof that compaction is local: those nine cards are
+-- Slots 4..12 are the proof that compaction is local: those nine tiles are
 -- exactly where they were, untouched by a claim three slots away.
 select is(
   (select array_agg(c order by i)
      from unnest(pg_temp.sg_board((select id from g))) with ordinality as u(c, i)
     where i between 4 and 12),
-  array[3,4,5,6,7,8,9,10,11]::smallint[],
-  'every card below the tail kept its slot');
+  array[1121,1122,1123,1131,1132,1133,1211,1212,1213]::smallint[],
+  'every tile below the tail kept its slot');
 
 -- ── (2) Play a game out ──────────────────────────────────────────────
--- A SECOND, undoctored game. The board above was planted, which injects cards
+-- A SECOND, undoctored game. The board above was planted, which injects tiles
 -- that were never dealt from its deck — fine for measuring compaction, but it
 -- breaks the accounting the readouts below assert (and it would leave the
--- ending to fire on a board holding cards the deck still contains).
+-- ending to fire on a board holding tiles the deck still contains).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (setgame.create_game(
@@ -97,7 +97,7 @@ select is(
     where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
   2, 'the whole team is ranked 1');
 select is(
-  (select deck_left from setgame.games_state where game_id = (select id from g2)),
+  pg_temp.sg_tiles_in_deck((select id from g2)),
   0, 'the deck is spent');
 select is(
   pg_temp.sg_live((select id from g2)), null,
@@ -105,23 +105,23 @@ select is(
 
 -- ── (3) The verdict's readouts ───────────────────────────────────────
 select is(
-  (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from g2)),
+  (select (summary_data->'team'->>'nSetsFound')::int from common.games where id = (select id from g2)),
   (select claims::int from played),
-  'the club line carries the number of sets the table took');
--- Nothing records the cards left on the table, because nothing has to: with the
--- deck spent, every card is either claimed or still lying there.
-select ok(
-  (select not (clubpage_info ? 'stranded') from common.games where id = (select id from g2)),
-  'the leftover count is not stored — it is derivable, and a replay would stale it');
+  'the summary carries the number of sets the table took');
 select is(
-  81 - 3 * (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from g2)),
+  (select (summary_data->>'perfectClear')::boolean from common.games where id = (select id from g2)),
+  cardinality(pg_temp.sg_board((select id from g2))) = 0,
+  'a perfect clear is a win that left the table empty');
+select is(
+  81 - 3 * (select (summary_data->'team'->>'nSetsFound')::int from common.games where id = (select id from g2)),
   cardinality(pg_temp.sg_board((select id from g2))),
-  '…and the derivation holds: deck size minus three per claim IS what is left');
+  'deck size minus three per claim IS what is left on the table');
 
--- Each player's own count, which a coop page sums for the team.
+-- Each player's own count, which the team's sums.
 select is(
-  (select sum((player_status->>'found_sets_count')::int)::int from common.game_players
-    where game_id = (select id from g2)),
+  (select sum((p->>'nSetsFound')::int)::int
+     from common.games, jsonb_array_elements(game_data->'players') p
+    where id = (select id from g2)),
   (select claims::int from played),
   'both players carry their own count, and together they are the table''s');
 

@@ -43,7 +43,7 @@ select is(
   (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gc)),
   'timeout/timeout', 'the reason says what stopped it');
 select is(
-  (select (clubpage_info->>'found_sets_count')::int from common.games where id = (select id from gc)),
+  (select (summary_data->'team'->>'nSetsFound')::int from common.games where id = (select id from gc)),
   1, 'a lost coop game still records what the table found');
 select is(
   (select count(*)::int from common.game_players
