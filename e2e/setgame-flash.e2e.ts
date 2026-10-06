@@ -39,9 +39,11 @@ test.describe('setgame — the deal flash', () => {
     const [alice] = club.members
     const { id, gametype } = await createSetgameGame(club)
 
-    // A fifteen-tile opening, planted: only ~3% of shuffles deal one.
+    // A fifteen-tile opening, planted: only ~3% of shuffles deal one. The page
+    // draws the blob, so the plant rebuilds it.
     execFileSync('psql', [PSQL, '-v', 'ON_ERROR_STOP=1', '-c',
-      `update setgame.games set board = deck[1:15], deck_pos = 15 where game_id = '${id}'`])
+      `update setgame.games set board = deck[1:15], deck_pos = 15 where game_id = '${id}';
+       select setgame._rebuild_data_cols('${id}', true);`])
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     await signIn(ctx, alice.session)

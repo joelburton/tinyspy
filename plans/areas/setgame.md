@@ -174,7 +174,10 @@ key, the history passages, and `//` on members.
 by `game_id` and claims with `p_game_id` / `p_tiles`; `createSetgameGame`
 sends `p_` names; the specs find a tile by `button[data-tile]`, plant boards
 by `game_id`, call the RPCs with `p_game_id`, and say "tile". The gallery's
-timeout call too. e2e not yet run (on Joel's word).
+timeout call too. e2e run (Joel: "do both"): 7 of 10 passed first; the three that
+plant a board by `psql` drew the stale blob, so the plant now rebuilds it
+(`setgame._rebuild_data_cols`), and all ten pass. Seen on screen: the found set's
+won ring during the hold, then the yellow on the three new tiles, symbols above it.
 
 ## The inventory (step 1)
 

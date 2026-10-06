@@ -32,8 +32,9 @@ async function overflow(page: import('@playwright/test').Page) {
   }))
 }
 
-/** Deal `n` tiles onto a live game by replaying its own deck through the
- *  server's deal helper — no invented state, just a longer opening deal. */
+/** Deal `n` tiles onto a live game by replaying its own deck — no invented
+ *  state, just a longer opening deal — and rebuild the page blobs, which are
+ *  what the page draws. */
 async function dealTo(gameId: string, n: number): Promise<void> {
   const { execFileSync } = await import('node:child_process')
   execFileSync('psql', [
@@ -41,7 +42,8 @@ async function dealTo(gameId: string, n: number): Promise<void> {
     '-v', 'ON_ERROR_STOP=1', '-c',
     `update setgame.games
         set board = deck[1:${n}], deck_pos = ${n}
-      where game_id = '${gameId}'`,
+      where game_id = '${gameId}';
+     select setgame._rebuild_data_cols('${gameId}', true);`,
   ])
 }
 
