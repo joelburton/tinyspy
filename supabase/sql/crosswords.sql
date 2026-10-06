@@ -263,7 +263,7 @@ drop function if exists crosswords._write_statuses(uuid, boolean);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 --
 --   static_game_data, crosswords' part:
 --     puzzle                       the template as the parsers write it (id,

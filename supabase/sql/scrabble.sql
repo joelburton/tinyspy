@@ -246,7 +246,7 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 -- scrabble's is the common part alone: it has no puzzle, and its board is the
 -- game in play.
 --

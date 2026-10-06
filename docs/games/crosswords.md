@@ -96,11 +96,16 @@ of every move, each assigned whole, and raises `revision` first:
 `shell_data` through `common._make_json_shell_data`, and on top of the common
 part of `game_data` and `summary_data` this game's own.
 `crosswords._rebuild_data_cols_for_all()` rebuilds every crosswords game without
-re-dating it.
+re-dating it. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and that
+rebuild, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | crosswords' part |
 |---|---|
-| `game_data` | `puzzle`: the template as the parsers write it (id, title, author, copyright, note, width, height, clues, cells), plus `solution`, null until the game ends. `revision`. `team: {board}` in coop, null in compete; on each racer `board` in compete, null in coop |
+| `static_game_data` | `puzzle`: the template as the parsers write it (id, title, author, copyright, note, width, height, clues, cells) |
+| `game_data` | `puzzle: {solution}`, null until the game ends. `revision`. `team: {board}` in coop, null in compete; on each racer `board` in compete, null in coop |
 | `summary_data` | `nCells`, the cells a player fills, and `team: {nFilledCells}` in coop, null in compete — the club card's "60% filled" |
 
 **A board is packed**, since it is rebuilt on every keystroke
@@ -114,8 +119,8 @@ re-dating it.
 | `breaksRight`, `hyphensRight`, `breaksBottom`, `hyphensBottom` | the indices of the cells with that edge mark |
 | `writers` | coop: one digit per cell — 0 nobody, else the writer's 1-based place in `players`; null in compete |
 
-The template is not packed: once `static_game_data` lands it is sent once, not
-per keystroke.
+The template is not packed: it is in `static_game_data`, which the page reads
+once, not per keystroke.
 
 **`gd`** (`makeGameData`): each board unpacked into `GCell`s (`{id, row, col,
 fill, pencil, wrong, revealed, markRight, markBottom, writer}`, a writer a
@@ -830,7 +835,7 @@ possible future cleanup pass:
 ### Known limits & unpinned tests
 - **No keystroke debounce** — every fill rebuilds the page blobs, which nudges
   every page on the game and every club page in the club, and each page re-reads
-  the blob — the template included, until `static_game_data` lands (the
+  `game_data` — not the template, which is in `static_game_data` (the
   debounce was correctly dropped; a teammate needs each keystroke live). Fine
   at friend scale; 4 people speed-solving is the case to watch. One read in
   flight and the Broadcast nudge are the fixes, after the last game converts

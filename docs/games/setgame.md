@@ -143,10 +143,15 @@ every move — a hint included — and every ending, each assigned whole:
 `shell_data` through `common._make_json_shell_data`, and on top of the common
 part of `game_data` and `summary_data` this game's own.
 `setgame._rebuild_data_cols_for_all()` rebuilds every setgame game without
-re-dating it.
+re-dating it. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and that
+rebuild, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | setgame's part |
 |---|---|
+| `static_game_data` | the common part alone: there is no puzzle, and the table refills in place |
 | `game_data` | `board: {tiles}` — the one table, shared in both modes, each tile `{id}`, its four digits as text, in slot order. `nTilesInDeck`, the tiles still to be dealt. `team: {nSetsFound, nHintsUsed}` — the players' counts summed; null in compete. `events`, every row `{id, userId, kind, tiles, boardAfter, tookTurn, at}`. On each player their own `nSetsFound` and `nHintsUsed` |
 | `summary_data` | `team`, as above; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `winnerIds`, every player ranked first, and `nWinnerSets`, the sets they share — both compete's |
 

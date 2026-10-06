@@ -187,11 +187,16 @@ of every move — a hint included — and every ending, each assigned whole:
 `shell_data` through `common._make_json_shell_data`, and on top of the common
 part of `game_data` and `summary_data` this game's own.
 `strands._rebuild_data_cols_for_all()` rebuilds every strands game without
-re-dating it.
+re-dating it. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and that
+rebuild, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | strands' part |
 |---|---|
-| `game_data` | `puzzle: {title, tiles, puzzleWords}` — the theme prompt; all 48 `{id, letter, row, col}` tiles row by row, the id the tile's place `"r,c"`; the puzzle words `{word, tileIds, spangram}`, spangram first, null until the game ends. `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}` — coop's words found, the players' hints summed, and the one bar; null in compete. `events`, every row `{id, userId, kind, word, result, tileIds, tookTurn, at}` — a guess's trace or a hint's ringed word as tile ids. On each player their own `nFoundPuzzleWords` and `nHintsUsed`, a racer's `hintPoints` (null in coop), and `board: {foundPuzzleWords, hintTileIds}` — the shared board on every seat in coop |
+| `static_game_data` | `puzzle: {title, tiles}` — the theme prompt; all 48 `{id, letter, row, col}` tiles row by row, the id the tile's place `"r,c"` |
+| `game_data` | `puzzle: {puzzleWords}` — the puzzle words `{word, tileIds, spangram}`, spangram first, null until the game ends. `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}` — coop's words found, the players' hints summed, and the one bar; null in compete. `events`, every row `{id, userId, kind, word, result, tileIds, tookTurn, at}` — a guess's trace or a hint's ringed word as tile ids. On each player their own `nFoundPuzzleWords` and `nHintsUsed`, a racer's `hintPoints` (null in coop), and `board: {foundPuzzleWords, hintTileIds}` — the shared board on every seat in coop |
 | `summary_data` | `team`, as above; `nWinnerHints`, the hints a race was won on |
 
 **Never the TOTAL** before the end. "This board holds six words" is real

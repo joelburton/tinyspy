@@ -123,11 +123,17 @@ it reads the page blobs the builder writes onto `common.games`.
 Restart and at the end of every move, each assigned whole
 ([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
 assembled): `shell_data` through `common._make_json_shell_data`, and on top of the common
-part of every `game_data` (`common._make_json_game_data`) psychicnum's own:
+part of every `game_data` (`common._make_json_game_data`) psychicnum's own.
+`static_game_data`, what nothing after create changes, is written once by
+`_write_static_game_data`, from `create_game` and the rebuild over every game,
+never by a move ([docs/common-schema.md → Title, statuses and the two
+dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+hook merges it into `game_data`, each key in its place:
 
 | blob | psychicnum's part |
 |---|---|
-| `game_data` | `puzzle: {words, secrets}` (the secrets null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order, each with its `id` (the word, in this game), `correct` and `decidedBy`, the last two null until guessed |
+| `static_game_data` | `puzzle: {words}`, the dealt words |
+| `game_data` | `puzzle: {secrets}` (null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order, each with its `id` (the word, in this game), `correct` and `decidedBy`, the last two null until guessed |
 | `summary_data` | `team`, the same group; `nReqdSecrets`, `maxGuesses` |
 
 Every player's counts are their own, on `psychicnum.players` and on their

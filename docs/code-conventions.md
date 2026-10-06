@@ -273,7 +273,10 @@ game's" and a shape two games share is not that; each game's `types.ts` names
 it as its own (`export type GTile = BeeTile`).
 
 The shape a game is handed and the shape it reads are two types: `GGameDataRaw`
-is `game_data` as the builder wrote it (ids, records), and `GGameData` is
+is `game_data` and `static_game_data` as the builders wrote them (ids,
+records), merged by `useGame`, each key in its place ([common-schema.md →
+Title, statuses and the two
+dates](common-schema.md#title-statuses-and-the-two-dates)), and `GGameData` is
 what `useGame` makes of it (players, maps, the seat rule applied). `Raw` marks
 the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
 `GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);

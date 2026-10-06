@@ -68,9 +68,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
 /**
  * Put the page's two blobs back together as `GGameDataRaw`, each key in its
- * place (plans/static-game-data.md): `static_game_data` holds what create
- * fixed — the common part alone, since wordle's puzzle is only the answer,
- * which waits for the end — `game_data` the rest.
+ * place: `static_game_data` holds what create fixed — the common part alone,
+ * since wordle's puzzle is only the answer, which waits for the end —
+ * `game_data` the rest.
  */
 function mergeStaticGameData(gameData: unknown, staticGameData: unknown): GGameDataRaw {
   // Each blob holds some of GGameDataRaw's keys; typed whole for the spread.

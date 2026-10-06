@@ -8,8 +8,8 @@
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
  * in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids, the board as one string), and `GGameData` is what `useGame`
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids, the board as one string), and `GGameData` is what `useGame`
  * makes of it for the surface (players, the board's cells keyed by id, the
  * seat rule applied). `GPlayerRaw` / `GPlayer` and `GEventRaw` / `GEvent` are
  * the same pair, one level down.
@@ -138,11 +138,11 @@ export type GGameResult = {
 }
 
 /**
- * scrabble's `game_data`, as `scrabble._rebuild_data_cols` writes it
+ * scrabble's `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/scrabble.sql → The page blobs): the common part, with the
  * version, the bag's count, the board, the team, the log and each player's
- * score and rack on top. What the page is handed in
- * `PlayAreaLoaderProps.gameData`; `useGame` turns it into `gd`. It carries
+ * score and rack on top. `useGame` merges the two blobs the page hands down
+ * and turns them into `gd`. It carries
  * every rack; what a racer may see of a rival's mid-race is `useGame`'s rule.
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {

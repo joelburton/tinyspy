@@ -214,11 +214,16 @@ and on top of the common part of every `game_data` this game's own. A track's
 four numbers — `nGuessesUsed`, and `lengthScore`, `nLetters`,
 `longestWordLen`, which are null until the game ends — are one helper's,
 `wordiply._make_json_track`, over one player's accepted words or the whole
-team's:
+team's. `static_game_data`, what nothing after create changes, is written once
+by `_write_static_game_data`, from `create_game` and the rebuild over every
+game, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place:
 
 | blob | wordiply's part |
 |---|---|
-| `game_data` | `puzzle: {base, maxWordLen, longestWords, legalWords}`, frozen at create; `team`, the team's track, null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player `maxGuesses` (5), their own track, and `board: {words}` — what this seat sees: the team's accepted words in coop, their own in compete |
+| `static_game_data` | `puzzle: {base, maxWordLen, longestWords, legalWords}`, frozen at create |
+| `game_data` | `team`, the team's track, null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player `maxGuesses` (5), their own track, and `board: {words}` — what this seat sees: the team's accepted words in coop, their own in compete |
 | `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop |
 
 **The client reads nothing from these tables.** The page is handed the blobs

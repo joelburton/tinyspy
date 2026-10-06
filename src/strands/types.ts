@@ -8,8 +8,8 @@
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
  * in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids), and `GGameData` is what `useGame` makes of it for the
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids), and `GGameData` is what `useGame` makes of it for the
  * surface (players and tiles, the seat rule applied). `GPlayer` /
  * `GPlayerRaw`, `GEvent` / `GEventRaw` and `GPuzzleWord` / `GPuzzleWordRaw` are the same
  * pair, one level down.
@@ -54,11 +54,11 @@ export type GPuzzleWord = Omit<GPuzzleWordRaw, 'tileIds'> & {
 }
 
 /**
- * strands' `game_data`, as `strands._rebuild_data_cols` writes it
+ * strands' `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/strands.sql → The page blobs): the common part, with the
  * puzzle, the team, the log and strands' facts about each player on top.
- * What the page is handed in `PlayAreaLoaderProps.gameData`; `useGame` turns
- * it into `gd`.
+ * `useGame` merges the two blobs the page hands down and turns them into
+ * `gd`.
  *
  * It carries everything: every player's rows in the log, and every seat's
  * board and hint bar. What a racer may see of a rival mid-race is `useGame`'s

@@ -179,11 +179,17 @@ Restart and at the end of every move and ending, each assigned whole
 assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of every `game_data` (`common._make_json_game_data`) this
 game's own, the same shape as the other bee game's
-([shared/bee-games](../shared/bee-games/doc.md)):
+([shared/bee-games](../shared/bee-games/doc.md)). `static_game_data`, what
+nothing after create changes, is written once by `_write_static_game_data`,
+from `create_game` and the rebuild over every game, never by a move
+([docs/common-schema.md → Title, statuses and the two
+dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+hook merges it into `game_data`, each key in its place:
 
 | blob | wordwheel's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first; `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
+| `static_game_data` | `puzzle: {tiles, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}`, as `create_game` froze it — a tile being `{id, letter, center}` with its place as its id and the center first, and every legal word `{word, points, pangram, bonus}`, the required ones first |
+| `game_data` | `team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}`, what the team shares and the rank it set out for, null in compete; `foundWords`, every find `{userId, word, points, pangram, bonus, at}` in the order found; on each player their own `nFoundWords`, `foundWordsScore` and `rankIdx`, and `targetRankIdx`, the same on every player |
 | `summary_data` | `team`, the same group; `nReqdWords`, `reqdWordsScore`, `targetRankIdx` |
 
 **The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `D·AEEGINNR`
@@ -540,7 +546,7 @@ a no-timer coop setup to override a field of:
 | `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss |
 | `replay_test` | the found list cleared, the ending reset, the clock zeroed, the board and target kept; any player may, mid-game or after; a non-player may not |
 | `player_subset_test` | a club member not seated in the game can read it and cannot move in it |
-| `reveal_partition_test` | through the real RPCs, from the loser's seat: the table shows a member every racer's row mid-race — the hook's seat rule withholds a rival's, not RLS — and every row once the race has ended, still partitionable by user; `game_data.puzzle.words` carries the required set throughout; and the sum over every visible row is not the caller's own score, which is why the page counts the caller's own rows in compete |
+| `reveal_partition_test` | through the real RPCs, from the loser's seat: the table shows a member every racer's row mid-race — the hook's seat rule withholds a rival's, not RLS — and every row once the race has ended, still partitionable by user; `static_game_data.puzzle.words` carries the required set throughout; and the sum over every visible row is not the caller's own score, which is why the page counts the caller's own rows in compete |
 
 `rank_idx_test` sits in the folder too, but pins `common._rank_idx` and
 belongs to `shared/rank-ladder`.

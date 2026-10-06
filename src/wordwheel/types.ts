@@ -29,8 +29,8 @@ import type {
 import type { TimerMode } from '@/common/manifest/types'
 import type { SetupOf } from '@/common/setup-form/types'
 
-/** wordwheel's `game_data`, as `wordwheel._rebuild_data_cols` writes it
- *  (supabase/sql/wordwheel.sql → The page blobs). */
+/** wordwheel's `game_data` and `static_game_data`, as its builders write
+ *  them (supabase/sql/wordwheel.sql → The page blobs). */
 export type GGameDataRaw = BeeGameDataRaw<GSetup>
 
 /** `gd`: the blob read for the surface — players, the seat rule applied. */

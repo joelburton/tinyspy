@@ -9,8 +9,8 @@
  * in `lib/gameData.fixture.ts`. The types that reach React — the editing board
  * and its input, built on an `Action` and a drag — are in `reactTypes.ts`.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids, every seat's letters), and `GGameData` is what `useGame` makes
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids, every seat's letters), and `GGameData` is what `useGame` makes
  * of it for the surface (players, the seat rule applied). `GPlayerRaw` /
  * `GPlayer` and `GEventRaw` / `GEvent` are the same pair, one level down.
  *
@@ -77,10 +77,10 @@ export type GSetupValues = {
 export type GSetup = SetupOf<GSetupValues>
 
 /**
- * bananagrams' `game_data`, as `bananagrams._rebuild_data_cols` writes it
+ * bananagrams' `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/bananagrams.sql → The page blobs): the common part, with the
- * two piles' counts, the log and each player's letters on top. What the page is
- * handed in `PlayAreaLoaderProps.gameData`; `useGame` turns it into `gd`. It
+ * two piles' counts, the log and each player's letters on top. `useGame`
+ * merges the two blobs the page hands down and turns them into `gd`. It
  * carries every seat's `tiles` and `board`; what a racer may see of a rival's
  * mid-race is `useGame`'s rule.
  */

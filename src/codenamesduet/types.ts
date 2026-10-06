@@ -8,8 +8,8 @@
  * stays in that file; the printer's model stays in `pdf/`; the test fixtures'
  * facts stay in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids, records), and `GGameData` is what `useGame` makes of it for
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids, records), and `GGameData` is what `useGame` makes of it for
  * the surface (players, maps, links, the seat rule applied). `GPlayer`,
  * `GTile`, `GPuzzleTile` and `GEvent` each have their `Raw` twin, one level
  * down.
@@ -29,10 +29,11 @@ import type { SetupOf, SetupRow } from '@/common/setup-form/types'
 export type GKey = 'G' | 'N' | 'A'
 
 /**
- * codenamesduet's `game_data`, as `codenamesduet._rebuild_data_cols` writes it
- * (supabase/sql/codenamesduet.sql → The page blobs): the common part, with the
- * deal, the team and its table, the turn, the log and each player's two facts
- * on top. It carries both players' keys; hiding my partner's until the game
+ * codenamesduet's `game_data` and `static_game_data`, as its builders write
+ * them (supabase/sql/codenamesduet.sql → The page blobs): the common part,
+ * with the deal, the team and its table, the turn, the log and each player's
+ * two facts on top. `useGame` merges the two blobs the page hands down and
+ * turns them into `gd`. It carries both players' keys; hiding my partner's until the game
  * ends is `useGame`'s rule.
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'turns' | 'players'> & {

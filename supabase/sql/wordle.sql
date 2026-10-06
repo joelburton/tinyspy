@@ -17,7 +17,7 @@
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
 -- `shell_data` through common — and `create_game` writes `static_game_data`
--- once (plans/static-game-data.md); the page reads those.
+-- once; the page reads those.
 --
 -- What is particular to wordle (src/wordle/doc.md has the rest):
 --   - The answer is hidden by a column grant: no client can select `target`,
@@ -175,7 +175,7 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 -- wordle's is the common part alone: its puzzle is only the answer, which
 -- waits for the game's end.
 --

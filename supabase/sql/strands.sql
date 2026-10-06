@@ -19,7 +19,7 @@
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
 -- `shell_data` through common — and `create_game` writes `static_game_data`
--- once (plans/static-game-data.md); the page reads those.
+-- once; the page reads those.
 --
 -- What is particular to strands (docs/games/strands.md has the rest):
 --   - THE SHIELD. The solution is hidden by a column grant, and `game_data`
@@ -174,7 +174,7 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 --
 --   static_game_data, strands' part:
 --     puzzle: {title, tiles}               frozen at create: the theme prompt;

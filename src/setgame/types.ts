@@ -8,8 +8,8 @@
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
  * in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids), and `GGameData` is what `useGame` makes of it for the
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids), and `GGameData` is what `useGame` makes of it for the
  * surface (players, and the tiles keyed by id). `GEventRaw` / `GEvent` are the
  * same pair, one level down.
  */
@@ -51,11 +51,11 @@ export type GDeckKind = 'full' | 'junior'
 export type GPalette = 'traditional' | 'colorblind'
 
 /**
- * setgame's `game_data`, as `setgame._rebuild_data_cols` writes it
+ * setgame's `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/setgame.sql → The page blobs): the common part, with the
  * table, the deck's count, the team, the log and each player's counts on top.
- * What the page is handed in `PlayAreaLoaderProps.gameData`; `useGame` turns
- * it into `gd`.
+ * `useGame` merges the two blobs the page hands down and turns them into
+ * `gd`.
  *
  * Nothing in it is private to a seat: the table is face-up and every claim was
  * made in front of everyone, in both modes.

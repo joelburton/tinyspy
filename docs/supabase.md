@@ -163,14 +163,19 @@ viewer — is [src/common/event-log/doc.md](../src/common/event-log/doc.md).
 
 - **Explicit columns, always** ([code-conventions.md → Avoid `SELECT
   *`](code-conventions.md#avoid-select-)).
-- **Read views, subscribe to base tables.** A game with hidden state reads a
-  `games_state` / `players_state` view that shields the secret column until the
-  row's state allows it. Realtime watches tables, not views, so the same hook
-  subscribes to the base tables and its `load()` refetches the views.
-- **A large immutable header is fetched once.** Where a game row carries a big
-  payload that never changes (a word list, a puzzle), the hook fetches it once
-  and puts only the changing child rows in the refetch loop, so a teammate's
-  move doesn't re-download it.
+- **A game page reads `common.games`, and nothing else of the game.**
+  `GamePageGate` reads `shell_data` to learn whether the game is there and
+  whether I am seated; `useCommonGame` reads the page blobs ([common-schema.md
+  → Title, statuses and the two
+  dates](common-schema.md#title-statuses-and-the-two-dates)) on mount and again
+  on each `changed` nudge ([Realtime](#realtime)). A game's own tables are read
+  by its builder, in SQL, not by the page; what a player may not see yet stays
+  out of the blob until the builder lets it in, or is withheld by the game's
+  `useGame`.
+- **What never changes is read once.** `static_game_data` is in the select
+  until a load carrying it has been applied, and every later load asks only
+  for `shell_data, game_data`. Loads overlap and only the newest is applied, so
+  each load that starts before the static blob has arrived asks for it too.
 
 ### Query bounds — and the `max_rows` trap
 

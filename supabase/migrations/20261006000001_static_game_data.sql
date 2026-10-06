@@ -3,7 +3,7 @@
 -- ============================================================
 -- static_game_data: what never changes after create_game
 -- ============================================================
--- plans/static-game-data.md. A fourth page blob beside `shell_data`,
+-- A fourth page blob beside `shell_data`,
 -- `game_data` and `summary_data`, holding what `create_game` fixes and nothing
 -- after it changes: the setup, the game facts every game shares (its id,
 -- gametype, brand, club, mode), and each game's puzzle less the key it shows

@@ -245,11 +245,17 @@ it's self-contained; `board_id` is provenance only.
 of every move, each assigned whole: `shell_data` through
 `common._make_json_shell_data`, and on top of the common part of `game_data`
 and `summary_data` this game's own. `stackdown._rebuild_data_cols_for_all()`
-rebuilds every stackdown game without re-dating it.
+rebuilds every stackdown game without re-dating it. `static_game_data`, what
+nothing after create changes, is written once by `_write_static_game_data`,
+from `create_game` and that rebuild, never by a move ([common-schema.md →
+Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | stackdown's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, nReqdWords, solution}` — the stack as 30 `{id, letter, x, y, z}` tiles by tile number (the id is the number as text); the six words to clear; the six words themselves, null until the game ends. `team: {nFoundWords, nHintsUsed, nSpoilersUsed}`, the players' own counts summed, null in compete. `events`, every row `{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}` — a hint's text is its `clue`, a played word's tiles are ids in pick order. On each player their own `nFoundWords`, `nHintsUsed` and `nSpoilersUsed`, and `board: {tiles}` — the tiles still on their stack, the one shared stack on every seat in coop |
+| `static_game_data` | `puzzle: {tiles, nReqdWords}` — the stack as 30 `{id, letter, x, y, z}` tiles by tile number (the id is the number as text); the six words to clear |
+| `game_data` | `puzzle: {solution}`, the six words themselves, null until the game ends. `team: {nFoundWords, nHintsUsed, nSpoilersUsed}`, the players' own counts summed, null in compete. `events`, every row `{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}` — a hint's text is its `clue`, a played word's tiles are ids in pick order. On each player their own `nFoundWords`, `nHintsUsed` and `nSpoilersUsed`, and `board: {tiles}` — the tiles still on their stack, the one shared stack on every seat in coop |
 | `summary_data` | `team`, as above; `nReqdWords`; `band` |
 
 **The builder writes every stack and every row.** What a racer may not see yet

@@ -8,8 +8,8 @@
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
  * in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids), and `GGameData` is what `useGame` makes of it for the
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids), and `GGameData` is what `useGame` makes of it for the
  * surface (players, the seat rule applied). `GPlayer` / `GPlayerRaw` and
  * `GEvent` / `GEventRaw` are the same pair, one level down.
  */
@@ -37,11 +37,11 @@ export type GTile = {
 }
 
 /**
- * stackdown's `game_data`, as `stackdown._rebuild_data_cols` writes it
+ * stackdown's `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/stackdown.sql → The page blobs): the common part, with the
  * puzzle, the team, the log and stackdown's facts about each player on top.
- * What the page is handed in `PlayAreaLoaderProps.gameData`; `useGame` turns
- * it into `gd`.
+ * `useGame` merges the two blobs the page hands down and turns them into
+ * `gd`.
  *
  * It carries everything: every player's rows in the log, and every seat's
  * stack. What a racer may see of a rival mid-race is `useGame`'s rule.

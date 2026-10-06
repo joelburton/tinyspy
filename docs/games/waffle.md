@@ -148,11 +148,17 @@ every move, each assigned whole ([plans/seat-view.md](../../plans/seat-view.md)
 → The page is written, not assembled): `shell_data` through
 `common._make_json_shell_data`, and on top of the common part of `game_data`
 and `summary_data` this game's own. `waffle._rebuild_data_cols_for_all()`
-rebuilds every waffle game without re-dating it.
+rebuilds every waffle game without re-dating it. `static_game_data`, what
+nothing after create changes, is written once by `_write_static_game_data`,
+from `create_game` and that rebuild, never by a move ([common-schema.md →
+Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | waffle's part |
 |---|---|
-| `game_data` | `puzzle: {dealtTiles, parSwaps, solution}` — the deal and the solution as `{id, letter}` tiles, the solution null until the game ends; `team: {nSwapsUsed}`, the sum of the players' own counts, null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player `maxSwaps`, their own `nSwapsUsed`, and `board: {tiles}` — their board as `GTile`s, the one shared board on every seat in coop |
+| `static_game_data` | `puzzle: {dealtTiles, parSwaps}` — the deal as `{id, letter}` tiles, and par |
+| `game_data` | `puzzle: {solution}` — the solution as `{id, letter}` tiles, null until the game ends; `team: {nSwapsUsed}`, the sum of the players' own counts, null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player `maxSwaps`, their own `nSwapsUsed`, and `board: {tiles}` — their board as `GTile`s, the one shared board on every seat in coop |
 | `summary_data` | `team: {nSwapsUsed}`, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `nWinnerSwaps`, compete's once the race is won, null in coop |
 
 **The builder writes every board and every swap.** What a racer may not see yet

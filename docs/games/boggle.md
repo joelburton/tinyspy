@@ -311,11 +311,17 @@ the common part of every `game_data` (`common._make_json_game_data`) this
 game's own. The six counts — `nFoundWords`, `foundWordsScore` over every find,
 and `nFoundReqdWords`, `foundReqdWordsScore`, `nFoundBonusWords`,
 `foundBonusWordsScore` split by list — are one helper's,
-`boggle._make_json_found_counts`, over one player's rows or everyone's:
+`boggle._make_json_found_counts`, over one player's rows or everyone's.
+`static_game_data`, what nothing after create changes, is written once by
+`_write_static_game_data`, from `create_game` and the rebuild over every game,
+never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place:
 
 | blob | boggle's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, boardSideSize, minWordLength, words, nReqdWords, reqdWordsScore, nBonusWords, bonusWordsScore}`, as `create_game` froze it — a tile being `{id, letters}` with its cell's index as its id and its letters lowercase (`qu` for a two-letter tile, null for a blank), and every legal word `{word, points, bonus}`, the required ones first; `team`, the six counts over every row, null in compete; `foundWords`, every find `{userId, word, points, bonus, at}` in the order found; on each player the six counts over their own finds |
+| `static_game_data` | `puzzle: {tiles, boardSideSize, minWordLength, words, nReqdWords, reqdWordsScore, nBonusWords, bonusWordsScore}`, as `create_game` froze it — a tile being `{id, letters}` with its cell's index as its id and its letters lowercase (`qu` for a two-letter tile, null for a blank), and every legal word `{word, points, bonus}`, the required ones first |
+| `game_data` | `team`, the six counts over every row, null in compete; `foundWords`, every find `{userId, word, points, bonus, at}` in the order found; on each player the six counts over their own finds |
 | `summary_data` | `team`, the same group; `targetWinPercent`; `topScore`, compete's best score among those who did not concede, null in coop and until the game ends |
 
 **The client reads nothing from these tables.** The page is handed the blobs

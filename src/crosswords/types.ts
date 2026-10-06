@@ -16,8 +16,8 @@
  * imported). A seat's BOARD is what the players have written on it: a
  * `GCell` for every open, non-given cell, with its fill and its flags.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder wrote
- * it (ids, each board packed into flat arrays), and `GGameData` is what
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders wrote
+ * them (ids, each board packed into flat arrays), and `GGameData` is what
  * `useGame` makes of it for the surface (players, each board's cells keyed by
  * id, the seat rule applied). `GPlayerRaw` / `GPlayer` and `GBoardRaw` /
  * `GBoard` are the same pair, one level down.
@@ -447,11 +447,11 @@ export type GAnswer =
 // ─── The page blobs ─────────────────────────────────────────
 
 /**
- * crosswords' `game_data`, as `crosswords._rebuild_data_cols` writes it
+ * crosswords' `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/crosswords.sql → The page blobs): the common part, with the
  * puzzle, the revision, coop's grid on the team and each racer's on their
- * player on top. What the page is handed in `PlayAreaLoaderProps.gameData`;
- * `useGame` turns it into `gd`. It carries every racer's grid; what a racer
+ * player on top. `useGame` merges the two blobs the page hands down and turns
+ * them into `gd`. It carries every racer's grid; what a racer
  * may see of a rival's mid-race is `useGame`'s rule.
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {

@@ -152,11 +152,16 @@ end of every move, each assigned whole
 assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of `game_data` and `summary_data` this game's own.
 `letterboxed._rebuild_data_cols_for_all()` rebuilds every letterboxed game
-without re-dating it.
+without re-dating it. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and that
+rebuild, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | letterboxed's part |
 |---|---|
-| `game_data` | `puzzle: {tiles, words, uncleanWords, nParWords, solution}` — the box as twelve `{id, letter, side}` tiles in side order, each tile's id its letter; every word the board accepts, and the few of them a hint may not offer (§7 → The two word lists); par; the seeded pair, null until the game ends. `team: {nWordsUsed, nCoveredLetters}`, the shared chain's, null in compete. `events`, every row `{id, userId, kind, word, nCoveredLetters, tookTurn, at}`. On each player `maxWords`, their own `nHintsUsed` and `nSpoilersUsed`, and `board: {words}` — their chain, the one shared chain on every seat in coop — and, on a racer only, that chain's `nWordsUsed` and `nCoveredLetters` |
+| `static_game_data` | `puzzle: {tiles, words, uncleanWords, nParWords}` — the box as twelve `{id, letter, side}` tiles in side order, each tile's id its letter; every word the board accepts, and the few of them a hint may not offer (§7 → The two word lists); par |
+| `game_data` | `puzzle: {solution}`, the seeded pair, null until the game ends. `team: {nWordsUsed, nCoveredLetters}`, the shared chain's, null in compete. `events`, every row `{id, userId, kind, word, nCoveredLetters, tookTurn, at}`. On each player `maxWords`, their own `nHintsUsed` and `nSpoilersUsed`, and `board: {words}` — their chain, the one shared chain on every seat in coop — and, on a racer only, that chain's `nWordsUsed` and `nCoveredLetters` |
 | `summary_data` | `team`, as above; `maxWords`; `band` (`legal_band`); and compete's `nBestCoveredLetters` (the best chain so far), `nWinnerWords` (once a racer has solved) and `nWinnerCoveredLetters` (on a solve or a timeout) — null in coop |
 
 **Coop's chain counts are the team's alone.** Words used and letters covered

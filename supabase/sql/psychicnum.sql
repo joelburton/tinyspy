@@ -20,7 +20,7 @@
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
 -- `shell_data` through common — and `create_game` writes `static_game_data`
--- once (plans/static-game-data.md); the page reads those.
+-- once; the page reads those.
 --
 -- What is particular to psychicnum (src/psychicnum/doc.md has the rest):
 --   - The secrets are hidden by a column grant, not a policy: no client can
@@ -113,7 +113,7 @@ drop function if exists psychicnum._secrets_for(uuid);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 --
 --   static_game_data, psychicnum's part:
 --     puzzle: {words}                      the dealt words, in the puzzle's order

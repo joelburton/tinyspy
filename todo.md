@@ -114,15 +114,6 @@ decision against, so a review doesn't propose it again
   since the shared specs find every board the same way. Do it once more games
   have converted, so their e2e can check it.
 
-- **`docs/supabase.md → Reading data` describes the unconverted games.** Its
-  "Read views, subscribe to base tables" bullet (`games_state` /
-  `players_state` views) and its "A large immutable header is fetched once"
-  bullet no longer hold for a game on the page blobs: `useCommonGame` and
-  `GamePageGate` select `shell_data` / `game_data` straight from
-  `common.games`, and every move re-reads the whole `game_data`, puzzle
-  included. Rewrite the section for today's read path, keeping the old
-  bullets only for the games not yet converted (2026-10-05).
-
 ## Someday
 
 - **A thing's facts kept in parallel lists, joined by whoever draws it.** The

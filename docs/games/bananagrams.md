@@ -185,10 +185,15 @@ of every move and after every board save, each assigned whole: `shell_data`
 through `common._make_json_shell_data`, and on top of the common part of
 `game_data` and `summary_data` this game's own.
 `bananagrams._rebuild_data_cols_for_all()` rebuilds every bananagrams game
-without re-dating it.
+without re-dating it. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and that
+rebuild, never by a move ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+it into `game_data`, each key in its place.
 
 | blob | bananagrams' part |
 |---|---|
+| `static_game_data` | the common part alone: there is no puzzle, and every tile and board is in play |
 | `game_data` | `nBunchTiles` and `nBagTiles`, the two piles' counts (their order never leaves the server). `team: null`. `events`, every row `{id, userId, kind, tile, nDrawn, at}`. On each player: `tiles`, `nTiles`, `nUnplacedTiles`, and `board: {letters}` |
 | `summary_data` | `nBunchTiles` — the club card's "12 tiles in the bunch" |
 

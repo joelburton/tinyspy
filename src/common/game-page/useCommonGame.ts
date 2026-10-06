@@ -60,12 +60,13 @@ import { noShellEnvelope, type CommonGame, type Shell } from './shell'
  *
  * The page is written, not assembled (plans/seat-view.md → The page is written,
  * not assembled): one read of `common.games` brings the `shell_data` and
- * `game_data` blobs each game's status builder wrote, and the first brings
- * `static_game_data` too, which nothing after create changes, so later reads
- * skip it (plans/static-game-data.md). The hook reads no other column of that
- * table. `shell_data` is what the page shows, and the timer comes from the
- * static blob's `setup`; `game_data` and `static_game_data` are the game's,
- * handed down opaque. A game's `useGame` is a pure function of the two.
+ * `game_data` blobs each game's status builder wrote, and `static_game_data`
+ * too until a read carrying it has been applied — nothing after create
+ * changes it, so later reads skip it (docs/supabase.md → Reading data). The
+ * hook reads no other column of that table. `shell_data` is what the page
+ * shows, and the timer comes from the static blob's `setup`; `game_data` and
+ * `static_game_data` are the game's, handed down opaque. A game's `useGame`
+ * is a pure function of the two.
  *
  * The room is a Realtime channel named `game:${gameId}` — stable, because
  * presence and broadcast only reach peers sharing a channel NAME, and because

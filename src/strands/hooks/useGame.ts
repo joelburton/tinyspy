@@ -118,10 +118,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
 /**
  * Put the page's two blobs back together as `GGameDataRaw`, each key in its
- * place (plans/static-game-data.md): `static_game_data` holds what create
- * fixed, `game_data` the rest. The puzzle is split across both — the prompt
- * and the tiles are static, the puzzle words arrive in `game_data` once the
- * game has ended.
+ * place: `static_game_data` holds what create fixed, `game_data` the rest. The
+ * puzzle is split across both — the prompt and the tiles are static, the puzzle
+ * words arrive in `game_data` once the game has ended.
  */
 function mergeStaticGameData(gameData: unknown, staticGameData: unknown): GGameDataRaw {
   // Each blob holds some of GGameDataRaw's keys; typed whole for the spread.

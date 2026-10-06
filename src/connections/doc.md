@@ -156,11 +156,16 @@ at Restart and at the end of every move, each assigned whole
 ([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
 assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of every `game_data` (`common._make_json_game_data`)
-connections' own:
+connections' own. `static_game_data`, what nothing after create changes, is
+written once by `_write_static_game_data`, from `create_game` and the rebuild
+over every game, never by a move ([docs/common-schema.md → Title, statuses and
+the two dates](../../docs/common-schema.md#title-statuses-and-the-two-dates));
+the hook merges it into `game_data`, each key in its place:
 
 | blob | connections' part |
 |---|---|
-| `game_data` | `puzzle: {date, cats, tiles}`, as `create_game` froze it, a tile being `{id, word}` with the word as its id, and a category's `tiles` four of them; `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
+| `static_game_data` | `puzzle: {date, cats, tiles}`, as `create_game` froze it, a tile being `{id, word}` with the word as its id, and a category's `tiles` four of them |
+| `game_data` | `team: {nMatchedCats, nMistakes}`, what the team shares, null in compete; `events`, every player's rows; on each player their own `nMatchedCats` and `nMistakes`, `maxMistakes`, and `board: {matchedCats, tilesLeft}`, this seat's grid |
 | `summary_data` | `team`, the same group; `maxMistakes` |
 
 Each player's two counts are their own, on `connections.players` and on their

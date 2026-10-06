@@ -20,7 +20,7 @@
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
 -- `shell_data` through common — and `create_game` writes `static_game_data`
--- once (plans/static-game-data.md); the page reads those.
+-- once; the page reads those.
 --
 -- What is particular to stackdown (docs/games/stackdown.md has the rest):
 --   - Boards come from a pre-generated library, one per difficulty band, and
@@ -177,7 +177,7 @@ drop function if exists stackdown._write_statuses(uuid, boolean);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 --
 --   static_game_data, stackdown's part:
 --     puzzle: {tiles, nReqdWords}          the stack, frozen at create: all 30

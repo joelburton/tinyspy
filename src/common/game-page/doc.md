@@ -19,17 +19,21 @@ all of that and the game never has to think about it.
 What the shell owns divides cleanly. The chrome is the header — the logo that
 is also the menu, the players strip that a message can take over, the pause
 button, the clock, and on a phone the switch between the board page and the
-info page. The shared state is `useCommonGame`: the two page blobs each game's
-status builder writes onto `common.games` (plans/seat-view.md → The page is
-written, not assembled), presence, the two kinds of pause, suspend, and the
-timer. `shell_data` is everything this page shows, the same shape for every
-game, and `cg` is that blob plus `me`, my entry in its roster; `game_data` is
-the game's, handed down opaque. What a game gets is
+info page. The shared state is `useCommonGame`: the page blobs each game's
+builders write onto `common.games` (plans/seat-view.md → The page is written,
+not assembled), presence, the two kinds of pause, suspend, and the timer.
+`shell_data` is everything this page shows, the same shape for every game, and
+`cg` is that blob plus `me`, my entry in its roster; `game_data` and
+`static_game_data` are the game's, handed down opaque, and the timer's kind
+and length are the one thing the page reads in the static blob (its
+`setup.timer`). The static blob is read once, since nothing after create
+changes it (docs/supabase.md → Reading data). What a game gets is
 `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
-`cg`, `gameData`, the session, the global feedback slot, the menu API and the
-one navigation a game does for itself (into a follow-up game; going back to the
-club is an action on the menu API). A game reads that object and renders a
-board.
+`cg`, `gameData`, `staticGameData`, the session, the global feedback slot, the
+menu API and the one navigation a game does for itself (into a follow-up game;
+going back to the club is an action on the menu API). A game's `useGame`
+merges the two blobs, each key back in its place, and the game renders a
+board from that.
 
 Everything cross-peer runs through one Realtime channel named `game:<gameId>`,
 which the code calls the shared room. Presence rosters and broadcasts only reach
@@ -39,12 +43,12 @@ looking at" pointer is cleared by whichever peer is last to leave the room, and
 a peer can only know it is last if everyone was counted in the same place. Split
 the name and presence sets stop merging: either nobody believes they are last
 and the pointer sticks, or everybody does and it thrashes. A game's own
-`useGame` hook opens no channel and, once the game is on the page blobs, makes
-no read: every move writes the room's `common.games` row through the game's
-status builder, the row's trigger sends the room one `changed` Broadcast per
-transaction (`common._nudge_game_page`), the page re-reads the blobs, and
-`useGame` is a pure function of the one it is handed
-(src/common/realtime/doc.md has the nudge).
+`useGame` hook opens no channel and makes no read: every move writes the
+room's `common.games` row through the game's status builder, the row's
+trigger sends the room one `changed` Broadcast per transaction
+(`common._nudge_game_page`), the page re-reads `game_data`, and `useGame` is a
+pure function of the two blobs it is handed (src/common/realtime/doc.md has
+the nudge).
 
 Leaving has three shapes, and one action — Back to club, placed by the menu, the
 info column's action row, the pause overlay and the device-block card alike —

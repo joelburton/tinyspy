@@ -162,10 +162,15 @@ Restart and at the end of every move, each assigned whole
 ([plans/seat-view.md](../../plans/seat-view.md) → The page is written, not
 assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of every `game_data` (`common._make_json_game_data`) wordle's
-own:
+own. `static_game_data`, what nothing after create changes, is written once by
+`_write_static_game_data`, from `create_game` and the rebuild over every game,
+never by a move ([docs/common-schema.md → Title, statuses and the two
+dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+hook merges it into `game_data`, each key in its place:
 
 | blob | wordle's part |
 |---|---|
+| `static_game_data` | the common part alone: wordle's puzzle is only the answer, which waits for the end |
 | `game_data` | `puzzle: {target}` (null until the game ends); `team: {nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `maxGuesses`, their own `nGuessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
 | `summary_data` | `team`, the same group; `maxGuesses`, `answerBand`, `nWinnerGuesses` |
 

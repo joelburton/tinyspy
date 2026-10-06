@@ -31,8 +31,8 @@ export type PlayAreaLoaderProps = {
   // written one.
   gameData: unknown
   // The game's `static_game_data` blob: what nothing after create changes,
-  // read once (plans/static-game-data.md). The game's `useGame` merges it into
-  // `gameData`, each key in its place, before reading either.
+  // read once (docs/supabase.md → Reading data). The game's `useGame` merges
+  // it into `gameData`, each key in its place, before reading either.
   staticGameData: unknown
   // The signed-in user: `auth.user.id`. Their player is `cg.me`.
   auth: Session

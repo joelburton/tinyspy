@@ -1892,12 +1892,11 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --   static_game_data  What `create_game` fixes and nothing after it changes:
 --                     the setup, the game facts every game shares, and the
 --                     game's puzzle less what it shows only once the game has
---                     ended (plans/static-game-data.md). The page reads it
---                     once, takes the timer from `setup`, and hands it to the
---                     game; the game's `useGame` merges it into `game_data`,
---                     each key back in its place. `_make_json_static_game_data`
---                     builds the common part; the game's builder adds its
---                     puzzle on top.
+--                     ended. The page reads it once, takes the timer from
+--                     `setup`, and hands it to the game; the game's `useGame`
+--                     merges it into `game_data`, each key back in its place.
+--                     `_make_json_static_game_data` builds the common part;
+--                     the game's builder adds its puzzle on top.
 --
 --   game_data         The game's own blob, whose game facts and player facts
 --                     every game shares — the turn, the ending, each player's

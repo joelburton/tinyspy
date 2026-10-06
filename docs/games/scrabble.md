@@ -315,7 +315,12 @@ the **bag** are secret. scrabble has no hidden *solution*, just hidden
 `scrabble._rebuild_data_cols` writes everything a page shows onto
 `common.games` at create, Restart, and the end of every move, in named
 `_make_json_*` pieces (plans/seat-view.md → The page is written, not
-assembled). Every key is always present, null when it has no value. Beside the
+assembled). Every key is always present, null when it has no value.
+`static_game_data`, what nothing after create changes, is written once by
+`_write_static_game_data`, from `create_game` and the rebuild over every game,
+and is the common part alone: scrabble has no puzzle, and its board is the
+game in play ([common-schema.md → Title, statuses and the two
+dates](../common-schema.md#title-statuses-and-the-two-dates)). Beside the
 common part:
 
 | `game_data` key | what it is |

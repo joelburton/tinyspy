@@ -8,8 +8,8 @@
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts
  * stay in the fixture file.
  *
- * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
- * wrote it (ids, records), and `GGameData` is what `useGame` makes of it for
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids, records), and `GGameData` is what `useGame` makes of it for
  * the surface (players, maps, the seat rule applied). `GPlayer` / `GPlayerRaw`
  * and `GFoundWord` / `GFoundWordRaw` are the same pair, one level down.
  */
@@ -21,11 +21,11 @@ import type { SetupOf, SetupRow } from '../common/setup-form/types.ts'
 import type { LADDERS } from './lib/solver.ts'
 
 /**
- * boggle's `game_data`, as `boggle._rebuild_data_cols` writes it
+ * boggle's `game_data` and `static_game_data`, as its builders write them
  * (supabase/sql/boggle.sql → The page blobs): the common part, with the
  * puzzle, the team, every find and boggle's facts about each player on top.
- * What the page is handed in `PlayAreaLoaderProps.gameData`; `useGame` turns
- * it into `gd`. It carries every player's rows; what a racer may see of a
+ * `useGame` merges the two blobs the page hands down and turns them into
+ * `gd`. It carries every player's rows; what a racer may see of a
  * rival mid-race is `useGame`'s rule.
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {

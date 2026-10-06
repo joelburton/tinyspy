@@ -180,11 +180,17 @@ create, at Restart and at the end of every move — a hint included, which is
 how the partner hears of it — each assigned whole ([plans/seat-view.md](../../plans/seat-view.md)
 → The page is written, not assembled): `shell_data` through
 `common._make_json_shell_data`, and on top of the common part of every
-`game_data` (`common._make_json_game_data`) this game's own:
+`game_data` (`common._make_json_game_data`) this game's own.
+`static_game_data`, what nothing after create changes, is written once by
+`_write_static_game_data`, from `create_game` and the rebuild over every game,
+never by a move ([docs/common-schema.md → Title, statuses and the two
+dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+hook merges it into `game_data`, each key in its place:
 
 | blob | codenamesduet's part |
 |---|---|
-| `game_data` | `puzzle: {tiles}`, the deal, which never changes: the 25 words by position, each with both players' keys, `{[userId]: G / N / A}`; `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, what the pair shares, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
+| `static_game_data` | `puzzle: {tiles}`, the deal: the 25 words by position, each with both players' keys, `{[userId]: G / N / A}` |
+| `game_data` | `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, what the pair shares, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
 | `summary_data` | `team`, the same group without its board |
 
 What a tile shows, who it points at and who may still guess it are the

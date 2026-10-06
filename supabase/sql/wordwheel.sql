@@ -211,7 +211,7 @@ drop function if exists wordwheel._write_statuses(uuid, boolean);
 --
 -- `static_game_data` is what nothing after `create_game` changes, written once
 -- by `_write_static_game_data`; the page hands it to `useGame`, which merges
--- each key back into its place in `game_data` (plans/static-game-data.md).
+-- each key back into its place in `game_data`.
 -- wordwheel's puzzle is all of it: nothing in it waits for the game's end.
 --
 --   static_game_data, wordwheel's part:

@@ -9,7 +9,7 @@ import type { Player } from '../members/member.ts'
  * `common._make_json_static_game_data` writes it (supabase/sql/common.sql →
  * The page blobs' common parts): what nothing after create changes. The page
  * reads it once and takes the timer from `setup`; the game's `useGame` merges
- * the whole blob into `game_data` (plans/static-game-data.md).
+ * the whole blob into `game_data`.
  */
 export type StaticGameDataRaw = {
   id: string

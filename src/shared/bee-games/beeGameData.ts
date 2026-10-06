@@ -106,10 +106,10 @@ export type BeeFoundWord = Omit<BeeFoundWordRaw, 'userId'> & {
 }
 
 /**
- * A bee game's `game_data`, as its `_rebuild_data_cols` writes it: the common
- * part, with the puzzle, the team, every find and the game's facts about each
- * player on top. What the page is handed in `PlayAreaLoaderProps.gameData`;
- * `makeBeeGameData` turns it into `gd`. It carries every player's rows; what
+ * A bee game's `game_data` and `static_game_data`, as its builders write them:
+ * the common part, with the puzzle, the team, every find and the game's facts
+ * about each player on top. The game's `useGame` merges the two blobs the page
+ * hands down; `makeBeeGameData` turns them into `gd`. It carries every player's rows; what
  * a racer may see of a rival mid-race is `makeBeeGameData`'s rule.
  */
 export type BeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
