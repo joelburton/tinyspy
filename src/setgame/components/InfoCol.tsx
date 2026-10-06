@@ -71,7 +71,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <div className={shared.infoState}>
-          <StateLine data={gd.stateLineData} withTilesInDeck/>
+          <StateLine facts={gd.me} withTilesInDeck withHints={gd.coop}/>
         </div>
 
         <LastSet claim={gd.events.findLast((e) => e.kind === 'claim') ?? null}/>

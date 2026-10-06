@@ -66,7 +66,7 @@ export function useBoardColActions({
     picks.clear()
     // Every pick is on the table: `picks.tileIds` is the live picks.
     const [a, b, c] = next.map((id) =>
-      gd.board.tilesById[id]!) as [GTile, GTile, GTile]
+      gd.me.board.tilesById[id]!) as [GTile, GTile, GTile]
     if (isSet(a, b, c)) {
       void submitClaim([a, b, c])
     } else {
@@ -83,7 +83,7 @@ export function useBoardColActions({
     describe: () => (canPick ? 'active' : 'hidden'),
     run: (key) => {
       // An empty slot's letter does nothing — there is no tile there yet.
-      const tile = gd.board.tiles[slotForKey(key ?? '')]
+      const tile = gd.me.board.tiles[slotForKey(key ?? '')]
       if (tile !== undefined) pickTile(tile)
     },
   })

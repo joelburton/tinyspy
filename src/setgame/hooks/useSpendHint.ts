@@ -56,10 +56,10 @@ export function useSpendHint({
     setRingClaims(nClaims)
     setRingTileIds([])
   }
-  const ringTiles = ringTileIds.flatMap((id) => gd.board.tilesById[id] ?? [])
+  const ringTiles = ringTileIds.flatMap((id) => gd.me.board.tilesById[id] ?? [])
 
   async function spend() {
-    const next = nextHint(gd.board.tiles, ringTiles)
+    const next = nextHint(gd.me.board.tiles, ringTiles)
     if (next === null) return
     const nextIds = next.map((t) => t.id)
     setRingTileIds(nextIds)

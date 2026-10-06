@@ -22,8 +22,8 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const gameOutcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const nSetsFound = gd.players.reduce((n, p) => n + p.nSetsFound, 0)
-  const nTilesLeft = gd.board.tiles.length
+  const nSetsFound = gd.me.nSetsFound
+  const nTilesLeft = gd.me.board.tiles.length
   const winners = gd.players.filter((p) => p.finalRanking === 1)
   // Joined for the memo; split again for the builder.
   const winnerNamesKey = winners.map((p) => p.username).join('\n')

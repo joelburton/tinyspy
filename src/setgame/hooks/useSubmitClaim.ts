@@ -68,6 +68,6 @@ export function useSubmitClaim({
     send,
     // Derived against the live table, so a claim that landed holds nothing.
     inFlightTileIds: new Set(sentTileIds.filter((id) =>
-      gd.board.tilesById[id] !== undefined)),
+      gd.me.board.tilesById[id] !== undefined)),
   }
 }

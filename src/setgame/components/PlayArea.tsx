@@ -138,7 +138,7 @@ function PlayArea({
   // ─── Render ────────────────────────────────────────────
 
   // The table to show: a past turn's while one is open, else the live one.
-  const shownTiles = historyView.tiles ?? gd.board.tiles
+  const shownTiles = historyView.tiles ?? gd.me.board.tiles
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage

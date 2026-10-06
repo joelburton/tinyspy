@@ -152,8 +152,16 @@ it into `game_data`, each key in its place.
 | blob | setgame's part |
 |---|---|
 | `static_game_data` | the common part alone: there is no puzzle, and the table refills in place |
-| `game_data` | `board: {tiles}` — the one table, shared in both modes, each tile `{id}`, its four digits as text, in slot order. `nTilesInDeck`, the tiles still to be dealt. `team: {nSetsFound, nHintsUsed}` — the players' counts summed; null in compete. `events`, every row `{id, userId, kind, tiles, boardAfter, tookTurn, at}`. On each player their own `nSetsFound` and `nHintsUsed` |
-| `summary_data` | `team`, as above; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `winnerIds`, every player ranked first, and `nWinnerSets`, the sets they share — both compete's |
+| `game_data` | `board: {tiles}` — the one table, shared in both modes, each tile `{id}`, its four digits as text, in slot order. `nTilesInDeck`, the tiles still to be dealt. `team: {nSetsFound, nHintsUsed}` — the team's own facts, the players' counts summed, sent once; null in compete. `events`, every row `{id, userId, kind, tiles, boardAfter, tookTurn, at}`. On each player their own `nSetsFound` and `nHintsUsed` |
+| `summary_data` | `team: {nSetsFound, nHintsUsed}`, the team's counts, null in compete; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `winnerIds`, every player ranked first, and `nWinnerSets`, the sets they share — both compete's |
+
+**Every player carries the facts** (`GFacts`: `nSetsFound`, `nHintsUsed`,
+`board`, `nTilesInDeck`) twice: spread on, the side's — the team's in coop,
+their own in compete; under `own`, their own
+([plans/team-facts.md](../../plans/team-facts.md)). The table and the deck are
+one in both modes, so the wire sends them once at the top and `useGame` puts
+them on every player, the same table object on each; `gd` has no `board`,
+`nTilesInDeck` or `team` of its own.
 
 **Nothing is private to a seat**, so `useGame` has no seat rule: every row and
 count is public in both modes. `winnerIds` is a list because with no speed
@@ -385,7 +393,7 @@ text entry at all.
 
 **Info column**, in the canonical order: the state line (`Found · Deck
 remaining · Hints` — the third only in coop; `StateLine`, drawing
-`gd.stateLineData`), the **last-set panel**, the OpponentStrip in compete, the
+`gd.me`), the **last-set panel**, the OpponentStrip in compete, the
 turn line (turn games only), one action row, the Setup options list, then the
 **event log**. There is deliberately no count of the tiles face-up: they are
 right there to be looked at.

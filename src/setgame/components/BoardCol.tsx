@@ -64,7 +64,7 @@ export function BoardCol({
 
   // ─── The pending move ─────────────────────────────────────────
   // The picks, the claim they make, the hint that picks for you, and the keys.
-  const picks = usePickedTiles(gd.board.tilesById)
+  const picks = usePickedTiles(gd.me.board.tilesById)
   const submission = useSubmitClaim({ gd, localFeedbackSlot })
   const hint = useSpendHint({
     gd,
@@ -91,7 +91,7 @@ export function BoardCol({
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <StateLine data={gd.stateLineData} withTilesInDeck={false}/>
+          <StateLine facts={gd.me} withTilesInDeck={false} withHints={gd.coop}/>
           {/* On the bar in compete too, disabled and saying why — the same
               action the info column places. */}
           <ActionButton action={actions.actHint} show="icon"/>

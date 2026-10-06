@@ -12,8 +12,20 @@ const PLAYERS = [
 describe('makeGameData', () => {
   it('keys the table\'s tiles by id, and they are the table\'s own objects', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(), 'u1')
-    expect(gd.board.tiles).toHaveLength(12)
-    for (const tile of gd.board.tiles) expect(gd.board.tilesById[tile.id]).toBe(tile)
+    const board = gd.me.board
+    expect(board.tiles).toHaveLength(12)
+    for (const tile of board.tiles) expect(board.tilesById[tile.id]).toBe(tile)
+  })
+
+  it('puts the one table and the deck on every player in both modes, the same object', () => {
+    for (const mode of ['coop', 'compete'] as const) {
+      const gd = makeGameData(ZTest_makeGameDataRaw({ mode, players: PLAYERS, nTilesInDeck: 57 }), 'u1')
+      expect(gd.playersById.u2!.board).toBe(gd.me.board)
+      expect(gd.me.own.board).toBe(gd.me.board)
+      expect([gd.me.nTilesInDeck, gd.playersById.u2!.nTilesInDeck]).toEqual([57, 57])
+      expect(gd).not.toHaveProperty('board')
+      expect(gd).not.toHaveProperty('team')
+    }
   })
 
   it('turns every row\'s user into the player, and `me` into my entry', () => {
@@ -35,23 +47,25 @@ describe('makeGameData', () => {
     expect(gd.playersById.u2!.nSetsFound).toBe(1)
   })
 
-  it('draws the state line from the team in coop', () => {
+  it('coop: every player carries the team\'s counts, and their own under `own`', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({
       players: PLAYERS,
-      nTilesInDeck: 57,
       events: [ZTest_claim(1, 'u2', ['1111', '1112', '1113']), ZTest_hint(2, 'u1', ['1121'])],
     }), 'u1')
-    expect(gd.stateLineData).toEqual({ nSetsFound: 1, nTilesInDeck: 57, nHintsUsed: 1 })
+    expect([gd.me.nSetsFound, gd.me.nHintsUsed]).toEqual([1, 1])
+    expect([gd.playersById.u2!.nSetsFound, gd.playersById.u2!.nHintsUsed]).toEqual([1, 1])
+    expect([gd.me.own.nSetsFound, gd.me.own.nHintsUsed]).toEqual([0, 1])
+    expect([gd.playersById.u2!.own.nSetsFound, gd.playersById.u2!.own.nHintsUsed]).toEqual([1, 0])
   })
 
-  it('draws the state line from my own count in a race, with no hints', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({
       mode: 'compete',
       players: PLAYERS,
-      nTilesInDeck: 57,
       events: [ZTest_claim(1, 'u2', ['1111', '1112', '1113'])],
     }), 'u1')
-    expect(gd.stateLineData).toEqual({ nSetsFound: 0, nTilesInDeck: 57, nHintsUsed: null })
+    expect([gd.me.nSetsFound, gd.me.own.nSetsFound]).toEqual([0, 0])
+    expect([gd.playersById.u2!.nSetsFound, gd.playersById.u2!.own.nSetsFound]).toEqual([1, 1])
   })
 
   it('turns the ending\'s links into players', () => {

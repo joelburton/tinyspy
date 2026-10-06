@@ -48,13 +48,13 @@ export function buildPrintModel({
   date: string
   palette: GPalette
 }): SetgamePrintModel {
-  const nSetsFound = gd.players.reduce((n, p) => n + p.nSetsFound, 0)
+  const nSetsFound = gd.me.nSetsFound
   const sets = `${nSetsFound} ${nSetsFound === 1 ? 'set' : 'sets'}`
   // The summary reads as a state line, matching what the info column says: how
   // much game is left during play, what the table got at the end. It does not
   // count the tiles left over — that is the ordinary ending, not a shortfall
   // (lib/gameEndingMessage.ts).
-  const summary = gd.ended ? `${sets} found` : `${sets} found · ${gd.nTilesInDeck} in the deck`
+  const summary = gd.ended ? `${sets} found` : `${sets} found · ${gd.me.nTilesInDeck} in the deck`
 
   return {
     brand: gd.brand,
@@ -65,7 +65,7 @@ export function buildPrintModel({
     mode: gd.mode,
     palette,
     scores: gd.players
-      .map((p) => ({ name: p.username, sets: p.nSetsFound, hints: p.nHintsUsed }))
+      .map((p) => ({ name: p.username, sets: p.own.nSetsFound, hints: p.own.nHintsUsed }))
       .sort((a, b) => b.sets - a.sets),
     turns: gd.events.map((event, i) => ({
       n: i + 1,

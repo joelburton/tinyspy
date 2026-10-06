@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -62,37 +62,47 @@ export type GPalette = 'traditional' | 'colorblind'
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
-  // The one table, shared in both modes.
+  // The one table and the deck: shared in both modes, so sent once, here, and
+  // put on every player by `useGame`.
   board: {
     // In slot order: a tile's slot is its place on screen and its key letter.
     tiles: GTile[]
   }
   // The tiles still to be dealt. The deck's order never leaves the server.
   nTilesInDeck: number
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's own facts, sent once: the players' counts, summed. Null in
+  // compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every row, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
-/** What the team shares in coop (plans/team-facts.md): the players' counts,
- *  summed. */
-export type GTeam = {
+/**
+ * setgame's facts (plans/team-facts.md): the sets found, the hints taken, and
+ * the table and deck they are played from. A player carries them twice —
+ * spread on, their side's (the team's in coop, their own in compete); under
+ * `own`, their own. The table and the deck are one in both modes, the same on
+ * every side.
+ */
+export type GFacts = {
   nSetsFound: number
+  // Coop's only: a race has no hints.
   nHintsUsed: number
+  board: GBoard
+  nTilesInDeck: number
 }
 
-/**
- * What the state line shows — "Found: 4 • Deck remaining: 57 • Hints: 1": the
- * team's counts in coop, my own in compete. Decided once, in `makeGameData`, so
- * the line draws it and picks nothing.
- */
-export type GStateLineData = {
-  nSetsFound: number
-  nTilesInDeck: number
-  // Null in compete, where there are no hints.
-  nHintsUsed: number | null
+/** The facts a side's own blob carries; the table and the deck are sent once
+ *  at the top, for every side. */
+export type GFactsRaw = Pick<GFacts, 'nSetsFound' | 'nHintsUsed'>
+
+/** The one table as `gd` holds it. */
+export type GBoard = {
+  // In slot order: a tile's slot is its place on screen and its key letter.
+  tiles: GTile[]
+  // The same tiles, keyed by id.
+  tilesById: Record<string, GTile>
 }
 
 /**
@@ -129,11 +139,7 @@ export type GEventRaw = {
 
 /** A player as setgame's game_data shows them: the common player, with their
  *  own counts. */
-export type GPlayerRaw = PlayerRaw & {
-  // This player's own, in every mode; the team's are `team`'s.
-  nSetsFound: number
-  nHintsUsed: number
-}
+export type GPlayerRaw = PlayerRaw & GFactsRaw
 
 /*
  * The shape of `gd` (`GGameData`): the game_data blob with its links turned
@@ -151,11 +157,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   title
  *   setup
  *   setupRows
- *   board:                                   # the one table, shared in both modes
- *     tiles: [tile, …]                       # in slot order: a tile's place and its key letter
- *     tilesById
- *   nTilesInDeck                             # the tiles still to be dealt
- *   team: {nSetsFound, nHintsUsed}           # null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -164,12 +165,16 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nSetsFound, nTilesInDeck, nHintsUsed}   # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   nSetsFound                               # own, in every mode
- *   nHintsUsed                               # own
+ *   nSetsFound                               # the side's: the team's in coop, their own in compete
+ *   nHintsUsed
+ *   board:                                   # the one table, the same object on every player
+ *     tiles: [tile, …]                       # in slot order: a tile's place and its key letter
+ *     tilesById
+ *   nTilesInDeck                             # the tiles still to be dealt
+ *   own: {nSetsFound, nHintsUsed, board, nTilesInDeck}   # this player's own
  *
  * tile:                                      # GTile
  *   id                                       # "3121": count, color, fill, shape
@@ -188,15 +193,10 @@ export type GPlayerRaw = PlayerRaw & {
  * **`gd`, the game data** — everything the play surface knows about THIS
  * game, in one object. It is the `game_data` blob the game's builder wrote
  * (`GGameDataRaw`), with its links turned into players, the table's tiles
- * keyed by id, the setup rows built and the state line decided. Read-only:
+ * keyed by id and put on every player, and the setup rows built. Read-only:
  * `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'board' | 'turns' | 'ending' | 'events' | 'players'> & {
-  board: {
-    tiles: GTile[]
-    // The same tiles, keyed by id.
-    tilesById: Record<string, GTile>
-  }
+export type GGameData = Omit<GGameDataRaw, 'board' | 'nTilesInDeck' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -214,11 +214,16 @@ export type GGameData = Omit<GGameDataRaw, 'board' | 'turns' | 'ending' | 'event
   playersById: Record<string, GPlayer>
   // My entry in `playersById`: the same object.
   me: GPlayer
-  stateLineData: GStateLineData
 }
 
-/** A player as `gd` holds them: nothing of theirs is withheld or relinked. */
-export type GPlayer = GPlayerRaw
+/**
+ * A player as `gd` holds them: the common player with setgame's facts twice —
+ * spread on, their side's; under `own`, their own (plans/team-facts.md).
+ * Nothing of theirs is withheld.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
+}
 
 export type GEvent = Omit<GEventRaw, 'userId'> & {
   // Who did it.
@@ -300,7 +305,7 @@ export type GSetup = SetupOf<GSetupValues>
  * Every key is always present, null when it has no value, so no key here is
  * optional. The summary (`manifest.ts`'s `summaryFor`) reads it as written.
  *
- * `team` is the same group `game_data` carries, null in compete.
+ * `team` is the team's counts in coop, null in compete.
  * `nTableSetsFound` is the sets the whole table has taken, in both modes — the
  * one count the club card reads.
  * `perfectClear` is a coop win that left the table empty, null unless a coop
@@ -309,7 +314,7 @@ export type GSetup = SetupOf<GSetupValues>
  * winner.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: GFactsRaw | null
   nTableSetsFound: number
   nTilesInDeck: number
   perfectClear: boolean | null

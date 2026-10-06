@@ -5,7 +5,7 @@ import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GStateLineData } from '../types'
+import type { GBoard, GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
  * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
@@ -15,7 +15,22 @@ import type { GEvent, GGameData, GGameDataRaw, GStateLineData } from '../types'
  * front of everyone, so every row and count is public in both modes.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
-  const players = raw.players
+  // `team`, the table and the deck go onto the players; `gd` has none of them.
+  const { team, board: boardRaw, nTilesInDeck, turns, ending, ...rest } = raw
+
+  // The one table, shared in both modes: made once, the same object on every
+  // player.
+  const board: GBoard = {
+    tiles: boardRaw.tiles,
+    tilesById: Object.fromEntries(boardRaw.tiles.map((t) => [t.id, t])),
+  }
+
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const own: GFacts = { nSetsFound: p.nSetsFound, nHintsUsed: p.nHintsUsed, board, nTilesInDeck }
+    return { ...p, ...own, ...team, own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -33,27 +48,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // The gate has checked that I am seated.
   const me = playersById[myId]!
-  // What the state line shows: the team's where the game has a team, else my
-  // own (plans/team-facts.md). A race has no hints.
-  const stateLineData: GStateLineData = raw.team === null
-    ? {
-      nSetsFound: me.nSetsFound,
-      nTilesInDeck: raw.nTilesInDeck,
-      nHintsUsed: null,
-    }
-    : {
-      nSetsFound: raw.team.nSetsFound,
-      nTilesInDeck: raw.nTilesInDeck,
-      nHintsUsed: raw.team.nHintsUsed,
-    }
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
-    board: {
-      tiles: raw.board.tiles,
-      tilesById: Object.fromEntries(raw.board.tiles.map((t) => [t.id, t])),
-    },
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
@@ -68,7 +65,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData,
   }
 }
 
