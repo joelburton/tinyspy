@@ -10,7 +10,7 @@ import styles from './pickers.module.css'
 import '../../theme.css'
 
 type Props = {
-  /** Chosen — the parsed board and the file it came from. */
+  // Chosen — the parsed board and the file it came from.
   onPick: (chosen: { board: GImportedBoard; filename: string }) => void
   onClose: () => void
 }

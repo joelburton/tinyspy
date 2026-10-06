@@ -12,6 +12,54 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 **Two passes, back to back**: the audit — React, SQL and CSS together — then
 the tile-feedback pass against [tile-feedback.md](../tile-feedback.md).
 
+## The conversion — rulings
+
+Joel, 2026-10-06, answering plans/crosswords-conversion.md before and during
+the build:
+
+- **No `BoardCol` or `InfoCol`.** The crossplay layout stays.
+- **`static_game_data` and the Broadcast nudge come later**, not in this
+  conversion; one read in flight waits with them.
+- **One jsonb per grid** in `crosswords.grids`; `crosswords.cells` dropped after
+  every letter is copied with a count check.
+- **The board in the blob is packed and flat**: `fills` one string per cell row
+  by row, a penciled letter lowercase ("easy to read when debugging, and will
+  keep the json sent small"); the flags and the edge marks as flat cell
+  indices; the writers one digit per cell; coop's grid written once, under
+  `team.board`. The template is not packed: it is sent once after the static
+  split.
+- **Fills apart**: `gd.puzzle.cells` is the template; a seat's `board.cells`
+  are `GCell`s (`GPuzzleCell` the puzzle's cell, `GCell` a seat's;
+  `GPuzzleTemplate` the stored template, `GPuzzle` the template plus the
+  solution).
+- **Uppercase stays crosswords' case** (todo.md → Won't do).
+- **The solution is in the blob**, null until the game ends; `games_state` and
+  `_solution_for` dropped.
+- **A revision counter**, not timestamps, says when the blob carries my write.
+- **The summary counts the filled cells**: "60% filled".
+- **A Restart starts every grid exactly as the game started it**, the
+  template's saved letters and bars included.
+- **The name stays `Grid`.** Player-facing copy never says "commits": it says
+  "submits".
+
+## The inventory (step 1)
+
+- **The loader** read `crosswords.games` once (`useGame`) and the caller's
+  grid off `crosswords.cells` with its own subscription (`useCells`, a
+  per-cell `version` merge); the reveal read `games_state.solution`; teammates'
+  cursors, fills and note asks rode one Broadcast room (`usePeerCursors`).
+- **The convenience RLS.** `cells_select` (coop for any member, compete your
+  own rows until the end) went with its table, taken over by the seat rule in
+  `makeGameData`; `games_state` and `_solution_for` were dropped, taken over by
+  `puzzle.solution` in the blob. `games_select` (a club-member gate) and
+  `puzzles_select` with its column grant (the library picker) stay.
+- **The status keys** `_write_statuses` wrote: `game_status {}`,
+  `player_status {}`, `clubpage_info {winner_user_id}`. The page read
+  `status.winner_username` and `status.reason`, which nothing wrote, so
+  compete's timeout verdict never showed.
+- **A coop solve** stamps every teammate's `solved_at`; a compete solve the
+  solver's.
+
 ## The roster
 
 *(agreed with Joel when the area opens — `src/crosswords/`, its two SQL files,

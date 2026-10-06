@@ -14,11 +14,11 @@ declare module 'puzjs' {
   type DecodedPuz = {
     grid: RawCell[][]
     meta: { title?: string; author?: string; copyright?: string; description?: string }
-    /** Flat cell indices (`row * width + col`) for cells with the GEXT
-     *  circle bit. Empirically what puzjs returns. */
+    // Flat cell indices (`row * width + col`) for cells with the GEXT
+    // circle bit. Empirically what puzjs returns.
     circles?: number[]
-    /** Flat cell indices for cells with the GEXT shade bit — read into
-     *  the `shaded` cell flag by `parsePuzBuffer`. */
+    // Flat cell indices for cells with the GEXT shade bit — read into
+    // the `shaded` cell flag by `parsePuzBuffer`.
     shades?: number[]
     clues: { across: (string | undefined)[]; down: (string | undefined)[] }
   }

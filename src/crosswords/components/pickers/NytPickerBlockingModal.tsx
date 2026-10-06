@@ -14,8 +14,8 @@ function todayStr(): string {
 }
 
 type Props = {
-  /** Chosen — a weekday, or an explicit date that overrides it. Exactly one is
-   *  set, because the two answer the same question. */
+  // Chosen — a weekday, or an explicit date that overrides it. Exactly one is
+  // set, because the two answer the same question.
   onPick: (choice: { weekday: number; date?: string } | { weekday?: undefined; date: string }) => void
   onClose: () => void
 }

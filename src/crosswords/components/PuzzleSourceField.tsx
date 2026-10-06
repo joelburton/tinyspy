@@ -21,13 +21,13 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 type OpenPicker = 'library' | 'nyt' | 'guardian' | 'upload' | null
 
 type Props = AllFieldProps<GPuzzleChoice> & {
-  /** The whole choice, replaced — not one key at a time. A picker settles every
-   *  key at once (choosing NYT clears the library's id and the upload's board),
-   *  so handing back a complete value is what makes "nothing from the source
-   *  you left survives" a property of the type rather than of the caller's care. */
+  // The whole choice, replaced — not one key at a time. A picker settles every
+  // key at once (choosing NYT clears the library's id and the upload's board),
+  // so handing back a complete value is what makes "nothing from the source
+  // you left survives" a property of the type rather than of the caller's care.
   onChange: (next: GPuzzleChoice) => void
-  /** Whose history the NYT weekday walk skips over — the checked players. It
-   *  cannot come from `value`: the player picker is a sibling field. */
+  // Whose history the NYT weekday walk skips over — the checked players. It
+  // cannot come from `value`: the player picker is a sibling field.
   seenBy: string[]
   clubHandle: string
 }

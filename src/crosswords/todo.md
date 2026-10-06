@@ -2,7 +2,6 @@
 
 ## Bugs
 
-
 - **Picture clues don't appear.** The NYT daily for 2026-09-06
   (<https://www.nytimes.com/crosswords/game/daily/2026/09/06>) has clues whose
   content is an image, and the board shows nothing for them — so those entries
@@ -10,33 +9,12 @@
   source format carries for such a clue, whether the importer drops it or never
   had it, and whether the image can be stored with the puzzle rather than
   hot-linked.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
-- **`replay_board` takes no game-row lock.** Every other game's replay locks
-  the game row (`select … for update`) before resetting, because a replay
-  interleaved with an in-flight move can let that move land on the fresh
-  board, or let a game-ending move land after the reset and re-end the game
-  (docs/supabase.md → Server conventions). `crosswords.replay_board` doesn't,
-  and `common._reset_game` doesn't lock for it. psychicnum's `replay_board` is
-  the model.
-- **The cell RPCs take no game-row lock** (`set_cell`, `set_mark`,
-  `check_cells`, `reveal_cells`). Per-cell writes carry their own `version`
-  (newer wins), so this may be deliberate for the cells themselves; check
-  whether the move that completes the grid, and so ends the game, can race
-  another, and say in the functions why they don't lock.
 
 ## Soon
 
 - Investigate how we flag check/reveal.
 
-- **A compete win writes no `reason`.** Every ending writes one into the
-  status blob; `_finish_compete` leaves it out, where coop's win writes
-  `'solved'`. The word waits for the shared vocabulary
-  (`plans/game-cards.md` → After the cards, step 7).
-
-- **Collapse the info-column action row's branches.** This game still FORKS on
+- **Collapse the strip's action-row branches** (`ToolStrip`). This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
   rows is missing back-to-club while a race runs on without you. psychicnum is
@@ -109,18 +87,18 @@
 
 ## Maybe
 
-- **Update the summary now and then during play?** A cell change writes
-  only `crosswords.cells`, so `common.games` changes only when someone opens
-  or leaves the game, and at the end. Two things follow: the summary can't
-  show progress ("50% filled"), and a game played for two hours without
-  ending reads as last active when it was opened. Both would take an
-  occasional write to `clubpage_info` (plans/common-tables.md), which also
-  moves `last_active_at` — not one per keystroke, since every write reloads
-  every open club page. Decide whether either is wanted.
-
 - **The cursor speaks its own vocabulary.** Here a cursor is `{ row, col }`
   with `'across'`/`'down'`; the shared board cursor (`common/board-cursor`) is
   `{ x, y }` with `'h'`/`'v'`, and docs/naming.md wants one name per concept.
   Whether the two should share names is a question across both.
 
 ## Won't do
+
+- **Lowercase letters.** Joel, 2026-10-06: crosswords keeps uppercase, unlike
+  the games that went lowercase. Every edge of this game already uppercases —
+  the .puz and .ipuz parsers, the NYT and Guardian conversions, the keyboard,
+  `set_cell`, and `writeIpuz` on the way out — so uppercase is the case that
+  never changes as a letter moves. The page blob's lowercase means pencil.
+- **Words for what a check found.** 2026-10-06: a check says nothing about
+  its result; its red marks are the answer, and the slot speaks only to say it
+  skipped penciled cells.

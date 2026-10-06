@@ -7,12 +7,6 @@
   min-width: 22rem;
   /* No max-width: the dialog is a FIXED 480px (SetupGameModal's
    * `defaultSize`), so the body should FILL it. Capping the form narrower just
-   * leaves dead space down the right-hand side.
-   *
-   * Nothing else lives here any more. The four source-tab bodies and everything
-   * they needed — the stack that kept them one height, the library list, the
-   * drop target, the club-history stripe — moved to pickers/pickers.module.css
-   * when the four source tabs became four picker modals. A form of three
-   * fields needs three
-   * fields' worth of CSS. */
+   * leaves dead space down the right-hand side. The pickers' own CSS is
+   * pickers/pickers.module.css. */
 }

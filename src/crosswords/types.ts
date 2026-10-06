@@ -47,41 +47,41 @@ export type GScope = 'letter' | 'word' | 'puzzle'
 export type GPuzzleCell =
   | {
       kind: 'block'
-      /** Irregular-grid "void" cell — functionally identical to a
-       *  regular block (terminates words, unclickable, unfillable),
-       *  but rendered as transparent space instead of a black square
-       *  with an outline. Used to carve non-rectangular puzzle shapes
-       *  (.ipuz `null` cells). */
+      // Irregular-grid "void" cell — functionally identical to a
+      // regular block (terminates words, unclickable, unfillable),
+      // but rendered as transparent space instead of a black square
+      // with an outline. Used to carve non-rectangular puzzle shapes
+      // (.ipuz `null` cells).
       hidden?: boolean
     }
   | {
       kind: 'cell'
       number: number | null
-      /** A given's printed letter; on a non-given cell, a saved fill an
-       *  uploaded half-finished `.ipuz` carries, which `create_game` seeds
-       *  into the grid. Null on a blank template. */
+      // A given's printed letter; on a non-given cell, a saved fill an
+      // uploaded half-finished `.ipuz` carries, which `create_game` seeds
+      // into the grid. Null on a blank template.
       fill: string | null
       // A penciled letter: set only on the printers' copy of the grid
       // (`makePrintState`), which carries the board's fills.
       pencil?: boolean
-      /** Author-defined circle around the cell (common theme marker).
-       *  Pure presentation: set at parse time, never mutated, ignored
-       *  by reveal/check/clear/fill. */
+      // Author-defined circle around the cell (common theme marker).
+      // Pure presentation: set at parse time, never mutated, ignored
+      // by reveal/check/clear/fill.
       circled?: boolean
-      /** Author-defined background shading (alternative theme marker;
-       *  ipuz `style.color` / .puz GEXT shade bit). Pure presentation
-       *  like `circled`: set at parse time, never mutated. */
+      // Author-defined background shading (alternative theme marker;
+      // ipuz `style.color` / .puz GEXT shade bit). Pure presentation
+      // like `circled`: set at parse time, never mutated.
       shaded?: boolean
-      /** Author-prefilled cell: the `fill` arrived with the puzzle and
-       *  is part of the template. `set_cell` refuses to mutate it, and
-       *  the client renders the letter underlined. */
+      // Author-prefilled cell: the `fill` arrived with the puzzle and
+      // is part of the template. `set_cell` refuses to mutate it, and
+      // the client renders the letter underlined.
       given?: boolean
-      /** An author-drawn word-break / hyphen on this cell's RIGHT edge —
-       *  the NYT overlay import writes these — which `create_game` seeds
-       *  into the grid, where a player's own marks live too. */
+      // An author-drawn word-break / hyphen on this cell's RIGHT edge —
+      // the NYT overlay import writes these — which `create_game` seeds
+      // into the grid, where a player's own marks live too.
       markRight?: GMarkType
-      /** Same as `markRight`, for the BOTTOM edge (boundary with the
-       *  cell below) — down-entry breaks. */
+      // Same as `markRight`, for the BOTTOM edge (boundary with the
+      // cell below) — down-entry breaks.
       markBottom?: GMarkType
     }
 
@@ -149,10 +149,10 @@ export type GPuzzle = GPuzzleTemplate & {
  *  key. */
 export type GParseResult = {
   state: GPuzzleState
-  /** Per cell: null for a block, otherwise an array of accepted answers.
-   *  Length 1 for normal cells; length > 1 for Schrödinger cells
-   *  (multiple valid answers). Check accepts any element; reveal writes
-   *  element 0 (the canonical answer). */
+  // Per cell: null for a block, otherwise an array of accepted answers.
+  // Length 1 for normal cells; length > 1 for Schrödinger cells
+  // (multiple valid answers). Check accepts any element; reveal writes
+  // element 0 (the canonical answer).
   solution: GSolution
 }
 
@@ -174,8 +174,8 @@ export type GNytCell = {
 
 /** One clue of an NYT v6 response. */
 type NytClue = {
-  /** string | array | { plain?, formatted? }. `formatted` is the one carrying
-   *  markup and is present only on clues that need it — see clueText. */
+  // string | array | { plain?, formatted? }. `formatted` is the one carrying
+  // markup and is present only on clues that need it — see clueText.
   text?: unknown
   direction?: string
   label?: string
@@ -186,16 +186,16 @@ type NytBody = {
   dimensions: { width: number; height: number }
   cells: GNytCell[]
   clues: NytClue[]
-  /** Present when the puzzle ships a raster overlay (circles-on-shaded and/or
-   *  word-break bars the per-cell `type` field can't express). `beforeStart`
-   *  is a 1-based index into the response's `assets` array. */
+  // Present when the puzzle ships a raster overlay (circles-on-shaded and/or
+  // word-break bars the per-cell `type` field can't express). `beforeStart`
+  // is a 1-based index into the response's `assets` array.
   overlays?: { beforeStart?: number }
 }
 
 /** An NYT v6 puzzle response (only the fields the converter reads). */
 export type GNytPuzzleResponse = {
   body?: NytBody[]
-  /** Raster assets (overlay PNGs); indexed 1-based by `body.overlays`. */
+  // Raster assets (overlay PNGs); indexed 1-based by `body.overlays`.
   assets?: { uri?: string }[]
   title?: string
   publicationDate?: string
@@ -243,8 +243,8 @@ export type GGuardianData = {
   crosswordType?: string // "quick" | "cryptic" | …
   dimensions?: { rows?: number; cols?: number }
   entries?: GGuardianEntry[]
-  /** The Guardian's own "the answers are published" flag. False for a Prize /
-   *  Weekend puzzle before its reveal date. */
+  // The Guardian's own "the answers are published" flag. False for a Prize /
+  // Weekend puzzle before its reveal date.
   solutionAvailable?: boolean
 }
 
@@ -271,36 +271,36 @@ export type GGuardianData = {
  */
 export type GSetupValues = {
   timer: TimerMode
-  /** WHERE THE PUZZLE COMES FROM, and absent until someone says. A fresh form
-   *  names no source, and backing out of a picker puts it back here — see
-   *  `PuzzleSourceField`, whose button row draws the named one as the primary
-   *  button and so must have nothing to draw when nothing is chosen. */
+  // WHERE THE PUZZLE COMES FROM, and absent until someone says. A fresh form
+  // names no source, and backing out of a picker puts it back here — see
+  // `PuzzleSourceField`, whose button row draws the named one as the primary
+  // button and so must have nothing to draw when nothing is chosen.
   source?: 'library' | 'nyt' | 'guardian' | 'upload'
-  /** Library path. */
+  // Library path.
   puzzle_id?: string
-  /** NYT path: the OVERRIDE — a specific date (YYYY-MM-DD). Wins over
-   *  `weekday` when set, and filters nothing: a date this club has already
-   *  played starts a second game on it rather than being refused. Stripped
-   *  from the club's saved default (an instance, not a preference). */
+  // NYT path: the OVERRIDE — a specific date (YYYY-MM-DD). Wins over
+  // `weekday` when set, and filters nothing: a date this club has already
+  // played starts a second game on it rather than being refused. Stripped
+  // from the club's saved default (an instance, not a preference).
   date?: string
-  /** NYT path: which weekday to play, 0..6 with Sunday = 0 (Postgres `dow`,
-   *  JS `getUTCDay`). The normal path — an NYT crossword's day IS its
-   *  difficulty, so this is a standing club choice and DOES persist as the
-   *  saved default. The server turns it into a concrete date at Start
-   *  (`crosswords.next_nyt_date_for_club`): the most recent puzzle of that
-   *  weekday none of the players has done. */
+  // NYT path: which weekday to play, 0..6 with Sunday = 0 (Postgres `dow`,
+  // JS `getUTCDay`). The normal path — an NYT crossword's day IS its
+  // difficulty, so this is a standing club choice and DOES persist as the
+  // saved default. The server turns it into a concrete date at Start
+  // (`crosswords.next_nyt_date_for_club`): the most recent puzzle of that
+  // weekday none of the players has done.
   weekday?: number
-  /** Guardian path: the series slug (see GUARDIAN_SERIES). */
+  // Guardian path: the series slug (see GUARDIAN_SERIES).
   series?: string
-  /** Upload path: the parsed board. FE-only — `startGameInClub` passes it as
-   *  the `board` arg and STRIPS it from the `setup` blob create_game persists,
-   *  so the solution never lands in the (unshielded) setup or saved default. */
+  // Upload path: the parsed board. FE-only — `startGameInClub` passes it as
+  // the `board` arg and STRIPS it from the `setup` blob create_game persists,
+  // so the solution never lands in the (unshielded) setup or saved default.
   board?: GImportedBoard
-  /** Upload path: the source filename, for display in the form. */
+  // Upload path: the source filename, for display in the form.
   filename?: string
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 
@@ -371,14 +371,14 @@ export type GRebusAfterSubmit = 'advance' | 'jumpNext' | 'jumpPrev'
  *  render — there is no ref, because an action is asked what it does at the
  *  moment the key is pressed. */
 export type GGridKeysOptions = {
-  /** May the board be worked at all? False while the game is paused or this
-   *  player has conceded mid-race — every key below goes disabled, which also
-   *  leaves the keystroke for whoever else wants it. */
+  // May the board be worked at all? False while the game is paused or this
+  // player has conceded mid-race — every key below goes disabled, which also
+  // leaves the keystroke for whoever else wants it.
   enabled: boolean
-  /** The board responds to me (the page's `isBoardInteractive`). When false
-   *  but `enabled` (terminal), the board is still navigable: the movement keys
-   *  work so the solver can walk the revealed grid, while anything that would
-   *  WRITE (letters, ⌫, rebus, edge marks) is disabled. */
+  // The board responds to me (the page's `isBoardInteractive`). When false
+  // but `enabled` (terminal), the board is still navigable: the movement keys
+  // work so the solver can walk the revealed grid, while anything that would
+  // WRITE (letters, ⌫, rebus, edge marks) is disabled.
   isBoardInteractive: boolean
   // One of crosswords' OWN overlays has the keyboard — the rebus box or the
   // number-jump popup. Both are focused inputs that `stopPropagation()` their
@@ -386,28 +386,28 @@ export type GGridKeysOptions = {
   // belt-and-braces: it also describes every grid key disabled, so nothing
   // advertises a key the overlay is holding.
   suspended: boolean
-  /** Null until the puzzle loads; every key is disabled until then. */
+  // Null until the puzzle loads; every key is disabled until then.
   grid: GPuzzleCell[][] | null
   cursor: GCursor | null
   pencil: boolean
   setCursor: (c: GCursor) => void
-  /** Current fill at a cell (null if empty); ⌫'s two-step needs it. */
+  // Current fill at a cell (null if empty); ⌫'s two-step needs it.
   fillAt: (row: number, col: number) => string | null
   isGiven: (row: number, col: number) => boolean
   setCell: (row: number, col: number, fill: string | null, pencil: boolean) => void
-  /** Open the rebus (multi-char) overlay over a cell. */
+  // Open the rebus (multi-char) overlay over a cell.
   onRebus: (row: number, col: number) => void
-  /** Open the jump-to-clue-number popup. */
+  // Open the jump-to-clue-number popup.
   onNumberJump: () => void
-  /** Show a read-only zoom-peek of the current cell's fill. */
+  // Show a read-only zoom-peek of the current cell's fill.
   onPeek: (row: number, col: number) => void
-  /** Is a peek up right now? While it is, ANY key puts it away (`act-drop-peek`
-   *  below) — so it can't linger over a cursor that has moved on. */
+  // Is a peek up right now? While it is, ANY key puts it away (`act-drop-peek`
+  // below) — so it can't linger over a cursor that has moved on.
   peeking: boolean
-  /** Put the peek away. */
+  // Put the peek away.
   clearPeek: () => void
-  /** Cycle the cryptic edge mark on one side of a cell. The consumer reads the
-   *  current mark and advances it. */
+  // Cycle the cryptic edge mark on one side of a cell. The consumer reads the
+  // current mark and advances it.
   onMark: (row: number, col: number, side: GMarkSide) => void
 }
 

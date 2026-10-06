@@ -609,6 +609,24 @@ next open (todo.md → Someday).
   coordinators, since one editing board spans both columns (`PlayArea` →
   `EditingBoard` → `Board` and `InfoCol`); one `Tile`; one action row; the move
   RPCs answer what a caller reads; every RPC call sends `p_` names.
+- **crosswords — done 2026-10-06**, its own way, the last game: a grid is
+  one sparse jsonb in `crosswords.grids` (20261006000000, every letter copied
+  with a count check, `crosswords.cells` dropped), every grid write locks the
+  game row and rebuilds the blobs, and `crosswords.games.revision` rises with
+  each rebuild. `game_data` carries the template as `puzzle` (the solution null
+  until the end) and each grid packed flat — `fills` with a penciled letter
+  lowercase, the flags and edge marks as cell indices, one writer digit per
+  cell in coop — under `team.board` in coop and on each racer in compete;
+  `makeGameData` unpacks them into `GCell`s, puts coop's on every seat, and
+  withholds a rival's mid-race. The summary counts the filled cells. The page
+  draws my unconfirmed writes over the blob until its revision reaches theirs
+  (`usePendingWrites`), and a teammate's letter flashes by comparing boards
+  (`useTeammateFills`); the per-cell subscription and the `fill` Broadcast
+  went. No `BoardCol` or `InfoCol`: `PlayArea` over `Grid` (`Cell`,
+  `RebusBox`), `ActiveClueBar` and `ToolStrip`. Letters stay uppercase. The
+  statuses, `games_state` and `_solution_for` went; the RPCs answer what a
+  caller reads, and every call sends `p_` names. `static_game_data` and the
+  Broadcast nudge come later (Joel, 2026-10-06).
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

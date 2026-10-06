@@ -54,9 +54,9 @@ type IpuzCellObject = {
   cell?: unknown
   style?: unknown
   value?: unknown
-  /** Schrödinger alternates: extra accepted answers, in addition to
-   *  `value` (or the bare string in the solution grid). Custom extension
-   *  — not in the ipuz spec proper, but a clear shape. */
+  // Schrödinger alternates: extra accepted answers, in addition to
+  // `value` (or the bare string in the solution grid). Custom extension
+  // — not in the ipuz spec proper, but a clear shape.
   alternates?: unknown
 }
 

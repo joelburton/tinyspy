@@ -10,7 +10,7 @@
   another name (`common.games.created_by`, which drives the join-invitation
   popup and confers no authority). `player_id` names the scope instead of a
   possessor, and the null case keeps its meaning: no player, so the shared pad.
-  **Decide `crosswords.cells.owner_id` with it** — same nullable-means-shared
+  **Decide `crosswords.grids.owner_id` with it** — same nullable-means-shared
   idiom, same `nulls not distinct` key, read by `crosswords._is_solved(…,
   p_owner_id)`; renaming one and not the other trades a confusing word for an
   inconsistent one. Touches: a forward migration per table (both are applied —

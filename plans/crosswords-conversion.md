@@ -1,6 +1,6 @@
 # crosswords on the page blobs — the conversion plan
 
-**Status: ANSWERED 2026-10-06; steps 1–13 done (10 and 12 have no column), step 14 (prose and comments) next.** This is the seat-view
+**Status: ANSWERED 2026-10-06; steps 1–14 done (10 and 12 have no column), step 15 (the checks; e2e on Joel's word) next.** This is the seat-view
 conversion for crosswords, the last game to convert and one of the games
 [plans/seat-view.md](seat-view.md) names a problem child. This file holds the
 inventory (step 1), the proposed tables and blobs, the sketch (step 2), and

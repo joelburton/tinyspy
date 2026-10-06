@@ -5,8 +5,8 @@ import { pressed } from '@/common/keyboard/componentKeyGroups'
 import styles from './CrosswordsNumberJumpBlockingModal.module.css'
 
 type Props = {
-  /** Jump the cursor to the cell numbered `n`. Returns true on success; false
-   *  when no cell carries that number (we keep the popup open + show an error). */
+  // Jump the cursor to the cell numbered `n`. Returns true on success; false
+  // when no cell carries that number (we keep the popup open + show an error).
   onSubmit: (n: number) => boolean
   onClose: () => void
 }

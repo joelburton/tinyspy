@@ -20,7 +20,7 @@ letters into open cells; the grid model carries **rebus** (multi-char fills),
 **circled** / **shaded** theme cells, author-prefilled **given** cells,
 irregular **hidden** blocks, and **Schrödinger** cells (a solution array with
 more than one accepted answer). The solution is **server-only** — check / reveal
-run server-side; the client never sees the answers until terminal.
+run server-side; the page sees the answers only once the game has ended.
 
 **Keyboard-required** (crossplay explicitly scopes out touch — there is no
 on-screen keyboard, so it wants a hardware keyboard). Not desktop-only: it has
@@ -63,37 +63,75 @@ Two puzzle sources, ONE table for only one of them:
   boggle), producing a self-contained game with `puzzle_id` null.
 
 `crosswords.games` (`game_id`, `puzzle_id` nullable, `puzzle_date`,
-`puzzle_content`, shielded `solution`) copies the template at create time so a
-game survives puzzle retirement; the mode and the club are `common.games`'.
-`games_state` (a `security_invoker` view over a definer `_solution_for`)
-exposes `solution` **only once the game has ended**.
+`puzzle_content`, shielded `solution`, `revision`) copies the template at
+create time so a game survives puzzle retirement; the mode and the club are
+`common.games`'. `revision` is raised by every rebuild of the page blobs
+(below).
 
-**The statuses**, written by `crosswords._write_statuses`, are nearly empty:
-crosswords has no info column and no strip, so `game_status` and every
-`player_status` are `{}`, and `clubpage_info` is `{ winner_user_id }`, the
-compete solver. A cell fill or mark doesn't rewrite them — the cells
-subscription carries the grid — except the fill that ends the game; every
-other move does.
+**`crosswords.grids`** — what the players have written. One row per grid: one
+shared grid for coop (`owner_id` null), one **per player** for compete,
+`unique nulls not distinct (game_id, owner_id)`. A grid's `cells` is one sparse
+jsonb keyed by place (`"row,col"`, `_make_cell_id`), holding only the cells
+with something in them, so a blank grid is `{}`. A cell is an object of the
+keys it has: `fill` (uppercase), `pencil`, `wrong`, `revealed`, `markRight`,
+`markBottom` (`break` / `hyphen`), and in coop `writer`, who last filled it. A
+false flag or a null is left out (`_merge_cell`). **Only open, non-given cells
+have a place** (`_fillable_cells`, `_is_fillable`): blocks, numbers,
+decorations and givens are the template's. A grid starts — at create and again
+at Restart — with what the template already holds (`_make_starting_cells`: an
+upload's saved letters, an NYT overlay's author bars).
 
-`crosswords.cells` — the live per-cell fills. **Only fillable, NON-given cells
-get a row** (blocks / numbering / decorations / givens are static in
-`games.puzzle_content`); one shared grid for coop (`owner_id` null), one grid **per
-player** for compete. Notable shapes:
+**A write is one statement.** Every grid write is `update … set cells =
+_merge_cell(cells, …)` (or a `||` of the cells it rebuilt), never a read into a
+variable and a write back, and **every write locks the game row first**
+(`_lock_game`), so the rebuilds serialize and none misses another's letter.
 
-- **Surrogate `id uuid` PK** even though the logical key is
-  `(game_id, owner_id, row, col)` — a realtime-published table with no valid
-  replica identity makes Postgres reject every UPDATE, and the nullable
-  `owner_id` disqualifies both a plain PK and a `USING INDEX` identity. The
-  logical key is `unique nulls not distinct (…)` (the repo's first use).
-- **`version`** bumped by trigger; the FE reconciles CDC "newer wins".
-- **Mode-aware RLS** modeled on `wordle.events_select`: coop — any member reads
-  the shared grid; compete — only your own rows until terminal. **This gates the
-  RLS-filtered READ, not the Realtime payload** — the CDC event for an
-  opponent's cell still arrives, so `useCells` drops non-self events in compete
-  (this repo does not rely on Realtime to withhold rows; see `psychicnum.md`).
-  Note the compete RLS *opens* opponents' rows at terminal, but the **FE never
-  renders them** — `useCells` stays filtered to the caller's own owner and
-  PlayArea draws one grid (**decision C5** — the canonical write-up is in §9).
+**No client reads a grid.** `crosswords.grids` has no grant: the page reads the
+blobs, and a racer's view of a rival's grid is the seat rule's (below).
+
+### The page blobs
+
+`crosswords._rebuild_data_cols` writes them at create, at Restart and at the end
+of every move, each assigned whole, and raises `revision` first:
+`shell_data` through `common._make_json_shell_data`, and on top of the common
+part of `game_data` and `summary_data` this game's own.
+`crosswords._rebuild_data_cols_for_all()` rebuilds every crosswords game without
+re-dating it.
+
+| blob | crosswords' part |
+|---|---|
+| `game_data` | `puzzle`: the template as the parsers write it (id, title, author, copyright, note, width, height, clues, cells), plus `solution`, null until the game ends. `revision`. `team: {board}` in coop, null in compete; on each racer `board` in compete, null in coop |
+| `summary_data` | `nCells`, the cells a player fills, and `team: {nFilledCells}` in coop, null in compete — the club card's "60% filled" |
+
+**A board is packed**, since it is rebuilt on every keystroke
+(`_make_json_board`). A cell's **index** is its place counted row by row, `row
+× width + col`:
+
+| key | what it holds |
+|---|---|
+| `fills` | one string per cell, by index: `""` when empty, a given or a block; a letter (or rebus) uppercase in pen, **lowercase in pencil** |
+| `wrong`, `revealed` | the indices of the cells with the flag |
+| `breaksRight`, `hyphensRight`, `breaksBottom`, `hyphensBottom` | the indices of the cells with that edge mark |
+| `writers` | coop: one digit per cell — 0 nobody, else the writer's 1-based place in `players`; null in compete |
+
+The template is not packed: once `static_game_data` lands it is sent once, not
+per keystroke.
+
+**`gd`** (`makeGameData`): each board unpacked into `GCell`s (`{id, row, col,
+fill, pencil, wrong, revealed, markRight, markBottom, writer}`, a writer a
+player), with `cellsById`; coop's one board put on every seat as the same
+object; and **the seat rule**, a rival's board null until the game ends. The
+page draws one grid — mine — even then.
+
+### How a game ends
+
+| when | reason / detail | ranked |
+|---|---|---|
+| a correct grid in coop (typed or revealed) | `reached_goal` / `solved` | everyone 1, everyone's `solved_at` |
+| a correct grid in compete | `reached_goal` / `solved` | the solver alone, 1 |
+| the countdown ran out | `timeout` | nobody — a loss for everyone |
+| the last racer conceded | `conceded` | nobody — a loss for everyone |
+| somebody pressed Stop | `stopped` | nobody — neutral |
 
 ## 3. Match semantics (mirror `ws.ts`, not prose)
 
@@ -113,8 +151,9 @@ worth pinning in pgTAP:
   is right (pencil is a confidence marker). Only *check* skips pencil. An empty
   cell blocks solve.
 
-Given cells are correct by construction and aren't in the `cells` table, so the
-solved-check reads `cells` + `solution` only (no `meta` join).
+Given cells are correct by construction and have no place in a grid, so the
+solved-check walks the template's open, non-given cells (`_fillable_cells`) and
+looks each up in the grid against the solution.
 
 ## 4. RPCs (`security definer` unless noted, revoke-public / grant-authenticated)
 
@@ -124,45 +163,40 @@ plain RPCs — no edge function needed. The one exception is
 
 | RPC | behavior |
 |---|---|
-| `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete), seeding each row's `fill` + any template `markRight`/`markBottom` (author / NYT-overlay cryptic bars) so they render on the live path. |
-| `set_cell(p_game_id, p_row, p_col, p_fill, p_pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, the game not ended, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). Returns the bumped `version` + solved state. Solved → the game ends (`reached_goal` / `solved`): coop ranks everyone 1, compete the solver alone. Only the completing fill locks the game row, and `_maybe_finish` re-checks the ending under that lock, so only the first solver wins. A cell write doesn't rewrite the statuses — the cells subscription carries it — except the fill that ends the game. |
-| `set_mark(p_game_id, p_row, p_col, p_side, p_mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no cell row — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
-| `reveal_solved_word(p_game_id, p_cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
-| `export_solution(p_game_id)` | **Member-gated full-solution read** (definer; `_require_game_player`), available at **any** time — unlike `games_state`, which shows the solution only once the game has ended. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
-| `check_cells(p_game_id, p_cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes — free in compete because it is self-informative: it says a letter is wrong and hands over nothing ([win-lose.md → The invariants](../win-lose.md#the-invariants)). |
-| `reveal_cells(p_game_id, p_cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal solve (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
-| `replay_board(p_game_id)` | The "Restart" game-menu item and terminal-row Restart: blanks every fillable cell for **every** owner (the shared grid in coop, every grid in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks, clears `solved_at`, then `common._reset_game` clears the ending and each player's, and zeroes the clock. Givens live on the template, so they're preserved; the answer is untouched, and it re-shields because `_solution_for` shows it only once the game has ended. Guards: membership only — no ended check, so it runs mid-game or finished (the FE confirms mid-game). |
-| `stop_game(p_game_id)` | Mutual give-up in EITHER mode, through `common._stop` → neutral `stopped`; a racer who had already conceded stays conceded. Not a loss, which is the clock or the last racer quitting. The end unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal solution" menu item (§7 → Terminal). |
+| `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT, Guardian, upload). Inserts one grid per owner (one in coop, one per player in compete), each holding what the template starts it with (`_make_starting_cells`: an upload's saved letters, an NYT overlay's author bars). |
+| `set_cell(p_game_id, p_row, p_col, p_fill, p_pencil)` | The hot path (one call per keystroke; the page draws the letter first, `usePendingWrites`). Locks the game row, then guards: membership, the game not ended, not conceded, an open non-given cell (**revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). In coop the caller becomes the cell's writer. Runs the solve check — a correct grid ends the game (§2 → How a game ends), and the lock lets only the first solver win — then rebuilds the blobs and answers the `revision` that rebuild wrote. |
+| `set_mark(p_game_id, p_row, p_col, p_side, p_mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same lock and guards as `set_cell`; display-only (no solve); answers its `revision`. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no place in a grid — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
+| `reveal_solved_word(p_game_id, p_cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `unsolved`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
+| `export_solution(p_game_id)` | **Member-gated full-solution read** (definer; `_require_game_player`), available at **any** time — unlike the page blobs, which carry the solution only once the game has ended. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
+| `check_cells(p_game_id, p_cells jsonb)` | The page resolves letter/word/puzzle scope via `lib/cursor.ts` (`listScopeCells`) and sends coordinates; the server sets/clears `wrong` (skipping empty/pencil). Both modes — free in compete because it is self-informative: it says a letter is wrong and hands over nothing ([win-lose.md → The invariants](../win-lose.md#the-invariants)). |
+| `reveal_cells(p_game_id, p_cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil, and names the revealer the cell's writer, so teammates see it flash in the revealer's color. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal solve (deliberate; §9). |
+| `replay_board(p_game_id)` | The "Restart" game-menu item and the ended row's Restart: puts **every** grid back exactly as the game started it (`_make_starting_cells` — everything the players did goes, the template's saved letters and bars come back), clears `solved_at`, then `common._reset_game` clears the ending and each player's, and zeroes the timer. The answer is untouched, and it is covered again because the blobs carry it only once the game has ended. Guards: membership only — no ended check, so it runs mid-game or finished (the page confirms mid-game). |
+| `stop_game(p_game_id)` | Mutual give-up in EITHER mode, through `common._stop` → neutral `stopped`; a racer who had already conceded stays conceded. Not a loss, which is the timer or the last racer conceding. The end puts the solution in the blobs, but the page only shows it on demand — the "Reveal solution" menu item (§7). |
 | `library_for_club(p_club_handle)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Sorted **alphabetically by title** (case-insensitive, `created_at desc` breaking ties) — the picker is a list you scan by name, where import order was an accident of how the files landed. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and a game stopped with no result shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function and not a view: the join to a game's ending is cross-schema *and* has to be OUTER, and the club is an input to it — a view filtered by club is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
 | `concede` / `submit_timeout` | Standard: concede locks the row and `common._concede` decides it (compete only). The setup form offers the shared `<SetupTimerSection>` like every other game; a countdown expiring takes the whole table down as a `timeout` loss for everyone, in either mode, nobody ranked. |
 
 **Every one of these answers in [an envelope](../envelopes.md)**, and one line
-of reasoning classifies almost all of it: the grid is drawn from `cells` and
-the game's ending, both of which arrive by subscription, so a refusal is either
+of reasoning classifies almost all of it: the grid and the game's ending are
+drawn from the blobs, which every move rebuilds, so a refusal is either
 **someone else moving under you** or **something the grid could not have
-produced**.
+produced**. An `ok` carries what a caller reads and no more: `set_cell` and
+`set_mark` their `revision`, the rest their `result` (`set` · `marked` ·
+`checked` · `revealed` · `exported` · `solved` / `unsolved` · `created` ·
+`replayed` · `conceded` · `ended`).
 
 | | | |
 |---|---|---|
-| `PN486` "Game over" | `race` | a teammate finished the grid, or the clock ran out, mid-keystroke — the shared race (`common._raise_game_over`) |
+| `PN486` "Game over" | `race` | a teammate finished the grid, or the timer ran out, mid-keystroke — the shared race (`common._raise_game_over`) |
 | `PN483` "Already conceded" | `race` | your own concede landed first — the shared race (`common._raise_already_conceded`) |
 | `PN466` `BUG: a fill that is not letters` | `fault` | the FE mirrors `^[A-Z]{1,8}$` first |
 | `PN467` / `PN472` `BUG: a write/mark on a block or a given` | `fault` | the grid renders those non-focusable |
 | `PN470` / `PN471` `BUG: a mark on an unknown edge / of an unknown kind` | `fault` | both values come from the FE's own typed union |
 | `PN475` `BUG: a reveal in a compete game` | `fault` | mode is fixed at `create_game`; the FE hides the items |
-| `PN485` "That game was already deleted" | `race` | `export_solution`, `reveal_solved_word`, `check_cells`, `reveal_cells` and the ending RPCs: a friend deleted the game from the club list; `common._raise_game_deleted`, asked before the membership gate |
+| `PN485` "That game was already deleted" | `race` | every grid write (through `_lock_game`), `export_solution`, `reveal_solved_word` and the ending RPCs: a friend deleted the game from the club list; `common._raise_game_deleted`, asked before the membership gate |
 | `PN478` "You've played every one of those" | `form-validation` on `source` | see below |
 
-Three answers gained a NAME rather than being read off an absence:
-
-- **`check_cells` now says how many cells it flagged** (`wrong_count`). It
-  computed that anyway and returned nothing, so a caller could not tell
-  "checked, all correct" from "checked nothing".
-- **`reveal_solved_word` answers `solved` or `unsolved`** by name, not by
-  `answer` being null. `unsolved` stays an `ok`: the menu item
-  is live on any clue because the FE cannot see which are solved.
-- **`export_solution` says `exported`**, and a missing game is the shared
-  race (`PN485`) rather than the same bare `null` a solution-less game returned.
+`reveal_solved_word`'s `unsolved` is an `ok`, not a refusal: the menu item is
+live on any clue because the page cannot see which are solved.
 
 **`next_nyt_date_for_club`'s empty answer moved into the RPC.** Running out of
 unplayed dates for a weekday is `PN478`, a `form-validation` naming `source` —
@@ -221,9 +255,9 @@ The sources themselves:
   has a note").
 - **Saved-fill restore** — a partially-solved `.ipuz` (whether imported or
   uploaded) carries the solver's in-progress fills as its ipuz `saved` grid; the
-  parser applies them onto the non-given template cells, and `create_game` seeds
-  `crosswords.cells.fill` from them (uppercased). So a half-finished puzzle
-  imports where you left off — crossplay's `saved` round-trip, the counterpart
+  parser applies them onto the non-given template cells, and the grid starts
+  with them (`_make_starting_cells`, uppercased; Restart starts it there again).
+  So a half-finished puzzle imports where you left off — crossplay's `saved` round-trip, the counterpart
   to **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so
   this is a no-op there.
 - **In-app upload** — the setup form's Upload picker parses a dropped / chosen
@@ -298,9 +332,9 @@ The sources themselves:
   the edge fn fetches + decodes the overlay PNG (`npm:pngjs`) — a missing/broken
   overlay is non-fatal. `applyOverlayMarkings` writes circles onto `meta.cells`
   (a template-read field, so they render directly) and bars as
-  `markRight`/`markBottom`; because marks are a *live-cell* concept here
-  (board + PDFs read them from `crosswords.cells`, not the template),
-  **`create_game` seeds template marks into the live cells** so the overlay bars
+  `markRight`/`markBottom`; because marks are a *grid* concept here
+  (the board and the PDFs read them from the grid, not the template), **the grid
+  starts with the template's marks** (`_make_starting_cells`) so the overlay bars
   render like any player-drawn mark. Local cookie setup: put
   `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
@@ -330,7 +364,7 @@ The sources themselves:
   **Caveats:** a *Prize* or *Weekend* puzzle withholds its answers until a
   reveal date, so a same-day start of those may 422 (`convertGuardianPuzzle`
   throws when `solutionAvailable` is false rather than seed an unsolvable board
-  — our check/reveal/terminal flow needs the answer key); and the cryptic
+  — our check/reveal/end-of-game flow needs the answer key); and the cryptic
   **enumeration bars** (`separatorLocations` → grid word-break marks) are *not*
   ported in v1 (the enumeration is already in each clue's text, e.g. "(6,5)").
   The clue-HTML→text helper is now shared (`src/crosswords/lib/clueHtml.ts`,
@@ -375,11 +409,16 @@ tablet (or phone) *with* a keyboard, not a touch-entry mode. Guarded by
 (`createCrosswordsGameSized` — the 2×2 fixture can't exercise width-bound
 sizing).
 
-- **`lib/cursor.ts`** — the pure navigation module, ported **verbatim** (36
+- **`lib/cursor.ts`** — the pure navigation module, ported from crossplay with
+  its functions renamed to verb-first names (36
   tests). Reads only `kind`/`number`, so it runs on the static template grid.
-- **`useCells`** — the documented deviation from `useRealtimeRefetch`: applies
-  CDC row payloads **directly** (per-cell `version` "newer wins") with
-  optimistic `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
+- **The board as drawn** — `gd.me.board` with my writes the blob does not
+  carry yet laid over it (`usePendingWrites`), so a letter or a mark shows the
+  moment it is made and a read that started before the keystroke cannot undo
+  it. A write leaves once the blob is known to be at least as new as it — the
+  blob's `revision` reaching the one its RPC answered — whatever the blob shows
+  for the cell, so a teammate's overwrite right after mine is never hidden. A
+  refused write leaves at once.
 - **`useGridKeyboard`** — the full grid key set (ported from crossplay's
   PuzzleView) as **actions** (`common/actions`): letters (fill +
   advance), Backspace (two-step) / Shift+Backspace (clear word), Space (advance)
@@ -392,9 +431,8 @@ sizing).
   `suspended`, which disables every grid key while the rebus box or the
   number-jump popup is up — those are focused inputs that stop their own
   keydowns before the dispatcher sees them, so the gate is belt-and-braces.
-  Navigation stays live at terminal (walking a
-  solved grid is part of the post-game) while every writing key describes itself
-  disabled.
+  Navigation stays live once the game has ended (walking a solved grid is part
+  of the post-game) while every writing key describes itself disabled.
   - **⌥-letter shortcuts** (crossplay parity — the port's identity is
     keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check letter / word,
     **⌥R** / **⌥⇧R** reveal letter / word (coop only), **⌥N** show note, **⌥X**
@@ -407,7 +445,7 @@ sizing).
     (any game): **⌥⌫** Stop/Concede, **`<`** Back to club — see
     [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
-  letter/word/grid scope (scope resolved client-side via `cursor.ts`). Every
+  letter/word/grid scope (scope resolved on the page, `listScopeCells`). Every
   square IS its action, so the bar decides nothing: Reveal's three hide
   themselves in a race and take their group's label and rule with them, and a
   frozen board grays the rest. The pen/pencil pair is two destinations for ONE
@@ -415,7 +453,7 @@ sizing).
   **Reveal at GRID scope is confirmed**, by the registry's own question rather
   than by this game: it's the one scope that ends the puzzle rather than helping
   with it, `reveal_cells` writes the answers onto *everyone's* board and stamps
-  them `revealed` (so the terminal Reveal/Hide toggle can't take it back — those
+  them `revealed` (so the post-game Reveal/Hide toggle can't take it back — those
   letters are the players' fill now), and the row sits one mis-click below
   "Word". Letter and word go straight through: they're the ordinary hint ladder.
 - **Puzzle-info menu header** — the game menu opens with the loaded puzzle's
@@ -426,42 +464,42 @@ sizing).
   now: `create_game` names the game after the puzzle (`v_meta ->> 'title'`, e.g.
   "NYT Sat 1/1/22: …" or a library puzzle's embedded title) rather than a
   generic "New crossword", the way crossplay names a game after its puzzle.
-- **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
-  clamped over the cursor cell: an editable `RebusInput` (Enter commits +
-  advances, Tab / Shift+Tab commits + jumps clue, Esc/blur cancels) or, for
-  Shift+Space, a read-only peek of the current fill.
-- **Peer cursors + fills** (coop) — `usePeerCursors` broadcasts the local cursor
-  AND each fill on a stable-name channel (Pattern B) + Presence for disconnect
-  cleanup; the Grid draws a thin frame in each teammate's cursor color and
-  briefly flashes a cell a teammate just filled in their color (the cells CDC
-  carries no writer color, so the flash needs its own tiny signal). A **coop
-  reveal** flashes too — the FE batch-broadcasts the revealed coords (`fills`
-  event) after a successful `reveal_cells`, since that RPC's CDC is also
-  colorless. The channel additionally carries a **`showNotes`** event: "Show
-  note" opens the setter's note locally AND asks teammates to open it too
-  ("read it together", crossplay parity). Compete has private grids, so all of
-  it is disabled there.
+- **Rebus / peek overlay** (`RebusBox`) — a 3-cell-wide box centered + clamped
+  over the cursor cell: the rebus entry (Enter submits + advances, Tab /
+  Shift+Tab submits + jumps clue, Esc/blur cancels) or, for Shift+Space, a
+  read-only peek of the current fill.
+- **Teammates** (coop) — `usePeerCursors` broadcasts the local cursor on a
+  stable-name channel + Presence for disconnect cleanup, and the Grid draws a
+  thin frame in each teammate's cursor color. The channel also carries a
+  **`showNotes`** event: "Show note" opens the setter's note locally AND asks
+  teammates to open it too ("read it together", crossplay parity). **A
+  teammate's letter flashes** in their color for five seconds, found by
+  comparing each board the blob brings with the one before it
+  (`useTeammateFills`): a cell whose fill changed to a letter and whose writer
+  is not me. A coop reveal names the revealer the writer, so it flashes the
+  same way. Compete has private grids, so none of this applies there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
   per player in compete. See
   [common/scratchpad/doc.md](../../src/common/scratchpad/doc.md) → Intro to area
   for the architecture.
-- **Terminal** — no modal carries the verdict ([ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)): `buildOver`'s
-  terse text lands as the filled verdict in the active-clue slot (the local
-  feedback slot's `<FeedbackPill>` — "Won: grid complete" / "Won: solved it
-  first" / a compete loss naming the winner as the message's `actor` — "● moth
-  solved it first"; a compete race that empties out because everyone conceded
-  lands on `lost_compete` — `common.concede` names the collective loss — and
-  reads "Lost: all conceded"; a countdown expiring reads "Lost: out of time"
-  in coop and "Out of time — no winner" in compete, the roster's shared
-  phrasing, keyed off `status.reason === 'timeout'`). A **coop solve** pops the
-  shared `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')`
-  — coop-only by the states vocabulary (compete writes `won_compete`), at the
-  moment of the flip, never on opening an already-solved game. The board is
-  **not** auto-revealed at game end: the blanks stay blank until THIS viewer
-  picks the **"Reveal solution"** game-menu item, which fetches
-  `games_state.solution` and draws the author's grid **exactly as shipped** —
+- **Once the game has ended** — no modal carries the verdict ([ui.md → Terminal
+  results](../ui.md#terminal-results--the-moment-vs-the-record)): the ending's
+  terse text (`lib/gameEndingMessage.ts`, read off `gd.outcome`,
+  `gd.ending.reason`, `gd.me.outcome` and `gd.ending.winner`) lands as the
+  filled verdict in the active-clue bar (the local slot's `<FeedbackPill>` —
+  "Won: grid complete" / "Won: solved it first" / a compete loss naming the
+  winner as the message's `actor` — "● moth solved it first"; the last racer
+  conceding reads "Lost: all conceded"; a countdown expiring reads "Lost: out
+  of time" in coop and "Out of time — no winner" in compete, the roster's
+  shared phrasing). While the others race on, a racer who conceded reads
+  "Conceded — race continues" (`lib/playerEndingMessage.ts`). A **coop solve**
+  pops the shared `<CelebrationBlockingModal>` (`useCelebration(gd.coop &&
+  gd.outcome === 'won')`), at the moment of the flip, never on opening an
+  already-solved game. The board is **not** auto-revealed at game end: the
+  blanks stay blank until THIS viewer picks the **"Reveal solution"** game-menu
+  item, which draws `gd.puzzle.solution` — the author's grid **exactly as
+  shipped** —
   blanks fill in, and a wrong letter is *corrected* rather than left standing
   beside them (a half-corrected grid isn't the solution, and what the answer was
   is the whole reason to look). The player's own verdict marks go with it: a
@@ -479,8 +517,8 @@ sizing).
   reversibility matters more here than in any other game — a crossword grid can
   legitimately differ from the author's (rebuses, quantum clues), so a permanent
   overwrite would destroy the only record of what the solvers actually wrote.
-  The item is disabled mid-game (the server only unshields the solution at
-  terminal, `_solution_for`).
+  The item is disabled mid-game: the blobs carry the solution only once the game
+  has ended.
 
   **Layout is unaffected, and measured**: revealing and hiding move nothing.
   Both faces of the control are the same icon-only fixed box, and the answers
@@ -488,21 +526,21 @@ sizing).
   are byte-identical across playing / hidden / revealed / hidden-again at both
   desktop (1400×950) and tablet (1024×768) widths.
 
-  **The chrome strip has three states**, swapping in place: the control bar
-  while playing; an `<InfoActionsRow>` "You conceded" line for a conceded
-  compete player, with an inert Reveal (the solution is still shielded while
-  the others race) and Stop in Concede's place; and at terminal an action row of **Reveal solution / Hide
-  solution** (the same toggle as the menu item) · **New game** ·
-  **Back to club** (primary), with the fill / check / reveal controls gone —
-  penciling a finished grid is meaningless.
+  **The strip has three states** (`ToolStrip`), swapping in place: the control
+  bar while playing; an `<InfoActionsRow>` "You conceded" line for a conceded
+  compete player, with an inert Reveal (the solution waits for the end of the
+  game) and Stop in Concede's place; and once the game has ended an action row
+  of **Reveal solution / Hide solution** (the same toggle as the menu item) ·
+  **Restart** · **New game** · **Back to club** (primary), with the fill /
+  check / reveal controls gone — penciling a finished grid is meaningless.
 
   Two documented departures from the sweep here. **No outcome message in the
-  row** — unlike every other game's `<InfoActionsRow>`, whose shape is
+  ended row** — unlike every other game's `<InfoActionsRow>`, whose shape is
   message-plus-actions: the verdict is already a permanent pill in the
-  active-clue slot directly above (the one readout a phone shows without
+  active-clue bar directly above (the one readout a phone shows without
   opening the info sheet), so a second copy a line below would be noise. That's
-  why the row is hand-rolled rather than reusing the shared component. And the
-  strip's **height changing** between the three states is fine, not a
+  why that row is a plain row of buttons rather than the shared component. And
+  the strip's **height changing** between the three states is fine, not a
   no-reflow violation: the board column is `min-content` and spans all three
   rows of a viewport-height grid, so it can't move — only the `1fr` clue list
   above absorbs the difference.
@@ -520,6 +558,50 @@ sizing).
   item**, which is the phone route to it — the strip lives in the off-canvas
   info sheet there.
 
+### The component tree
+
+Folder [`src/crosswords/`](../../src/crosswords/), on the page blobs: `useGame`
+is `makeGameData(game_data, me)` — no read, no subscription — and every type the
+folder exports is in [`types.ts`](../../src/crosswords/types.ts) (the `gd`
+sketch near its end) and, for the ones that reach React,
+[`reactTypes.ts`](../../src/crosswords/reactTypes.ts).
+
+```
+<PlayAreaLoader {...PlayAreaLoaderProps}>   useGame: gd
+  └── PlayArea                 the coordinator: the board as drawn, typing, the trips, the slot, the endings
+        ├── Grid               every square, and the box over the cursor cell
+        │     ├── Cell         one square and everything on it
+        │     └── RebusBox     the rebus entry, or the peek
+        ├── ActiveClueBar      the slot's pill, else the clue under the cursor
+        ├── InfoSheet ←        on a phone, the lists and the strip
+        │     ├── ClueLists    Across | Down
+        │     └── ToolStrip    the three states: Controls · "You conceded" · the ended row
+        ├── CrosswordsNumberJumpBlockingModal · CrosswordsNoteCompanion · CrosswordsExplainCompanion
+        └── CelebrationBlockingModal ←
+
+  ← belongs to common/ ; everything else is this folder's
+```
+
+**No `BoardCol` or `InfoCol`**: the layout is crossplay's, and the move — typing
+on one grid — has nothing to split between two columns. `PlayArea`'s hooks:
+
+- the board as drawn (`usePendingWrites`) and the two writes that feed it
+  (`useSetCell`, `useSetMark`);
+- typing on the grid (`useGridEntry`: the cursor, pen or pencil, the rebus box,
+  the peek, the number jump, over `useGridKeyboard`);
+- one per trip to the server: `useCheckCells`, `useRevealCells`,
+  `useExportSolution`, `useExplainClue`;
+- the teammates: `usePeerCursors` and `useTeammateFills`;
+- the endings: `useGetGameEndingMessage`, `useGetPlayerEndingMessage`, shown by
+  the shared `useShowEndingFeedback`;
+- `useActionsAndMenu`: every command, bound once, and the menu. A run reads the
+  board and the cursor when it is pressed, so the prints, the download and the
+  explainer take what is on screen.
+
+**The answers** (`lib/answer.ts`): a check says only that it skipped penciled
+cells ("Check skips pencil marks", `noted`); a reveal says nothing. The grid
+carries both answers.
+
 ### Printing the board (PDF) — a deliberate whole-cloth exception
 
 `src/crosswords/pdf/` is a **verbatim port** of crossplay's own jsPDF printer
@@ -529,14 +611,14 @@ The **answer-key generator (`generateSolutionPdf`)** is also ported
 (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
 canonical answer, the note flowed through the clue regions), driven by a "Print
 answer key (PDF)" menu item that fetches the grid via `export_solution` — coop
-any time, compete only at terminal (a UI gate; `export_solution` itself isn't
-terminal-gated, same as Download-as-.ipuz).
+any time, compete only once the game has ended (a UI gate; `export_solution`
+itself answers any time, same as Download-as-.ipuz).
 
 **Coop's any-time answer key is deliberate — don't "fix" it** (confirmed
 2026-08-03). It looks like it contradicts the reveal gate that the other
 solution-hiding games got, and it doesn't: the use case is printing the puzzle
 *and* its key together to solve on paper, where you simply don't look at the
-second sheet until you're done. Withholding it until terminal would break that
+second sheet until you're done. Withholding it until the end would break that
 without protecting anything — the person printing it is the person choosing not
 to read it. Compete keeps its gate, since there an answer key mid-race is a
 giveaway to someone else's disadvantage. Both PDFs are exposed as
@@ -565,13 +647,13 @@ shielding on demand) — via the ported `writeIpuz`, re-uploadable to continue;
 **Show note** (`CrosswordsNoteCompanion`) also broadcasts a `showNotes` event in
 coop so teammates open it together; **Restart** is the destructive "start over"
 — `replay_board` through the shared `useStandardGameActions`, confirmed mid-game
-and straight through at terminal. It replaced **Clear board** on 2026-08-03: the
+and straight through once the game has ended. It replaced **Clear board** on 2026-08-03: the
 same wipe under the name every other game uses, plus two powers the old one
 lacked — it clears EVERY grid (a restart is for the table, so a compete restart
-re-opens the race) and it un-terminals a finished puzzle, which is what let
+re-opens the race) and it un-ends a finished puzzle, which is what let
 crosswords join the rest of the roster in having a replay at all
 ([common/game-page/doc.md](../../src/common/game-page/doc.md)). **Reveal
-solution** is the terminal-only answer key (see *Terminal* above). The menu is
+solution** is the post-game answer key (see *Once the game has ended* above). The menu is
 long, so the popover scrolls — the page never does.
 
 The board reads no `window` keydowns — its keys are actions — but the
@@ -584,30 +666,39 @@ opt-in so non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 8. Tests
 
-- pgTAP `supabase/tests/crosswords/` — create (library + inline board) /
-  gameplay (set_cell, check, reveal, set_mark, `_matches`, the explainer's read
-  and the export on a deleted game) / win (solve, pencil-counts,
-  first-correct-wins) / rls (compete privacy) / concede + give-up / timeout
-  (countdown expiry → a `timeout` loss for everyone in either mode; a second
-  call is the game-over race) /
-  `library_for_club` (the four statuses, a stopped game folding into the yellow bucket,
-  solved-beats-playing-beats-lost precedence when one puzzle has several games,
-  one row per puzzle despite the fan-out join, club scoping in **both**
-  directions, and the RLS property that makes a non-member see an all-`unplayed`
-  library — the test that would catch a `security definer` rewrite) /
-  statuses (each status's exact key set in both modes; a cell fill or mark
-  leaves them alone, a check and the ending fill rewrite them; a rebuild leaves
-  `status_changed_at` alone and drops a stale key). Plus
-  `common/scratchpad_test.sql`.
-- Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`,
+- pgTAP `supabase/tests/crosswords/` — `game_data_test.sql` pins the blobs: a
+  fresh game in each mode, coop moves one at a time (pen, pencil, the writers,
+  the revision each answer names, the edge marks, a check, a reveal, a clear),
+  compete grids, the ending, Restart and the rebuild of every game. The rest:
+  create (library + inline board, the starting cells) / gameplay (set_cell,
+  check, reveal, set_mark, `_matches`, the explainer's read, and every grid
+  write and the export on a deleted game) / win (solve, pencil counts,
+  first-correct-wins, the rebus both ways) / replay (every grid back as the
+  game started it) / rls (no client reads a grid; the games and puzzles row
+  policies) / concede + give-up / timeout (countdown expiry → a `timeout` loss
+  for everyone in either mode; a second call is the game-over race) /
+  `library_for_club` (the four statuses, a stopped game folding into the yellow
+  bucket, solved-beats-playing-beats-lost precedence when one puzzle has several
+  games, one row per puzzle despite the fan-out join, club scoping in **both**
+  directions, and the RLS property that makes a non-member see an
+  all-`unplayed` library — the test that would catch a `security definer`
+  rewrite). Plus `common/scratchpad_test.sql`.
+- Vitest — `hooks/useGame.test.ts` (`makeGameData` on the fixture,
+  `lib/gameData.fixture.ts`: the links as players, the unpacked board, coop's
+  grid on every seat, the seat rule), `hooks/usePendingWrites.test.ts` (a stale
+  read never undoes my letter, a teammate's later write is never hidden, a
+  failed write leaves), `hooks/useTeammateFills.test.ts` (a teammate's letter
+  flashes in their color, mine never does), `components/Grid.test.tsx` (what
+  each cell shows), `components/PlayArea.test.tsx` (the wiring on the fixture:
+  the affordances per mode and per ending, the keys reaching their RPCs, the
+  menu); `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`,
   `guardian` — the entry-based Guardian conversion incl. the answers-withheld
   `GuardianConvertError` throw, `nytOverlay` — the overlay-PNG circle/bar
   detector pinned against real NYT fixtures, byte-for-byte with crossplay's,
   `clueRuns` — the PDF clue-text italic-run parse/wrap arithmetic under a fake
-  text measure), `hooks/useGridKeyboard.test.ts`,
-  `pdf/*.test.ts`, and the parser + content-hash tests next to the CLI
-  (`supabase/scripts/crosswords/`).
-- e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal
+  text measure), `hooks/useGridKeyboard.test.ts`, `pdf/*.test.ts`, and the
+  parser + content-hash tests next to the CLI (`supabase/scripts/crosswords/`).
+- e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the post-game "Reveal
   solution" menu flow (disabled mid-game, blanks stay blank until clicked);
   compete win; compete privacy (opponent never sees your letters); coop peer
   cursors + shared-fill sync; keyboard (rebus, pencil, Backspace two-step, `#`
@@ -720,48 +811,35 @@ possible future cleanup pass:
   is a scoped solving aid (letter / word / puzzle) with no
   honest boundary between using it once and giving up, so a completed grid
   counts as completed however it got there.
-- ~~**Dead `crosswords.games` Realtime wiring.**~~ **Resolved (2026-07-12
-  supabase review).** `crosswords.games` was published + touched by four no-op
-  "Realtime touch" self-updates in the terminal RPCs to wake FE subscribers that
-  never existed (`useGame` is one-shot; status flows through `common.games`).
-  Both the publication line and the four touches were removed to lean the
-  migration; `crosswords` now publishes only `cells`. Re-add both together
-  (publication line + a writing-RPC touch) if a feature ever needs the FE to
-  react to a `crosswords.games` change. Membership is pinned by the central
-  `supabase/tests/common/realtime_publication_test.sql` (the `crosswords.cells`
-  row — and `crosswords.games` deliberately absent).
-- **Compete terminal never shows opponents' grids** (decision C5). The compete
-  RLS *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but
-  `useCells` stays filtered to the caller and PlayArea draws one grid —
-  deliberately-unused surface, not a delivered feature (see §2).
+- **Nothing of crosswords is in the Realtime publication.** The page reads the
+  blobs on `common.games` and subscribes to nothing of this schema;
+  `supabase/tests/common/realtime_publication_test.sql` pins the absence.
+- **Compete never shows opponents' grids** (decision C5). The blob carries
+  every racer's grid and the seat rule shows a rival's once the game has ended,
+  but the page draws one grid — mine — even then: deliberately-unused surface,
+  not a delivered feature (see §2).
 - **Answer-key PDF gate is UI-only** (§7) — `export_solution` hands any member
-  the grid at any time (like Download-as-.ipuz), so the compete "terminal-only"
-  gate on the menu item is a UI gate, not server-enforced. Acceptable under the
-  friends-only trust model.
+  the grid at any time (like Download-as-.ipuz), so the compete "only once the
+  game has ended" gate on the menu item is a UI gate, not server-enforced.
+  Acceptable under the friends-only trust model.
 - **`content_hash` is unique across BOTH sources** — an NYT fetch that
   content-collides with a `library` row would reuse it (then listable), mildly
   contradicting "NYT stays out of the listing." Very low probability, and
   largely moot now that NYT games are inline. Left as a known edge case.
-- **Coop read-committed solve races** (nit, friend-scale ≈ 0) — two players
-  filling the last two cells at once can each miss the solved state (a re-type
-  heals it); a fill + concurrent clear can terminate a not-actually-complete
-  grid. Crossplay avoided both by being single-threaded; not worth guarding
-  here.
 
 ### Known limits & unpinned tests
-- **No keystroke debounce** — every fill is an UPDATE + CDC fanout to all peers
-  (the debounce was correctly dropped; the FE needs each keystroke live). Fine
-  at friend scale; 4 people speed-solving is the case to watch (row-update
-  rates + Supabase Realtime message quotas).
-- **Unpinned tests** (low-value / deferred from the reviews): Schrödinger +
-  rebus solve end-to-end in pgTAP (a fixture with a multi-char / multi-candidate
-  solution driving `set_cell → _is_solved → win`); inline-board
-  missing-meta/solution rejection; fill-clear-resets-pencil; the player-max
-  guard; `reveal_solved_word` expansion (a given cell, compete non-solver,
-  non-player throw, note round-trip, empty `p_cells`); `importFile` error
-  paths + `meta.id` slugification; `enumerationFor` mixed break+hyphen;
-  `games_select` / `puzzles_select` row-RLS (only `cells` RLS is pinned today);
-  and the concede-flow / terminal-copy e2e.
+- **No keystroke debounce** — every fill rebuilds the page blobs, which nudges
+  every page on the game and every club page in the club, and each page re-reads
+  the blob — the template included, until `static_game_data` lands (the
+  debounce was correctly dropped; a teammate needs each keystroke live). Fine
+  at friend scale; 4 people speed-solving is the case to watch. One read in
+  flight and the Broadcast nudge are the fixes, after the last game converts
+  (plans/seat-view.md → When every game has converted).
+- **Unpinned tests** (low-value / deferred from the reviews): a Schrödinger
+  solve end-to-end in pgTAP (a multi-candidate solution driving `set_cell →
+  _is_solved → win`); inline-board missing-meta/solution rejection;
+  fill-clear-resets-pencil; the player-max guard; `importFile` error paths +
+  `meta.id` slugification; and the concede-flow / ending-copy e2e.
 
 The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
 (`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus

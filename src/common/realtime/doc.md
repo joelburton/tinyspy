@@ -91,17 +91,17 @@ and re-reads the rows.
   `useClubChat`'s `mergeSnapshot`. A hook that refetches on every event has no
   separate append to clobber, so it replaces freely.
 - **High-frequency per-row writes apply the event directly.** Where a refetch
-  per event would be a storm — several people typing into one crossword — the
-  hook applies each row payload itself, guarded by a per-row `version` so an
-  event no newer than local state is dropped, and does a full refetch only on
-  `SUBSCRIBED`. `useCells` and `useScratchpad`'s body work this way.
+  per event would be a storm — several people typing into one pad — the hook
+  applies each row payload itself, guarded by a per-row `version` so an event no
+  newer than local state is dropped, and does a full refetch only on
+  `SUBSCRIBED`. `useScratchpad`'s body works this way.
 - **Every table subscription is filtered** (`id=eq`, `game_id=eq`,
   `club_handle=eq`, `user_id=eq`) to the rows the hook consumes, never a whole
   table.
 - **A change event is not a private read.** Privacy comes from the RLS on the
   read, not from Realtime withholding rows, so an event can carry a row this
   viewer must not see. A compete hook that applies payloads drops rows that are
-  not the viewer's before touching state — `useCells`' `isMine`.
+  not the viewer's before touching state.
 - **Catching up after a reconnect is a reload, not a replay.** Hooks reload on
   every `SUBSCRIBED`, not only the first, so events missed while the socket was
   down are read over. `useRealtimeReconnect`, mounted once in `App.tsx`,

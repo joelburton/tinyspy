@@ -19,15 +19,15 @@ export type LayoutSize = 'small' | 'large'
 
 export type Layout = {
   size: LayoutSize
-  /** Page-1 title block (used to draw + reserve vertical space). */
+  // Page-1 title block (used to draw + reserve vertical space).
   titleRect: Rect
-  /** Page-1 grid rectangle (the cells fit inside this; the grid is
-   *  always square, so the actual drawn size is `min(w, h)`). */
+  // Page-1 grid rectangle (the cells fit inside this; the grid is
+  // always square, so the actual drawn size is `min(w, h)`).
   gridRect: Rect
-  /** Page-1 clue regions in flow order. */
+  // Page-1 clue regions in flow order.
   regions: Rect[]
-  /** Continuation pages use this many equal-width columns spanning
-   *  the full content height. */
+  // Continuation pages use this many equal-width columns spanning
+  // the full content height.
   continuationCols: number
 }
 

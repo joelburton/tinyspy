@@ -48,7 +48,7 @@ function statusClass(status: string): string {
 
 type Props = {
   clubHandle: string
-  /** Chosen — the picker's whole output, and it closes on the way out. */
+  // Chosen — the picker's whole output, and it closes on the way out.
   onPick: (puzzle: LibraryPuzzle) => void
   onClose: () => void
 }
@@ -75,12 +75,11 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
   const [query, setQuery] = useState('')
 
   // One RPC rather than "list the puzzles, then color them": the join to
-  // play_state crosses schemas (crosswords.games → common.games), which
+  // a game's ending crosses schemas (crosswords.games → common.games), which
   // PostgREST embeds can't express, and doing it in two reads would paint
-  // the rows and then recolor them a beat later. It's also ~200× less over
-  // the wire than the `select id, meta` this replaced — `meta` is the whole
-  // template (every cell, number, block, circle) and the row shows four
-  // scalars off it. Ordering + the source='library' filter live in the RPC.
+  // the rows and then recolor them a beat later. It answers four scalars per
+  // puzzle, not the whole template the row would never draw. Ordering + the
+  // source='library' filter live in the RPC.
   useEffect(() => {
     let active = true
     void (async () => {

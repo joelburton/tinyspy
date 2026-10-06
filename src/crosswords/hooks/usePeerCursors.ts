@@ -19,10 +19,10 @@ type ShowNoteMsg = { userId: string }
 const CURSOR_THROTTLE_MS = 80
 
 type PeerCursorsApi = {
-  /** peer userId → their cursor cell + color; the caller draws a frame. */
+  // peer userId → their cursor cell + color; the caller draws a frame.
   peers: Map<string, PeerCursor>
-  /** Ask teammates to open the setter's note ("read it together"), mirroring
-   *  crossplay's `showNotes`. A no-op in compete. */
+  // Ask teammates to open the setter's note ("read it together"), mirroring
+  // crossplay's `showNotes`. A no-op in compete.
   broadcastNote: () => void
 }
 
@@ -39,9 +39,9 @@ export function usePeerCursors(
   enabled: boolean,
   cursor: GCursor | null,
   me: GPlayer,
-  /** Called when a teammate broadcasts "open the note" (crossplay's showNotes).
-   *  PlayArea wires this to open its CrosswordsNoteCompanion. Read via a ref so a changing
-   *  callback identity doesn't re-subscribe the channel. */
+  // Called when a teammate broadcasts "open the note" (crossplay's showNotes).
+  // PlayArea wires this to open its CrosswordsNoteCompanion. Read via a ref so a changing
+  // callback identity doesn't re-subscribe the channel.
   onPeerShowNote?: () => void,
 ): PeerCursorsApi {
   const myId = me.id

@@ -77,8 +77,9 @@ export function useActionsAndMenu({
 } & Pick<PlayAreaLoaderProps, 'menu'>): { actions: GActions } {
   const grid = gd.puzzle.cells
 
-  // The shared trio — Stop / Concede / Restart. Restart clears EVERY grid (a
-  // restart is for the table) and un-ends a finished puzzle.
+  // The shared trio — Stop / Concede / Restart. Restart starts EVERY grid again
+  // as the game started it (a restart is for the table) and un-ends a finished
+  // puzzle.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,

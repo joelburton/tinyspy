@@ -4,9 +4,9 @@ import { Companion } from '@/common/floating-panels/Companion'
 import styles from './CrosswordsNoteCompanion.module.css'
 
 type Props = {
-  /** The puzzle title, shown in the panel header. */
+  // The puzzle title, shown in the panel header.
   title: string
-  /** The setter's free-form note (already known non-empty by the caller). */
+  // The setter's free-form note (already known non-empty by the caller).
   note: string
   onClose: () => void
 }

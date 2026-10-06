@@ -10,17 +10,17 @@ import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'
 
 type Props = {
-  /** Is the pen or the pencil selected? The pair below is two destinations for
-   *  one toggle, and this is which one you are already at. */
+  // Is the pen or the pencil selected? The pair below is two destinations for
+  // one toggle, and this is which one you are already at.
   pencil: boolean
   actPencil: Action
   check: GScopeActions
-  /** Reveal is coop-only, and says so itself: in a race all three hide and the
-   *  group goes with them. */
+  // Reveal is coop-only, and says so itself: in a race all three hide and the
+  // group goes with them.
   reveal: GScopeActions
-  /** Any remaining action buttons (Stop / Concede) — rendered icon-only in their
-   *  own rule-separated group at the end of the bar, so the destructive action
-   *  can't be misread as another check/reveal square. */
+  // Any remaining action buttons (Stop / Concede) — rendered icon-only in their
+  // own rule-separated group at the end of the bar, so the destructive action
+  // can't be misread as another check/reveal square.
   children?: ReactNode
 }
 
@@ -34,8 +34,8 @@ const keepFocusOffTheBoard = (e: MouseEvent) => e.preventDefault()
 
 /**
  * The crossword tool row: the pen/pencil toggle + check and (coop-only)
- * reveal at letter / word / grid scope. The scope is resolved on the client
- * (via cursor.ts) and sent as coordinates; the server checks/reveals against
+ * reveal at letter / word / grid scope. The scope is resolved on the page
+ * (`listScopeCells`) and sent as coordinates; the server checks/reveals against
  * the shielded solution.
  *
  * Every square IS its action — what it does, whether it is live and which key

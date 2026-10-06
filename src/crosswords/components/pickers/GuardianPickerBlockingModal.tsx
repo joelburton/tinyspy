@@ -8,7 +8,7 @@ import { GUARDIAN_SERIES } from '../../lib/setup'
 import styles from './pickers.module.css'
 
 type Props = {
-  /** Chosen — the series slug. */
+  // Chosen — the series slug.
   onPick: (slug: string) => void
   onClose: () => void
 }

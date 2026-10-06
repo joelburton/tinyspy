@@ -13,9 +13,9 @@ type Flash = { color: string; batch: number }
  * The cells a teammate just filled, each with their color, so the grid can
  * flash them — found by comparing each board the blob brings with the one
  * before it. A cell flashes when its fill changed to a letter and its writer
- * is not me: a teammate's keystroke or reveal. My own writes never flash, a
- * Restart blanks cells and blanks do not flash, a letter typed over the same
- * letter changes nothing, and in compete no cell has a writer.
+ * is not me: a teammate's keystroke or reveal. My own writes never flash, an
+ * emptied cell does not flash, a letter typed over the same letter changes
+ * nothing, and in compete no cell has a writer.
  *
  * The flash is read off the same board as the letter, so the two cannot
  * disagree.

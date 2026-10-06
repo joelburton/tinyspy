@@ -11,9 +11,9 @@ type ListProps = {
   direction: GDirection
   clues: GClue[]
   side: 'left' | 'right'
-  /** The clue the cursor is currently navigating (yellow). */
+  // The clue the cursor is currently navigating (yellow).
   activeNumber: number | null
-  /** The crossing clue passing through the cursor cell (soft yellow). */
+  // The crossing clue passing through the cursor cell (soft yellow).
   secondaryNumber: number | null
   onClueClick: (number: number, direction: GDirection) => void
 }
@@ -60,10 +60,10 @@ function ClueList({
 type Props = {
   across: GClue[]
   down: GClue[]
-  /** The clue number under the cursor for each axis. */
+  // The clue number under the cursor for each axis.
   acrossNumber: number | null
   downNumber: number | null
-  /** Which axis the cursor faces — picks which list is "active" vs "secondary". */
+  // Which axis the cursor faces — picks which list is "active" vs "secondary".
   dir: GDirection
   onClueClick: (number: number, direction: GDirection) => void
 }

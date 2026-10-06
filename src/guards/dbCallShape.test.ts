@@ -150,10 +150,6 @@ function callSites(src: string, name: string) {
  */
 const BUILDER_IN_A_VARIABLE = new Set([
   'src/common/scratchpad/useScratchpad.ts',
-  // crosswords' cells read has the identical shape, for the identical reason:
-  // the shared grid needs `.is('owner_id', null)` and a private one
-  // `.eq('owner_id', id)`, so only the last link differs.
-  'src/crosswords/hooks/useCells.ts',
 ])
 
 describe('the db call wrappers are not crossed', () => {

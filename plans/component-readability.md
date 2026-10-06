@@ -545,6 +545,29 @@ bananagrams converted alone (2026-10-06) and settled, beyond the games above:
   row through the shared seen-set (`useShowPeerFeedback` into the local slot),
   never a count growing on screen.
 
+## What crosswords added
+
+crosswords converted alone (2026-10-06), the last game, and settled, beyond
+the games above:
+
+- **A move at typing speed shows before its answer, until the blob is known to
+  carry it** (`usePendingWrites`): an overlay of my writes over `gd`, each
+  leaving once `gd`'s revision reaches the one its RPC answered — never by
+  comparing letters, which would hide a teammate's overwrite. A failed write
+  leaves at once.
+- **A flash read off the blob is compared, not sent.** A teammate's letter
+  flashes because the new board's cell changed and its writer is not me
+  (`useTeammateFills`); no Broadcast carries it, so the letter and its flash
+  cannot disagree.
+- **A blob rebuilt per keystroke is packed, and `makeGameData` unpacks it.**
+  Flat fills with the pencil in the letter's case, flags as cell indices; `gd`
+  is the readable shape. What is sent once stays readable.
+- **No columns where the move doesn't span them.** One coordinator over the
+  grid and its leaves (`ActiveClueBar`, `ToolStrip`), each trip to the server
+  a hook, the typing state one hook (`useGridEntry`).
+- **A piece redrawn per keystroke takes plain values**, not the rebuilt
+  object, so `memo` redraws only what changed (`Cell`).
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

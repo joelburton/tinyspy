@@ -104,15 +104,13 @@ type RealtimeRefetchOptions = {
  *     along). Splitting that out into a factory call + a hand-
  *     rolled broadcast hook would leave two coordinating effects
  *     where today there's one cohesive one — net loss.
- *   - **High-frequency per-row direct-apply.** crosswords's
- *     `useCells` applies each CDC row payload DIRECTLY (guarded by
- *     a per-cell `version`, "newer wins") instead of refetching:
- *     with several people typing at once, one keystroke per peer
- *     is a refetch-the-whole-grid storm, and the per-row payload
- *     already carries everything a merge needs. It keeps the
- *     factory's SUBSCRIBED-refetch idea (initial load + reconnect
- *     catch-up) but not the refetch-per-event one. See `useCells`
- *     for the version-merge + optimistic-echo + rollback details.
+ *   - **High-frequency per-row direct-apply.** `useScratchpad` applies
+ *     each row payload DIRECTLY (guarded by a per-row `version`, "newer
+ *     wins") instead of refetching: typing into a shared pad would be a
+ *     refetch storm, and the per-row payload already carries everything
+ *     a merge needs. It keeps the factory's SUBSCRIBED-refetch idea
+ *     (initial load + reconnect catch-up) but not the refetch-per-event
+ *     one.
  *
  * **A game's `useGame` does not use this.** It reloads off the page's
  * `common.games` subscription through `useRefetchOnGameUpdate`, since every

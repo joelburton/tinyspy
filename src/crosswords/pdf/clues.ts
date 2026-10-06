@@ -54,14 +54,14 @@ export function buildItems(clues: ClueItems): Item[] {
 /** Wrapped representation of a single item, ready to be drawn. */
 export type LaidOutItem = {
   item: Item
-  /** Wrapped body lines as PLAIN strings (single string for a heading; the
-   *  emphasis-stripped clue text for a clue). Kept for the line COUNT (→
-   *  height) and as the draw fallback; `styled` carries the italics. */
+  // Wrapped body lines as PLAIN strings (single string for a heading; the
+  // emphasis-stripped clue text for a clue). Kept for the line COUNT (→
+  // height) and as the draw fallback; `styled` carries the italics.
   lines: string[]
-  /** Clue only: each wrapped line as styled runs (`<em>…</em>` → italic), drawn
-   *  segment-by-segment so `<i>`/`<em>` clue markup prints as real italics. */
+  // Clue only: each wrapped line as styled runs (`<em>…</em>` → italic), drawn
+  // segment-by-segment so `<i>`/`<em>` clue markup prints as real italics.
   styled?: GClueSeg[][]
-  /** Total vertical space the item takes including bottom margin. */
+  // Total vertical space the item takes including bottom margin.
   height: number
 }
 
@@ -108,7 +108,7 @@ export function measureItems(doc: jsPDF, items: Item[], regionWidth: number): La
 export type Placement = {
   page: number
   region: Rect
-  /** Y offset within the region (top of the item). */
+  // Y offset within the region (top of the item).
   y: number
   item: LaidOutItem
 }
