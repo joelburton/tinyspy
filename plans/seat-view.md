@@ -596,6 +596,19 @@ next open (todo.md → Someday).
   `useSubmitClaim`, `useSpendHint`, `useBoardColActions`); a claim's marks
   are the shared ones (`useClaimMarks`); one action row; the move envelopes
   carry no outcome; every RPC call sends `p_` names.
+- **bananagrams — done 2026-10-06**, its own way: the board is the page's, so
+  `save_player_board` rebuilds the blobs on every save and the editing board
+  seeds from `gd.me.board.letters` once and owns it after. On each player `tiles`
+  (one lowercase string), `nTiles`, `nUnplacedTiles` (the builder counts it
+  off `_main_block_size`) and `board: {letters}`, the seat rule withholding a
+  rival's `tiles` and `board` mid-race; `events` (`peel` / `dump` /
+  `went_out`) is carried and drawn only as the acknowledgment. Every letter is
+  lowercase (20261005000008, which aborts on a letter-count mismatch);
+  `progress`, the statuses and the owner-only policy went, the club-member gate
+  with `board`, `tiles`, the deal and both piles out of the grants. Two
+  coordinators, since one editing board spans both columns (`PlayArea` →
+  `EditingBoard` → `Board` and `InfoCol`); one `Tile`; one action row; the move
+  RPCs answer what a caller reads; every RPC call sends `p_` names.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

@@ -33,7 +33,11 @@ export function useShowDrawMessages(gd: GGameData, localFeedbackSlot: FeedbackSl
       // their name, since the pill names nobody on its own here.
       const node =
         answer.answerType === 'dump'
-          ? <><IconExchange size={14} aria-hidden style={{ verticalAlign: '-2px' }} /> {text}</>
+          ? <><IconExchange
+            size={14}
+            aria-hidden
+            style={{ verticalAlign: '-2px' }}
+          /> {text}</>
           : answer.answerType === 'peel_peer'
             ? `${e.by.username} ${text}`
             : text

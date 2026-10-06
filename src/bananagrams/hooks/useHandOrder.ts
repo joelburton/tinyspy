@@ -22,7 +22,9 @@ export function useHandOrder(derivedHand: string): {
   // Null until the first shuffle: the derived order is the shown order.
   const [handOrder, setHandOrder] = useState<string | null>(null)
   const displayedHand =
-    handOrder === null ? derivedHand : reconcileHandOrder(handOrder, derivedHand)
+    handOrder === null
+      ? derivedHand
+      : reconcileHandOrder(handOrder, derivedHand)
 
   const actShuffle = useBindAction('act-shuffle', {
     describe: () => (displayedHand.length === 0 ? 'disabled' : 'active'),

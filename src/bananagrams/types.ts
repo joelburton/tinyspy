@@ -6,7 +6,7 @@
  * this game's and not the shell's (docs/code-conventions.md → A game's types).
  * A component's props stay with the component; a type one file uses stays in
  * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
- * in `lib/gameData.fixture.ts`. The types that reach React — the board editor
+ * in `lib/gameData.fixture.ts`. The types that reach React — the editing board
  * and its input, built on an `Action` and a drag — are in `reactTypes.ts`.
  *
  * Two shapes carry the game: `GGameDataRaw` is `game_data` as the builder
@@ -139,8 +139,8 @@ export type GPlayerRaw = PlayerRaw & {
 /**
  * A board as the server holds it: the 25×25 grid as one 625-character string,
  * row by row, "." an empty cell, a lowercase letter a tile. Mine is read once,
- * at mount, to seed the board editor, whose own copy is the live one after that
- * (`reactTypes.ts` → `GBoardEditor`).
+ * at mount, to seed the editing board, whose own copy is the live one after
+ * that (`reactTypes.ts` → `GEditingBoard`).
  */
 export type GBoard = {
   letters: string
@@ -252,17 +252,6 @@ export type GExtent = {
   minY: number
   maxY: number
 }
-
-/**
- * What a **Check words** round trip found. `clean` and `empty` are separated on
- * purpose — an empty board has no blockers either, and telling someone their
- * blank grid checks out is worse than saying nothing.
- */
-export type GCheckResult =
-  | { kind: 'clean' }
-  | { kind: 'empty' }
-  | { kind: 'invalid'; count: number }
-  | { kind: 'error'; message: string }
 
 /**
  * Every answer bananagrams gives — the whole roster of what this game tells

@@ -127,6 +127,59 @@ summary_data:
   nBunchTiles                       # "Playing · 12 tiles in the bunch"
 ```
 
+## The component passes (steps 9–13)
+
+- **PlayArea (step 9).** `PlayAreaLoader` builds `gd` and holds the desktop-only
+  block; the two ending builders in `lib/`, a Stop on the shared neutral
+  message; `lib/answer.ts` and `answerOfEvent`; `useShowDrawMessages` reads the
+  log's newest row; the menu is Restart · New game, then Print.
+- **The board editor (step 10).** `useBoardCursorKeys` says submit, and its
+  submit answers `hidden` to a button while the board is inert (shared);
+  Peel and Check words likewise, and the JSX guards went; Shuffle stays live
+  after the game ends (Joel). The editor splits into `useBoardAutosave`,
+  `useBoardZoom`, `useBoardDrag` and `useHandOrder`. Letters stay lowercase
+  and the capitals are drawn.
+- **The board and its pieces (step 11).** `Board` (was `BoardArena`; "arena"
+  went everywhere), `Cell`, one `Tile` for board, hand and ghost, a CSS module
+  each. The letter is `60cqmin` plus the borders cqmin measures inside, so
+  every letter keeps its old size (Joel, 2026-10-06: "make sure it's now the
+  same size it was").
+- **InfoCol (step 12).** One action row with Peel left of the bar (Joel,
+  2026-10-06: "move peel to the left"); `StateLine`; help on my move alone;
+  `PeersStrip`'s `getScoreOrOut` keeps its words, out / done! / the count
+  (Joel: "we're here to convert the game, not change what it shows");
+  `HandCard` takes `showDumpZone`.
+- **The naming pass (step 13).** `peel` answers `dealt` and `won` alone and a
+  blocked peel says `invalid`; `check_board` answers `empty` and `clean` alone;
+  the timer, not the clock; the club line's docstring reworded.
+
+## Prose and comments (step 14)
+
+docs/games/bananagrams.md rewritten to today: the rules and when a peel is
+checked, the board and the derived hand, saving the board, the schema and
+grants, the page blobs and the seat rule, the endings, the RPCs and their
+answers, the component tree, the answers, setup, print and the tests; the
+history passages, the prototype section and the drained Deferred item went.
+seat-view's done line and component-readability's "What bananagrams added".
+The todo: six bugs and two Soon items the conversion closed, a Maybe for
+drawing the log, two rulings under Won't do. The comment pass over every
+file: the docstring markers (`usePlayerBoard`'s onto its function, `/**` on
+the top-level constants, `//` on the print model's members), "a blocked
+peel" where a strict ordinary peel is blocked too, the dangling pointer to a
+`player_boards` table comment, and the SQL's "realtime" and "terminal-row".
+
+## The naming of the interactive part (2026-10-06)
+
+Joel, after step 14: `PlayerBoard` and `Board` said nothing about their
+difference, "board editor" nothing about its purpose, and the hook
+(`usePlayerBoard`) did not match its type (`GBoardEditor`). The component that
+holds the editing state and lays out the two columns is `EditingBoard`, its
+hook `useEditingBoard`, its type `GEditingBoard` / `GEditingBoardInput`, the
+prop `editing`; `Board` stays the grid. `HandCard` is `HandBox`. The split
+from `PlayArea` stays, so a drag's per-move re-renders never reach
+`PlayArea`'s hooks. The moves are a hook each: `usePeel`, `useDump`,
+`useCheckBoard`, the check's RPC out of the editing board.
+
 ## The roster
 
 *(agreed with Joel when the area opens — `src/bananagrams/`, its two SQL files,

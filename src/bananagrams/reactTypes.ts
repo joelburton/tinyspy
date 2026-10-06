@@ -11,13 +11,13 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import type { Action } from '@/common/actions/useBindAction'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
-import type { GCell, GCheckResult, GDragSource } from './types'
+import type { GCell, GDragSource } from './types'
 
 /**
  * Every command the info column places, bound once: the action row places
  * them, the menu lists them, and their keys fire them — all reading the same
  * action, so the surfaces cannot drift. Peel, Check words, Shuffle and the
- * zoom-to-fit are the board editor's, bound in `usePlayerBoard`.
+ * zoom-to-fit are the editing board's, bound in `useEditingBoard`.
  */
 export type GActions = {
   // Each key is spelled as its action's id (`act-restart` → `actRestart`), so
@@ -38,11 +38,11 @@ export type GActions = {
   actBackToClub: Action
 }
 
-/** What the board editor needs from PlayArea, the outer coordinator. */
-export type GBoardEditorInput = {
+/** What the editing board needs from PlayArea, the outer coordinator. */
+export type GEditingBoardInput = {
   gameId: string
-  // My board as the server last saved it. Seeds the editor's board ONCE; the
-  // editor owns it after, and a later blob never re-seeds it.
+  // My board as the server last saved it. Seeds the editing board ONCE; it
+  // owns the board after, and a later blob never re-seeds it.
   initialBoard: string
   // Every letter I hold, hand and board together: the server's, grown by a
   // peel and swapped by a dump. The hand is derived from it and the board.
@@ -52,11 +52,13 @@ export type GBoardEditorInput = {
   // or typing) and disables peel, check and dump.
   isBoardInteractive: boolean
   // Peel: draws a tile for everyone, or wins if the bunch can't refill the
-  // table. Resolves to `{ invalidCells }` when a winning peel was BLOCKED by
-  // the legal-board check (those cells get painted red); `null` otherwise.
+  // table. Resolves to `{ invalidCells }` when the legal-board check blocked
+  // the peel (those cells get painted red); `null` otherwise.
   onPeel: () => Promise<{ invalidCells: number[] } | null>
-  // Report a Check-words outcome so the coordinator can show it.
-  onCheckResult: (r: GCheckResult) => void
+  // Check words: shows its answer, and resolves to the cells that failed
+  // (none on a clean or empty board), or `null` when the check itself failed
+  // and the red cells stay as they are.
+  onCheckBoard: () => Promise<{ invalidCells: number[] } | null>
   // Dump a tile: swap it for DUMP_COUNT from the bunch.
   onDump: (letter: string) => void | Promise<void>
   // Tiles left in the shared bunch.
@@ -71,13 +73,13 @@ export type GBoardEditorInput = {
 }
 
 /**
- * The **board editor**, what `usePlayerBoard` returns: my board as it is on
+ * The **editing board**, what `useEditingBoard` returns: my board as it is on
  * screen right now, the hand derived from it, the cursor, the drag, the zoom
  * and the actions that act on them — everything the two views and the layout
- * need to render. One editor spans both columns, since the hand's tiles drop
- * onto the board and the dump slot takes a tile dragged off it.
+ * need to render. One editing board spans both columns, since the hand's tiles
+ * drop onto the board and the dump slot takes a tile dragged off it.
  */
-export type GBoardEditor = {
+export type GEditingBoard = {
   // ── Board ──
   scrollRef: RefObject<HTMLDivElement | null>
   // The live board: the 625-character grid as it is on screen.

@@ -2,97 +2,13 @@
 
 ## Bugs
 
-- **A manual end may print a winner that doesn't exist.** The terminal message
-  in `PlayArea.tsx` is one chain over `status.reason` — `timeout`,
-  `conceded`, `selfWon`, then a final else that announces
-  `${winnerName} went out — Bananas!`. There is no arm for `ended`, the
-  terminal every other game routes to the shared `buildGameEndedMessageNeutral()`. **Verify
-  before believing it**: end a game manually and read the pill. The chain
-  may be unreachable for `ended`, in which case the finding is that the code
-  cannot say so.
-- **Three controls are unmounted behind JSX guards while their actions say
-  otherwise.** `HandCard` drops `<ShuffleButton>` once frozen
-  (`showControls`) while `act-shuffle` still answers `active` whenever tiles
-  remain, so `⌥Z` shuffles a frozen hand and Help lists a key with no control
-  on screen; `PlayerBoard` drops Peel and Check words behind
-  `!isTerminal && !isConceded` while `act-peel` and `act-check-board` answer
-  `disabled`, so the menu and key list show gray rows for controls that are
-  gone. The actions should answer `hidden` when frozen and the guards go —
-  one answer read by everything.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
-- **A conceded racer's Stop game has no button.** Once `myConceded` is true,
-  `act-stop-game` answers `active` (the whole-table stop comes back to a
-  player whose Concede is spent), but the conceded row is
-  `<InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }} />` with no children
-  (`PlayArea.tsx`), so the stop is reachable only from the menu row and
-  `⌥⌫`. Place `<ActionButton action={actStopGame} show="icon" />` in that row,
-  the way the playing row does.
-- **`replay_board` takes no game-row lock.** Every other game's replay locks
-  the game row (`select … for update`) before resetting, because a replay
-  interleaved with an in-flight move can leave a stray row on the fresh board,
-  or let a game-ending move land after the reset and re-end the game
-  (docs/supabase.md → Server conventions). `bananagrams.replay_board` doesn't,
-  and `common._reset_game` doesn't lock for it. psychicnum's `replay_board` is
-  the model.
-- **`save_player_board` takes no game-row lock.** It writes only the caller's
-  own board, so it may be deliberately unlocked; if so, say so in the function.
-
 ## Soon
-
-- **A typed letter is uppercased on its way in.** The shared
-  `useBoardCursorKeys` hands over lowercase, the data's case (2026-10-05), and
-  bananagrams' tiles are still capitals, so `usePlayerBoard`'s `onLetter`
-  uppercases what it is handed. The line goes when the conversion takes the
-  tiles to lowercase and capitals go on at the draw point.
-
-- **Collapse the info-column action row's branches.** This game still FORKS on
-  `over ? … : locally done ? … : …` and lists a different set of buttons in
-  each, which is how a state can quietly lose a button — every one of these
-  rows is missing back-to-club while a race runs on without you. psychicnum is
-  the worked example (2026-09-14); copy its shape. Its rows are built in
-  `PlayArea.tsx` rather than an `InfoCol.tsx`.
-
-  **The shape.** One `<InfoActionsRow>`, every action listed once in one
-  order, and the only thing that varies is the optional `{ text, outcome }`
-  line. Which buttons are on screen is each action's own answer —
-  `<ActionButton>` draws nothing for an action that says `hidden`.
-
-  **The state rule** (Joel, 2026-09-14): `hidden` is *not even possible in
-  this state* — you cannot end a game that has ended, or reveal an answer you
-  are still hunting. `disabled` is *possible here, just not right now*, and it
-  carries a tooltip saying why — a hint when you have used your last one. Most
-  games' gate variable folds several of these together and has to be split
-  before the actions can be honest; psychicnum's `canGuess` hid "terminal"
-  inside "out of guesses" and is now `isStillPlaying`.
-
-  **Two answer their asker differently**, which is what `ActionAsker` is for:
-  Restart and New game are reachable all game from the menu and their keys —
-  the confirmations are written for exactly that ("will be shelved, not lost",
-  "Keep playing") — and get a BUTTON only at terminal. `describe: (asker) =>
-  asker === 'button' && !isTerminal ? 'hidden' : 'active'`. Restart's is
-  already done in `useStandardGameActions`; each game's own `act-new-game` is
-  not.
-
-  **Two things the collapse destroys if you are not watching.** Back-to-club
-  is `weight={over ? 'primary' : 'secondary'}` — filled only once the game is
-  over; hoisting the terminal branch's `weight="primary"` into the single list
-  makes it shout all game. And the gray `shared.actionsDivider` span goes
-  between the actions you take WHILE PLAYING and the ones about the END of the
-  game — both sides are pressable mid-game, so nothing but the bar says where
-  the meaning changes. It hides itself when nothing is left on its left.
-
-  **A test gotcha:** `menuItems` reads the rows a game PUSHED, and `hidden` is
-  what the menu drops at draw time — so "not in the menu" asserts `?.hidden
-  === true`, not `toBeUndefined()`.
 
 - **`shuffleString` in `lib/board.ts` is a hand-written Fisher–Yates**, the
   only one of the repo's copies that takes a string rather than an array.
   `src/common/utils/shuffle.ts` is the shared one and stays array-only, so
   this is either `shuffle([...displayedHand]).join('')` at the one call site
-  (`hooks/usePlayerBoard.ts`) or a one-line `shuffleString` kept as a wrapper
+  (`hooks/useHandOrder.ts`) or a one-line `shuffleString` kept as a wrapper
   over it — the wrapper reads better at the call site and keeps the two
   invariant tests in `lib/board.test.ts` where they are.
 
@@ -106,4 +22,17 @@
 
 ## Maybe
 
+- **Draw `gd.events` as a log in the info column.** The rows are built and
+  carried (`peel`, `dump`, `went_out`), and the page shows only the newest as
+  the acknowledgment under the board. Whether a list fits beside the hand is
+  undecided (Joel, 2026-10-05: "it's possible we may not show it yet").
+
 ## Won't do
+
+- **Saying how many tiles a peel drew.** The acknowledgment says who peeled
+  and nothing more (Joel, 2026-10-05: "players know how many they get from a
+  peel and there isn't space for fluff").
+- **Hiding a rival's board and tiles in RLS.** `player_boards` takes the
+  club-member gate with `board` and `tiles` out of the column grant, and the
+  page's seat rule withholds a rival's mid-race (Joel, 2026-10-05: "we don't
+  care about cheating").

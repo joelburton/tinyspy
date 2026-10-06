@@ -1065,7 +1065,7 @@ drop function if exists bananagrams.dump(uuid, text);
 -- actually holds the tile they're dumping.
 --
 -- One ok answer — { result: 'dumped' } — since the swap either happens or is
--- refused; the new hand arrives over realtime, not in the reply.
+-- refused; the new hand arrives with the rebuilt blob, not in the reply.
 create or replace function bananagrams.dump(p_game_id uuid, p_tile text)
 returns jsonb
 language plpgsql
@@ -1239,7 +1239,7 @@ drop function if exists bananagrams.replay_board(uuid);
 -- ============================================================
 -- bananagrams.replay_board — deal this game again from scratch
 -- ============================================================
--- The "Restart" game-menu item and terminal-row Restart. Same game row, same
+-- The "Restart" menu item, key and end-of-game button. Same game row, same
 -- tiles: every board is emptied, every hand is re-dealt from `bunch_at_setup`
 -- (the record of this game's shuffled deal), and the draw pile and
 -- out-of-play bag go back to their opening sizes.

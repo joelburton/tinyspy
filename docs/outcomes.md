@@ -58,7 +58,7 @@ nothing judged. It is the only one with no hue, and its pill border is a visible
 dark gray precisely because a pale border read as no border at all.
 
 **`noted` is news rather than a result.** "Leah invited you." "A hint is
-showing." "Nothing on the board to check yet." It also covers a turn that COUNTS
+showing." "Nothing on board to check." It also covers a turn that COUNTS
 without being adjudicated — letterboxed's undo and clear are `noted`, since the
 chain is shorter than it was and the player who did it is telling the table so.
 It is deliberately blue, so it cannot be mistaken for a verdict at a glance.

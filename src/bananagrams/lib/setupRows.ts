@@ -22,7 +22,11 @@ export function makeSetupRows(
 ): SetupRow[] {
   const rows: SetupRow[] = [
     makeRosterRow(players),
-    { key: 'hand_size', label: 'Starter hand', value: `${setup.hand_size} tiles` },
+    {
+      key: 'hand_size',
+      label: 'Starter hand',
+      value: `${setup.hand_size} tiles`,
+    },
     { key: 'bunch_size', label: 'Bunch', value: `${setup.bunch_size} tiles` },
     {
       key: 'dump_to_bag',
@@ -30,20 +34,31 @@ export function makeSetupRows(
       // (`GSetup.dump_to_bag`); the spec beside this file pins which
       // is which.
       label: 'Dumped tiles',
-      value: setup.dump_to_bag ? 'to the bag (out of play)' : 'back to the bunch',
+      value: setup.dump_to_bag
+        ? 'to the bag (out of play)'
+        : 'back to the bunch',
     },
     {
       key: 'word_check',
       label: 'Word check',
-      value: WORD_CHECK_OPTIONS.find((o) => o.value === setup.word_check)?.label ?? setup.word_check,
+      value: WORD_CHECK_OPTIONS.find((o) => o.value ===
+        setup.word_check)?.label ?? setup.word_check,
     },
   ]
   // The two bands are only meaningful when the board is checked at all, so they
   // follow the control they qualify and vanish with it.
   if (setup.word_check !== 'off') {
     rows.push(
-      { key: 'dict_2', label: 'Dictionary (2-letter)', value: difficultyValue(setup.dict_2) },
-      { key: 'dict_3plus', label: 'Dictionary (longer)', value: difficultyValue(setup.dict_3plus) },
+      {
+        key: 'dict_2',
+        label: 'Dictionary (2-letter)',
+        value: difficultyValue(setup.dict_2),
+      },
+      {
+        key: 'dict_3plus',
+        label: 'Dictionary (longer)',
+        value: difficultyValue(setup.dict_3plus),
+      },
     )
   }
   rows.push(makeTimerRow(setup.timer))

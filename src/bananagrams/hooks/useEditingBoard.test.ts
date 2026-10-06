@@ -1,25 +1,29 @@
 // cs-unmet
 
 /**
- * Tests for usePlayerBoard, the board editor: the hand derived from the tiles
+ * Tests for useEditingBoard, the editing board: the hand derived from the tiles
  * I hold less the board, the save on a timer and on unmount (the one
  * `PauseBoundary` depends on), the keyboard cursor (place a held tile, return
  * one, flash when I don't hold it), the peel's guards, and an inert board.
  *
  * db, the drag gesture and the shared cursor keyboard are mocked; the pure
- * board lib runs for real. The keyboard is driven by calling what the editor
- * hands `useBoardCursorKeys`.
+ * board lib runs for real. The keyboard is driven by calling what the editing
+ * board hands `useBoardCursorKeys`.
  */
 
 import { renderHook, act } from '@testing-library/react'
 import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GRID, idx, setChar } from '../lib/board'
-import { usePlayerBoard } from './usePlayerBoard'
-import type { GBoardEditorInput } from '../reactTypes'
+import { useEditingBoard } from './useEditingBoard'
+import type { GEditingBoardInput } from '../reactTypes'
 
 const { keyCfg, mockStart, mockRpc } = vi.hoisted(() => ({
-  keyCfg: { current: null as unknown as Record<string, (...a: never[]) => void> & { enabled: boolean } },
+  keyCfg: {
+    current: null as unknown as Record<string, (...a: never[]) => void> & {
+      enabled: boolean
+    },
+  },
   mockStart: vi.fn(),
   mockRpc: vi.fn(),
 }))
@@ -44,16 +48,17 @@ const C = Math.floor(GRID / 2)
 const CENTER = idx(C, C)
 const withCenter = (letter: string) => setChar(EMPTY, CENTER, letter)
 
-function render(input: Partial<GBoardEditorInput> = {}) {
+function render(input: Partial<GEditingBoardInput> = {}) {
   return renderHook(() =>
-    usePlayerBoard({
+    useEditingBoard({
       gameId: 'g1',
       initialBoard: EMPTY,
       tiles: 'a',
       isBoardInteractive: true,
       onPeel: () => Promise.resolve(null),
-      onCheckResult: () => {},
-      onDump: () => {},
+      onCheckBoard: () => Promise.resolve(null),
+      onDump: () => {
+      },
       nBunchTiles: 100,
       nBagTiles: 0,
       reportBoardRef: { current: '' },
@@ -85,7 +90,8 @@ describe('persistence', () => {
     const { unmount } = render({ tiles: 'a', initialBoard: EMPTY })
     expect(mockRpc).not.toHaveBeenCalled() // no save while mounted + unchanged
     unmount()
-    expect(mockRpc).toHaveBeenCalledWith('save_player_board', { p_game_id: 'g1', p_board: EMPTY })
+    expect(mockRpc).toHaveBeenCalledWith('save_player_board',
+      { p_game_id: 'g1', p_board: EMPTY })
   })
 
   it('saves a little after a board edit', () => {
@@ -102,19 +108,22 @@ describe('persistence', () => {
 })
 
 describe('keyboard cursor', () => {
-  it('typing a held letter fills the cursor cell, in the data\'s lowercase, and advances', () => {
-    const { result } = render({ tiles: 'a', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('a' as never))
-    expect(result.current.board).toBe(withCenter('a'))
-    expect(result.current.cursor.x).toBe(C + 1) // advanced one cell (dir 'h')
-  })
+  it(
+    'typing a held letter fills the cursor cell, in the data\'s lowercase, and advances',
+    () => {
+      const { result } = render({ tiles: 'a', initialBoard: EMPTY })
+      act(() => keyCfg.current.onLetter('a' as never))
+      expect(result.current.board).toBe(withCenter('a'))
+      expect(result.current.cursor.x).toBe(C + 1) // advanced one cell (dir 'h')
+    })
 
-  it('typing a letter you do NOT hold flashes the hand and leaves the board', () => {
-    const { result } = render({ tiles: 'a', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('b' as never))
-    expect(result.current.errFlash).toBe(true)
-    expect(result.current.board).toBe(EMPTY)
-  })
+  it('typing a letter you do NOT hold flashes the hand and leaves the board',
+    () => {
+      const { result } = render({ tiles: 'a', initialBoard: EMPTY })
+      act(() => keyCfg.current.onLetter('b' as never))
+      expect(result.current.errFlash).toBe(true)
+      expect(result.current.board).toBe(EMPTY)
+    })
 
   it('Backspace returns the tile under the cursor to the hand', () => {
     const { result } = render({ tiles: 'a', initialBoard: withCenter('a') })
@@ -141,18 +150,30 @@ describe('peel', () => {
     expect(onPeel).not.toHaveBeenCalled()
   })
 
-  it('saves the board first, peels once every held tile is placed, and paints back the blocked cells', async () => {
-    const onPeel = vi.fn(() => Promise.resolve({ invalidCells: [CENTER] }))
-    const { result } = render({ tiles: 'a', initialBoard: withCenter('a'), onPeel }) // hand empty
-    await pressPeel()
-    expect(mockRpc).toHaveBeenCalledWith('save_player_board', expect.anything())
-    expect(onPeel).toHaveBeenCalledTimes(1)
-    expect(result.current.invalidCells.has(CENTER)).toBe(true)
-  })
+  it(
+    'saves the board first, peels once every held tile is placed, and paints back the blocked cells',
+    async () => {
+      const onPeel = vi.fn(() => Promise.resolve({ invalidCells: [CENTER] }))
+      const { result } = render({
+        tiles: 'a',
+        initialBoard: withCenter('a'),
+        onPeel,
+      }) // hand empty
+      await pressPeel()
+      expect(mockRpc).toHaveBeenCalledWith('save_player_board',
+        expect.anything())
+      expect(onPeel).toHaveBeenCalledTimes(1)
+      expect(result.current.invalidCells.has(CENTER)).toBe(true)
+    })
 
   it('is inert once the board is (the game over, or I conceded)', async () => {
     const onPeel = vi.fn(() => Promise.resolve(null))
-    render({ tiles: 'a', initialBoard: withCenter('a'), onPeel, isBoardInteractive: false })
+    render({
+      tiles: 'a',
+      initialBoard: withCenter('a'),
+      onPeel,
+      isBoardInteractive: false,
+    })
     await pressPeel()
     expect(onPeel).not.toHaveBeenCalled()
   })
@@ -160,8 +181,14 @@ describe('peel', () => {
 
 describe('the dump', () => {
   it('can draw while the bunch and the bag together cover it', () => {
-    expect(render({ nBunchTiles: 1, nBagTiles: 2 }).result.current.canDump).toBe(true)
-    expect(render({ nBunchTiles: 1, nBagTiles: 1 }).result.current.canDump).toBe(false)
+    expect(render({
+      nBunchTiles: 1,
+      nBagTiles: 2,
+    }).result.current.canDump).toBe(true)
+    expect(render({
+      nBunchTiles: 1,
+      nBagTiles: 1,
+    }).result.current.canDump).toBe(false)
   })
 })
 

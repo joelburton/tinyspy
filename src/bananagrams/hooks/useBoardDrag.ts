@@ -18,6 +18,7 @@ import type { GCell, GDragSource } from '../types'
 function isOverHand(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
 }
+
 function isOverDump(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
 }
@@ -70,10 +71,16 @@ export function useBoardDrag({
       if (target) {
         const occupied = boardRef.current[idx(target.x, target.y)] !== '.'
         const ownCell =
-          g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
+          g.source.kind === 'board' && g.source.x === target.x && g.source.y ===
+          target.y
         if (occupied && !ownCell) return
-        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter, target.x, target.y)
-        else if (g.source.kind === 'board') boardToBoard(g.source.x, g.source.y, target.x, target.y)
+        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter,
+          target.x,
+          target.y)
+        else if (g.source.kind === 'board') boardToBoard(g.source.x,
+          g.source.y,
+          target.x,
+          target.y)
         return
       }
       // A tile dragged off the BOARD may be dumped too: its cell is cleared
@@ -84,7 +91,8 @@ export function useBoardDrag({
         void onDump(g.letter)
         return
       }
-      if (isOverHand(x, y) && g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
+      if (isOverHand(x, y) && g.source.kind === 'board') boardToHand(g.source.x,
+        g.source.y)
     },
     [boardRef, handToBoard, boardToBoard, boardToHand, onDump, canDump],
   )
@@ -108,7 +116,10 @@ export function useBoardDrag({
     (x: number, y: number, e: ReactPointerEvent) => {
       if (!isBoardInteractiveRef.current) return
       const letter = boardRef.current[idx(x, y)]
-      start({ kind: 'board', x, y }, letter !== '.' ? letter : null, { x, y }, e)
+      start({ kind: 'board', x, y },
+        letter !== '.' ? letter : null,
+        { x, y },
+        e)
     },
     [start, boardRef, isBoardInteractiveRef],
   )

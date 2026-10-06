@@ -34,7 +34,10 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
           // Written with the game's ending (`common._end_game` sets every
           // player's), so it is set whenever the game's outcome is.
           playerOutcome: playerOutcome!,
-          winner: winnerName === null ? null : { username: winnerName, color: winnerColor! },
+          winner: winnerName === null ? null : {
+            username: winnerName,
+            color: winnerColor!,
+          },
         }),
     [gameOutcome, reason, playerOutcome, winnerName, winnerColor],
   )

@@ -23,14 +23,14 @@ import { drawInTracks, type Track } from '@/common/pdf/columns'
 
 /** One printed column: whose board, the board, and its words. */
 export type BananagramsTrack = {
-  /** Column heading — the player's name. */
+  // Column heading — the player's name.
   who: string
-  /** The used part of the board, row-major + cropped to the tiles
-   *  (`boardToGrid`): each cell an UPPERCASE letter, or `''` for a gap. */
+  // The used part of the board, row-major + cropped to the tiles
+  // (`boardToGrid`): each cell an UPPERCASE letter, or `''` for a gap.
   board: string[][]
-  /** Every word on that board, de-duped + alphabetical. */
+  // Every word on that board, de-duped + alphabetical.
   words: string[]
-  /** "13 tiles placed · 2 words" for this board alone. */
+  // "13 tiles placed · 2 words" for this board alone.
   result: string
 }
 

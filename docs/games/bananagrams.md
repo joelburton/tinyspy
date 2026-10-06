@@ -1,656 +1,440 @@
-# bananagrams
+# bananagrams (MonkeyGrams)
 
-> **Status: live (v3).** The bank loop — deal, the derived hand (the `board` +
-> `tiles` split), ⟲ shuffle, **peel**, **dump**, and snapshot persistence — sits on
-> the shared two-column scaffold (`common/game-page/playArea.module.css`) with
-> the v3 info-column chrome. bananagrams is the roster's **documented exception** to
-> "everything needed to make a move lives in the board column": the board is a
-> zoom/scroll arena that FILLS the left column, and the hand + peel + dump live in
-> the RIGHT (info) column — deliberate for this desktop-only game. It also has **no
-> event log and no word list** (nothing to log). It has BOTH exits: a player
-> **concedes** (a per-player drop-out — a real loss, since the game is compete —
-> that leaves the others racing; the last one out ends the game), and the table can
-> **end the game** together (neutral, no result for anyone). A
-> winning board must always be **one connected grid** (geography is structural);
-> requiring its words to be **real** is opt-in ("Require real words to win") — off by
-> default, we trust players on the dictionary.
+A **Bananagrams** clone: a real-time, simultaneous word-tile race. Each player
+builds a private crossword from a hand of letter tiles, drawing more from a
+shared **bunch** as they go; the first to place every tile when the bunch can't
+refill the table goes out and wins. **Compete only** — a single manifest, bare
+gametype `bananagrams`, no `mode` parameter (the `_compete` suffix only earns
+its keep beside a `_coop` sibling). Solo is a race of one.
 
-bananagrams is a **Bananagrams** clone: a real-time, simultaneous,
-**competitive** word-tile race. Each player builds their own **player board**
-— a private crossword laid out from a hand of letter tiles, drawing more from a
-shared bank as they go. Note the term: in our other games a *board* is shared
-(Boggle's tiles, the connections grid); here every player has their own, so the
-concept is a **player board** throughout — tables, components, variables.
+What sets it apart from the rest of the roster:
 
-It is the roster's **first compete-only** game. That breaks no rule —
-codenamesduet is coop-only for the same reason (Codenames Duet is cooperative) —
-it's simply a single manifest, not a coop/compete sibling pair. Solo (1p) is
-just compete with N = 1; the existing player-subset picker already allows min-1.
+- **The board is the page's, not the server's.** Arranging your own tiles is
+  private scratch state, not a validated move: the page owns the board and
+  saves it back; the server owns the tiles you hold.
+- **The hand is derived, never stored** — the tiles you hold less the letters
+  on your board.
+- **Desktop only**, and the roster's documented layout exception: the board
+  fills the board column, and the hand, Peel and the dump zone live in the info
+  column ([mobile.md](../mobile.md)).
 
-## State: what's shared, what's private
+## 1. Rules
 
-bananagrams keeps very little state shared. Three kinds, each handled
-differently:
+- Each player is dealt a **starter hand** (15 or 21) from a shuffled bunch of
+  up to 144 tiles; the rest of the 144 sit out of play in the **bag**.
+- You build your crossword by dragging tiles or typing at the keyboard cursor.
+  Rivals see how many tiles you have left to place, never your board.
+- **Peel** when your hand is empty. If the bunch can give every player still
+  racing one tile, everyone draws one and the race goes on. If it can't, you
+  **go out and win** — Bananas!
+- **Dump** an awkward tile to trade it for three. The draw comes from the
+  bunch, topped up from the bag when the bunch is short; the dumped tile goes
+  to the back of the bunch, or to the bag in **dump-to-bag** games, which
+  shortens the race.
+- **Shuffle** (⟲, `⌥Z`) reorders your hand for a fresh look.
+- **Concede** drops you out with a loss; the others race on, and the last one
+  to concede ends the game with no winner. **Stop** ends it for everyone with
+  no result.
+- A countdown that runs out ends the race with no winner.
 
-| state | shared? | mechanism | notes |
+### When a peel is checked
+
+A peel can be **blocked**: the board fails the legality test, the failing
+tiles turn red, and the game goes on. The test is the same everywhere
+(`_win_blockers`): the tiles must be **one connected piece** (up, down, left,
+right — a diagonal touch doesn't join), and, when words are checked, every run
+of two or more must be a **real word** at the game's bands.
+
+| | word check `off` | `win` | `strict` |
 |---|---|---|---|
-| **The bunch** (`bananagrams.games.bunch`) | yes | atomic RPC | The finite tile bunch. `create_game` deals from it once; peel/dump draw/swap during play. A mutating string (dump returns tiles), so it's materialized rather than seed-derived. Readable; the page counts it. |
-| **`tiles`** (what a player holds) | **per-player** | server-owned column, owner-only | Set at the deal, grown by peel, swapped by dump. The hand the player sees is *derived* (`tiles − placed`), never stored — that's what lets peel grow every player's holdings at once without colliding with live FE placement. |
-| **`board`** (their placements) | **no** | snapshot to a `text` column | Private (no peer sees it), high-frequency (many drag/place ops per second), and only needs Postgres for *restore* (post-pause / shelved game), not for sharing. It must **not** round-trip per move. |
-| **The thin realtime surface** | yes | postgres-changes + presence | `progress` (unplaced counts, game-end) to the whole club; each player's own `player_boards` row to themselves (so a peel/dump's `tiles` change arrives). Boards never go to *peers*. |
+| winning peel | connected | connected, real words | connected, real words |
+| ordinary peel | not checked | not checked | connected, real words |
 
-### The player board is scratch state, not a move
+Connectivity holds even in trust-the-friends `off`: a scattered board isn't a
+grid. **Check words** runs the full test on demand, whatever the setting.
 
-Rearranging your own tiles is **not a validated move** — it's private scratch
-state. So it lives in FE state and is **snapshotted** to a `jsonb` column on a
-debounce + lifecycle events, not pushed through an RPC per move. Our "mutations
-go through RPCs" rule governs *validated shared moves*; the only one
-(eventually) is drawing from the bank. The player board has no server-validated
-moves (and no validation at all in v1), so it isn't the kind of state that rule
-governs.
+## 2. The board — a fixed 25×25 grid
 
-## Persistence: snapshot the player board on unmount
+The board is a flat 625-character string, `board[idx(x, y)]` = `board[y*25 +
+x]`, each cell a lowercase letter or `'.'` (x = column, y = row, scrabble's
+convention). You navigate it with a **zoom slider and the scrollbars**; the
+grid never resizes.
 
-`PauseBoundary` **unmounts** the play area on pause (children UNMOUNT, not
-visibility-hidden — see [common.md](../common.md)), and presence-pause fires
-whenever anyone disconnects. So a player dropping → everyone else's player-board
-component unmounts → **any un-snapshotted in-memory board is lost.**
+That "never resizes" is what keeps the code simple: placing a tile can never
+shift the view, so there is no growing, no re-centering and no scroll
+compensation, and a placement is a string write at a bounded coordinate.
 
-That makes **"snapshot before unmount" mandatory.** The home is the player-board
-component's unmount cleanup, mirroring how `useCommonGame` fires
-`unset_current_view` on last-leaver unmount. One mechanism covers pause,
-navigate-away, and shelve uniformly; on remount you rehydrate from the snapshot,
-not from memory. A debounced autosave (~800 ms) during play bounds crash-loss
-(acceptable per the alpha posture).
-
-**Known race — accepted (code-review §1.4).** The unmount `save()` is
-**fire-and-forget** (React unmount cleanup can't `await`), while the remount
-reads the board back with a one-shot SELECT that fires immediately. So on a fast
-pause→resume, the SELECT can out-race the in-flight save and read a **stale**
-board — losing up to one debounce window (~800 ms) of un-autosaved placements;
-the FE then rehydrates from the stale snapshot and its next autosave overwrites
-the good one. It's inherent to the FE-owns-board design (the board isn't
-server-authoritative per move) and the loss is a few re-placeable tiles, so it's
-left as-is under the alpha posture. The real fix, if it ever matters, is a
-monotonic board version / `updated_at`: `save_player_board` stamps it and the
-remount SELECT (with a short retry) refuses a snapshot older than the last one
-this client wrote.
-
-## The player board — a fixed 25×25 arena
-
-The player board is a **fixed 25×25 grid**: a flat 625-char string
-(`player_boards.board`), `board[idx(x, y)]` = `board[y*25 + x]` = a letter or
-`'.'` (empty) — x = column, y = row, the same x-first convention scrabble
-uses. You navigate it with a **zoom slider + scrollbars**; the grid never
-resizes.
-
-That "never resizes" is the whole reason this code stays simple. Because the
-arena is a fixed size, **placing a tile can never shift the view** — so there's
-no growing, no re-centering, no scroll compensation, no view-box state machine.
-A placement is just a string write at a bounded `[0, 24]` coordinate. (We *did*
-try a board that grew and re-centered around the tiles; it was a tangle of
-scroll-anchoring bugs. The fixed arena deletes that entire class of problem —
-and it's also the better UX.)
-
-**Why fixed, and why 25×25.** bananagrams is desktop-only (no mobile), played
-maximized in landscape, so we assume a laptop-ish viewport. A completed half-bag
-solo grid is ~72 tiles, and a reasonable interlocking crossword fills ~30% of
-its bounding box → roughly 15×15, up to ~20 on the long axis. So **25×25 = 625
-cells is plenty** — a 72-tile game fills only ~12% — and it fits on a laptop at
-a readable tile size when zoomed out. The hard cap is a real game rule (you
-can't place outside the arena), but at ~12% fill it never binds except in
-pathological cases we don't care about.
+**Why 25×25.** A finished half-bag solo grid is about 72 tiles, and an
+interlocking crossword fills about 30% of its bounding box, so roughly 15×15,
+up to about 20 on the long axis. 625 cells leaves plenty of room, and still fits
+a laptop at a readable tile size zoomed out. The edge is a real rule — you
+can't place outside it — but it never binds in practice.
 
 **Navigation.**
-- **Zoom** (px-per-cell slider): the smallest zoom is computed to fit the whole
-  grid (the board area's binding dimension ÷ 25), so you can always zoom out to
-  see everything with no scrollbar, or zoom in for bigger tiles + scroll. Zoom
-  keeps the viewport center fixed.
-- **Center + fit** (one button): shifts the tiles to the middle of the arena (a
-  string rewrite) AND sets the zoom so the used area + a few cells of margin
-  fills the viewport, then scrolls to it. The "re-frame my work / give me room
-  to keep building" action — and the *only* thing that shrinks the view (placing
-  only ever fills cells). Players build down/right, so it's reached for often.
-- A **thick outer border** marks the real edge of the arena, distinct from the
-  thin internal cell lines.
+- **Zoom** sets px per cell. The smallest zoom is measured to fit the whole
+  grid, so you can always see everything with no scrollbar. A zoom keeps the
+  viewport's center fixed, and the keyboard cursor is kept in view.
+- **Zoom to fit** (`act-zoom-fit`) moves the tiles to the middle of the grid,
+  puts the cursor back at the center, and zooms to show them with a margin —
+  the only thing that shrinks the view, and the one to reach for when you've
+  built off toward an edge.
+- A thick outer border marks the grid's real edge.
 
-**The hand is DERIVED, not stored.** A player's `tiles` (server-owned) is
-everything they hold — hand *and* board. The hand they see is
-`deriveHand(tiles, board)` = the held letters minus what's already placed. This
-is the keystone of peel/dump: those RPCs only ever append to / swap within
-`tiles` (server-side, all players at once), while each FE independently edits
-its own `board`; the two never write the same column, so a tile dealt by a peel
-appears in the hand by *re-derivation* — no merge, no lost-tile race on reload.
-A local shuffle order (the ⟲ button) is layered on top via `reconcileHandOrder`
-(multiset-aware: letters repeat). Tiles are **interchangeable by letter** — no
-per-tile ids — so everything is plain strings, which also keeps later word +
-connectivity validation a simple scan / flood-fill over the 2D char array. A
-peer's **unplaced count** is their tiles not in their board's largest block
-(`progress.unplaced_count`).
+### The hand is derived
 
-## Keyboard input — the crossword cursor
+A player's `tiles` is everything they hold, hand and board together, as one
+lowercase string. The hand on screen is `deriveHand(tiles, board)`: the held
+letters less the ones on the board. That split is what makes peel and dump
+conflict-free — the server only ever grows or swaps `tiles`, for every player
+at once, while each page edits only its own board, so a dealt tile appears in
+the hand by re-derivation and nothing has to merge.
 
-The crossword-style keyboard cursor is the fast path for placing a word you've
-already formed in your head. (Drag stays the tool for incidental single-tile
-moves and free rearrangement; the two coexist.) The cursor is **clamped to the
-arena** — it can't move or advance past the edge.
+Tiles are interchangeable by letter: there are no tile ids, and everything is
+plain strings. The hand's **order** is the player's own (`useHandOrder`):
+Shuffle reorders it, it never reaches the server, and `reconcileHandOrder`
+keeps it in step as letters come and go (letters repeat, so it works on the
+multiset).
 
-**Getting a cursor.**
-- Click any cell (filled or empty) → a **horizontal** cursor appears there.
-- Click again for a fresh one.
+The server knows only what you hold and where it sits, so a tile pushed off to
+the side of the board counts as unplaced, the same as one in the hand: a
+player's **`nUnplacedTiles`** — the number rivals see — is their tiles less the
+board's largest connected block (`_main_block_size`).
 
-**Direction.** A cursor always has a direction — it starts horizontal — shown
-by its thick edges: horizontal = thick top/bottom, vertical = thick left/right.
-- An arrow **along** the current axis moves one cell; an arrow **across** it
-  flips the axis (no move).
-- "Forward" (for typing and advancing) is **right** (horizontal) / **down**
-  (vertical).
+### Saving the board
 
-**Typing a letter** at the cursor cell — a place-or-swap that always consumes
-a tile from the hand:
+The board is high-frequency and private, so it never round-trips per move. The
+page saves the whole grid (`save_player_board`) **about 0.8 s after the last
+edit**, **when the editing board unmounts**, and **before a peel or Check words**, so
+the server judges what the player sees. The unmount save is load-bearing:
+`PauseBoundary` unmounts the play surface on pause, and presence-pause fires
+whenever anyone disconnects.
 
-| cell state | result |
+Every save rebuilds the blobs, so the saver's board in `game_data` is the board
+as last saved — what their page seeds from on a remount — and a rival's count
+moves as the board does.
+
+**An accepted race.** The unmount save is fire-and-forget (an unmount cleanup
+can't await), so on a fast pause → resume the page can seed from a blob the
+save hasn't rebuilt yet, losing up to one autosave window of placements. The
+loss is a few re-placeable tiles, so it stays. The fix, if it ever matters, is
+a board version the save stamps and the seed refuses to go behind.
+
+### The keyboard cursor
+
+The fast path for a word you've already formed; dragging stays the tool for
+single tiles and rearranging. The cursor is the shared 2-D board cursor
+(`useBoardCursorKeys`, [common/board-cursor](../../src/common/board-cursor/doc.md)),
+clamped to the grid, starting dead center.
+
+- **Click** a cell to put a horizontal cursor there.
+- An arrow **along** the axis moves one cell; an arrow **across** it flips the
+  axis. Forward is right (horizontal) or down (vertical).
+- **Typing a letter** places it from the hand and advances. Over a filled cell
+  it swaps: the old tile goes back to the hand first, so typing `A` over `A`
+  always works and `A` → `B` needs a `B` you hold. A letter you don't hold
+  flashes a red box around the hand and changes nothing.
+- **Backspace** on a tile returns it to the hand and stays; on an empty cell it
+  steps back and returns the tile there, so one press right after typing takes
+  back the letter just typed (`planBackspace`).
+- **Enter** and **Space** peel — they are `act-peel`'s keys, so they gray with
+  the button.
+
+The cells aren't focusable, so a press on the board or a hand tile blurs a
+focused chat box (`blurActiveField`), handing the keyboard back to the game.
+
+## 3. Schema — `bananagrams.*`
+
+```
+bananagrams.games          game_id, hand_size, word_check, dict_2, dict_3plus,
+                           dump_to_bag,
+                           bunch_at_setup text  -- the deal, in order; out of the grant
+                           bunch text           -- the live draw pile; out of the grant
+                           bag text             -- the out-of-play reserve; out of the grant
+bananagrams.player_boards  game_id, user_id,
+                           board text           -- 625 cells, as last saved; out of the grant
+                           tiles text           -- what they hold; out of the grant
+                           updated_at
+bananagrams.events         id, game_id, user_id, kind ('peel' | 'dump' | 'went_out'),
+                           tile text,           -- the letter dumped; null otherwise
+                           n_drawn int,         -- 1 on a peel, 3 on a dump, 0 going out
+                           took_turn, created_at
+```
+
+The four setup values the moves read are copied from `setup` at create
+(`off`, 4, 4 and false when absent). `bunch_at_setup` is the shuffled tiles
+this game was dealt from (length = the chosen bunch size), hands first, in deal
+order — the record Restart re-deals from. `bunch` and `bag` are the two live
+piles. Every letter is lowercase; the page draws the capitals.
+
+**Who writes what.** `board` is the page's: only `save_player_board` writes it,
+and only the caller's own. `tiles` is the server's: set at the deal, grown by a
+peel, swapped by a dump.
+
+### RLS + grants
+
+Every table is club-readable through its games row. The column grants leave out
+everything whose order is every draw to come (`bunch_at_setup`, `bunch`, `bag`)
+and every player's `board` and `tiles`. The page reads none of these tables —
+only the blobs — and a rival's board is withheld by the page's seat rule, not
+by RLS (todo.md → Won't do).
+
+### The page blobs
+
+`bananagrams._rebuild_data_cols` writes them at create, at Restart, at the end
+of every move and after every board save, each assigned whole: `shell_data`
+through `common._make_json_shell_data`, and on top of the common part of
+`game_data` and `summary_data` this game's own.
+`bananagrams._rebuild_data_cols_for_all()` rebuilds every bananagrams game
+without re-dating it.
+
+| blob | bananagrams' part |
 |---|---|
-| empty, letter **in hand** | place it (consume from hand), advance forward |
-| filled, **typed letter in hand** | **swap**: the tile under the cursor returns to the hand, the typed tile takes its place, advance forward |
-| filled with the **same** letter | a swap that nets nothing (the tile returns and goes right back) — so it just advances |
-| **typed letter not in hand** | red box flashes around the **hand** ("you don't hold that tile"); don't move, no change |
+| `game_data` | `nBunchTiles` and `nBagTiles`, the two piles' counts (their order never leaves the server). `team: null`. `events`, every row `{id, userId, kind, tile, nDrawn, at}`. On each player: `tiles`, `nTiles`, `nUnplacedTiles`, and `board: {letters}` |
+| `summary_data` | `nBunchTiles` — the club card's "12 tiles in the bunch" |
 
-The "available?" check, for a filled cell, counts the tile currently under the
-cursor as back in the hand (you're typing over it) — so swapping `A`→`B`
-needs a `B` you hold elsewhere, while typing `A` over `A` always works. Because
-the hand is **derived** from the board (`deriveHand(tiles, board)`), one board
-overwrite does both halves of the swap: the old letter re-derives into the
-hand, the typed letter leaves it.
+**The seat rule** (`makeGameData`): a rival's `tiles` and `board` are null
+until the game ends. Their counts stay, so the strip can show how close each
+one is; once the game has ended every board shows, for the printout.
 
-**Backspace**: if the cursor is **on a tile**, that tile returns to the hand
-and the cursor stays. On an empty cell, the cursor steps back one cell in the
-current direction and the tile there, if any, returns to the hand — so one
-press right after typing takes back the letter just typed (`planBackspace`).
+### How a game ends
 
-**Keyboard focus + gating.** The board's keys are actions, so the app's
-one dispatcher keeps them from stealing keystrokes they shouldn't: a modified
-chord never matches a pattern key (`Cmd-R` reloads instead of placing an "R");
-only bare `a`–`z`, Backspace, the arrows, and Enter/Space (peel) are bound; and
-a keystroke aimed at a focused field never reaches an action. What the game adds
-is a **focus handoff** — the cells are non-focusable `<div>`s, so clicking the
-board (or a hand tile) explicitly **blurs a focused chat box**
-(`blurActiveField`), handing the keyboard back to the game; without it, chat
-kept focus after a board click and typed letters went to chat.
+The ending is `common.games`' reason, detail and outcome
+([win-lose.md](../win-lose.md)):
 
-## Scope
+| when | reason / detail | ranked |
+|---|---|---|
+| a winning peel | `reached_goal` / `complete` | the peeler alone, 1; everyone else short of the goal |
+| the countdown ran out | `timeout` | nobody — a loss for everyone |
+| the last racer conceded | `conceded` | nobody — a loss for everyone |
+| somebody pressed Stop | `stopped` | nobody — neutral |
 
-The game played today:
-- Compete-only (solo = 1 player); single manifest, bare gametype `bananagrams`
-  (matching codenamesduet's single-manifest naming — the `_compete` suffix only
-  earns its keep with a `_coop` sibling).
-- Each player is dealt a **starter hand** (size from setup, default 15) from a
-  shuffled 144-tile bag; the leftover is the shared **bunch**.
-- Build your private crossword with drag + the keyboard cursor.
-- You see **peers' unplaced-tile counts only**, ticking toward zero — the race
-  tension. You never see their boards.
-- **Peel** when your hand empties: everyone draws, or — if the bunch can't
-  refill the table — you go out and win (**Bananas!**). **Dump** an awkward tile
-  for three from the bunch. **⟲ Shuffle** (`⌥Z`) your hand for a fresh look.
-- **A winning peel always requires one connected grid** — geography is
-  structural, so even in trust-the-friends mode you can't win with scattered
-  tiles. Requiring the **words** to be real is opt-in (setup: "Require real
-  words to win", + a dictionary-obscurity band). Either failure flashes the
-  offending tiles **red** until you fix them, and leaves the game in progress.
-  Mid-play is never validated — only the peel that would end the game.
+The winning peel stamps the peeler's `solved_at` and ends them `reached_goal` /
+`complete` before ending the game, so the winner's own `ending` is set too.
 
-The build landed in two arcs: **v1** stood up the architecture (private boards,
-snapshot persistence, peer signal, terminal) with a hand-empty win and no bank
-loop; **v2** added the bank loop (peel/dump) — which forced the `board`/`tiles`
-split and the derived hand — plus the shared shuffle control. Validation later
-landed too: a winning board is always connectivity-checked, with an opt-in
-dictionary check on top.
+## 4. RPCs
 
-## The Supabase build
+All `security definer`; no table write policies. Every write locks the
+`bananagrams.games` row, so peels, dumps and saves serialize.
 
-Follows every house pattern (gametype-per-schema, server-authoritative state via
-security-definer RPCs, the common shell for clubs / presence-pause / chat /
-header / terminal). The one deliberate departure: the **private player board is
-not RPC-per-move** — it's FE state snapshotted to `jsonb` (see [Persistence:
-snapshot the player board on
-unmount](#persistence-snapshot-the-player-board-on-unmount)).
-
-### Schema (`bananagrams`)
-
-A two-table split **by visibility class** — the one novel schema call, forced
-by "peers see counts, never boards":
-
-| table | columns (sketch) | RLS read | why |
-|---|---|---|---|
-| `bananagrams.games` | `game_id` (PK → `common.games`), `hand_size`, `word_check`, `dict_2`, `dict_3plus`, `dump_to_bag`, `bunch_at_setup`, `bunch`, `bag` | club (`bunch_at_setup` column-hidden) | The four setup values the moves read are copied from `setup` at create (`off`, 4, 4 and false when absent). `bunch_at_setup` is the shuffled tile sequence this game was dealt from (length = the chosen bunch size, ≤ 144), hands-then-draw-pile in deal order — set once, the record Restart re-deals from; hidden because it would tell a player every tile still to come. `bunch` is the live draw pile — the undealt remainder, mutated by peel/dump. `bag` is the out-of-play reserve: it starts with the `144 − bunch_size` tiles left out of the bunch, and in `dump_to_bag` mode dumped tiles go there too. A short-bunch dump can dip into it. `bunch` and `bag` are readable, and the page counts them. |
-| `bananagrams.player_boards` | `game_id`, `user_id`, `board text`, `tiles text`, `updated_at` | **owner only while playing; club-wide once the game has ended** | The private player board. `board` = FE-owned placements; `tiles` = server-owned holdings. Owner-only RLS is the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge — but only *while the race is on*. At terminal it opens to the club, like every other compete game's private table (`stackdown.events`, `wordle.events`), so the printout can put the finished grids side by side. `rls_test` pins all three: hidden mid-game, visible to a co-player at terminal, still invisible to a non-member. |
-| `bananagrams.progress` | `game_id`, `user_id`, `unplaced_count`, `placed` | club | The public projection peers read. `unplaced_count` is the tiles a player holds that are not in their board's largest block — what's in the page's hand plus any tile pushed off to the side — and `placed` is every filled cell. The board/tiles stay hidden; only the count leaks. Going out is `common.game_players.solved_at`. |
-
-(Splitting `board`/`tiles` into two columns with one writer each — FE for
-`board`, server for `tiles` — is what makes peel/dump conflict-free; see the
-table comment in the baseline migration.)
-
-### RPCs (all security-definer; no table write policies — writes go through these)
-
-- `bananagrams.create_game(p_club_handle, p_setup, p_player_user_ids)` — calls
-  `common._create_game` (header), shuffles the standard 144-tile Bananagrams set
-  and **splits it at `setup.bunch_size`** (1..144 — a smaller bunch is a shorter
-  game on a random subset): the first `bunch_size` tiles are
-  `games.bunch_at_setup`, and **the remaining `144 − bunch_size` start the
-  out-of-play `games.bag`** (not discarded). Deals each player a `hand_size`
-  slice as their starting `tiles`, materializes the undealt bunch as
-  `games.bunch`, and seeds one `player_boards` row (`board` = 625 dots,
-  `tiles` = "<letters>") + one `progress` row (`unplaced_count = hand_size`) per
-  player. Validates `hand_size ∈ {15,21}`, `bunch_size ∈ [1,144]`,
-  **`player_count × hand_size ≤ bunch_size`** (or the deal is impossible — the
-  FE disables Start on the same check; see SetupForm), `word_check ∈ {off, win,
-  strict}`, and — unless `word_check` is `off` — `dict_2 ∈ [2,6]` and
-  `dict_3plus ∈ [1,6]`, and copies the four to their columns. Compete-only, so
-  no `mode` param. Gated by `_require_club_member`.
-- `bananagrams.save_player_board(p_game_id, p_board)` — the snapshot endpoint.
-  Locks the game row; `_require_game_player`; writes the caller's own
-  `player_boards.board` (only — `tiles` is server-owned) and recounts their
-  `progress` (`bananagrams._count_unplaced`). Length guard (board must be 625
-  chars). Called **about 0.8 s after the board last changed, and on
-  player-board unmount** (the pause / navigate / shelve safety net), and
-  flushed before a peel or Check words. A no-op once the game has ended, or
-  for a conceded caller (their board is frozen). Most saves are a player
-  rearranging their board, which leaves `unplaced_count` alone, so a save rewrites
-  the statuses only when it changes `unplaced_count`.
-- `bananagrams._main_block_size(p_board) → int` — the size of the board's
-  largest block of tiles joined up, down, left or right. A walk over the grid
-  floods from each filled cell no earlier flood reached, so every tile is
-  visited once: about 1 ms for a real board. `_count_unplaced` subtracts it
-  from the tiles held.
-- `bananagrams._win_blockers(p_board, p_dict_2, p_dict_3plus, p_check_words) → int[]` —
-  the board validator (plain `language sql`). Returns the 0-indexed cells that
-  block a legal win, or `{}` for a valid grid. **Connectivity is always
-  checked**: tiles **not in the main 4-connected mass** (a recursive flood-fill
-  from the top-left-most tile — diagonal touches don't connect) always flag.
-  When `p_check_words` is true it ALSO flags every tile of a **2+ run that isn't
-  a real word** — judged against the band for the word's LENGTH: `dict_2` for
-  2-letter words, `dict_3plus` for longer ones (2-letter words are a thin
-  separate vocabulary, so they get their own band; single tiles aren't words, so
-  never checked).
-- `bananagrams.peel(p_game_id) → jsonb` — the draw/endgame, and the game's
-  only way to win. Locks the game row, so concurrent peels and dumps
-  serialize; `_require_game_player`; refuses a peel into an ended game (the
-  game-over race) or from a **conceded** caller, and rejects unless the hand is
-  empty (`placed == length(tiles)`). **Racer-aware:** the table to refill and
-  the win threshold count only the players still racing (`player_ended_at is
-  null`), not the raw roster — a dropped-out player neither draws nor holds up
-  the bunch math. If the bunch can't give each racer 1 tile, it's a **winning
-  peel** — **it first runs `_win_blockers` (always, for connectivity; with the
-  word check when `word_check` is `win` or `strict`); a non-empty result
-  leaves the game in progress and returns `{result: 'illegal', invalid_cells}`**
-  for the FE to paint red. Otherwise the peeler **goes out and wins**: their
-  `solved_at` is set, they end `reached_goal` / `complete`, and
-  `common._end_game` ends the game the same way with the peeler alone ranked 1
-  — the race ends when decided, so the rest are short of the goal
-  ([win-lose.md](../win-lose.md)). Returns `{result: 'won'}`. If the bunch
-  *can* refill, **every racer draws 1** from the front of the bunch and the
-  bunch advances (`{result: 'dealt'}`). A continuing peel is NOT checked —
-  you're not winning yet — **except under `word_check: 'strict'`, where the
-  SAME `_win_blockers` check runs on every peel, so you can't peel with an
-  invalid board** (a blocked continuing peel returns `{result: 'illegal',
-  invalid_cells}` and deals nothing).
-- `bananagrams.dump(p_game_id, p_tile)` — swap one held tile for 3. Locks the
-  game row; `_require_game_player`; refuses if the game has ended or the caller
-  has conceded, if **`length(bunch) + length(bag) < 3`**, or if the caller
-  doesn't hold the tile. Draws 3 from the FRONT of the **bunch**, topping up
-  from the FRONT of the **bag** if the bunch is short (the bag can hold tiles
-  in either mode — the bunch_size leftover, plus dumped tiles in to-bag mode).
-  The dumped tile then lands at the BACK of the bunch (default —
-  return-to-bunch) or the BACK of the bag (`dump_to_bag`) — always after the
-  draw, so it can't refill its own swap. The caller's hand nets +2 either way;
-  in to-bag mode the dumped tile leaves the bunch, so the bunch depletes and
-  the game ends sooner.
-- `bananagrams.submit_timeout(p_game_id)` — **countdown expiry.** When a chosen
-  countdown hits 0 before anyone goes out, every connected client fires this;
-  the first ends the game `timeout` with nobody ranked — a loss for everyone —
-  and the rest get the game-over race. The RPC is timer-agnostic (the FE
-  decides *when*). pgTAP: `submit_timeout_test.sql`.
-- `bananagrams.stop_game(p_game_id)` — **the whole table stops, with no result
-  for anyone**: locks the row, then `common._stop`. It is deliberately NOT
-  concede's twin — conceding is a loss on your record, and it takes every
-  player doing it to close a game the group has simply lost interest in. The FE
-  offers both behind ONE control: the action row runs **[Concede / Stop game]
-  [Check words] [Peel]**, and Concede's question is where the two are told
-  apart (`useStandardGameActions`, which gives every race that question).
-  pgTAP: `stop_game_test.sql`.
-- `bananagrams.concede(p_game_id)` — **a player drops out of the race.**
-  bananagrams has no other way for a player to end but going out, which ends
-  the game, so after locking the row `common._concede` decides it all (see
-  [common-schema.md →
-  Concede](../common-schema.md#concede--per-player-drop-out)): it marks JUST
-  the caller out, a **real loss** for them, and the **others keep racing**; the
-  game ends `conceded`, a loss for everyone, only when the LAST racer concedes
-  (including a solo `N = 1` game). No compete check: there is no coop sibling.
-  pgTAP: `concede_test.sql`.
-
-### The statuses
-
-Written by `bananagrams._write_statuses` at create, at Restart and at the end of
-every move (a board save only when it changes `unplaced_count`), each assigned whole
-with every key present:
-
-| status | keys |
-|---|---|
-| `game_status` | none — bananagrams has no info column |
-| each `player_status` | `unplaced_count`, `player_ended_reason` |
-| `clubpage_info` | `bunch_tiles_count`, `winner_user_id` |
-
-A player's `unplaced_count` is the strip's number, `progress.unplaced_count`:
-how close they are to going out, the way you'd glance at a friend's grid across
-the table. A peel or dump recounts it for the players whose tiles it changed;
-a save, for the saver. pgTAP: `statuses_test.sql`.
+- **`create_game(p_club_handle, p_setup, p_player_user_ids)`** — shuffles the
+  144-tile set (`_full_bag`) and splits it at `bunch_size`: that many become
+  `bunch_at_setup`, the rest start the bag. Deals each player `hand_size`
+  tiles, keeps the undealt rest as `bunch`, and seeds one empty board per
+  player. Validates `hand_size ∈ {15, 21}`, `bunch_size ∈ [1, 144]`,
+  `players × hand_size ≤ bunch_size`, `word_check ∈ {off, win, strict}`, and
+  the two bands unless the check is `off`. The title is written here (§6).
+- **`save_player_board(p_game_id, p_board)`** — writes the caller's own board,
+  checked for shape only (625 cells, each a lowercase letter or `.`) and not
+  against the tiles held: the board is private and trusted. Dropped, with a
+  named answer, once the game has ended or for a player who conceded, so a
+  late unmount save can't clobber a final board.
+- **`peel(p_game_id)`** — refused for an ended game or a conceded caller, and a
+  fault unless the hand is empty. Counts only the players still racing: if the
+  bunch can't give each one a tile it's a winning peel; otherwise every racer
+  draws one from the front of the bunch. Either can be blocked (§1); a blocked
+  peel deals nothing. Writes a `peel` row (or `went_out`).
+- **`dump(p_game_id, p_tile)`** — refused for an ended game or a conceded
+  caller, if the bunch and bag together hold fewer than three, or if the caller
+  doesn't hold the tile. Draws three from the front of the bunch, topping up
+  from the front of the bag, then puts the dumped tile at the back of the bunch
+  (or the bag, dump-to-bag) — after the draw, so it can't come straight back.
+  Writes a `dump` row.
+- **`check_board(p_game_id)`** — the legality test on the caller's own board,
+  always with words, at the game's bands. Read-only; it reveals nothing that
+  isn't on the player's screen.
+- **`replay_board(p_game_id)`** — Restart: the same row, every board emptied,
+  the same hands re-dealt from `bunch_at_setup`, the bunch restored to the
+  deal's undealt rest, and the bag rebuilt as the full set less the deal (exact
+  even after dumps, since tiles are a multiset). `solved_at` and the ending
+  cleared. Any player, mid-game or after; the page confirms mid-game.
+- **`concede(p_game_id)`** — `common._concede`: the caller out with a loss;
+  the game ends `conceded` when the last racer goes.
+- **`stop_game(p_game_id)`** — `common._stop`: ended for everyone, no result.
+- **`submit_timeout(p_game_id)`** — every client fires it when a countdown
+  reaches zero; the first ends the game `timeout`, the rest get the game-over
+  race.
 
 ### What the RPCs answer
 
-Every one returns an [envelope](../envelopes.md). bananagrams is compete-only
-and has no shared board, so almost nothing here is a race between players — its
-races are all against the game ENDING under you.
+Every one returns an [envelope](../envelopes.md). With no shared board, almost
+nothing is a race between players; the races are against the game ending under
+you.
 
 | | | |
 |---|---|---|
-| `peel` → `dealt` · `won` · `illegal` | `ok` | three named results, so the caller never infers which from the payload. `illegal` is a verdict, not a refusal: `_win_blockers` ran and the board is the answer |
-| `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` is the server's answer, not a `placed` count read at the call site |
-| `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops are named, not silent. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
-| `dump` → `dumped`, `create_game` → `created`, `stop_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
-| `PN486` "Game over" | `race` | peel and dump, against a game a peer just ended — the shared race (`common._raise_game_over`) |
-| `PN483` "Already conceded" | `race` | your own concede landing first — the shared race (`common._raise_already_conceded`) |
-| `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | both are the FE's own gates losing to a peer's peel or to its own in-flight state |
-| `PN485` "That game was already deleted" | `race` | peel and dump, against a game a friend deleted mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
-| `PN337`, `PN341`–`PN342`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | a peel with tiles still in hand, a dump of something that is not a tile, a board save with the wrong grid size — each is a shape the board itself cannot produce |
+| `peel` → `dealt` · `won` · `invalid` | `ok` | `invalid` carries `invalid_cells`; it is a state of play, not a refusal |
+| `check_board` → `invalid` · `empty` · `clean` | `ok` | `invalid` carries `invalid_cells`; `empty` is its own, so a blank board is never congratulated |
+| `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two drops are named, so a save and a discard never look the same |
+| `dump` → `dumped`, `create_game` → `created`, `stop_game` / `submit_timeout` → `ended`, `replay_board` → `replayed`, `concede` → `conceded` | `ok` | |
+| "Game over", "Already conceded", "That game was already deleted" | `race` | the shared raises (`common._raise_game_over`, `_raise_already_conceded`, `_raise_game_deleted`) |
+| `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | the page's own gates losing to a rival's peel |
+| `PN337`, `PN341`–`PN342`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | shapes the board can't produce: a peel with tiles in hand, a dump of something not a tile, a save of the wrong shape |
 | `PN094`–`PN103` `BUG: …` | `fault` | `create_game`'s ten, all composed by the setup dialog |
 
-### New game — a fresh deal; Restart — the same deal again
+## 5. Frontend
 
-The **New game** button in the terminal action row + the matching menu item: a
-FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the
-same club. A direct `create_game` RPC — bananagrams deals inline (no edge
-function) and takes no `mode` argument, being compete-only. Non-destructive:
-`common._create_game` un-currents this game into the club's list, so there's no
-confirm.
+**Layout.** The board fills the board column with a fixed-height local
+feedback slot beneath it; the info column runs **state → rivals → help →
+setup → the hand box → the action row**, a documented exception to the
+canonical order ([playarea.md](../playarea.md)), because the hand and Peel live
+there and the actions sit below them.
 
-**Restart** (added 2026-08-03) is its twin, and bananagrams is the game where it
-looks least necessary: with no shared puzzle, a restart deals what New game
-would. It's here because *every other game has one*, and a player who can't find
-Restart where they expect it concludes the app is broken rather than that this
-game is special. It is a **real reset**, not an alias — `replay_board` empties
-every board and re-deals the SAME hands from `bunch_at_setup` (the record of
-this game's shuffled deal), on the SAME row. So the club list doesn't grow an entry, nobody re-navigates,
-and "we all misread the rules, start over" returns you to the game you just had.
+**The hand box** (`HandBox`) has the shared WordList / EventLog chrome: a plain "Hand"
+heading over a framed box. The **dump zone** is at the top of the box, close to
+the tiles you reach for; it brightens while a tile is dragged, greens when one
+hovers it, and says "Bunch too low to dump" when the piles can't cover the
+draw. A tile from the hand or dragged off the board can be dumped. The ⟲
+shuffle floats over the tiles' corner and stays live after the game ends.
 
-The locally-terminal row (conceded, the others still racing) is the shared
-`<InfoActionsRow>` labeled "You conceded", and it keeps Club alone: the race is
-still going, so offering to start a different game there would be a distraction.
+**The action row** is one `<InfoActionsRow>`: `Check words · Peel ┃ Restart ·
+New game · Concede · Stop game · Back to club`. Each action answers whether it
+shows: Peel and Check words go once the board is inert, Stop waits behind
+Concede (whose question offers stopping the table) until a Concede is spent,
+Restart and New game are buttons only once the game has ended, and Back to club
+is filled then.
 
-### Title formula
+**`PeersStrip`** is this game's own vertical strip, kept over the shared
+`OpponentStrip` because a race reads top-down: each rival's tiles left, closest
+to done first, a conceded rival "out" at the bottom, the winner "done!".
+Nothing in solo.
 
-A pure **identifier**: `'#'` + the first six hex digits of the game's own uuid,
-uppercased (`#3F9A2C`), written by `create_game` right after
-`common._create_game` returns the id.
+**The local slot** carries a peel's or dump's acknowledgment, the check's
+answer, a refusal and the endings. The acknowledgment comes from the log's
+newest row (`useShowDrawMessages`): "🍌 Peel!" for mine, "moth peeled" for a
+rival's, "Dumped Q" with the exchange glyph for my own dump; a rival's dump
+changes nothing of mine and isn't shown. The winner alone gets
+`<CelebrationBlockingModal>` ("Bananas! 🍌").
 
-bananagrams is the one game on the roster with no shareable content to name
-itself after: every player builds a private grid from a private hand, so
-anything drawn from play would be either meaningless (whose grid?) or a leak.
-So instead of naming the game, the title *identifies* it — two games in a club
-list are always tellable apart, and the handle doubles as a lookup key when
-digging through the DB for the game a friend is asking about. Six hex digits
-collide at ~1-in-16M, which a club of friends will never reach.
+**The endings** (`lib/gameEndingMessage.ts`, `lib/playerEndingMessage.ts`):
+"🍌 Bananas! You went out first" / "moth went out — Bananas!"; "⏰ Time's up —
+no winner"; "🏳️ All conceded — no winner"; a Stop's shared neutral message; and
+"Conceded — race continues" while the others race on.
 
-### Realtime + FE
+**Desktop only.** `PlayAreaLoader` shows the shared `DeviceBlockNotice` on any
+coarse pointer — the gate keys off the pointer, not the width, since a touch
+tablet is desktop-wide but has no mouse to drag with.
 
-- **Inherited free** from the shell: `useCommonGame` (presence-pause — a
-  bananagrams race pauses if anyone drops, per the house principle), the
-  GamePage header, chat, suspend/shelve, the player-subset picker.
-- **`bananagrams/usePeerBoards`**: every player's board, read ONCE at terminal
-  for the printout's per-player columns. Not realtime (a finished game's boards
-  don't move) and deliberately not wired to the play surface — the screen still
-  shows only your own grid.
-- **`bananagrams/useGame`**: `useGame(gameId, userId)` reads the caller's own
-  `player_boards` row — `board` once (for seeding; the FE owns it after) and
-  `tiles` LIVE via a Pattern-A subscription to its own row (so a peel/dump's
-  `tiles` change folds into the derived hand). `useProgress` subscribes to
-  `bananagrams.progress` for peers' counts. A peer's board never crosses the
-  wire; only your own row reaches you.
-- **`PlayerBoard` decomposition (the roster's inverted case).** Every other game
-  splits its `PlayArea` into `BoardCol` + `InfoCol` (each column owns its own
-  input). bananagrams **can't** — its input engine spans BOTH columns: the hand
-  tiles (info column) are drag SOURCES that drop onto the board (board column),
-  the dump zone (info column) is a drop TARGET during a board drag, the derived
-  hand (`deriveHand(tiles, board)`) is a function of BOARD state, and the
-  keyboard cursor types onto the board but checks the hand. So there's one
-  cohesive cross-column engine. It's factored as **`usePlayerBoard` (hook, the
-  engine)** + two thin presentational **VIEWS** — **`BoardArena`** (the
-  board-column arena) and **`HandCard`** (the info-column hand card) —
-  coordinated by a now-thin **`PlayerBoard`** (the two-column layout). This is
-  the honest analog of "engine + views + thin coordinator" for a game whose
-  columns share one engine; the views are deliberately NOT named
-  `BoardCol`/`InfoCol` because they own no input. The DOM contract the drag
-  gesture hit-tests (`data-cell`/`data-x`/`data-y`, `data-zone="hand"`/`"dump"`,
-  `data-hand-tile`) lives in the views and is load-bearing. (Note the TWO-LEVEL
-  coordinator: `PlayArea` is the OUTER coordinator — data / RPCs / feedback /
-  verdict — above `PlayerBoard`, the columns' coordinator.)
-- **`PlayerBoard`** (owns the shared two-column shell): the fixed 25×25 arena
-  FILLS the left board column (drag, keyboard cursor, a translucent floating
-  **zoom** panel + **`act-zoom-fit`** — lucide `Fullscreen`, a plain square icon
-  button) with a fixed-height **local feedback slot** below it. The board column
-  does NOT compose the shared `.boardCol` (that hugs; bananagrams fills) — a
-  documented deviation; it uses a self-sufficient per-game `.boardCol` (`flex:
-  1`) to avoid a hug-vs-fill override fight. The right/info column runs
-  `PlayArea`'s `infoTop` (in the shared `.noShrinkRow`) → the **hand** → the
-  bottom **action row**. The **hand** mirrors the shared WordList / EventLog
-  chrome: a plain black "Hand" heading OUTSIDE an evident 2px-framed box. Inside
-  the box, the **dump zone** sits at the TOP of the tiles (you dump one of a few
-  tiles often, so keep the target close), an info-blue (`--chrome-action-color`)
-  dashed drop target (lucide `arrow-left-right` glyph + "Drag tile here to dump"
-  at button-label size) that greens when a tile hovers it — drop from the hand
-  *or* dragged off the board (a board-sourced dump clears its cell so `board`
-  stays in lock-step with `tiles`); the ⟲ shuffle floats over the TILES'
-  top-right corner (below the dump zone). The bottom **action row** is
-  `shared.infoActions` (natural-width buttons, NOT stretched): while playing
-  it's **[Concede / Stop game] [Check words] [Peel]** side by side (`act-peel`,
-  primary, enabled only when the derived hand is empty — it flushes the board
-  first so the server's `placed == tiles` check is current; **Enter** and
-  **Space** come with the action, so the key and the button are gray at the same
-  moments rather than by two agreements); **[Check words]** sits between Concede
-  and Peel — the always-available manual board check (below), icon-only like its
-  neighbors so the row stays one line; at terminal it becomes the shared
-  `<InfoActionsRow>` — outcome line + icon-only **New game** + back-to-club (no
-  Peel; the locally-terminal row keeps Club alone — see [New
-  game](#new-game--a-fresh-deal-restart--the-same-deal-again)). A **conceded**
-  player's board is frozen: the pointer handlers bail via a ref, and the shared
-  **`useBoardCursorKeys`** keyboard (the 2-D board-cursor entry, four
-  actions — arrows move, a letter places from the
-  hand, Backspace returns a tile, and the commit is this game's peel) is passed
-  `enabled: !isConceded`, which grays all four. Every board mutation writes the
-  board only — the hand re-derives.
-- **`PlayArea`** (the v3 chrome + terminal + feedback): builds the info-column
-  readouts `infoTop` and the bottom action row `infoActions`. **Info-column
-  order is a DOCUMENTED EXCEPTION** to the canonical v3 order (state → opponent
-  → actions → help → setup → log): because the hand + peel live in the info
-  column (the other exception), the order is **state → opponents (`PeersStrip`)
-  → help → setup → the hand card → the action row at the very bottom**. While
-  playing, the action row is **Concede + Peel** side by side (icon-only; the
-  exit comes from `useStandardGameActions`, so its question offers ending for
-  everyone as its second answer rather than a second
-  red button sitting beside it) — there is NO separate Dump button (the in-hand
-  dump zone is the only dump affordance); **[Check words]** sits between Concede
-  and Peel — the always-available manual board check (below), icon-only like its
-  neighbors so the row stays one line; at terminal it becomes the shared
-  `<InfoActionsRow>` (outcome line + icon-only New game + back-to-club);
-  locally-terminal is the shared `<InfoActionsRow>`, Club alone. The state line
-  shows held tiles + the bunch count (the old bottom "N in bunch" is gone) plus
-  **"N in the bag"** when the game isn't on a full bunch. The below-board
-  **local feedback slot** carries the draw acknowledgment, the check results, a
-  not-ok, the terminal verdict, and the locally-terminal "Conceded — race
-  continues" ([ui.md → Feedback pill](../ui.md#feedback-pill)). The **draw
-  acknowledgment** watches its own `tiles` length grow → an `acknowledgment`
-  held 2.5s, an override bananagrams makes at the site ("🍌 Peel!" for a draw;
-  "Dumped 1, drew N" led by the lucide `arrow-left-right` glyph — matching the
-  dump zone — when a `dumpPending` ref flags the caller's own dump; a message's
-  text is a `ReactNode`, so it can hold that inline icon). A player who has
-  conceded but whose game is still live is **locally terminal**:
-  `ctx.players[self].conceded && !isTerminal` (the flag now rides the common
-  roster, not `progress`) → the terminal LOOK (frozen board, the shared
-  `<InfoActionsRow>` "You conceded", disabled Peel). The terminal verdict checks
-  the two no-winner outcomes **first** — `status.reason === 'timeout'` → "⏰
-  Time's up — no winner"; `=== 'conceded'` → "🏳️ Everyone conceded — no winner"
-  — before the win/loss computation (neither carries a `winner_username`); the
-  win/loss pair is "🍌 Bananas! You went out first" (winner) vs "\<name\> went
-  out — Bananas!" (everyone else). The emoji + Bananas! flavor is deliberate;
-  the trailing periods are not — verdicts are pill LABELS (terminalMessage.ts),
-  so they carry none. The **winner** — and only the winner — additionally pops
-  the shared `<CelebrationBlockingModal>` ("Bananas! 🍌" / "You went out first.")
-  via `useCelebration(isTerminal && selfWon)`: `selfWon` reads only ctx (the
-  games row + roster GamePage already awaited), so it's right on the first
-  render and opening an already-won game reviews quietly ([ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)). The `summaryFor`
-  (manifest) maps `play_state` → the summary, in the app-wide
-  grammar (see [game-summary.md](../game-summary.md)): `Playing · 12
-  tiles in the bunch`, `Won by alice`, `Lost (out of time) · nobody finished`,
-  `Lost (all conceded)`, `Ended`.
-- **`PeersStrip`**: opponents' tiles-left counts sorted by closest-to-done (a
-  **conceded** peer shows "out" and sinks to the bottom), rendered in the info
-  column above the hand. Renders nothing in a solo game. Deliberately kept over
-  the shared horizontal `OpponentStrip` — the vertical, race-ordered shape is a
-  better fit for this game (and the narrow column).
-- **SetupForm**: `hand_size` (15 / 21, default 15) + `bunch_size` (number,
-  1–144, default 144 — fewer tiles = a shorter game) + **dump_to_bag** ("Return
-  dumped tiles to the bag" checkbox, default off — on sends dumped tiles to the
-  out-of-play bag reserve so the bunch depletes; a short-bunch dump can still
-  draw from the bag) + **word_check** (a 3-way radio "Check words: Off / At win
-  / Every peel", default Off — `off` never checks words, `win` checks every word
-  on a winning peel only, `strict` checks on EVERY peel so you can't peel with
-  an invalid word) **plus two always-shown shared `DictBandField` pickers** —
-  **2-letter words** [2–6] and **longer words 3+** [1–6], since 2-letter words
-  are a thin separate vocabulary, both default 4. The bands define what counts
-  as a real word both for the word check (when on) and for a planned opt-in
-  "check board" helper, so they show regardless of the mode; connectivity is
-  always required so it's not a knob) + the shared `SetupTimerSection` (none /
-  count-up / countdown MM:SS, default none). A countdown that runs out ends the
-  race as a collective loss (`submit_timeout`). The bunch must hold a starter
-  hand per player: the form shows the live "deals N" figure, and
-  `bunchSizeError` (shared with the gate) feeds the manifest's
-  `setupForm.validate` so the dialog **disables Start with a reason** until
-  `bunch_size ≥ playerCount × hand_size`. Manifest compete-only; solo is N = 1.
+### The component tree
 
-### Printing the board (PDF)
+Folder [`src/bananagrams/`](../../src/bananagrams/), on the page blobs:
+`useGame` is `makeGameData(game_data, me)` — no read, no subscription — and
+every type the folder exports is in [`types.ts`](../../src/bananagrams/types.ts)
+(the `gd` sketch at its top) and, for the ones that reach React,
+[`reactTypes.ts`](../../src/bananagrams/reactTypes.ts).
 
-bananagrams joins the printable games (see
-[common/pdf/doc.md](../../src/common/pdf/doc.md)) — a "Print board (PDF)"
-GamePage menu item that hands you a paper record of your crossword. It's the
-word-list body family (board top-left, Setup to its right, words below), with
-two bananagrams-specific pieces:
+```
+<PlayAreaLoader {...PlayAreaLoaderProps}>   useGame: gd; DeviceBlockNotice ← on touch
+  └── PlayArea                  the outer coordinator: the moves, the slot, the endings
+        └── EditingBoard        the interactive part: holds the editing board, lays out the columns
+              ├── Board         the scrolling grid and the view controls
+              │     └── Cell    one cell: its tile, the cursor, a drop's answer
+              │           └── Tile
+              ├── FeedbackPill ←      the local slot
+              ├── InfoCol             the readouts, the hand and the action row
+              │     ├── StateLine     "Tiles: You 14 · Bunch 60 · Bag 3"
+              │     ├── PeersStrip    each rival's tiles left
+              │     ├── SetupDisclosure ←
+              │     ├── HandBox       the dump zone, ⟲ and the hand's tiles
+              │     │     └── Tile
+              │     └── InfoActionsRow ←   one row, every action
+              └── Tile              the drag's ghost
 
-- **Board sizing.** Unlike boggle's fixed-size grid, the crossword is an
-  arbitrary shape in the 25×25 arena, so the print crops to the used tiles
-  (`lib/board.ts`'s `boardToGrid`) and derives a tile size that fills ~75% of
-  the page width — the board is the star of the page. Gaps between words render
-  white, so the interlocking shape reads.
-- **The word list.** `lib/words.ts`'s `boardWords` enumerates every 2+ run
-  (across + down) — the FE twin of the server's win-time spell check in
-  `_win_blockers`, lifted to `lib/` so the print (and a future opt-in "check my
-  board" helper) can list the same words without a round-trip. They're
-  de-duped + alphabetised and printed **unscored, unattributed** — a Bananagrams
-  grid is one player's, not "found" by anyone.
+  ← belongs to common/ ; everything else is this folder's
+```
 
-The board lives in the `usePlayerBoard` engine, but the menu lives in `PlayArea`
-(where `ctx.menu` is), so PlayArea hands the engine a `reportBoardRef` it keeps
-pointed at the live board; the print's onClick snapshots it at click time (works
-mid-game or at the end).
+**Two coordinators**, where every other game has a `BoardCol` and an
+`InfoCol`: the hand's tiles drop onto the board and the dump zone takes a tile
+dragged off it, so one **editing board** (`useEditingBoard`: my board as I
+edit it, the hand derived from it, and everything that changes them) spans both
+columns. `EditingBoard` holds it between `PlayArea` (data, moves, slot,
+endings) and the two views, and keeps its constant changes — a drag updates on
+every pointer move — from re-rendering `PlayArea`'s hooks. Neither view owns
+input. `Board` draws the grid; `EditingBoard` draws no grid of its own. The DOM contract the drag hit-tests
+(`data-cell` / `data-x` / `data-y`, `data-zone="hand"` / `"dump"`,
+`data-hand-tile`) is load-bearing.
 
-### Why the bunch is explicit and the hand is derived
+`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
+`useGetPlayerEndingMessage`), `useShowDrawMessages`, one per trip to the
+server — `usePeel`, `useDump` and `useCheckBoard`, each showing its own answer
+and handing a peel's or a check's failing cells back to the editing board to paint —
+and `useActionsAndMenu` (Restart · New game, then Print, in the menu). The
+editing board's: `useBoardAutosave`, `useBoardZoom`, `useBoardDrag` (on the
+shared `useDragGesture`), `useHandOrder` and the shared `useBoardCursorKeys`;
+it saves the board before a peel or a check, and binds `act-peel`,
+`act-check-board` and `act-zoom-fit`.
 
-Two schema shapes exist for specific reasons the bank loop forces:
+**One `Tile`** draws the board's, the hand's and the ghost's. Its letter is
+`60cqmin` of its holder plus the borders `cqmin` measures inside (1.2px for
+the tile's own, 2.4px on the board where the cell has one too), so a letter is
+0.6 of its tile at every zoom and in the hand.
 
-- **The bunch is an explicit (hidden, mutable) table**, not a fixed `seed` +
-  draw cursor: dump *returns* tiles to the bunch, which a fixed seed can't
-  describe.
-- **The hand is derived** (the `board`/`tiles` split), not stored as a string:
-  peel must grow *every* player's hand at once without colliding with live FE
-  placement, so the hand-empty win gate lives inside `peel`. The hand is only
-  the page's idea — in person there is no hand, just tiles in front of you that
-  aren't in your grid yet, and new tiles need somewhere to appear. The server
-  knows only the tiles a player holds and where they sit on the board, which is
-  why `unplaced_count` counts a tile pushed off to the side the same as one in the
-  hand.
+### The answers (`lib/answer.ts`)
 
-The rest is a plain char array: the fixed 25×25 board stays a char array
-(`_win_blockers` and `_main_block_size` are scans / flood-fills over it).
+Every answer bananagrams gives — `peel`, `peel_peer` (a rival's peel, which
+dealt me a tile too), `dump`, `went_out`, `peel_invalid`, and Check words'
+`check_clean`, `check_empty` and `check_invalid` — and what each reads as, in
+one place. `answerOfEvent` turns a log row into its answer; `went_out` says
+nothing, since the ending says it. The rule this follows is
+[outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
-## Resolved decisions
+## 6. The title
 
-- **Board:** a **fixed 25×25 arena** navigated with zoom + scroll (not a
-  growing/recentering board — we tried that and it was needlessly complex).
-- **Draw trigger (full game):** peel-gated — you draw only when your hand
-  empties. v1 has no draw at all.
-- **Peer visibility:** unplaced-tile **count only** (tiles not in the main
-  block), never the board.
-- **Player-board RLS:** owner-only reads **while the game is live**; the
-  `player_boards` policy opens to club members once `common.games.ended_at` is set.
-  **Two traps this sprang**, both worth remembering before relaxing any policy:
-  a query that leaned on the policy for correctness (`useGame` selected by
-  `game_id` alone and used `maybeSingle()`, which started matching every row and
-  erroring — no board, no hand, no print menu, for everyone in a finished game),
-  and a comment that credited the wrong mechanism (the explicit `_is_club_member`
-  line reads as the thing keeping outsiders out; planting showed the block
-  actually comes from `bananagrams.games`'s own club policy filtering the
-  subquery — the line stays as belt-and-braces, but it isn't what's holding).
-- **Tiles have no ids:** board + hand are letter strings (tiles are
-  interchangeable by letter).
-- **Touch input:** explicit **non-goal** — desktop-only, cursor-typing needs a
-  keyboard.
-- **`check_board(game)`** — the **Check words** button (2026-08-03): runs the
-  same legality test a winning peel runs (one connected mass, every word real)
-  against the CALLER's own board and returns `{ invalid_cells, placed }`, which
-  the FE paints exactly as a blocked peel does. **Always available, whatever
-  `setup.word_check` says** — that option governs when the SERVER enforces
-  words (never / winning peel / every peel); this is a player asking about
-  their own board, and the answer is useful in all three. So it always checks
-  words, at the game's `dict_2` / `dict_3plus` (4 and 4 in a game made with
-  `word_check` off, which is why the setup form shows its two
-  `DictBandField` pickers regardless of mode — it was reserving them for
-  this). Read-only: no state, no log, no peer effect, and it can't be a cheat in
-  the sense the hint RPCs are — every letter it flags is already on the
-  player's screen. `placed` exists so the FE can tell "your board is fine" from
-  "you haven't put anything down yet". pgTAP: `legal_check_test.sql`.
-- **Replay (`replay_board`).** Re-deals this game from `bunch_at_setup`: boards
-  emptied, the same hands back, the draw pile restored to the deal's undealt
-  remainder, and the out-of-play bag rebuilt as the full 144-tile distribution
-  minus the deal (exact even after dumps have moved tiles between the two —
-  tile identity is only ever a multiset); `solved_at` and the ending cleared.
-  Any player, mid-game or after the end;
-  mid-game the FE confirms. pgTAP: `replay_test.sql`, which also pins
-  conservation (hands + bunch + bag = 144).
+A pure identifier: `'#'` and the first six hex digits of the game's uuid,
+uppercased (`#3F9A2C`). Every player builds a private grid, so anything drawn
+from play would be meaningless (whose grid?) or a leak; an identifier keeps two
+games in a club list tellable apart, and doubles as a lookup key.
 
-## Deferred
+## 7. Setup
 
-- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer
-  peeling grows the caller's own `tiles` (everyone draws on a peel), so the
-  caller's draw-announcement watcher reads it as a draw and shows the peel pill
-  even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why
-  the pill?"). Cosmetic — the tile counts are always correct. Undecided whether
-  to reword the peer case (e.g. "🍌 &lt;name&gt; peeled — you drew N") or leave
-  it. Low priority.
+`hand_size` (15 / 21, default 15); `bunch_size` (1–144, default 144 — fewer
+tiles, a shorter game); **dump to bag** (default off); **word check** (Off /
+At win / Every peel, default Off); the two shared `DictBandField` bands,
+**2-letter words** [2–6] and **longer words** [1–6], default 4, always shown,
+since Check words uses them whatever the setting; and the shared timer (none /
+count-up / countdown). The form shows how many tiles the deal takes, and
+`bunchSizeError` (shared with the server's gate) disables Start with a reason
+until `bunch_size ≥ players × hand_size`.
+
+## 8. Print to PDF
+
+"Print board (PDF)" in the menu: the word-list body family, one column per
+board ([common/pdf/doc.md](../../src/common/pdf/doc.md)). My column reads the
+live board at click time (`PlayArea`'s `myBoardRef`, which the editing board keeps
+pointed at it); a rival's board is null until the game has ended, so mid-game
+the print is my column alone. Each board is cropped to its tiles
+(`boardToGrid`) and sized to fill its column, with its words (`boardWords`,
+every run of two or more across and down) de-duped, alphabetical, unscored.
+
+## 9. Tests
+
+- **`hooks/useGame.test.ts`** — `makeGameData` on the fixture
+  (`lib/gameData.fixture.ts`): the seat rule, the links turned into players,
+  the state line.
+- **`hooks/useEditingBoard.test.ts`** — the editing board: the derived hand,
+  the two saves (after an edit, on unmount), typing and Backspace, the
+  hand-error flash, a peel and its blocked cells, the dump's threshold, an
+  inert board.
+- **`components/Board.test.tsx`** — a cell per spot, the cursor's ring, a
+  drop's answer (a lifted tile may land back on its own cell), the red cells,
+  a press's coordinates.
+- **`components/PlayArea.test.tsx`** — the wiring on the fixture: the board,
+  the hand, the strip and the state line off the blob; the ending I won; the
+  conceded row; the setup rows; the commands through the dispatcher (+, ⌥⌫'s
+  two answers, Stop behind Concede, Restart) and the menu's order.
+- **`lib/answer.test.ts`**, **`lib/gameEndingMessage.test.ts`**,
+  **`lib/board.test.ts`**, **`lib/words.test.ts`**, **`lib/setup.test.ts`**,
+  **`lib/setupRows.test.ts`**, **`components/SetupForm.test.tsx`**.
+- **pgTAP** (`supabase/tests/bananagrams/`) — `game_data_test.sql` pins the
+  blobs (create, a save, a dump, the winning peel, Restart, the rebuild); the
+  rest: `create_game`, `save_player_board`, `peel`, `dump`, the legality test
+  in every word-check setting and `check_board` (`legal_check_test.sql`),
+  `replay_board` with conservation (hands + bunch + bag = 144), `concede`,
+  `stop_game`, `submit_timeout`, and the grants (`rls_test.sql`).
+- **e2e** — `bananagrams`, `bananagrams-block` (the touch block screen) and
+  `bananagrams-print`. Their helpers lag the conversion
+  (plans/seat-view.md → When every game has converted).
 
 ## Won't do
 
-Decided against, not queued — listed only so reviews don't re-propose them.
-The **Resolved decisions** above cover the design forks; these are the
-recurring suggestions.
-
-- **Touch input / a mobile layout.** Desktop-only by design — cursor-typing on
-  the 25×25 arena needs a keyboard. This is the documented v3 layout exception,
-  not an oversight; see [`mobile.md`](../mobile.md).
-
-## The board-feel prototype
-
-The fixed 25×25 arena + zoom/scroll shipped after a growing/recentering board
-was tried and found complex and fiddly — that comparison was made in a
-standalone pure-FE prototype (`bananagrams-ui/`, gitignored, never wired to
-Supabase). The durable takeaway is captured above (Resolved decisions → Board);
-the prototype itself is throwaway.
-
+- **Touch input or a mobile layout.** Desktop only by design: dragging tiles
+  around a 25×25 grid wants a mouse, and typing at the cursor a keyboard.

@@ -11,7 +11,7 @@ import styles from './Cell.module.css'
  * draws the tile; it wears the keyboard cursor and, under a drag, whether a
  * tile may land here.
  *
- * A press is forwarded to `onPointerDown`, so the board editor can run the
+ * A press is forwarded to `onPointerDown`, so the editing board can run the
  * shared drag gesture (a press that moves is a drag; one that doesn't is a tap
  * that moves the cursor). `data-cell` / `data-x` / `data-y` are how the gesture
  * finds the cell under the pointer — keep those exact.

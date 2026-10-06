@@ -27,10 +27,10 @@ import logoUrl from './logo.svg?url'
  * compete siblings whose lower bound is 2.
  */
 
-// The single source of truth for this game's user-facing brand name —
-// `name` and the start-game error both read it, so a fork rebrands by
-// editing this one line. The codename (`bananagrams`) is unrelated and
-// stays lowercase everywhere in code.
+/** The single source of truth for this game's user-facing brand name —
+ *  `name` and the start-game error both read it, so a fork rebrands by
+ *  editing this one line. The codename (`bananagrams`) is unrelated and
+ *  stays lowercase everywhere in code. */
 const BRAND = 'MonkeyGrams'
 
 /**

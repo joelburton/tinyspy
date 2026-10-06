@@ -15,10 +15,10 @@ const AUTOSAVE_MS = 800
 type SavedBoard = { result: 'saved' } | { result: 'game-over' } | { result: 'conceded' } | null
 
 /**
- * Saves my board to the server: a little after each edit, and when the editor
- * unmounts — the unmount save is load-bearing, since `PauseBoundary` unmounts
- * the play surface on pause. Only the board is sent; the tiles I hold are the
- * server's.
+ * Saves my board to the server: a little after each edit, and when the editing
+ * board unmounts — the unmount save is load-bearing, since `PauseBoundary`
+ * unmounts the play surface on pause. Only the board is sent; the tiles I hold
+ * are the server's.
  *
  * Hands back `save`, for the two moves that need the server to judge the
  * board as it is on screen (a peel, a check): they await it before their RPC.

@@ -1364,7 +1364,7 @@ the background. Pick the next one up from the "forces" column.
 | strands | tf0 | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
 | letterboxed | tf0 | — | a board whose primary mark is a LINE between cells, not a tile fill |
 | scrabble | tf0 | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
-| bananagrams | tf0 | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
+| bananagrams | tf0 | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`HandBox.module.css`, `.dump`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
 | crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
 | **spellingbee** | **tf2** | **tf2 2026-09-23** | **Passed as pass 3 of its app-audit area**, and the board held up: shape 1, the hex's rest / hover / press the shared gesture re-stated in coordinate units (an SVG polygon cannot wear `.tileFace`), a finished or conceded board inert, the refusal answer on `useMark` at `WORD_ANSWER_MS`, restart a remount. **Three rulings (Joel):** the khaki selected edge stays for all three word-finding games, and is now written into The channels; the refusal's hexes take `--verdict-edge` for their stroke, as every verdict-filled piece does (they had worn the fill twice); the center yellow and its amber edge are BRAND tokens. **The refusal mark had no test that could fail on its outcome or its lifetime** — the one case pinned a `lost` refusal, which a hard-wired red passes; a `warning` case and a lifetime case were added and each planted red |
@@ -1462,7 +1462,7 @@ roll their own:
 | strands | `Board.module.css` |
 | setgame | `Card.module.css` |
 | scrabble | `Board.module.css` + `Rack.module.css` |
-| bananagrams | `PlayerBoard.module.css` |
+| bananagrams | `Tile.module.css` |
 | crosswords | `Grid.module.css` (cells) |
 
 Some of those are genuinely different objects — a hex is not a square, a crossword

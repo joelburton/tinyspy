@@ -1,6 +1,12 @@
 // cs-unmet
 
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import { DEFAULT_CELL, GRID, MAX_CELL, tilesExtent } from '../lib/board'
 
@@ -15,8 +21,8 @@ const FIT_MARGIN = 3
  * board opens centered on the tiles, a zoom keeps the viewport's center where
  * it was, and the keyboard cursor is kept in view.
  *
- * `fitBox` is the zoom-to-fit's second half: the editor has just moved the
- * tiles to the middle of the grid, and this picks the zoom that shows them
+ * `fitBox` is the zoom-to-fit's second half: the editing board has just moved
+ * the tiles to the middle of the grid, and this picks the zoom that shows them
  * with a margin and scrolls to them.
  */
 export function useBoardZoom({
@@ -86,7 +92,8 @@ export function useBoardZoom({
     const ro = new ResizeObserver(() => {
       const el = scrollRef.current
       if (!el) return
-      const m = Math.max(8, Math.floor(Math.min(el.clientWidth, el.clientHeight) / GRID))
+      const m = Math.max(8,
+        Math.floor(Math.min(el.clientWidth, el.clientHeight) / GRID))
       setMinCell(m)
       setCell((cur) => Math.max(cur, m))
     })
@@ -125,14 +132,20 @@ export function useBoardZoom({
   }, [])
 
   const fitBox = useCallback(
-    ({ left, top, w, h }: { left: number; top: number; w: number; h: number }) => {
+    ({ left, top, w, h }: {
+      left: number;
+      top: number;
+      w: number;
+      h: number
+    }) => {
       const c = scrollRef.current
       if (!c) return
       const usedW = Math.min(GRID, w + 2 * FIT_MARGIN)
       const usedH = Math.min(GRID, h + 2 * FIT_MARGIN)
       const fit = Math.max(
         minCell,
-        Math.min(MAX_CELL, Math.floor(Math.min(c.clientWidth / usedW, c.clientHeight / usedH))),
+        Math.min(MAX_CELL,
+          Math.floor(Math.min(c.clientWidth / usedW, c.clientHeight / usedH))),
       )
       setCell(fit)
       requestAnimationFrame(() => {

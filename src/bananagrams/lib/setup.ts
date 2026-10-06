@@ -33,7 +33,10 @@ export const HAND_SIZE_OPTIONS = [15, 21] as const
 
 /** The `word_check` radio options, in escalating strictness — drives the
  *  SetupForm control and matches the SQL `word_check in ('off','win','strict')`. */
-export const WORD_CHECK_OPTIONS: ReadonlyArray<{ value: GWordCheck; label: string }> = [
+export const WORD_CHECK_OPTIONS: ReadonlyArray<{
+  value: GWordCheck;
+  label: string
+}> = [
   { value: 'off', label: 'Off' },
   { value: 'win', label: 'At win' },
   { value: 'strict', label: 'Every peel' },

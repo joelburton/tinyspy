@@ -14,7 +14,7 @@ How an area opens), and this file goes when the last one does.
 
 | game | register |
 |---|---|
-| bananagrams | [docs/games/bananagrams.md → Deferred](games/bananagrams.md#deferred) |
+| bananagrams | [docs/games/bananagrams.md → Won't do](games/bananagrams.md#wont-do) |
 | boggle | [docs/games/boggle.md → Won't do](games/boggle.md#12-wont-do) |
 | crosswords | [docs/games/crosswords.md → Deferred](games/crosswords.md#9-deferred) |
 | letterboxed | [docs/games/letterboxed.md → Deferred](games/letterboxed.md#deferred) |

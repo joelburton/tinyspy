@@ -5,7 +5,7 @@
  * — in solo play, a race, at the end, and out of the race after conceding —
  * and do its commands reach the server through the dispatcher?
  *
- * `db` is mocked, and jsdom gets a `ResizeObserver` stub (the board editor
+ * `db` is mocked, and jsdom gets a `ResizeObserver` stub (the editing board
  * observes the board to compute the min zoom). Everything else — the board, the
  * hand, the dump zone, Peel, the info column — renders for real from
  * `ZTest_makeBananagramsCtx`'s blob.
@@ -28,7 +28,8 @@ import { PlayAreaLoader } from './PlayArea'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }) } }))
 
-// jsdom has no ResizeObserver; the board editor constructs one to size the zoom.
+// jsdom has no ResizeObserver; the editing board constructs one to size the
+// zoom.
 class RO {
   observe() {}
   unobserve() {}

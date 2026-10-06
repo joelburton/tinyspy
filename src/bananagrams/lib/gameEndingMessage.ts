@@ -38,24 +38,37 @@ export function buildGameEndingMessage({
 }): TerminalMessage {
   /** The texts, for the game's ending and whether it went my way. */
   function makeGameEndingWords(): Omit<TerminalMessage, 'outcome'> {
-    if (gameOutcome === 'neutral') return buildGameEndedMessageNeutral('compete')
+    if (gameOutcome ===
+      'neutral') return buildGameEndedMessageNeutral('compete')
 
     if (gameOutcome === 'lost') {
       if (reason === 'timeout') {
-        return { pillText: "⏰ Time's up — no winner", infoColText: 'Out of time' }
+        return {
+          pillText: '⏰ Time\'s up — no winner',
+          infoColText: 'Out of time',
+        }
       }
       if (reason === 'conceded') {
-        return { pillText: '🏳️ All conceded — no winner', infoColText: 'All conceded' }
+        return {
+          pillText: '🏳️ All conceded — no winner',
+          infoColText: 'All conceded',
+        }
       }
       throw new Error(`BUG: a bananagrams race lost for everyone, ended ${reason}`)
     }
 
     if (playerOutcome === 'won') {
-      return { pillText: '🍌 Bananas! You went out first', infoColText: 'You won!' }
+      return {
+        pillText: '🍌 Bananas! You went out first',
+        infoColText: 'You won!',
+      }
     }
     // A won race names its one winner.
     const name = winner!.username
-    return { pillText: `${name} went out — Bananas!`, infoColText: `${name} won` }
+    return {
+      pillText: `${name} went out — Bananas!`,
+      infoColText: `${name} won`,
+    }
   }
 
   return { ...makeGameEndingWords(), outcome: playerOutcome }

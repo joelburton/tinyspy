@@ -117,7 +117,7 @@ create index bananagrams_games_club_handle_idx on bananagrams.games (club_handle
 -- One row per player, split by WHO OWNS each piece of state — the
 -- key idea that lets PEEL hand a tile to every player at once
 -- without write-conflicts (see docs/games/bananagrams.md → "The
--- player board"):
+-- hand is derived"):
 --
 --   board   FE-OWNED. The fixed 25×25 arena: a flat 625-char
 --           string, board[row*25 + col] = a letter or '.' (empty).

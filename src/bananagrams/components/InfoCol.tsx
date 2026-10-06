@@ -7,9 +7,9 @@ import {
   type InfoActionsMessage,
 } from '@/common/info-sheet/InfoActionsRow'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { GActions, GBoardEditor } from '../reactTypes'
+import type { GActions, GEditingBoard } from '../reactTypes'
 import type { GGameData } from '../types'
-import { HandCard } from './HandCard'
+import { HandBox } from './HandBox'
 import { PeersStrip } from './PeersStrip'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -17,22 +17,22 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 /**
  * bananagrams' info column. Its order is a documented exception to the
  * canonical one (docs/playarea.md → Info-column readouts): **state →
- * opponents → help → setup disclosure → the HAND card → the action row**,
+ * opponents → help → setup disclosure → the HAND box → the action row**,
  * because the hand and Peel live here rather than in the board column
  * (docs/games/bananagrams.md), so the actions sit below them. It arranges the
- * pieces and owns no input: the hand card's drags and the Peel are the board
- * editor's, which `PlayerBoard` holds.
+ * pieces and owns no input: the hand box's drags and the Peel are the editing
+ * board's, which `EditingBoard` holds.
  */
 export function InfoCol({
   gd,
-  editor,
+  editing,
   actions,
   endingMessage,
 }: {
   gd: GGameData
   // My board as I edit it, with the hand derived from it and the actions on
-  // both; the hand card and the Peel button draw from it.
-  editor: GBoardEditor
+  // both; the hand box and the Peel button draw from it.
+  editing: GEditingBoard
   actions: GActions
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
@@ -65,14 +65,14 @@ export function InfoCol({
         <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      <HandCard editor={editor} showDumpZone={gd.me.stillPlaying} />
+      <HandBox editing={editing} showDumpZone={gd.me.stillPlaying} />
 
       {/* One row, one order, every action listed once. Each action answers
           whether it shows. Check words sits left of Peel: it is the question
           you ask before the move on its right. */}
       <InfoActionsRow message={actionRowMessage}>
-        <ActionButton action={editor.actCheckBoard} show="icon" />
-        <ActionButton action={editor.actPeel} show="both" />
+        <ActionButton action={editing.actCheckBoard} show="icon" />
+        <ActionButton action={editing.actPeel} show="both" />
         {/* Right of the bar is about the END of the game rather than
             playing it; the bar hides itself when nothing is left of it. */}
         <span className={shared.actionsDivider} />
@@ -80,8 +80,6 @@ export function InfoCol({
         <ActionButton action={actions.actNewGame} show="icon" />
         <ActionButton action={actions.actConcede} show="icon" />
         <ActionButton action={actions.actStopGame} show="icon" />
-        {/* Filled once the game has ended: the weight is the placement's
-            choice, not the action's (docs/ui.md → What a `<button>` is). */}
         <ActionButton
           action={actions.actBackToClub}
           show="icon"

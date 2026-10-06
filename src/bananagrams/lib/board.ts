@@ -12,8 +12,8 @@
  * The HAND is not stored — it's DERIVED from the two server/FE-split pieces:
  * `hand = tiles − placed`, where `tiles` (server-owned) is everything the
  * player holds and `placed` is the letters already on the board. See
- * `deriveHand` + the comment on bananagrams.player_boards. A local "shuffle"
- * order is layered on top with `reconcileHandOrder`.
+ * `deriveHand` and docs/games/bananagrams.md → The hand is derived. A local
+ * "shuffle" order is layered on top with `reconcileHandOrder`.
  */
 
 import type { GExtent } from '../types'
@@ -21,14 +21,15 @@ import type { GExtent } from '../types'
 export const GRID = 25
 export const DEFAULT_CELL = 40 // px per cell; the smallest zoom is computed to fit the grid
 export const MAX_CELL = 64
-// Tiles drawn per dump (the server's default, mirrored for the hand card's
-// label and its "bunch too low to dump" state).
+/** Tiles drawn per dump (the server's constant, mirrored for the hand box's
+ *  "bunch too low to dump" state). */
 export const DUMP_COUNT = 3
 
 /** Flat board index from (x, y). x = column, y = row; both 0..GRID-1.
  *  Same x-first convention as scrabble's `cellIndex`. */
 export const idx = (x: number, y: number) => y * GRID + x
-export const inBounds = (x: number, y: number) => x >= 0 && x < GRID && y >= 0 && y < GRID
+export const inBounds = (x: number, y: number) => x >= 0 && x < GRID && y >=
+  0 && y < GRID
 export const clamp = (v: number) => Math.max(0, Math.min(GRID - 1, v))
 
 export function emptyBoard(): string {

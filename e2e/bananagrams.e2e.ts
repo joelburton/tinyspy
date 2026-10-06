@@ -293,7 +293,7 @@ test.describe('bananagrams peer counts', () => {
     // Bob places two tiles (15 held − 2 placed = 13 left) → alice's strip
     // updates live. THROUGH HIS PAGE, not an RPC behind it: bob's open client
     // one-shot-autosaves its own (empty) board ~800ms after load
-    // (usePlayerBoard's post-load setBoard re-fires the autosave effect), so
+    // (useEditingBoard's post-load setBoard re-fires the autosave effect), so
     // a server-side write races that flush and loses to bob's own empty
     // snapshot — which was exactly this test's long-standing "realtime"
     // flake. Placing via the UI is also simply what the test claims to test.

@@ -4,7 +4,7 @@ import { GRID, MAX_CELL, idx } from '../lib/board'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
 import { cls } from '@/common/utils/cls'
-import type { GBoardEditor } from '../reactTypes'
+import type { GEditingBoard } from '../reactTypes'
 import { Cell } from './Cell'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
@@ -13,17 +13,17 @@ import styles from './Board.module.css'
  * bananagrams' board: a FIXED 25×25 grid of cells in a scrolling box, which
  * fills the board column. The grid never resizes — you navigate with the zoom
  * slider and the scrollbars — so placing a tile never shifts the view. It owns
- * no input: the board editor does, and this works out what each cell shows
+ * no input: the editing board does, and this works out what each cell shows
  * (its letter, the drop answer under a drag, the cursor) and hands it over.
  */
-export function Board({ editor }: { editor: GBoardEditor }) {
-  // Read once up front: the editor carries the board's scroll ref, and the
-  // `react-hooks/refs` rule treats every later read off a group holding a ref
-  // as a read of the ref itself.
+export function Board({ editing }: { editing: GEditingBoard }) {
+  // Read once up front: the editing board carries the board's scroll ref, and
+  // the `react-hooks/refs` rule treats every later read off a group holding a
+  // ref as a read of the ref itself.
   const {
     scrollRef, board, cursor, hover, drag, invalidCells, cell, minCell,
     onZoom, onCellPointerDown, actZoomFit,
-  } = editor
+  } = editing
 
   const cells: React.ReactNode[] = []
   for (let y = 0; y < GRID; y++) {

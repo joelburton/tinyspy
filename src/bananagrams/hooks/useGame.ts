@@ -1,9 +1,17 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData } from '../types'
+import type {
+  GEvent,
+  GGameData,
+  GGameDataRaw,
+  GPlayer,
+  GStateLineData,
+} from '../types'
 
 /**
  * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
@@ -66,11 +74,11 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 }
 
 /**
- * Per-gametype data hook for bananagrams: `gd`, built from the `game_data`
- * blob the page was handed and who I am. No reads and no subscription: the
- * page re-reads the blob on every move and every board save, and this is a
- * pure function of it (plans/seat-view.md → The page is written, not
- * assembled). My board as I edit it is not here: `usePlayerBoard` seeds it from
+ * Per-gametype data hook for bananagrams: `gd`, built from the `game_data` blob
+ * the page was handed and who I am. No reads and no subscription: the page
+ * re-reads the blob on every move and every board save, and this is a pure
+ * function of it (plans/seat-view.md → The page is written, not assembled). My
+ * board as I edit it is not here: `useEditingBoard` seeds it from
  * `gd.me.board.letters` once and owns it after.
  *
  * A game whose builder has not written a blob yet cannot be drawn; the throw

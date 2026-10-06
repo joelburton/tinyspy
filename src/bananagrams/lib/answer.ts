@@ -35,16 +35,21 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     case 'peel_invalid':
       return {
         outcome: 'lost',
-        text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
+        text: 'Fix tiles before peeling.',
       }
     case 'check_clean':
-      return { outcome: 'won', text: 'Every word checks out, and the grid is one piece.' }
+      return {
+        outcome: 'won',
+        text: 'Board is correct.',
+      }
     case 'check_empty':
-      return { outcome: 'noted', text: 'Nothing on the board to check yet.' }
+      return { outcome: 'noted', text: 'Nothing on board to check.' }
     case 'check_invalid':
       return {
         outcome: 'lost',
-        text: `${answer.nTiles} tile${answer.nTiles === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
+        text: `${answer.nTiles} tile${answer.nTiles === 1
+          ? ''
+          : 's'} wrong or not joined to others.`,
       }
   }
 }

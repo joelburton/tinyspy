@@ -4,33 +4,33 @@ import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { IconExchange } from '@/common/icons/icons'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
 import { cls } from '@/common/utils/cls'
-import type { GBoardEditor } from '../reactTypes'
+import type { GEditingBoard } from '../reactTypes'
 import { Tile } from './Tile'
 import infoPanel from '@/common/info-sheet/infoPanel.module.css'
-import styles from './HandCard.module.css'
+import styles from './HandBox.module.css'
 
 /**
- * bananagrams' info-column VIEW — the HAND card. A plain heading over a
+ * bananagrams' info-column VIEW — the HAND box. A plain heading over a
  * bordered box (matching the shared WordList / EventLog chrome): the dump zone
  * at the top (you dump one of a few tiles often, so keep the target close),
  * the ⟲ shuffle floating over the tiles' corner, and the scrolling hand tiles
- * below. It owns no input: the board editor does, and this draws its hand and
+ * below. It owns no input: the editing board does, and this draws its hand and
  * forwards the pointer-downs.
  *
  * DOM contract (load-bearing for the drag's `elementFromPoint` and the e2e):
  * the tiles container carries `data-zone="hand"`, each slot `data-hand-tile`,
  * and the dump slot `data-zone="dump"` — keep those exact.
  */
-export function HandCard({
-  editor,
+export function HandBox({
+  editing,
   showDumpZone,
 }: {
-  editor: GBoardEditor
+  editing: GEditingBoard
   // Shuffle shows regardless, since reordering your own hand is not acting
   // on the game.
   showDumpZone: boolean
 }) {
-  const { displayedHand, drag, dumpHot, canDump, errFlash, errNonce } = editor
+  const { displayedHand, drag, dumpHot, canDump, errFlash, errNonce } = editing
 
   return (
     <div className={styles.handSection}>
@@ -62,7 +62,7 @@ export function HandCard({
         <div className={styles.handTilesWrap}>
           <ShuffleButton
             className={styles.floatingRotate}
-            action={editor.actShuffle}
+            action={editing.actShuffle}
             tooltip="Shuffle hand"
           />
           <div className={styles.hand} data-zone="hand" onPointerDown={blurActiveField}>
@@ -78,7 +78,7 @@ export function HandCard({
                   key={i}
                   data-hand-tile
                   className={styles.handSlot}
-                  onPointerDown={(e) => editor.onHandPointerDown(i, letter, e)}
+                  onPointerDown={(e) => editing.onHandPointerDown(i, letter, e)}
                 >
                   <Tile letter={letter} where="hand" marks={{ isLifted }} />
                 </div>

@@ -1,72 +1,60 @@
 // cs-unmet
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { db } from '../db'
-import { runRpc } from '@/common/supabase/dbResult'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { useBindAction } from '@/common/actions/useBindAction'
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { DUMP_COUNT, GRID, clamp, deriveHand, idx, setChar, tilesExtent } from '../lib/board'
-import type { GBoardEditor, GBoardEditorInput } from '../reactTypes'
+import type { GEditingBoard, GEditingBoardInput } from '../reactTypes'
 import type { GCell } from '../types'
 import { useBoardZoom } from './useBoardZoom'
 import { useBoardAutosave } from './useBoardAutosave'
 import { useBoardDrag } from './useBoardDrag'
 import { useHandOrder } from './useHandOrder'
 
-/**
- * The **board editor**: my board as it is on screen, the hand derived from it,
- * and everything that changes them — the drag, the keyboard cursor, Peel and
- * Check words — with the zoom and the autosave beside them. `<PlayerBoard>`
- * holds it, and the two views (`<Board>`, `<HandCard>`) draw from it.
- *
- * One editor spans both columns, because the hand's tiles drop onto the board
- * and the dump slot takes a tile dragged off it (docs/games/bananagrams.md).
- *
- * The board is seeded once from the server's copy and owned here after; the
- * hand is never stored — it is the tiles I hold less the letters on the board
- * (`deriveHand`), so every move writes the board alone and the hand follows. A
- * peel or a dump grows my tiles upstream, and the hand grows the same way.
- */
-
-// The board cursor is always present during play (you can type the moment the
-// board loads). It starts dead center — Bananagrams builds outward from the
-// middle — and goes back there after a zoom-to-fit.
+/** The board cursor is always present during play (you can type the moment
+ *  the board loads). It starts dead center — Bananagrams builds outward from
+ *  the middle — and goes back there after a zoom-to-fit. */
 const CENTER_CURSOR: GridCursor = {
   x: Math.floor(GRID / 2),
   y: Math.floor(GRID / 2),
   dir: 'h',
 }
 
-// One empty set for "no red cells": a fresh `new Set()` each render would be a
-// new reference and defeat memoization downstream.
+/** One empty set for "no red cells": a fresh `new Set()` each render would be
+ *  a new reference and defeat memoization downstream. */
 const NO_CELLS: ReadonlySet<number> = new Set()
 
 /** How long the "you don't hold that tile" box shows. */
 const HAND_ERROR_MS = 180
 
-/** What `bananagrams.check_board` puts in `data`. Three results because the
- *  check says three things — and `empty` is its own, since a board with
- *  nothing on it has no blockers and would otherwise read as clean. */
-type CheckedBoard =
-  | { result: 'invalid'; invalid_cells: number[] }
-  | { result: 'empty' }
-  | { result: 'clean' }
-  | null
-
-export function usePlayerBoard({
+/**
+ * The **editing board**: my board as it is on screen, the hand derived from it,
+ * and everything that changes them — the drag, the keyboard cursor, Peel and
+ * Check words — with the zoom and the autosave beside them. `<EditingBoard>`
+ * holds it, and the two views (`<Board>`, `<HandBox>`) draw from it.
+ *
+ * One editing board spans both columns, because the hand's tiles drop onto the
+ * board and the dump slot takes a tile dragged off it
+ * (docs/games/bananagrams.md).
+ *
+ * The board is seeded once from the server's copy and owned here after; the
+ * hand is never stored — it is the tiles I hold less the letters on the board
+ * (`deriveHand`), so every move writes the board alone and the hand follows. A
+ * peel or a dump grows my tiles upstream, and the hand grows the same way.
+ */
+export function useEditingBoard({
   gameId,
   initialBoard,
   tiles,
   isBoardInteractive,
   onPeel,
-  onCheckResult,
+  onCheckBoard,
   onDump,
   nBunchTiles,
   nBagTiles,
   reportBoardRef,
-}: GBoardEditorInput): GBoardEditor {
+}: GEditingBoardInput): GEditingBoard {
   // ─── The board and the hand ────────────────────────────
   const [board, setBoard] = useState(initialBoard)
   const [cursor, setCursor] = useState<GridCursor>(CENTER_CURSOR)
@@ -156,8 +144,8 @@ export function usePlayerBoard({
   }, [])
 
   // Peel: the board is saved first, so the server's "every tile placed" check
-  // sees what the player sees. A blocked winning peel hands back its cells,
-  // painted against the board they were judged on.
+  // sees what the player sees. A blocked peel hands back its cells, painted
+  // against the board they were judged on.
   async function peel() {
     if (!isBoardInteractive || deriveHand(tilesRef.current, boardRef.current).length !== 0) return
     await save()
@@ -209,20 +197,11 @@ export function usePlayerBoard({
   // peel's do, so they paint and clear alike.
   async function checkBoard() {
     await save()
-    const res = await runRpc<CheckedBoard>(db.rpc('check_board', { p_game_id: gameId }))
-    if (res.type === 'not-ok') {
-      onCheckResult({ kind: 'error', message: res.message })
-    } else if (res.type === 'ok' && res.data?.result === 'invalid') {
-      setInvalid({ board: boardRef.current, cells: new Set(res.data.invalid_cells) })
-      onCheckResult({ kind: 'invalid', count: res.data.invalid_cells.length })
-    } else if (res.type === 'ok' && res.data?.result === 'empty') {
-      setInvalid(null)
-      onCheckResult({ kind: 'empty' })
-    } else if (res.type === 'ok' && res.data?.result === 'clean') {
-      setInvalid(null)
-      onCheckResult({ kind: 'clean' })
-    } else {
-      reportUnhandled('check_board', res)
+    const outcome = await onCheckBoard()
+    if (outcome) {
+      setInvalid(outcome.invalidCells.length > 0
+        ? { board: boardRef.current, cells: new Set(outcome.invalidCells) }
+        : null)
     }
   }
 

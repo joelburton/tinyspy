@@ -27,13 +27,13 @@ describe('answerMessage', () => {
 
   it('a check reads its red cells', () => {
     expect(answerMessage({ answerType: 'check_clean' }))
-      .toEqual({ outcome: 'won', text: 'Every word checks out, and the grid is one piece.' })
+      .toEqual({ outcome: 'won', text: 'Board is correct.' })
     expect(answerMessage({ answerType: 'check_empty' }))
-      .toEqual({ outcome: 'noted', text: 'Nothing on the board to check yet.' })
+      .toEqual({ outcome: 'noted', text: 'Nothing on board to check.' })
     expect(answerMessage({ answerType: 'check_invalid', nTiles: 1 }).text)
-      .toBe('1 tile highlighted — either not a real word, or not joined to the grid.')
+      .toBe('1 tile wrong or not joined to others.')
     expect(answerMessage({ answerType: 'check_invalid', nTiles: 3 }).text)
-      .toBe('3 tiles highlighted — either not a real word, or not joined to the grid.')
+      .toBe('3 tiles wrong or not joined to others.')
   })
 })
 

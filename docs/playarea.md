@@ -234,11 +234,11 @@ cursor reports a pick up through `onPick`, and the column keeps only the move.
 psychicnum set this split; the other games still hold the order and the cursor
 in `BoardCol` until their areas open.
 
-**bananagrams does not fit the two columns**, because its input engine spans
-both: the hand is a drag source into the board, the dump is a drop target, and
-the hand is derived from the board. It lifts the engine into `usePlayerBoard`,
-draws two views with no input of their own (`Board`, `HandCard`), and has
-two coordinators: `PlayArea` above `PlayerBoard`. See
+**bananagrams does not fit the two columns**, because its input spans both:
+the hand is a drag source into the board, the dump is a drop target, and the
+hand is derived from the board. It lifts the input into the editing board
+(`useEditingBoard`), draws two views with no input of their own (`Board`,
+`HandBox`), and has two coordinators: `PlayArea` above `EditingBoard`. See
 [its doc](games/bananagrams.md).
 
 ### The loader and the loaded component

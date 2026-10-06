@@ -521,6 +521,30 @@ scrabble converted alone (2026-10-05) and settled, beyond the games above:
 - **A tap can place.** One picked rack tile and a tap on an empty cell stage
   it there; with several picked, the tap can't say which, and does nothing.
 
+## What bananagrams added
+
+bananagrams converted alone (2026-10-06) and settled, beyond the games above:
+
+- **Two coordinators where one input spans both columns.** The hand's tiles
+  drop onto the board and the dump zone takes a tile dragged off it, so one
+  editing board (`useEditingBoard`) sits in `EditingBoard`, between `PlayArea`
+  (data, moves, the slot, the endings) and two views that own no input, and
+  keeps a drag's per-move re-renders out of `PlayArea`. It is the editing
+  board, never an engine, and the component, the hook and its type
+  (`GEditingBoard`) share the name (Joel, 2026-10-06).
+- **State the page owns is seeded from the blob once.** The board is the
+  page's: `gd.me.board.letters` seeds it at mount, a later blob never
+  re-seeds it, and the save is what puts it back.
+- **A piece sized off its holder counts the borders.** `cqmin` measures
+  inside a container's border, so `Tile`'s letter adds back the tile's border
+  and, on the board, the cell's, and every letter stays 0.6 of its tile.
+- **A shared keyboard hook's submit answers `hidden` to a button while the
+  board is inert** (`useBoardCursorKeys`), and `SubmitWithScore` draws nothing
+  for a hidden action.
+- **An acknowledgment reads the log, not a guess.** A draw is the log's newest
+  row through the shared seen-set (`useShowPeerFeedback` into the local slot),
+  never a count growing on screen.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /
