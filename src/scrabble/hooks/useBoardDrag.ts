@@ -37,9 +37,11 @@ function findRackInsertIndex(px: number): number | null {
  * (`useDragGesture`): a rack tile dragged onto an empty cell is staged, a
  * staged tile dragged elsewhere moves or, dropped on the rack, comes back; a
  * rack tile dropped along the rack moves in its order. A plain tap picks a
- * rack tile for a swap, or puts the keyboard cursor on a cell.
+ * rack tile — for a swap, or to place — and a tap on an empty cell places the
+ * one picked tile there (`placePickedAt`); otherwise a tap on a cell puts the
+ * keyboard cursor there.
  *
- * While a past turn or a shown move is open, a press on the board is the
+ * While a past turn or a preview is open, a press on the board is the
  * viewer's exit rather than a move. A press is the next move, so it drops the
  * previous move's result from the slot.
  *
@@ -51,6 +53,7 @@ export function useBoardDrag({
   historyView,
   stagedAt,
   placeFromRack,
+  placePickedAt,
   moveStaged,
   recall,
   togglePick,
@@ -66,6 +69,7 @@ export function useBoardDrag({
   // The staged move's own (`useStagedTiles`), each stable.
   stagedAt: (x: number, y: number) => GStagedTile | undefined
   placeFromRack: (x: number, y: number, rackIdx: number) => void
+  placePickedAt: (x: number, y: number) => 'placed' | 'several' | 'none'
   moveStaged: (from: { x: number; y: number }, to: { x: number; y: number }) => void
   recall: (x: number, y: number) => void
   togglePick: (rackIdx: number) => void
@@ -75,7 +79,7 @@ export function useBoardDrag({
 }) {
   const cellsRef = useRef(cells)
   const isInteractiveRef = useRef(isInteractive)
-  useEffect(() => {
+  useEffect(function syncDragRefs() {
     cellsRef.current = cells
     isInteractiveRef.current = isInteractive
   }, [cells, isInteractive])
@@ -107,10 +111,17 @@ export function useBoardDrag({
 
   const onTap = useCallback(
     (g: DragGesture<DragSource>) => {
-      if (g.source.kind === 'rack') togglePick(g.source.rackIdx)
-      else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
+      if (g.source.kind === 'rack') {
+        togglePick(g.source.rackIdx)
+        return
+      }
+      if (!g.cell) return
+      // A picked tile goes where the tap lands; with several picked, the tap
+      // can't say which, so it does nothing.
+      if (placePickedAt(g.cell.x, g.cell.y) === 'several') return
+      setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
     },
-    [togglePick, setCursor],
+    [togglePick, placePickedAt, setCursor],
   )
 
   const { drag, hover, start } = useDragGesture<DragSource>({ onDrop: finishDrag, onTap })

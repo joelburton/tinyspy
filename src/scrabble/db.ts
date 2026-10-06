@@ -3,13 +3,9 @@
 import { supabase } from '@/common/supabase/supabase'
 
 /**
- * scrabble's PostgREST handle — scopes every query/RPC to the
- * `scrabble` schema so call sites read `db.from('games_state')` rather
- * than repeating the schema name.
- *
- * The FE reads the `games_state` / `players_state` VIEWS, never the base
- * tables: the views hide the bag (exposing only `bag_count`) and gate a
- * compete player's rack to its owner until the game ends. See
- * docs/games/scrabble.md §4.3.
+ * scrabble's PostgREST handle, scoped to the `scrabble` schema, so a call site
+ * reads `db.rpc('play_word', …)` rather than repeating the schema name. The
+ * page calls RPCs through it and reads nothing: what it shows comes from the
+ * blobs on `common.games` (docs/games/scrabble.md → The page blobs).
  */
 export const db = supabase.schema('scrabble')

@@ -740,7 +740,7 @@ begin
       detail = 'ai_level is not one of the known levels';
     end if;
     -- The game's dictionary must be at least as wide as the AI knows, else it
-    -- can't play at its tuned strength (docs/games/scrabble.md band rule).
+    -- can't play at its tuned strength (docs/games/scrabble.md → The band rule).
     if s_dict_2 < v_ai_band or s_dict_3plus < v_ai_band then
       -- A CROSS-FIELD rule the form already gates on (validateScrabbleSetup
       -- blocks Start), so reaching it means something other than the form sent
@@ -965,7 +965,7 @@ declare
   g            scrabble.games%rowtype;
   v_mode       text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  v_rack       text[];   -- the acting rack (compete: the player's; coop: coop_rack)
+  v_rack       text[];   -- the acting rack (compete: the player's; coop: team_rack)
   v_board      jsonb;
   v_consumed   text[] := '{}';
   v_nplay      int := 0;
@@ -1640,7 +1640,7 @@ drop function if exists scrabble.submit_timeout(uuid);
 -- Fired by every connected client when a countdown hits 0; the first ends the
 -- game, the rest find it ended and answer the game-over race. Runs final
 -- scoring, because a Scrabble score is real: compete ranks by it, so the
--- leader wins (docs/games/scrabble.md §2.7). Coop: a loss — the one way a
+-- leader wins (docs/games/scrabble.md → Ending the game). Coop: a loss — the one way a
 -- coop table loses. Ended by whoever held the turn, or nobody in free-for-all
 -- coop.
 --
@@ -1783,7 +1783,7 @@ begin
   end if;
 
   -- Compete hints are a house-rules question, deliberately deferred
-  -- (docs/games/scrabble.md "Deferred") — and in compete the rack is private,
+  -- (docs/games/scrabble.md → Deferred) — and in compete the rack is private,
   -- so this gate is also what keeps the suggester from becoming a
   -- rack-reading side channel.
   if (select mode from common.games where id = p_game_id) <> 'coop' then

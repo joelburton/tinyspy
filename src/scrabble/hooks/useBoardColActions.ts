@@ -2,7 +2,11 @@
 
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
-import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
+import {
+  moveCursor,
+  planBackspace,
+  type GridCursor,
+} from '@/common/board-cursor/gridCursor'
 import { askConfirmation } from '@/common/floating-panels/confirmationService'
 import type { ConfirmOptions } from '@/common/floating-panels/confirmations'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
@@ -12,7 +16,7 @@ import { evaluatePlay } from '../lib/play'
 import type { useRackOrder } from './useRackOrder'
 import type { useStagedTiles } from './useStagedTiles'
 import type { useSubmitMove } from './useSubmitMove'
-import type { GCell, GGameData, GPlacement, GShownMoveRaw } from '../types'
+import type { GCell, GGameData, GPlacement, GMovePreviewRaw } from '../types'
 
 /** Pass's question. scrabble's own rather than the registry's: passing here
  *  forfeits the turn's points and feeds the blocked-end streak, which is why
@@ -46,7 +50,7 @@ export function useBoardColActions({
   staged,
   rackOrder,
   submission,
-  showMove,
+  sendPreview,
   localFeedbackSlot,
 }: {
   gd: GGameData
@@ -60,14 +64,14 @@ export function useBoardColActions({
   staged: ReturnType<typeof useStagedTiles>
   rackOrder: ReturnType<typeof useRackOrder>
   submission: ReturnType<typeof useSubmitMove>
-  showMove: (payload: GShownMoveRaw) => void
+  sendPreview: (payload: GMovePreviewRaw) => void
   // Where a tile I don't hold, or an illegal shape, says so.
   localFeedbackSlot: FeedbackSlot
 }): {
   actSubmit: Action
   actRecallTiles: Action
   actShuffle: Action
-  actShowMove: Action
+  actSharePreview: Action
   actExchange: Action
   actPass: Action
   // The staged play's score for Submit to show; 0 for a shape that is not
@@ -75,12 +79,18 @@ export function useBoardColActions({
   submitScore: number | null
 } {
   const canSubmit = isInteractive && gd.me.onTurn
-  const placements: GPlacement[] = staged.tiles.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
+  const placements: GPlacement[] = staged.tiles.map(({
+    x,
+    y,
+    letter,
+    blank,
+  }) => ({ x, y, letter, blank }))
   const play = placements.length === 0 ? null : evaluatePlay(cells, placements)
 
   /** Is there a tile on this cell — played, or staged? */
   function isFilled(x: number, y: number): boolean {
-    return cells[cellIndex(x, y)].tile !== null || staged.stagedAt(x, y) !== undefined
+    return cells[cellIndex(x, y)].tile !== null || staged.stagedAt(x, y) !==
+      undefined
   }
 
   /** Stage the typed letter at the cursor — past any played tiles — and move
@@ -93,7 +103,8 @@ export function useBoardColActions({
     }
     if (!inBounds(x, y)) return
     if (!staged.placeLetter(x, y, letter)) {
-      localFeedbackSlot.show(FeedbackMessage.result('noted', `No “${letter.toUpperCase()}” tile`))
+      localFeedbackSlot.show(FeedbackMessage.result('noted',
+        `No “${letter.toUpperCase()}” tile`))
       return
     }
     let nx = x
@@ -102,14 +113,20 @@ export function useBoardColActions({
       if (cursor.dir === 'h') nx++
       else ny++
     } while (inBounds(nx, ny) && isFilled(nx, ny))
-    setCursor(inBounds(nx, ny) ? { x: nx, y: ny, dir: cursor.dir } : { x, y, dir: cursor.dir })
+    setCursor(inBounds(nx, ny) ? { x: nx, y: ny, dir: cursor.dir } : {
+      x,
+      y,
+      dir: cursor.dir,
+    })
   }
 
   function backspace() {
-    const { remove, cursor: next } = planBackspace(cursor, BOARD_SIZE - 1, (x, y) => {
-      if (staged.stagedAt(x, y)) return 'removable'
-      return cells[cellIndex(x, y)].tile !== null ? 'locked' : 'empty'
-    })
+    const { remove, cursor: next } = planBackspace(cursor,
+      BOARD_SIZE - 1,
+      (x, y) => {
+        if (staged.stagedAt(x, y)) return 'removable'
+        return cells[cellIndex(x, y)].tile !== null ? 'locked' : 'empty'
+      })
     if (remove) staged.recall(remove.x, remove.y)
     setCursor(next)
   }
@@ -122,7 +139,10 @@ export function useBoardColActions({
       localFeedbackSlot.show(FeedbackMessage.result('lost', play.error))
       return
     }
-    const slots = { removed: new Set(staged.tiles.map((t) => t.rackIdx)), oldLen: rack.length }
+    const slots = {
+      removed: new Set(staged.tiles.map((t) => t.rackIdx)),
+      oldLen: rack.length,
+    }
     if (await submission.sendWord(placements, play, slots)) {
       staged.recallAll()
       staged.clearPicks()
@@ -143,8 +163,8 @@ export function useBoardColActions({
 
   /** Show my staged tiles to my teammates — one send per press; press again
    *  to show a changed move. */
-  function showMoveToTeam() {
-    showMove({
+  function sharePreview() {
+    sendPreview({
       placements,
       byId: gd.me.id,
       baseVersion: gd.version,
@@ -158,13 +178,25 @@ export function useBoardColActions({
   // something about say so in the bubble.
   const actExchange = useBindAction('act-exchange', {
     describe: () => {
-      if (gd.nBagTiles < RACK_SIZE) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
-      if (!canSubmit || staged.tiles.length > 0 || actSubmit.pending || actPass.pending) {
+      if (gd.nBagTiles < RACK_SIZE) return {
+        state: 'disabled',
+        label: 'Swap',
+        tooltip: 'Need ≥ 7 tiles in the bag',
+      }
+      if (!canSubmit || staged.tiles.length > 0 || actSubmit.pending ||
+        actPass.pending) {
         return { state: 'disabled', label: 'Swap' }
       }
-      if (staged.pickedSlots.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Pick rack tiles first' }
+      if (staged.pickedSlots.size === 0) return {
+        state: 'disabled',
+        label: 'Swap',
+        tooltip: 'Pick rack tiles first',
+      }
       const n = staged.pickedSlots.size
-      return { state: 'active', label: `Swap ${n} picked tile${n === 1 ? '' : 's'}` }
+      return {
+        state: 'active',
+        label: `Swap ${n} picked tile${n === 1 ? '' : 's'}`,
+      }
     },
     run: swapTiles,
   })
@@ -174,7 +206,8 @@ export function useBoardColActions({
   const actPass = useBindAction('act-pass', {
     describe: () => {
       if (gd.coop) return 'hidden'
-      return canSubmit && staged.tiles.length === 0 && !actSubmit.pending && !actExchange.pending
+      return canSubmit && staged.tiles.length === 0 && !actSubmit.pending &&
+      !actExchange.pending
         ? 'active'
         : 'disabled'
     },
@@ -186,7 +219,8 @@ export function useBoardColActions({
   const { actCommit: actSubmit } = useBoardCursorKeys({
     enabled: isInteractive,
     commit: 'act-submit',
-    canCommit: canSubmit && staged.tiles.length > 0 && !actExchange.pending && !actPass.pending,
+    canCommit: canSubmit && staged.tiles.length > 0 && !actExchange.pending &&
+      !actPass.pending,
     onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
     onLetter: typeLetter,
     onBackspace: backspace,
@@ -207,19 +241,22 @@ export function useBoardColActions({
   })
 
   // Coop with somebody to show it to, so it hides itself in a race and alone.
-  const actShowMove = useBindAction('act-show-move', {
+  const actSharePreview = useBindAction('act-share-preview', {
     describe: () => {
       if (!gd.coop || gd.players.length < 2) return 'hidden'
-      return { state: staged.tiles.length > 0 ? 'active' : 'disabled', label: 'Show move to team' }
+      return {
+        state: staged.tiles.length > 0 ? 'active' : 'disabled',
+        label: 'Show move to team',
+      }
     },
-    run: showMoveToTeam,
+    run: sharePreview,
   })
 
   return {
     actSubmit,
     actRecallTiles,
     actShuffle,
-    actShowMove,
+    actSharePreview,
     actExchange,
     actPass,
     submitScore: play === null ? null : play.valid ? play.score : 0,

@@ -30,7 +30,7 @@ import { PlayAreaLoader } from './PlayArea'
  *
  * The surface is a pure function of the `game_data` blob the page hands it, so
  * a test builds that blob from the game's facts (`ZTest_makeScrabbleCtx`). Only
- * `db`, the edge functions and the show-a-move Broadcast are stubbed.
+ * `db`, the edge functions and the move-preview Broadcast are stubbed.
  */
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
@@ -41,16 +41,16 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
   ...(await orig<typeof import('@/common/supabase/dbResult')>()),
   runEdgeFn: vi.fn(async () => ({ type: 'ok', data: { result: 'moved', turns: 1 } })),
 }))
-// The show-a-move transport opens a real Broadcast channel; the stub captures
+// The move-preview transport opens a real Broadcast channel; the stub captures
 // `onReceive`, so a test can land a teammate's broadcast.
 const sm = vi.hoisted(() => ({
   onReceive: null as null | ((p: unknown) => void),
-  showMove: vi.fn(),
+  sendPreview: vi.fn(),
 }))
-vi.mock('../hooks/useShowMove', () => ({
-  useShowMove: (opts: { onReceive: (p: unknown) => void }) => {
+vi.mock('../hooks/useMovePreview', () => ({
+  useMovePreview: (opts: { onReceive: (p: unknown) => void }) => {
     sm.onReceive = opts.onReceive
-    return { showMove: sm.showMove }
+    return { sendPreview: sm.sendPreview }
   },
 }))
 
@@ -181,7 +181,7 @@ describe('scrabble PlayArea — the board viewer', () => {
     expect(screen.queryByText('#1 me: +10 CAT')).not.toBeInTheDocument()
   })
 
-  it("opens a teammate's shown move, and exits on ✕", async () => {
+  it("opens a teammate's preview, and exits on ✕", async () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: [ME, MOTH], version: 3 })} />)
     act(() => sm.onReceive!({
@@ -196,7 +196,7 @@ describe('scrabble PlayArea — the board viewer', () => {
     expect(screen.queryByText(/showing:/)).not.toBeInTheDocument()
   })
 
-  it('ignores a shown move my board has moved on from', () => {
+  it('ignores a preview my board has moved on from', () => {
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: [ME, MOTH], version: 5 })} />)
     act(() => sm.onReceive!({
       placements: [{ x: 7, y: 7, letter: 'a', blank: false }],
@@ -382,6 +382,36 @@ describe('scrabble PlayArea — the rack row', () => {
     await press({ key: 'Ω', code: 'KeyZ', altKey: true })
     expect(random).toHaveBeenCalled()
     random.mockRestore()
+  })
+})
+
+describe('scrabble PlayArea — tap a rack tile, then a cell', () => {
+  /** A tap: a press and a release with no travel between. */
+  function tap(el: Element) {
+    fireEvent.pointerDown(el, { button: 0, clientX: 1, clientY: 1 })
+    fireEvent.pointerUp(window, { button: 0, clientX: 1, clientY: 1 })
+  }
+  const rackTile = (i: number) => document.querySelectorAll('[data-rack-tile]')[i]!
+  const cell = (x: number, y: number) => document.querySelector(`[data-x="${x}"][data-y="${y}"]`)!
+
+  it('one picked tile goes onto the empty cell tapped', () => {
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx()} />)
+    act(() => tap(rackTile(0)))
+    act(() => tap(cell(7, 7)))
+    expect(cell(7, 7).querySelector('[data-tile="7,7"]')!.textContent).toBe('c3')
+  })
+
+  it('with two picked, a tap on a cell does nothing — not even the cursor moves — and Swap still swaps them', () => {
+    const hasCursor = (x: number, y: number) => cell(x, y).querySelector('[class*="_cursor_"]') !== null
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx()} />)
+    act(() => tap(rackTile(0)))
+    act(() => tap(rackTile(1)))
+    // The cursor starts on the star.
+    act(() => tap(cell(3, 3)))
+    expect(cell(3, 3).querySelector('[data-tile]')).toBeNull()
+    expect(hasCursor(3, 3)).toBe(false)
+    expect(hasCursor(7, 7)).toBe(true)
+    expect(describeOf('act-exchange')).toEqual({ state: 'active', label: 'Swap 2 picked tiles' })
   })
 })
 

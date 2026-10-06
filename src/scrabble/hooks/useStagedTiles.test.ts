@@ -63,3 +63,46 @@ describe('useStagedTiles — a typed letter', () => {
     ])
   })
 })
+
+describe('useStagedTiles — a tap on a cell with tiles picked', () => {
+  it('one picked tile goes onto an empty cell, and the pick drops', () => {
+    const { view } = setup()
+    act(() => view.result.current.togglePick(2))
+    let answer = ''
+    act(() => { answer = view.result.current.placePickedAt(7, 7) })
+    expect(answer).toBe('placed')
+    expect(view.result.current.tiles).toEqual([{ x: 7, y: 7, letter: 't', blank: false, rackIdx: 2 }])
+    expect(view.result.current.pickedSlots.size).toBe(0)
+  })
+
+  it('a picked blank asks for its letter first', () => {
+    const { view } = setup()
+    act(() => view.result.current.togglePick(6))
+    act(() => { view.result.current.placePickedAt(7, 7) })
+    expect(view.result.current.blankAt).toEqual({ x: 7, y: 7, rackIdx: 6 })
+    expect(view.result.current.tiles).toEqual([])
+  })
+
+  it('two picked tiles place nothing, and keep their picks', () => {
+    const { view } = setup()
+    act(() => view.result.current.togglePick(0))
+    act(() => view.result.current.togglePick(1))
+    let answer = ''
+    act(() => { answer = view.result.current.placePickedAt(7, 7) })
+    expect(answer).toBe('several')
+    expect(view.result.current.tiles).toEqual([])
+    expect(view.result.current.pickedSlots.size).toBe(2)
+  })
+
+  it('nothing picked, or a cell already holding a tile, leaves the tap to the cursor', () => {
+    const { view } = setup()
+    let answer = ''
+    act(() => { answer = view.result.current.placePickedAt(7, 7) })
+    expect(answer).toBe('none')
+    act(() => view.result.current.placeFromRack(7, 7, 0))
+    act(() => view.result.current.togglePick(1))
+    act(() => { answer = view.result.current.placePickedAt(7, 7) })
+    expect(answer).toBe('none')
+    expect(view.result.current.pickedSlots.size).toBe(1)
+  })
+})

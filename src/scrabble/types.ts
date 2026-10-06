@@ -372,63 +372,64 @@ export type GSuggestState =
  * What read-only overlay is open on the board — the shared history viewer's id,
  * widened for scrabble to carry BOTH kinds of read-only board it can show:
  *   - **`turn`** — a past turn's played board (the history viewer).
- *   - **`shownMove`** — a coop teammate's in-progress move (their staged tiles
- *     laid on the live board), received over Broadcast (see useShowMove).
+ *   - **`preview`** — a coop teammate's in-progress move (their staged tiles
+ *     laid on the live board), received over Broadcast (see useMovePreview).
  * Both wear the same viewer chrome (frame + banner + frozen input) and the same
  * exits (click / keystroke / ✕ / a new move) — so they ride one
  * `useHistoryViewer<GHistoryTarget>`, and BoardCol switches on `kind` to render.
  */
 export type GHistoryTarget =
   | { kind: 'turn'; id: number }
-  | { kind: 'shownMove'; placements: GPlacement[]; byId: string; words: string[]; score: number }
+  | { kind: 'preview'; placements: GPlacement[]; byId: string; words: string[]; score: number }
 
-/** A teammate's shown move, as the board viewer draws it: their staged tiles
+/** A teammate's preview, as the board viewer draws it: their staged tiles
  *  over my live board. */
-export type GShownMove = {
+export type GMovePreview = {
   by: GPlayer
-  placements: GPlacement[]
+  // Their staged tiles, keyed by the id of the cell each is laid on.
+  tiles: ReadonlyMap<string, GTile>
   words: string[]
   score: number
 }
 
 /**
- * What the board viewer has open — a past turn, a teammate's shown move, or
+ * What the board viewer has open — a past turn, a teammate's preview, or
  * nothing — and the board it draws (`useHistoryView`). Both overlays freeze
  * the move and wear the same chrome; a new move, a click or a key exits
  * either.
  */
 export type GHistoryView = {
-  // A past turn or a shown move is open: the board takes no move while it is.
+  // A past turn or a preview is open: the board takes no move while it is.
   isViewing: boolean
   // What is open, read at event time by the board's drag handler, which is
   // registered once.
   targetRef: { readonly current: GHistoryTarget | null }
   // The log row open on the board (`events.id`), or null.
   viewedEventId: number | null
-  // A teammate's shown move, or null.
-  shownMove: GShownMove | null
+  // A teammate's preview, or null.
+  preview: GMovePreview | null
   // Open a turn — the log's `#N` click, with the number it printed beside it.
   show: (id: number, n: number | null) => void
-  // Open a teammate's shown move, unless my board has moved on since.
-  openShownMove: (payload: GShownMoveRaw) => void
+  // Open a teammate's preview, unless my board has moved on since.
+  openPreview: (payload: GMovePreviewRaw) => void
   // Back to the live board.
   exit: () => void
-  // The board just after the viewed turn; null when live, and for a shown
-  // move, which is drawn on the live board.
+  // The board just after the viewed turn; null when live, and for a preview,
+  // which is drawn on the live board.
   cells: GCell[] | null
-  // The viewed turn's tiles, or the shown move's, ringed; empty when live.
+  // The viewed turn's tiles, or the preview's, ringed; empty when live.
   litCellIds: string[]
   // The banner's words for a viewed turn ("#1 moth: +10 APPLE"); null when
-  // live, and for a shown move, whose banner names who showed it, with their dot.
+  // live, and for a preview, whose banner names who showed it, with their dot.
   label: string | null
 }
 
 /**
- * A coop "show a move" broadcast, as it travels: the staged tiles of the
+ * A coop move-preview broadcast, as it travels: the staged tiles of the
  * player showing it (`byId`), so a teammate can see it read-only on their own
- * live board. `GShownMove` is the same with the player.
+ * live board. `GMovePreview` is the same with the player.
  */
-export type GShownMoveRaw = {
+export type GMovePreviewRaw = {
   // Their staged tiles, not yet played.
   placements: GPlacement[]
   byId: string

@@ -1,8 +1,10 @@
 // cs-fixed-outcome-fix
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import {
+  useDismissLocalFeedbackOnKey,
+} from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { Dot } from '@/common/members/Dot'
@@ -15,7 +17,15 @@ import { useStagedTiles } from '../hooks/useStagedTiles'
 import { useSubmitMove } from '../hooks/useSubmitMove'
 import { useBoardDrag } from '../hooks/useBoardDrag'
 import { useBoardColActions } from '../hooks/useBoardColActions'
-import type { GCell, GGameData, GHistoryView, GPlacement, GShownMoveRaw, GTile } from '../types'
+import { useLandMove } from '../hooks/useLandMove'
+import type {
+  GCell,
+  GGameData,
+  GHistoryView,
+  GPlacement,
+  GMovePreviewRaw,
+  GTile,
+} from '../types'
 import { Board } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
@@ -26,7 +36,7 @@ import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** No cells and no staged tiles — the marks a read-only board wears for the
+/** No cells and no laid tiles — the marks a past turn's board wears for the
  *  live move. */
 const NO_CELLS: ReadonlySet<string> = new Set()
 const NO_TILES: ReadonlyMap<string, GTile> = new Map()
@@ -47,7 +57,7 @@ export function BoardCol({
   shownCells,
   historyView,
   localFeedbackSlot,
-  showMove,
+  sendPreview,
   registerSuggestionApplier,
 }: {
   gd: GGameData
@@ -56,8 +66,8 @@ export function BoardCol({
   historyView: GHistoryView
   // PlayArea's below-board slot: a move's answer, the ending, whose turn.
   localFeedbackSlot: FeedbackSlot
-  // Show my staged tiles to my teammates (`useShowMove`).
-  showMove: (payload: GShownMoveRaw) => void
+  // Show my staged tiles to my teammates (`useMovePreview`).
+  sendPreview: (payload: GMovePreviewRaw) => void
   // Hand PlayArea the way a picked suggestion is staged; null on unmount.
   registerSuggestionApplier: (fn: ((placements: GPlacement[]) => void) | null) => void
 }) {
@@ -65,7 +75,8 @@ export function BoardCol({
   // I may lay a move out — on another player's turn too — while I'm still
   // playing and the board is live; a press over a past turn is the viewer's
   // exit.
-  const isInteractive = gd.me.stillPlaying && !gd.ended && !historyView.isViewing
+  const isInteractive =
+    gd.me.stillPlaying && !gd.ended && !historyView.isViewing
 
   // ─── The pending move ─────────────────────────────────────────
   // The rack I play from: the team's in coop, my own in a race.
@@ -86,6 +97,7 @@ export function BoardCol({
     historyView,
     stagedAt: staged.stagedAt,
     placeFromRack: staged.placeFromRack,
+    placePickedAt: staged.placePickedAt,
     moveStaged: staged.moveStaged,
     recall: staged.recall,
     togglePick: staged.togglePick,
@@ -103,35 +115,12 @@ export function BoardCol({
     staged,
     rackOrder,
     submission,
-    showMove,
+    sendPreview,
     localFeedbackSlot,
   })
 
-  // A move landed: back to the live board, with the picks for a swap dropped.
-  // Mine (or anyone's on coop's one rack) rebuilds the rack — what stayed
-  // stays put, what was drawn goes on the right — and clears what was staged.
-  // An opponent's leaves my rack and my laid-out move alone, unless it took a
-  // cell I had staged on.
-  const landedVersionRef = useRef(gd.version)
-  const exitHistory = historyView.exit
-  const { takeMyMove, clearHeldTiles } = submission
-  const { clearPicks, recallAll, dropIfCovered } = staged
-  const rebuildRack = rackOrder.rebuild
-  useEffect(function landMove() {
-    if (landedVersionRef.current === gd.version) return
-    landedVersionRef.current = gd.version
-    clearPicks()
-    exitHistory()
-    clearHeldTiles()
-    const myMove = takeMyMove()
-    if (gd.compete && myMove === null) {
-      dropIfCovered(gd.board.cells)
-      return
-    }
-    recallAll()
-    rebuildRack(myMove?.slots ?? null, myMove?.nDrawn ?? 0, rack.length)
-  }, [gd.version, gd.compete, gd.board.cells, rack.length, clearPicks, exitHistory, clearHeldTiles,
-    takeMyMove, dropIfCovered, recallAll, rebuildRack])
+  // A move landed: the rack, my staged tiles and the viewer follow it.
+  useLandMove({ gd, rack, historyView, submission, staged, rackOrder })
 
   // Any key is the next move, so any key drops the previous move's result.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
@@ -139,34 +128,46 @@ export function BoardCol({
   // ─── Render ───────────────────────────────────────────────────
 
   // The live board carries my just-played tiles until the blob has them.
-  const boardCells = historyView.cells === null ? submission.liveCells : shownCells
-  // A shown move's tiles over the live board; my own staged tiles otherwise.
-  const shownMove = historyView.shownMove
-  const shownMoveTiles = useMemo(() => (shownMove === null
-    ? NO_TILES
-    : new Map(shownMove.placements.map((p) => {
-      const id = makeCellId(p.x, p.y)
-      return [id, { id, letter: p.letter, blank: p.blank }]
-    }))),
-  [shownMove])
+  const boardCells = historyView.cells === null
+    ? submission.liveCells
+    : shownCells
+  const preview = historyView.preview
+
+  /** The tiles laid but not played: a preview's over the live board, none
+   *  over a past turn, my own staged tiles otherwise. */
+  function getLaidTiles() {
+    if (preview !== null) return preview.tiles
+    if (historyView.isViewing) return NO_TILES
+    return staged.laidTiles
+  }
+
   const boardMarks = {
-    stagedTiles: historyView.isViewing ? shownMoveTiles : staged.laidTiles,
-    justPlayedCellIds: historyView.isViewing ? NO_CELLS : submission.playedCellIds,
-    refusedCellIds: historyView.isViewing ? NO_CELLS : submission.refusedCellIds,
+    stagedTiles: getLaidTiles(),
+    justPlayedCellIds: historyView.isViewing
+      ? NO_CELLS
+      : submission.playedCellIds,
+    refusedCellIds: historyView.isViewing
+      ? NO_CELLS
+      : submission.refusedCellIds,
     historyLitCellIds: new Set(historyView.litCellIds),
-    liftedCellId: pointer.drag?.source.kind === 'board' ? makeCellId(pointer.drag.source.x, pointer.drag.source.y) : null,
-    dropCellId: pointer.drag === null || historyView.isViewing || pointer.hover === null
+    liftedCellId: pointer.drag?.source.kind === 'board'
+      ? makeCellId(pointer.drag.source.x, pointer.drag.source.y)
+      : null,
+    dropCellId: pointer.drag === null || historyView.isViewing ||
+    pointer.hover === null
       ? null
       : makeCellId(pointer.hover.x, pointer.hover.y),
   }
 
   return (
     <>
-      {/* `.peerPreview` recolors the frame and banner, so a teammate's shown
-          move reads apart from a past turn (theme.css → --peer-preview-color). */}
-      <div className={cls(shared.boardCol, styles.boardCol, shownMove !== null && history.peerPreview)}>
+      {/* `.peerPreview` recolors the frame and banner, so a teammate's preview
+          reads apart from a past turn (theme.css → --peer-preview-color). */}
+      <div className={cls(shared.boardCol,
+        styles.boardCol,
+        preview !== null && history.peerPreview)}>
         <MobileStatusBar>
-          <StateLine gd={gd} />
+          <StateLine gd={gd}/>
         </MobileStatusBar>
         <Board
           cells={boardCells}
@@ -182,12 +183,14 @@ export function BoardCol({
           {historyView.isViewing && (
             <HistoryBanner
               onExit={historyView.exit}
-              label={shownMove === null ? historyView.label : (
+              label={preview === null ? historyView.label : (
                 <>
-                  <Dot color={shownMove.by.color} /> {shownMove.by.username} showing:{' '}
-                  {shownMove.words.length > 0
-                    ? `+${shownMove.score} ${shownMove.words.map((w) => w.toUpperCase()).join(', ')}`
-                    : `${shownMove.placements.length} tile${shownMove.placements.length === 1 ? '' : 's'}`}
+                  <Dot
+                    color={preview.by.color}/> {preview.by.username} showing:{' '}
+                  {preview.words.length > 0
+                    ? `+${preview.score} ${preview.words.map((w) => w.toUpperCase()).join(
+                      ', ')}`
+                    : `${preview.tiles.size} tile${preview.tiles.size === 1 ? '' : 's'}`}
                 </>
               )}
             />
@@ -204,13 +207,14 @@ export function BoardCol({
               />
               {/* Shuffle floats over the rack's corner: it reorders the rack,
                   not the move. It hides itself on an empty rack. */}
-              <ShuffleButton action={actions.actShuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
+              <ShuffleButton action={actions.actShuffle} tooltip="Shuffle rack"
+                             className={styles.rackShuffle}/>
             </div>
             <Controls
               submitScore={actions.submitScore}
               actSubmit={actions.actSubmit}
               actRecallTiles={actions.actRecallTiles}
-              actShowMove={actions.actShowMove}
+              actSharePreview={actions.actSharePreview}
               actExchange={actions.actExchange}
               actPass={actions.actPass}
               localFeedbackSlot={localFeedbackSlot}
@@ -220,11 +224,13 @@ export function BoardCol({
       </div>
 
       {staged.blankAt !== null && (
-        <BlankPickerBlockingModal onPick={staged.pickBlank} onCancel={staged.cancelBlank} />
+        <BlankPickerBlockingModal onPick={staged.pickBlank}
+                                  onCancel={staged.cancelBlank}/>
       )}
 
       {pointer.drag !== null && (
-        <div className={cls(dragGhost.ghost, styles.ghost)} style={{ left: pointer.drag.x, top: pointer.drag.y }}>
+        <div className={cls(dragGhost.ghost, styles.ghost)}
+             style={{ left: pointer.drag.x, top: pointer.drag.y }}>
           {pointer.drag.letter === BLANK ? '' : pointer.drag.letter}
         </div>
       )}

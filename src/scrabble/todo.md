@@ -2,20 +2,6 @@
 
 ## Bugs
 
-- **Nineteen lines across eleven files cite `docs/games/scrabble.md` and
-  `docs/games/scrabble.md`, which do not exist** — residue of shipped
-  plans, several with a section number (`S3`, `S5`, `band rule`) to make it
-  worse. `lib/policy.ts` has five; `PlayArea.tsx`, `InfoCol.tsx`,
-  `BoardCol.tsx`, `lib/rank.ts` and `lib/setup.ts` two each; `lib/suggest.ts`,
-  `manifest.ts`, `SetupForm.tsx` and `InfoCol.module.css` one each. The live
-  home is `docs/games/scrabble.md` §11 (the move suggester) and §12 (the AI
-  opponent). Redirect the ones that point at content the docstring
-  summarizes; delete the ones whose reasoning is already inline.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
-
 ## Soon
 
 - **A compete timeout before anyone plays crowns the lightest rack.** Every
@@ -28,7 +14,7 @@
   converted to `useMark` with the rest (2026-09-20), and each was planted: make
   the mark never draw and scrabble's whole suite stays green. The other nine
   games' marks each got one; these did not, because reaching them needs a
-  staged-and-committed move and no scrabble spec has ever staged one. That
+  staged-and-played move and no scrabble spec has ever staged one. That
   harness is the work, not the assertions. (Moved here from
   `common/board-marks/todo.md`.)
 
@@ -50,10 +36,7 @@
   inside the board column.
 
 - **A raw `<button>` takes focus on click**, where every `StandardButton`
-  suppresses it: the AI suggestion rows (`InfoCol.tsx`). (The history banner's ✕
-  was the other one; it left this game on 2026-09-16 when the banner became the
-  shared `common/event-log/HistoryBanner`, so it is one button in one place now.)
-  The suggestion row is the one that lingers — clicking it
+  suppresses it: the AI suggestion rows (`SuggestPanel.tsx`). Clicking one
   stages the move and the list stays up, so the row keeps focus and the next
   Enter re-activates it natively. Nothing on a play surface should hold focus
   (Joel, 2026-09-10); the fix belongs with this game's tab ring rather than to
@@ -64,55 +47,23 @@
   passes its `rng` exactly as it does today. Import it the way this file already imports
   `mulberry32` (the alias with an explicit `.ts`, because Deno loads
   `policy.ts` too).
-- **The info column picks a font size off the ramp, twice.**
-  `InfoCol.module.css` writes `font-size: 0.9rem` on its heading and on
+- **The suggest panel picks a font size off the ramp, twice.**
+  `SuggestPanel.module.css` writes `font-size: 0.9rem` on its lines and on
   `.suggestRow`, where the ramp's small step is `0.85rem` — 0.8px apart at the
   browser's default root, so it reads as a guess rather than a choice. The
   suggest row is a list row that IS the control rather than a general button,
   so the shared button's `small` treatment does not reach it; this is only
   about which size it means to be.
-- **The leftover-tile scoring is logged on one ending out of five, and in one
-  mode out of two — so a score drops and the log does not say why.** Joel,
-  2026-09-17: it should be a row every time.
-
-  `scrabble._finish` applies the scoring on EVERY terminal path. In coop it
-  subtracts the shared rack's tile value from `team_score`; in compete it
-  subtracts each player's own leftovers and then hands the going-out seat the
-  sum of everybody else's. The row is written in exactly one place —
-  `scrabble.stop_game`'s coop branch, the `manual` ending — so:
-
-  | ending | coop | compete |
-  |---|---|---|
-  | `manual` (Stop game) | deducted **and logged** | deducted, not logged |
-  | `conceded` | deducted, not logged | deducted, not logged |
-  | `timeout` | deducted, not logged | deducted, not logged |
-  | `blocked` (a lap of passes) | n/a — coop has no turns to pass | deducted, not logged |
-  | `complete` (somebody went out) | nothing to deduct — the rack is empty | deducted, not logged, **plus** the out-seat's bonus |
-
-  So the fix is to write the row where the deduction happens (inside `_finish`),
-  not where the game was ended. Three things to decide while doing it:
-
-  - **compete needs one row per player**, since each player loses their own
-    leftovers — the coop row is one row for one shared rack.
-  - **the going-out bonus is the other half of the same arithmetic** and has no
-    row at all. Either it is a second kind, or the out-seat's row carries a
-    positive score and the kind covers both directions.
-  - **`complete` in coop writes nothing**, and should keep writing nothing: an
-    empty rack deducts zero, and a zero row would be noise.
-
-  The kind is `leftovers` (renamed from `forfeit` by the events work — "penalty"
-  and "forfeit" both imply a judgment this row deliberately does not make; it is
-  arithmetic, and its outcome is `neutral`).
 - **A tied compete game skips the official tiebreak.** Joel, 2026-09-25: the
   Hasbro rules break a tie on final score by the higher score BEFORE the
   leftover tiles are added or deducted; only a tie that survives that is
   shared. `scrabble._finish` goes straight to co-winners on a tied final score
-  (every top scorer `{won: true}`, no `winner_seat`). Apply the pre-leftover
+  (every top scorer ranked 1). Apply the pre-leftover
   tiebreak first, and keep co-winners for a tie it cannot break. The winning
   rules themselves are being worked in `plans/cross-game-consistency.md` §3b.
 - **Where "Waiting for ● name…" belongs.** Joel, 2026-09-25: to investigate
   when auditing scrabble. Today the two modes differ. Turn-by-turn coop shows it
-  as a pill in the local feedback slot, which takes the place of the commit
+  as a pill in the local feedback slot, which takes the place of the move
   buttons beside the rack, and a tap on the rack or board dismisses it, though
   scrabble lets a player draft off-turn. Compete shows no pill; its whose-turn is
   the InfoCol's `<StateLine>` ("Turn: ● moth"), which the mobile status bar
@@ -122,15 +73,6 @@
   so dropping coop's pill would leave a phone with no whose-turn at all.
 
 ## Someday
-
-- **Going out wins coop.** Ruled 2026-09-25: coop's `goal-intrinsic` is every
-  tile played — a player goes out with the bag empty — as wordiply coop's is
-  its five words. Today going out is the neutral `ended` (`_finish`'s "COOP
-  HAS NO WIN", and `docs/games/scrabble.md` §2.7's "Coop has no win state at
-  all"), and only the clock loses. The change: going out is `won` for the
-  team; the timeout stays `lost`, now because the goal was missed; a Stop
-  stays neutral. `plans/game-cards.md`'s scrabble card shows today's behavior
-  until then.
 
 - **`rank.test.ts` reads `trie.eow[walkWord(…)]` without checking for -1.** On
   a miss that reads `eow[-1]`, which is `undefined` rather than a difficulty.
@@ -145,11 +87,6 @@
   in `docs/games/scrabble.md` → Deferred: leave it bespoke, give
   `<SelectionList>` a frameless compact form, or redesign the box and redo
   the height arithmetic.
-- `PlayArea.tsx` returns its own `<p className={styles.loading}>Loading
-  game…</p>` while the read is pending, where `src/common/loading`'s
-  `<Loading>` is the word every page shows for that moment. Swap it in, or
-  say why this surface's is different — it is the one with a class of its own.
-
 ## Maybe
 
 - **Compete's shared clock is unfair, because compete is turn-based.** A
@@ -158,10 +95,24 @@
   automatic concede (`docs/win-lose.md` → Timer fairness) — real work:
   per-player accounting, and detecting it running out on the server. The cheap interim is for
   compete's setup to stop offering a countdown at all.
-- **A coop target.** Coop's only win is going out (Someday, above). A
+- **A coop target.** Coop's only win is going out. A
   `target_score` on plain points would make reaching it a win and arm the
   clock, the spellingbee pattern — and, with a target set, a bag played out
   below it becomes a LOSS rather than a neutral end (`docs/win-lose.md` →
   Where a coop loss comes from). Without a target, coop stays as it is.
 
 ## Won't do
+
+- **A view to slim the blob.** Ruled 2026-10-05: the row size is accepted — a
+  blob at the bag's end measures about 10 KB, three quarters of it the log.
+  Joel: "people take at least a few seconds before making a move".
+- **One strength for every bot.** Ruled 2026-10-05: `ai_level` stays on each
+  bot's row. Joel: "it's a reasonable future feature for each ai player to
+  have a different level".
+- **"Won" on a coop finish.** Ruled 2026-10-05: the bag played out is a `won`
+  outcome, drawn green, and its words say "Completed" and "Ended". Joel: "we
+  don't show 'win' for winning in coop. It's a 'won' outcome and it gets a
+  green border. But the label says 'Ended'".
+- **"cell" in the player's words.** Ruled 2026-10-05: code and comments say
+  cell for a board spot, and the player-facing sentences keep "square". Joel:
+  "only for user-facing text 'square' is fine".

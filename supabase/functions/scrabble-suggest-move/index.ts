@@ -2,7 +2,7 @@
 
 /**
  * scrabble-suggest-move — Edge Function behind the coop "suggest a move"
- * button (docs/games/scrabble.md).
+ * button (docs/games/scrabble.md → The move suggester).
  *
  * Why edge (not PL/pgSQL): move generation is a trie-guided search — far
  * cleaner in TypeScript, and it reuses the exact engine the FE plays with
@@ -15,18 +15,18 @@
  *   2. `scrabble.get_suggest_context` as the caller — the SECURITY DEFINER
  *      RPC is the authority (game player, playing, coop) AND the only door
  *      to the grant-hidden dictionary bands. Its atomic snapshot returns
- *      board + rack + bands + version together. A rejection forwards as 403.
+ *      the board (the page's string) + rack + bands + version together. Its
+ *      refusals are relayed as they are.
  *   3. Await the cached rated trie, then generate + rank SYNCHRONOUSLY —
  *      the boggle lesson: awaits before and after the compute, never inside.
- *   4. Return { moves: GRankedMove[] (top 5), version }. Placements ride
- *      along so the FE can stage/preview them; `words` + `score` feed the
- *      text display; `version` lets the FE detect a suggestion that went
- *      stale while in flight (coop has no turns — a teammate may have
- *      played).
+ *   4. Answer `{ result: 'suggested', moves: GRankedMove[] (top 5), version }`,
+ *      or `{ result: 'no-legal-moves', version }`. Placements ride along so
+ *      the FE can stage them; `words` + `score` feed the text display;
+ *      `version` lets the FE tell a suggestion that went stale while in
+ *      flight (a teammate may have played).
  *
  * Calling shape (FE):
- *   POST /functions/v1/scrabble-suggest-move
- *   { game_id }  →  { moves, version }   ·   → { error } (400/401/403/500)
+ *   POST /functions/v1/scrabble-suggest-move   { game_id }  →  an envelope
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). No
  * service role — the RPC does its own authorization as the caller.
@@ -45,8 +45,8 @@ import { rankMoves } from '../../../src/scrabble/lib/rank.ts'
 import { ratedTrie } from './dict.ts'
 
 type SuggestContext = {
-  /** Names the answer. One `ok` today; asserted so a second cannot be read as
-   *  this one. */
+  // Names the answer. One `ok` today; asserted so a second cannot be read as
+  // this one.
   result: 'context'
   // The board as the page gets it: one string, decoded by lib/board.ts.
   board: { letters: string }

@@ -18,14 +18,14 @@ import type { GAiLevel, GSetupValues } from '../types'
  *   - two dictionary bands (all six offered each) — separate ceilings for
  *     2-letter and 3+-letter words (the bananagrams split). Uniquely for
  *     scrabble these ARE the acceptance bar, so a lower band makes a stricter
- *     game (docs/games/scrabble.md §3.3);
+ *     game (docs/games/scrabble.md → The dictionary);
  *   - the timer;
  *   - **AI opponents (compete only)** — 0–3 AI seats at one skill level. The
  *     band requirement is shown inline; the dialog's `validate` (see manifest)
  *     blocks Start if the dictionary is too narrow for the chosen level or the
  *     head-count doesn't fit. We deliberately don't auto-raise the dictionary —
  *     the player does it, so the change is never a surprise
- *     (docs/games/scrabble.md).
+ *     (docs/games/scrabble.md → The band rule).
  * Controlled component; state lives in the SetupGameModal wrapper.
  */
 export function SetupForm({
@@ -92,7 +92,7 @@ export function SetupForm({
         />
       </SetupSection>
 
-      {/* AI opponents — compete only (coop is one shared rack, no per-seat AI). */}
+      {/* AI opponents — compete only (coop is one shared rack, no bot to seat). */}
       {/* The help stays the SECTION's: it reports the COMBINED choice — count and
           level together — and then reaches out of this section entirely, to the
           dictionaries above. No single field owns either half. */}

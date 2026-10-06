@@ -247,7 +247,7 @@ export const ACTIONS = {
   'act-pass': { label: 'Pass', icon: IconEndTurn, tone: 'caution' },
   'act-end-turn': { label: 'End turn', icon: IconEndTurn },
   'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
-  'act-show-move': { label: 'Show move to team', icon: IconShare },
+  'act-share-preview': { label: 'Show move to team', icon: IconShare },
   // scrabble's Recall: take every STAGED tile back to the rack at once. Distinct
   // from `act-remove-tile`, which takes back one — hence its own id
   // rather than a second meaning for ⌫, which the board cursor already owns

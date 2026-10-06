@@ -19,9 +19,13 @@ export function makeNextRackOrder(
   const identity = Array.from({ length: newLen }, (_, i) => i)
   if (myMove === null) return identity
   const remainingAsc: number[] = []
-  for (let i = 0; i < myMove.oldLen; i++) if (!myMove.removed.has(i)) remainingAsc.push(i)
+  for (let i = 0; i < myMove.oldLen;
+       i++) if (!myMove.removed.has(i)) remainingAsc.push(i)
   const oldToNew = new Map(remainingAsc.map((oldIdx, k) => [oldIdx, k]))
-  const remaining = prevOrder.filter((i) => oldToNew.has(i)).map((i) => oldToNew.get(i)!)
+  const remaining =
+    prevOrder
+      .filter((i) => oldToNew.has(i))
+      .map((i) => oldToNew.get(i)!)
   const drawn: number[] = []
   for (let i = remainingAsc.length; i < newLen; i++) drawn.push(i)
   const result = [...remaining, ...drawn]

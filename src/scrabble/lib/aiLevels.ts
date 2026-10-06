@@ -8,4 +8,5 @@ import type { GAiLevel } from '../types.ts'
  * `lib/policy.ts`'s `LEVELS`. A module of its own so the setup form's chunk
  * can list them without loading the policy.
  */
-export const AI_LEVELS: readonly GAiLevel[] = ['beginner', 'casual', 'intermediate', 'strong', 'best']
+export const AI_LEVELS: readonly GAiLevel[] =
+  ['beginner', 'casual', 'intermediate', 'strong', 'best']

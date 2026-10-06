@@ -11,76 +11,50 @@ import styles from './Controls.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 
 /**
- * The action half of scrabble's below-board row (the rack — with its floating
- * Shuffle — is rendered beside it by PlayArea). Recall on the left; the **move
- * slot** ([Swap] [Pass] [Submit]) pushed to the right edge. That slot doubles as
- * the **local feedback area**: while the slot holds a message (an own-move
- * result, a not-ok, "you're out", whose turn, the terminal verdict) it draws
- * the `<FeedbackPill>` in place of the buttons AND fills the whole space (so a
- * longer message reads before it clips). The rack (to the left) stays
- * interactive, so a keystroke / tile tap dismisses a gesture-cleared result.
+ * The controls half of scrabble's below-board row (the rack, with its floating
+ * Shuffle, is drawn beside it by BoardCol). Recall and Show move on the left;
+ * the **move slot** — Swap, Pass, Submit — pushed to the right edge. That slot
+ * doubles as the **local feedback area**: while the slot holds a message it
+ * draws the `<FeedbackPill>` in place of the buttons AND fills the whole space,
+ * so a longer message reads before it clips. Show move sits on the left so a
+ * pill never hides it.
  *
- * The move buttons:
- *   - **Swap** (`act-exchange`, icon-only) — return rack tiles. Its bubble
- *     carries its own reason when it can't act ("Need ≥ 7 tiles in the bag",
- *     "Pick rack tiles first"), so this row places it and explains nothing.
- *   - **Pass** (`act-pass`, which HIDES itself in coop; the end-turn octagon
- *     de-emphasized to icon-only + secondary, in caution amber — forgoing a
- *     move is uncommon here, unlike codenamesduet's every-turn `act-end-turn`).
- *   - **Submit** (`act-submit`, drawn by `SubmitWithScore`) — the primary
- *     action, doubling as the live score preview ("+score", or an em-dash on an
- *     empty board). Enabled for any placed tiles (an illegal shape is explained
- *     by a pill on submit, not by disabling) — and **Enter** is the same
- *     action, so the key and the button are gray at the same moments.
- *
- * The **Share** button sits beside Recall on the LEFT — not in the move slot —
- * so it stays visible when a pill takes the slot over. It broadcasts the staged
- * tiles for teammates to preview (see useShowMove), and hides itself where
- * there is nobody to show them to (a race, or a solo game).
- *
- * Every one of them is an ACTION: what it does, what it is called, whether
- * it can be pressed and which key also does it come from the action, which the
- * board column makes. This row decides placement and nothing else.
+ * Every one of them is an ACTION: what it does, what it is called, whether it
+ * can be pressed and which key also does it come from the action, which the
+ * board column binds. This row decides placement and nothing else.
  */
 export function Controls({
   submitScore,
   actSubmit,
   actRecallTiles,
-  actShowMove,
+  actSharePreview,
   actExchange,
   actPass,
   localFeedbackSlot,
 }: {
-  /** The staged play's score for the Submit preview; `null` (empty board) shows
-   *  an em-dash. Its own prop, not the action's: the score is what this control
-   *  DRAWS, where the action says whether it can be pressed. */
+  // The staged play's score for Submit to show; null (nothing staged) shows an
+  // em-dash. Its own prop: the score is what the button DRAWS, where the action
+  // says whether it can be pressed.
   submitScore: number | null
-  /** Play the staged word. Also Enter, from the board cursor. */
   actSubmit: Action
-  /** Take every staged tile back to the rack at once. */
   actRecallTiles: Action
-  /** Show the staged play to teammates, read-only. Hides itself where there is
-   *  nobody to show it to. */
-  actShowMove: Action
-  /** Swap rack tiles for fresh ones — it carries its own reason when it can't. */
+  actSharePreview: Action
   actExchange: Action
-  /** Pass the turn. Hides itself in coop. */
   actPass: Action
-  /** PlayArea's below-board slot, drawn IN the move slot (replacing the
-   *  move buttons + filling its width) while it holds anything. */
+  // PlayArea's below-board slot, drawn IN the move slot while it holds anything.
   localFeedbackSlot: FeedbackSlot
 }) {
   const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
   return (
     <div className={styles.controls}>
       <ActionButton action={actRecallTiles} show="icon" />
-      {/* Show a move to teammates (coop, ≥2 players). On the left with Recall so a
-          pill in the move slot never hides it; enabled only with tiles staged.
-          It hides itself where there is nobody to show it to. */}
-      <ActionButton action={actShowMove} show="icon" />
+      <ActionButton action={actSharePreview} show="icon" />
 
       <div
-        className={cls(styles.moveAreaOrLocalFeedback, top !== null && styles.moveAreaOrLocalFeedbackPill)}
+        className={cls(
+          styles.moveAreaOrLocalFeedback,
+          top !== null && styles.moveAreaOrLocalFeedbackPill)
+      }
       >
         {top !== null ? (
           <div className={shared.localFeedback}>
@@ -88,13 +62,7 @@ export function Controls({
           </div>
         ) : (
           <div className={styles.moveButtons}>
-            {/* Swap's bubble carries its OWN reason when it can't act ("Need ≥
-                7 tiles in the bag", "Pick rack tiles first"), which is
-                `describe()`'s doing rather than a `title` worked out here. */}
             <ActionButton action={actExchange} show="icon" />
-            {/* Pass — the end-turn octagon in the registry's caution tone
-                (icon-only), since it isn't the main move here. It hides itself
-                in coop. */}
             <ActionButton action={actPass} show="icon" />
             <SubmitWithScore score={submitScore} action={actSubmit} />
           </div>

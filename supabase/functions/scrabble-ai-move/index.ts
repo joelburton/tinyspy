@@ -1,27 +1,27 @@
 // cs-unmet
 
 /**
- * scrabble-ai-move — the autonomous AI opponent's move driver (compete;
- * docs/games/scrabble.md).
+ * scrabble-ai-move — the bots' move driver (compete; docs/games/scrabble.md →
+ * The AI opponent).
  *
- * Client-invoked: whenever a move hands the turn to an AI seat (or on game load
- * if it's already an AI's turn), a connected human's client POSTs here and this
- * function plays the AI seat(s) forward until a human's turn or the game ends.
- * Any game member may drive it (trust model); the RPCs it calls do their own
- * seat + version authorization, so concurrent/duplicate pokes are safe no-ops.
+ * Client-invoked: while a bot holds the turn, every client at the table POSTs
+ * here (`useDriveAiTurns`), and this function plays the bots forward until a
+ * person's turn or the end. Any game member may drive it (trust model); the
+ * RPCs it calls check the turn and the version, so a duplicate poke loses the
+ * race and stops.
  *
- * Loop: `get_ai_context` (seat-less — returns the CURRENT seat's AI context or
- * `{done}`) → `choosePlay` (the exact policy brain the harness uses, at the
- * seat's ai_level) → `ai_play_word` / `ai_exchange` / `ai_pass`. It walks a
- * chain of consecutive AI seats in one invocation. A `stale` result means
- * another driver moved first — we stop and let that one continue.
+ * Loop: `get_ai_context` (the context of the bot holding the turn, or `{result:
+ * 'done'}`) → `choosePlay` (the policy the tuning harness uses, at the bot's
+ * `ai_level`) → `ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`, walking
+ * a chain of bots in one invocation.
  *
  * Why edge (not PL/pgSQL): move generation is a trie search, far cleaner in TS,
  * and it reuses the exact engine the game plays with (src/scrabble/lib) so a
  * bot's score can't disagree with what play_word awards. Dictionary bundled
  * (the suggester's asset — see ../scrabble-suggest-move/dict.ts).
  *
- * Calling shape (FE):  POST { game_id }  →  { ok, moves }  ·  { error } (4xx/5xx)
+ * Calling shape (FE):  POST { game_id }  →  an envelope: `{ result: 'moved',
+ * turns }`, or a not-ok relayed as it came.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -90,18 +90,10 @@ serve(async (req: Request): Promise<Response> => {
 
     let played = 0
     const log: unknown[] = []
-    // EVERY EXIT FROM THE LOOP LOGS, and that is load-bearing. The success log
-    // used to be the only one, sitting after the loop — so a failing RPC
-    // returned 500 from inside it and the invocation left NO trace: the
-    // container showed "serving the request" and nothing after, which reads as
-    // a hang rather than an error. That is how a wrong RPC name (`ai_pass` for
-    // `ai_pass_turn`) survived ~30 moves of this game unnoticed; it only fired
-    // on the branch the AI had not needed yet.
-    //
-    // WHICH RPC is what makes that line worth reading, and it comes free now:
-    // `runRpc` takes the name and writes it into the message it faults with
-    // (`BUG: ai_pass_turn did not run`), so the name is in the sentence rather
-    // than buried in a detail.
+    // EVERY EXIT FROM THE LOOP LOGS, and that is load-bearing: an exit that
+    // left no line reads in the container as a hang rather than an error. The
+    // RPC's name is in each line — `runRpc` writes it into the message it
+    // faults with (`BUG: ai_pass_turn did not run`).
     for (let i = 0; i < MAX_AI_MOVES; i++) {
       const ctxRes = await runRpc<AiContext>(
         db.rpc('get_ai_context', { p_game_id: gameId }), 'get_ai_context',
@@ -150,16 +142,15 @@ serve(async (req: Request): Promise<Response> => {
       }
 
       // ANOTHER DRIVER MOVED FIRST — the board version this move was built on
-      // is gone. That used to be an `ok` named `stale`; it is a RACE now, which
-      // is what it always was: every client pokes this function, so losing is
-      // the ordinary outcome and not a failure of anything. Stop, and let
-      // whoever won carry the chain on.
+      // is gone, a RACE: every client pokes this function, so losing is the
+      // ordinary outcome and not a failure of anything. Stop, and let whoever
+      // won carry the chain on.
       if (res.type === 'not-ok' && res.severity === 'race') {
         console.log(`[ai-move] game ${gameId}: lost the race after ${played} turn(s) —`, res.message)
         break
       }
-      // Anything else refused is the bot genuinely stuck: relay it, with the
-      // same tagged line `fail` used to write.
+      // Anything else refused is the bot genuinely stuck: relay it, with a
+      // tagged line.
       if (res.type === 'not-ok') {
         console.error(`[ai-move] game ${gameId}: FAILED after ${played} turn(s) —`, res.message)
         return json(res)

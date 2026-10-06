@@ -41,7 +41,7 @@ export function Cell({
   y: number
   premium: GPremiumType
   isCenter: boolean
-  // The tile on it — played, staged, or in a teammate's shown move — or null.
+  // The tile on it — played, staged, or in a teammate's preview — or null.
   tile: { id: string; letter: string; blank: boolean } | null
   tileMarks: Parameters<typeof Tile>[0]['marks']
   // The keyboard cursor's axis when it sits here; null when it doesn't.

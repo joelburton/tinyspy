@@ -6,7 +6,13 @@ import type {
 } from '@/common/game-page/playAreaLoaderProps'
 import { decodeBoard, decodePlacement } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData } from '../types'
+import type {
+  GEvent,
+  GGameData,
+  GGameDataRaw,
+  GPlayer,
+  GStateLineData,
+} from '../types'
 
 /**
  * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
@@ -24,9 +30,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
   // a timeout.
-  const playerOf = (id: string | null) => (id === null
-    ? null
-    : playersById[id]!)
+  const playerOf = (id: string | null) => (
+    id === null
+      ? null
+      : playersById[id]!)
 
   // Every row is a seated player's: a player's rows go with their profile
   // (`on delete cascade`), so the lookup cannot miss.
@@ -77,8 +84,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
  * the `game_data` blob the page was handed and who I am. No reads and no
  * subscription: the page re-reads the blob on every move, and this is a pure
  * function of it (plans/seat-view.md → The page is written, not assembled).
- * A coop teammate's shown move is not here: it is never stored, and rides its
- * own Broadcast (`useShowMove`).
+ * A coop teammate's preview is not here: it is never stored, and rides its
+ * own Broadcast (`useMovePreview`).
  *
  * A game whose builder has not written a blob yet cannot be drawn; the throw
  * lands in `PlayAreaErrorBoundary`'s card.

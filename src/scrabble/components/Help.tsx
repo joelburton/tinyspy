@@ -21,8 +21,8 @@ export function Help({ onClose, brand }: Props) {
     >
       <p>
         <strong>Build words on the board from your rack of 7 tiles.</strong>{' '}
-        Click a rack tile to hold it, then click an empty square to place it.
-        Click a placed (not-yet-played) tile to take it back.
+        Tap a rack tile, then tap an empty square to place it — or drag it there, or tap a
+        square and type. Drag a placed tile back to the rack to take it back.
       </p>
       <ul>
         <li>
@@ -31,7 +31,7 @@ export function Help({ onClose, brand }: Props) {
           center ★.
         </li>
         <li>
-          <strong>Play word</strong> scores every word you make — the main
+          <strong>Submit</strong> scores every word you make — the main
           word plus any crossing words — using the letter values and the
           colored premium squares. Using all 7 tiles scores a{' '}
           <strong>+50 bingo</strong>.
@@ -45,15 +45,17 @@ export function Help({ onClose, brand }: Props) {
           when you play it, and it's fixed for the rest of the game.
         </li>
         <li>
-          Stuck? Pick tiles and <strong>Exchange</strong> them for new ones
-          (needs ≥ 7 tiles left in the bag).
+          Stuck? Tap tiles to pick them and <strong>Swap</strong> them for new
+          ones (needs ≥ 7 tiles left in the bag). In compete you can also{' '}
+          <strong>Pass</strong>.
         </li>
       </ul>
       <p>
         <strong>Coop:</strong> one shared rack and score — plan the best word
-        together over chat; anyone can play it. <strong>Compete:</strong>{' '}
-        your own rack, taking turns; highest score when the tiles run out
-        wins.
+        together over chat; anyone can play it. <strong>Suggest</strong> asks
+        for the best moves, and <strong>Show move to team</strong> lays yours
+        out on their boards. <strong>Compete:</strong> your own rack, taking
+        turns; highest score when the tiles run out wins.
       </p>
       <p className="muted">
         Click any word in the move log to see its definition, or press{' '}

@@ -8,23 +8,19 @@ import styles from './BlankPickerBlockingModal.module.css'
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('')
 
 /**
- * Declare what a dragged blank stands for — the one question scrabble has to
+ * Declare what a placed blank stands for — the one question scrabble has to
  * ask mid-move, and the answer is permanent for the rest of the game (the real
  * rule; see docs/games/scrabble.md → Blank tiles).
  *
- * A **blocking** modal, which is the category it always described itself as and
- * only became on 2026-09-10. It was a hand-rolled `position: fixed` overlay: no
- * ring of its own, no Escape, a scrim click that CANCELED where every sibling's does
- * nothing, and `z-index: 50` — below the panel tier, so an open chat painted
- * over the question. The keyboard is what forced the issue: the app's one key
- * dispatcher stands down for anything inside a `[data-floating-panel]`, and this
- * was not one, so a keystroke reached the board underneath a question about it.
+ * A **blocking** modal, so it has the tab ring, Escape and the panel tier every
+ * other modal has, and the key dispatcher stands down for it: a keystroke
+ * answers the question rather than reaching the board underneath.
  *
  * The 26 letters are NOT actions. A letter here answers a question this panel is
  * asking — it is not a command the page offers, and it exists only while the
- * panel is open. (The typed-letter path into a blank is the board's own
- * `act-place-tile`, which declares the blank from the letter you type and never
- * opens this at all; this panel is the DRAG path, where there is no letter yet.)
+ * panel is open. (A typed letter declares a blank itself and never opens this;
+ * this panel is for a blank dragged or tap-placed, where there is no letter
+ * yet.)
  */
 export function BlankPickerBlockingModal({
   onPick,

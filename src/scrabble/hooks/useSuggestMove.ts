@@ -4,7 +4,12 @@ import { useCallback, useRef, useState } from 'react'
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import type { GGameData, GPlacement, GRankedMove, GSuggestState } from '../types'
+import type {
+  GGameData,
+  GPlacement,
+  GRankedMove,
+  GSuggestState,
+} from '../types'
 
 /** What `scrabble-suggest-move` puts in `data`. Two `ok`s because the panel
  *  says two different things — a ranked list, or "No legal moves — swap
@@ -41,7 +46,8 @@ export function useSuggestMove(gd: GGameData): {
 
   async function askForSuggestions() {
     setSuggest({ status: 'loading' })
-    const res = await runEdgeFn<Suggested>('scrabble-suggest-move', { game_id: gd.id })
+    const res = await runEdgeFn<Suggested>('scrabble-suggest-move',
+      { game_id: gd.id })
 
     if (res.type === 'not-ok' && res.severity === 'fault') {
       // The panel resets to idle. `runEdgeFn` has raised the modal, and a fault
@@ -56,7 +62,11 @@ export function useSuggestMove(gd: GGameData): {
       // Kept even when its version is ahead of the blob's: the answer is the
       // database's fresh board, which the blob is about to catch up to. The
       // stale rule below is the one judge.
-      setSuggest({ status: 'ready', moves: res.data.moves, version: res.data.version })
+      setSuggest({
+        status: 'ready',
+        moves: res.data.moves,
+        version: res.data.version,
+      })
     } else {
       reportUnhandled('scrabble-suggest-move', res)
       setSuggest({ status: 'idle' })
@@ -67,7 +77,11 @@ export function useSuggestMove(gd: GGameData): {
   const actSuggestMove = useBindAction('act-suggest-move', {
     describe: () => {
       if (gd.compete) return 'hidden'
-      return { state: gd.ended || suggest.status === 'loading' ? 'disabled' : 'active', label: 'Suggest' }
+      return {
+        state: gd.ended || suggest.status === 'loading'
+          ? 'disabled'
+          : 'active', label: 'Suggest',
+      }
     },
     run: askForSuggestions,
   })
@@ -76,7 +90,8 @@ export function useSuggestMove(gd: GGameData): {
   // because the player just played the suggested move — and once the game is
   // over, since a Stop does not move the version. Worked out each render, so
   // nothing has to clear it.
-  const isStale = suggest.status === 'ready' && (gd.ended || suggest.version !== gd.version)
+  const isStale = suggest.status === 'ready' &&
+    (gd.ended || suggest.version !== gd.version)
 
   return {
     view: isStale ? { status: 'idle' } : suggest,

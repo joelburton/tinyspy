@@ -12,7 +12,7 @@ import { generateMoves, isLegal } from './suggest'
 import type { GBands, GCell, GPlacement } from '../types'
 
 // ---------------------------------------------------------------------------
-// isLegal — the two-band legality predicate (S1)
+// isLegal — the two-band legality predicate
 // ---------------------------------------------------------------------------
 
 describe('isLegal — the two-band legality predicate', () => {
@@ -55,7 +55,7 @@ describe('isLegal — the two-band legality predicate', () => {
 })
 
 // ---------------------------------------------------------------------------
-// generateMoves (S2) — shared machinery
+// generateMoves — shared machinery
 // ---------------------------------------------------------------------------
 
 const N = 15
@@ -378,7 +378,7 @@ describe('generateMoves — randomized parity vs brute force', () => {
       const rand = mulberry32(seed)
       const int = (n: number) => Math.floor(rand() * n)
       const board = soupBoard(rand, 8 + int(7))
-      // Cost control (the plan's S2 note): racks ≤5, ≤1 blank — and a rack
+      // Cost control: racks ≤5, ≤1 blank — and a rack
       // WITH a blank is capped at 4 tiles, since each blank multiplies the
       // brute force's declaration-expansion work.
       const blanks = rand() < 0.35 ? 1 : 0

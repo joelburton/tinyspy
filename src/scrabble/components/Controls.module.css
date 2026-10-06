@@ -17,7 +17,7 @@
 }
 
 /* scrabble's PARTIAL-SWAP box: it holds EITHER the move buttons OR (when an
- * own-move result / terminal verdict shows) the local feedback pill — the rack
+ * own-move result / the ending shows) the local feedback pill — the rack
  * beside it stays, so only this sub-area swaps. Sized to content + shoved to the
  * row's right edge (`margin-left: auto`). This is the AREA only; the buttons'
  * right-justify is the SEPARATE `.moveButtons` (docs/playarea.md →

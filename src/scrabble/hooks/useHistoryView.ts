@@ -4,7 +4,12 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { makeCellId } from '../lib/board'
 import { makeEventText } from '../lib/eventText'
 import { historyBoard } from '../lib/play'
-import type { GGameData, GHistoryTarget, GHistoryView, GShownMoveRaw } from '../types'
+import type {
+  GGameData,
+  GHistoryTarget,
+  GHistoryView,
+  GMovePreviewRaw,
+} from '../types'
 
 /**
  * What the board viewer has open, and the board it draws. Built on the shared
@@ -12,7 +17,7 @@ import type { GGameData, GHistoryTarget, GHistoryView, GShownMoveRaw } from '../
  * another `#N`, and any key.
  *
  * It shows two things on one chrome: a past turn — the log's `#N` click,
- * drawn as the board just after it — and, in coop, a teammate's shown move,
+ * drawn as the board just after it — and, in coop, a teammate's preview,
  * drawn as their staged tiles over my live board. The board is one shared
  * board in both modes, so any row opens, whoever played it; a past board is
  * the words laid down in order (`historyBoard`), since no row keeps one.
@@ -27,14 +32,18 @@ export function useHistoryView(gd: GGameData): GHistoryView {
   } = useHistoryViewer<GHistoryTarget>()
 
   // A turn's id is a log row's, and the log keeps every row.
-  const viewedEvent = target?.kind === 'turn'
-    ? gd.events.find((e) => e.id === target.id)!
-    : null
-  // The sharer is a seated player: a shown move comes from the table.
-  const shownMove = target?.kind === 'shownMove'
+  const viewedEvent =
+    target?.kind === 'turn'
+      ? gd.events.find((e) => e.id === target.id)!
+      : null
+  // The one previewing is a seated player: a preview comes from the table.
+  const preview = target?.kind === 'preview'
     ? {
       by: gd.playersById[target.byId]!,
-      placements: target.placements,
+      tiles: new Map(target.placements.map((p) => {
+        const id = makeCellId(p.x, p.y)
+        return [id, { id, letter: p.letter, blank: p.blank }]
+      })),
       words: target.words,
       score: target.score,
     }
@@ -44,23 +53,27 @@ export function useHistoryView(gd: GGameData): GHistoryView {
    *  passed". `n` is the `#N` the log printed beside the row. */
   function makeLabel(): string | null {
     if (viewedEvent === null) return null
-    const prefix = `${historyN === null ? '' : `#${historyN} `}${viewedEvent.by.username}`
+    const prefix = `${historyN === null
+      ? ''
+      : `#${historyN} `}${viewedEvent.by.username}`
     const text = makeEventText(viewedEvent)
-    return viewedEvent.kind === 'word' ? `${prefix}: ${text}` : `${prefix} ${text}`
+    return viewedEvent.kind === 'word'
+      ? `${prefix}: ${text}`
+      : `${prefix} ${text}`
   }
 
   function makeLitCellIds(): string[] {
-    if (shownMove !== null) return shownMove.placements.map((p) => makeCellId(p.x, p.y))
+    if (preview !== null) return [...preview.tiles.keys()]
     if (viewedEvent?.placements) return viewedEvent.placements.map((t) => t.id)
     return []
   }
 
-  /** Open a teammate's shown move — unless a real move has landed on my board
+  /** Open a teammate's preview — unless a real move has landed on my board
    *  since they staged it, when it no longer fits. No `#N`: it is no log row. */
-  function openShownMove(payload: GShownMoveRaw) {
+  function openPreview(payload: GMovePreviewRaw) {
     if (payload.baseVersion !== gd.version) return
     showHistory({
-      kind: 'shownMove',
+      kind: 'preview',
       placements: payload.placements,
       byId: payload.byId,
       words: payload.words,
@@ -72,11 +85,12 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     isViewing: target !== null,
     targetRef,
     viewedEventId: viewedEvent === null ? null : viewedEvent.id,
-    shownMove,
+    preview,
     show: (id, n) => showHistory({ kind: 'turn', id }, n),
-    openShownMove,
+    openPreview,
     exit: exitHistory,
-    cells: viewedEvent === null ? null : historyBoard(gd.events, viewedEvent.id),
+    cells:
+      viewedEvent === null ? null : historyBoard(gd.events, viewedEvent.id),
     litCellIds: makeLitCellIds(),
     label: makeLabel(),
   }

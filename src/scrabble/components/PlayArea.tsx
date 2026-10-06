@@ -18,7 +18,7 @@ import { useDriveAiTurns } from '../hooks/useDriveAiTurns'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
-import { useShowMove } from '../hooks/useShowMove'
+import { useMovePreview } from '../hooks/useMovePreview'
 import { useShowOpponentMoves } from '../hooks/useShowOpponentMoves'
 import { useSuggestMove } from '../hooks/useSuggestMove'
 import { BoardCol } from './BoardCol'
@@ -60,7 +60,7 @@ type PlayAreaProps =
  *
  * Both manifests mount it, and the mode (`gd.mode`) is what differs: coop is
  * one board and one rack for the team, with the suggester and a teammate's
- * shown move; compete is the same board played in turns, each player with a
+ * preview; compete is the same board played in turns, each player with a
  * rack of their own, and bots among them.
  *
  * The client scores every play itself (`lib/play.ts`) and the server trusts
@@ -118,14 +118,14 @@ function PlayArea({
   useShowOpponentMoves(gd, globalFeedbackSlot)
 
   // ─── The board viewer ──────────────────────────────────
-  // A past turn, or a teammate's shown move, open on the board.
+  // A past turn, or a teammate's preview, open on the board.
   const historyView = useHistoryView(gd)
 
-  // A teammate's shown move arrives over Broadcast and opens on the viewer.
-  const { showMove } = useShowMove({
+  // A teammate's preview arrives over Broadcast and opens on the viewer.
+  const { sendPreview } = useMovePreview({
     gameId: gd.id,
     mode: gd.mode,
-    onReceive: historyView.openShownMove,
+    onReceive: historyView.openPreview,
   })
 
   // ─── The commands, and the menu that lists them ────────
@@ -144,7 +144,7 @@ function PlayArea({
   // ─── Render ────────────────────────────────────────────
 
   // The board to show: a past turn's while one is open, else the live one — a
-  // teammate's shown move is drawn over the live board.
+  // teammate's preview is drawn over the live board.
   const shownCells = historyView.cells ?? gd.board.cells
 
   // The ending that applies to me: the game's once it has ended, else mine.
@@ -157,7 +157,7 @@ function PlayArea({
         shownCells={shownCells}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        showMove={showMove}
+        sendPreview={sendPreview}
         registerSuggestionApplier={suggestion.registerApplier}
       />
 

@@ -6,9 +6,9 @@ import { signIn } from './helpers/session'
 import { settled } from './helpers/ready'
 
 /**
- * Coop "show a move": a player broadcasts their in-progress (staged) tiles to
+ * Coop move preview: a player broadcasts their in-progress (staged) tiles to
  * teammates, who see them on a read-only preview of the board. This is a genuinely
- * cross-client feature (a stable-name Broadcast channel — see useShowMove), so it
+ * cross-client feature (a stable-name Broadcast channel — see useMovePreview), so it
  * can ONLY be exercised with two real browser contexts; the component tests mock the
  * transport and just simulate the receive callback.
  *
@@ -21,7 +21,7 @@ import { settled } from './helpers/ready'
  * contexts before staging (the rack only renders once un-paused). The shared rack is
  * pinned (setScrabbleRack) so CAT is a deterministic, dictionary-valid move.
  */
-test.describe('scrabble — show a move (coop)', () => {
+test.describe('scrabble — move preview (coop)', () => {
   test("a teammate previews my staged move; typing dismisses it", async ({ browser }) => {
     const club = await createClubWithMembers(['alice', 'bob'])
     const [alice, bob] = club.members

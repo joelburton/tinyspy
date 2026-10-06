@@ -28,7 +28,7 @@ export const AI_LEVEL_LABEL: Record<GAiLevel, string> = {
 
 /** The dictionary band each level needs (its `vocabCap` — beginner 1 … strong/
  *  best 6). The game's bands must be ≥ this whenever an AI is present, or the AI
- *  can't play at its tuned strength (docs/games/scrabble.md band rule). */
+ *  can't play at its tuned strength (docs/games/scrabble.md → The band rule). */
 export const AI_BAND: Record<GAiLevel, number> = {
   beginner: 1,
   casual: 2,
@@ -68,7 +68,8 @@ export function validateScrabbleSetup(setup: unknown, playerCount: number): Form
   if (total > 4) {
     return { ai_count: `Too many players — ${playerCount} human + ${ai} AI is over the limit of 4.` }
   }
-  if (total < 2) return { ai_count: 'A compete game needs at least 2 players (humans + AI).' }
+  if (total <
+    2) return { ai_count: 'A compete game needs at least 2 players (humans + AI).' }
   const band = AI_BAND[s.ai_level]
   if (s.dict_2 < band || s.dict_3plus < band) {
     // TWO fields at once — the case a server raise cannot express, because a
@@ -76,7 +77,8 @@ export function validateScrabbleSetup(setup: unknown, playerCount: number): Form
     // are rung, so a setup with one dictionary already wide enough doesn't get
     // a red box around the select that is fine.
     const message =
-      `A ${AI_LEVEL_LABEL[s.ai_level]} AI needs the dictionary at “${difficultyValue(band)}” or wider — ` +
+      `A ${AI_LEVEL_LABEL[s.ai_level]} AI needs the dictionary at “${difficultyValue(
+        band)}” or wider — ` +
       `raise both dictionaries to at least that before adding it.`
     return {
       ...(s.dict_2 < band ? { dict_2: message } : {}),

@@ -4,8 +4,12 @@ import { useEffect } from 'react'
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
+import {
+  useStandardGameActions,
+} from '@/common/game-page/useStandardGameActions'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -87,7 +91,9 @@ export function useActionsAndMenu({
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
-    describe: (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),
+    describe: (asker) => (asker === 'button' && !gd.ended
+      ? 'hidden'
+      : 'active'),
     run: createNewGame,
   })
 
@@ -96,7 +102,10 @@ export function useActionsAndMenu({
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      printScrabblePdf(buildPrintModel({ gd, date: new Date().toLocaleDateString() }))
+      printScrabblePdf(buildPrintModel({
+        gd,
+        date: new Date().toLocaleDateString(),
+      }))
     },
   })
 

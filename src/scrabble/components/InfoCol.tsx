@@ -50,7 +50,12 @@ export function InfoCol({
    *  one who played on and lost. */
   function getScoreOrOut(player: GPlayer) {
     if (gd.ended) {
-      const verdict = player.outcome === 'won' ? 'won' : player.conceded ? 'conceded' : 'lost'
+      const verdict =
+        player.outcome === 'won'
+          ? 'won'
+          : player.conceded
+            ? 'conceded'
+            : 'lost'
       return `${player.score} (${verdict})`
     }
     if (player.ending !== null) return 'out'
@@ -64,7 +69,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <StateLine gd={gd} />
+          <StateLine gd={gd}/>
         </p>
 
         {gd.compete && (
@@ -90,16 +95,12 @@ export function InfoCol({
             Each action answers whether it shows. The line is the ending that
             applies to me. ICON-ONLY; the menu is the glyphs' legend. */}
         <InfoActionsRow message={actionRowMessage}>
-          <ActionButton action={actions.actSuggestMove} show="icon" />
-          <ActionButton action={actions.actConcede} show="icon" />
-          <ActionButton action={actions.actStopGame} show="icon" />
-          {/* Right of the bar is about the END of the game rather than
-              playing it; the bar hides itself when nothing is left of it. */}
-          <span className={shared.actionsDivider} />
-          <ActionButton action={actions.actRestart} show="icon" />
-          <ActionButton action={actions.actNewGame} show="icon" />
-          {/* Filled once the game has ended: the weight is the placement's
-              choice, not the action's (docs/ui.md → What a `<button>` is). */}
+          <ActionButton action={actions.actSuggestMove} show="icon"/>
+          <ActionButton action={actions.actConcede} show="icon"/>
+          <ActionButton action={actions.actStopGame} show="icon"/>
+          <span className={shared.actionsDivider}/>
+          <ActionButton action={actions.actRestart} show="icon"/>
+          <ActionButton action={actions.actNewGame} show="icon"/>
           <ActionButton
             action={actions.actBackToClub}
             show="icon"
@@ -109,15 +110,16 @@ export function InfoCol({
 
         {isHelpShown && (
           <p className={shared.infoHelp}>
-            Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways
+            Drag tiles onto the board, or tap a square and type. Arrows move the
+            cursor (a sideways
             arrow turns it ↓). Enter plays.
           </p>
         )}
 
-        <SuggestPanel suggestion={suggestion} />
+        <SuggestPanel suggestion={suggestion}/>
 
         {/* Setup — LAST before the log, behind a disclosure. */}
-        <SetupDisclosure rows={gd.setupRows} />
+        <SetupDisclosure rows={gd.setupRows}/>
       </div>
 
       {/* The log scrolls inside its own box, so a growing log never moves

@@ -31,8 +31,10 @@ export function useRackOrder(rack: readonly string[]): {
   // somebody else's on the one coop rack (`null`).
   rebuild: (myMove: GMoveSlots | null, nDrawn: number, newLen: number) => void
 } {
-  const [order, setOrder] = useState(() => Array.from({ length: rack.length }, (_, i) => i))
-  const [drawnMark, flashDrawn] = useMark<{ slots: ReadonlySet<number> }>(ATTENTION_FLASH_MS)
+  const [order, setOrder] = useState(() => Array.from({ length: rack.length },
+    (_, i) => i))
+  const [drawnMark, flashDrawn] = useMark<{ slots: ReadonlySet<number> }>(
+    ATTENTION_FLASH_MS)
 
   const shuffle = useCallback(() => {
     setOrder((prev) => [...prev].sort(() => Math.random() - 0.5))
@@ -56,12 +58,18 @@ export function useRackOrder(rack: readonly string[]): {
     if (nDrawn > 0 && newLen > 0) {
       // The drawn tiles are the rack's last slots.
       const n = Math.min(nDrawn, newLen)
-      flashDrawn({ slots: new Set(Array.from({ length: n }, (_, i) => newLen - n + i)) })
+      flashDrawn({
+        slots: new Set(Array.from({ length: n },
+          (_, i) => newLen - n + i)),
+      })
     }
   }, [flashDrawn])
 
   return {
-    tiles: order.filter((i) => i < rack.length).map((i) => ({ glyph: rack[i], rackIdx: i })),
+    tiles: order.filter((i) => i < rack.length).map((i) => ({
+      glyph: rack[i],
+      rackIdx: i,
+    })),
     drawnSlots: drawnMark === null ? NO_SLOTS : drawnMark.value.slots,
     shuffle,
     moveTile,

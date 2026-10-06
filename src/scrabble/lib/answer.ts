@@ -32,12 +32,21 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'word': {
       const words = answer.words.map((w) => w.toUpperCase()).join(' · ')
-      return { outcome: 'won', text: `${words} +${answer.score}${answer.bingo ? ' 🎉' : ''}` }
+      return {
+        outcome: 'won',
+        text: `${words} +${answer.score}${answer.bingo ? ' 🎉' : ''}`,
+      }
     }
     case 'word_peer':
-      return { outcome: 'won', text: `played ${answer.words[0].toUpperCase()} (+${answer.score})` }
+      return {
+        outcome: 'won',
+        text: `played ${answer.words[0].toUpperCase()} (+${answer.score})`,
+      }
     case 'invalid':
-      return { outcome: 'lost', text: `No: ${answer.badWords.join(', ').toUpperCase()}` }
+      return {
+        outcome: 'lost',
+        text: `No: ${answer.badWords.join(', ').toUpperCase()}`,
+      }
     case 'exchange':
       return { outcome: 'neutral', text: `Swapped ${answer.nTiles}` }
     case 'exchange_peer':

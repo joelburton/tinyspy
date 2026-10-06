@@ -566,6 +566,23 @@ next open (todo.md → Someday).
   the move envelopes carry no outcome; every RPC call sends `p_` names. The
   words got their names: puzzle word, theme word, spangram, hint word
   (docs/games/strands.md → Naming the words).
+- **scrabble — done 2026-10-05**, its own way: the board in the blob is one
+  225-character string (`.` empty, a lowercase letter a tile, a capital a
+  blank played as that letter), and an event's placements are `"x,y:c"`;
+  `makeGameData` decodes them into `GCell`s (the spot, `{id "x,y", tile}`)
+  holding `GTile`s (the piece, its id its cell's), and `lib/` and both edge
+  functions work on the cells, the context RPCs answering the same string.
+  Letters are lowercase in every column (20261005000007, which also makes a
+  coop player's score their own, writes the leftovers and `went_out` rows for
+  past games, and renames `coop_rack` → `team_rack`); `_score_leftovers`
+  writes those rows on every ending. The blob carries every rack and the seat
+  rule withholds a rival's mid-race. `team: {rack, score, nRackTiles}`; the
+  summary has `winnerIds` + `winnerScore`. The statuses, both views and their
+  definers went (plans/areas/scrabble.md → The inventory). The move is
+  BoardCol's (`useSubmitMove`, `useStagedTiles`, `useRackOrder`,
+  `useBoardDrag`, `useBoardColActions`), one `Tile` draws on the board and in
+  the rack, one action row, the move RPCs answer what a caller reads, and
+  every RPC call sends `p_` names.
 - **setgame — done 2026-10-05**, its own way: one table shared in both modes,
   so `board: {tiles}` is top-level on `gd`, not on a seat, and there is no seat
   rule and no `puzzle` (nothing shows the deck's order). A tile is `{id}`, its

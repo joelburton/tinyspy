@@ -13,7 +13,7 @@ import styles from './Board.module.css'
  *  each keyed by cell id. */
 type BoardMarks = {
   // Tiles laid on the board but not played: my staged move, or a teammate's
-  // shown one.
+  // preview.
   stagedTiles: ReadonlyMap<string, GTile>
   // The word just played, ringed green for its beat.
   justPlayedCellIds: ReadonlySet<string>
@@ -29,7 +29,7 @@ type BoardMarks = {
 
 /**
  * The 15×15 scrabble board: a `Cell` per spot, in row order. It works out
- * each cell's tile — a played one, else a staged or shown one — and which
+ * each cell's tile — a played one, else a staged one or a preview's — and which
  * marks the cell and its tile wear; the cell draws them.
  *
  * Over a past turn it wears the shared history frame and takes no cursor.

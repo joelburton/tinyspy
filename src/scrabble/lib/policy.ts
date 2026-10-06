@@ -11,8 +11,8 @@
  * suggester engine:
  *
  *   - `choosePlay` — given a board + rack + a `GStrengthKnobs` config, pick ONE
- *     move (or an exchange). This is the reusable AI-player decision; the
- *     eventual server/edge opponent calls exactly this. It is PURE and
+ *     move (or an exchange). This is the bots' decision, and the
+ *     `scrabble-ai-move` edge function calls exactly this. It is PURE and
  *     deterministic given its `rng`.
  *   - `playSelfGame` — drive a whole coop game (one shared rack, maximize total
  *     score) to completion with a given level, returning the final score plus
@@ -24,16 +24,29 @@
  * (docs/games/scrabble.md), not final tuning.
  *
  * `.ts` import extensions throughout: like play.ts / suggest.ts / rank.ts this
- * module is written to also load under Deno (the future opponent edge function),
- * whose whole transitive import graph needs explicit extensions.
+ * module also loads under Deno (the `scrabble-ai-move` edge function), whose
+ * whole transitive import graph needs explicit extensions.
  */
 
-import { RACK_SIZE, cellIndex, fullBag, makeCellId, makeEmptyBoard } from './board.ts'
+import {
+  RACK_SIZE,
+  cellIndex,
+  fullBag,
+  makeCellId,
+  makeEmptyBoard,
+} from './board.ts'
 import { tilesUsed } from './play.ts'
 import { generateMoves } from './suggest.ts'
 import { leaveValue, rankMoves } from './rank.ts'
 import type {
-  GAiLevel, GBands, GCell, GFormedWord, GGameResult, GPlacement, GRankedMove, GStrengthKnobs,
+  GAiLevel,
+  GBands,
+  GCell,
+  GFormedWord,
+  GGameResult,
+  GPlacement,
+  GRankedMove,
+  GStrengthKnobs,
 } from '../types.ts'
 // Relative, not `@/`: this module is on the Deno import graph
 // (scrabble-ai-move → here) and Deno cannot resolve the alias.
@@ -48,11 +61,21 @@ import { mulberry32 } from '../../common/utils/mulberry32.ts'
  *  — ≈455 / 580 / 715 / 840 / 912 points per coop game (N=40). Retuning means
  *  re-running the sweep, deliberately. */
 export const LEVELS: Record<GAiLevel, GStrengthKnobs> = {
-  beginner:     { vocabCap: 1, useLeave: false, bingoMissProb: 0.9, equityNoise: 30 },
-  casual:       { vocabCap: 2, useLeave: false, bingoMissProb: 0.4, equityNoise: 10 },
-  intermediate: { vocabCap: 4, useLeave: true,  bingoMissProb: 0.3, equityNoise: 10 },
-  strong:       { useLeave: true,  bingoMissProb: 0.1, equityNoise: 8 },
-  best:         { useLeave: true,  bingoMissProb: 0,   equityNoise: 0 },
+  beginner: {
+    vocabCap: 1,
+    useLeave: false,
+    bingoMissProb: 0.9,
+    equityNoise: 30,
+  },
+  casual: { vocabCap: 2, useLeave: false, bingoMissProb: 0.4, equityNoise: 10 },
+  intermediate: {
+    vocabCap: 4,
+    useLeave: true,
+    bingoMissProb: 0.3,
+    equityNoise: 10,
+  },
+  strong: { useLeave: true, bingoMissProb: 0.1, equityNoise: 8 },
+  best: { useLeave: true, bingoMissProb: 0, equityNoise: 0 },
 }
 
 // ── Choosing one move ───────────────────────────────────────────────────────
@@ -61,7 +84,13 @@ export const LEVELS: Record<GAiLevel, GStrengthKnobs> = {
  *  dump (currently the whole rack — see the "no strategic exchange" note in
  *  docs/games/scrabble.md); the caller checks bag feasibility. */
 type PlayChoice =
-  | { kind: 'word'; placements: GPlacement[]; words: GFormedWord[]; score: number; bingo: boolean }
+  | {
+  kind: 'word';
+  placements: GPlacement[];
+  words: GFormedWord[];
+  score: number;
+  bingo: boolean
+}
   | { kind: 'exchange'; tiles: string[] }
 
 /** Word-difficulty lookup over the rated trie (a word missing from the trie —
@@ -82,7 +111,9 @@ function gaussian(rng: () => number): number {
 }
 
 /** A play is a bingo when it lays a full rack (the +50 condition in play.ts). */
-const isBingo = (m: GRankedMove) => m.placements.length === RACK_SIZE
+function isBingo(m: GRankedMove) {
+  return m.placements.length === RACK_SIZE
+}
 
 /**
  * Pick one move for the given strength level. Pure + deterministic given `rng`.
@@ -112,7 +143,11 @@ export function choosePlay(
 
   // Seeded Gaussian jitter on equity → the AI doesn't reliably find its best.
   const jittered = ranked
-    .map((m) => ({ m, key: m.equity + (knobs.equityNoise > 0 ? gaussian(rng) * knobs.equityNoise : 0) }))
+    .map((m) => ({
+      m,
+      key: m.equity +
+        (knobs.equityNoise > 0 ? gaussian(rng) * knobs.equityNoise : 0),
+    }))
     .sort((a, b) => b.key - a.key)
 
   let pick = jittered[0].m
@@ -120,7 +155,13 @@ export function choosePlay(
     const alt = jittered.find((j) => !isBingo(j.m))
     if (alt) pick = alt.m
   }
-  return { kind: 'word', placements: pick.placements, words: pick.words, score: pick.score, bingo: isBingo(pick) }
+  return {
+    kind: 'word',
+    placements: pick.placements,
+    words: pick.words,
+    score: pick.score,
+    bingo: isBingo(pick),
+  }
 }
 
 // ── Playing a whole coop game ────────────────────────────────────────────────
@@ -132,7 +173,7 @@ const EXCHANGE_MIN_BAG = RACK_SIZE
  *  exchange ping-pong that never terminates while the bag has tiles.
  *
  *  This is the SELF-PLAY HARNESS's own stopping rule, not the game's: a real
- *  game ends when every active seat passes in a row (scrabble._commit_pass),
+ *  game ends when every player still in passes in a row (scrabble._commit_pass),
  *  which a solo simulation with no opponents can't express. Tuning numbers are
  *  comparable across strength levels because every level stops the same way. */
 const MAX_SCORELESS = 3
@@ -172,7 +213,7 @@ export function playSelfGame(trie: Trie, bands: GBands, knobs: GStrengthKnobs, b
   const turnScores: number[] = []
   const leaveTrajectory: number[] = []
 
-  for (;;) {
+  for (; ;) {
     // Per-turn RNG: reproducible, distinct per turn, independent of the bag draw.
     const turnRng = mulberry32((bagSeed ^ 0x9e3779b9) + turns * 0x85ebca6b)
     const choice = choosePlay(board, rack, trie, bands, knobs, turnRng)
@@ -180,12 +221,16 @@ export function playSelfGame(trie: Trie, bands: GBands, knobs: GStrengthKnobs, b
     if (choice.kind === 'word') {
       for (const p of choice.placements) {
         const id = makeCellId(p.x, p.y)
-        board[cellIndex(p.x, p.y)] = { id, tile: { id, letter: p.letter, blank: p.blank } }
+        board[cellIndex(p.x, p.y)] = {
+          id,
+          tile: { id, letter: p.letter, blank: p.blank },
+        }
       }
       score += choice.score
       turnScores.push(choice.score)
       if (choice.bingo) bingos++
-      for (const t of tilesUsed(choice.placements)) rack.splice(rack.indexOf(t), 1)
+      for (const t of tilesUsed(choice.placements)) rack.splice(rack.indexOf(t),
+        1)
       rack.push(...bag.splice(0, RACK_SIZE - rack.length))
       scorelessStreak = 0
       turns++
@@ -204,5 +249,13 @@ export function playSelfGame(trie: Trie, bands: GBands, knobs: GStrengthKnobs, b
     }
   }
 
-  return { score, turns, bingos, exchanges, tilesLeft: rack.length + bag.length, turnScores, leaveTrajectory }
+  return {
+    score,
+    turns,
+    bingos,
+    exchanges,
+    tilesLeft: rack.length + bag.length,
+    turnScores,
+    leaveTrajectory,
+  }
 }

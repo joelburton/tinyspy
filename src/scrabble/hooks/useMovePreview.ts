@@ -3,42 +3,40 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
-import type { GShownMoveRaw } from '../types'
+import type { GMovePreviewRaw } from '../types'
 
 /**
- * scrabble's coop "show a move" transport — a **stable-name** Broadcast channel
+ * scrabble's coop move-preview transport — a **stable-name** Broadcast channel
  * (`scrabble:${gameId}`) so every teammate merges into one room, following the
- * connections peer-selection pattern (src/common/realtime/doc.md). It's
- * separate from `useGame`'s postgres-changes channel (which is per-tab
- * UUID-suffixed and carries no Broadcast) because this state is ephemeral
- * — a not-yet-played move that's never stored, and that a teammate who misses
- * it simply doesn't see. **Coop only**: in compete the channel is never opened
- * (private racks, no shared board), so `showMove` is a no-op and nothing is
- * received.
+ * connections peer-selection pattern (src/common/realtime/doc.md). A preview
+ * is ephemeral — a move not yet played, never stored, which a teammate who
+ * misses it simply doesn't see — so it travels apart from the blob the page
+ * re-reads. **Coop only**: in compete the channel is never opened, so
+ * `sendPreview` sends nothing and nothing is received.
  *
  * `onReceive` fires for every incoming broadcast; it's held in a ref so a new
  * callback identity each render doesn't tear down and rebuild the channel. The
  * default supabase Broadcast does NOT echo to the sender, which is what we want —
- * the sharer keeps editing their own board, only teammates get the preview.
+ * the one sending keeps editing their own board, only teammates get the preview.
  */
-export function useShowMove({
+export function useMovePreview({
   gameId,
   mode,
   onReceive,
 }: {
   gameId: string
-  /** The channel opens in coop alone. */
+  // The channel opens in coop alone.
   mode: 'coop' | 'compete'
-  onReceive: (payload: GShownMoveRaw) => void
-}): { showMove: (payload: GShownMoveRaw) => void } {
+  onReceive: (payload: GMovePreviewRaw) => void
+}): { sendPreview: (payload: GMovePreviewRaw) => void } {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const onReceiveRef = useRef(onReceive)
-  useEffect(() => {
+  useEffect(function syncOnReceive() {
     onReceiveRef.current = onReceive
   })
 
-  useEffect(() => {
-    if (mode !== 'coop') return // compete / still-loading: no room, no sends
+  useEffect(function joinPreviewRoom() {
+    if (mode !== 'coop') return // compete: no room, no sends
     const room = `scrabble:${gameId}`
     let canceled = false
 
@@ -48,7 +46,7 @@ export function useShowMove({
       if (canceled) return
       const ch = supabase.channel(room)
       ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
-        onReceiveRef.current(payload as GShownMoveRaw),
+        onReceiveRef.current(payload as GMovePreviewRaw),
       )
       ch.subscribe()
       channelRef.current = ch
@@ -60,7 +58,7 @@ export function useShowMove({
     const pending = channelLeaving(room)
     if (pending) void pending.then(join)
     else join()
-    return () => {
+    return function leavePreviewRoom() {
       canceled = true
       const ch = channelRef.current
       channelRef.current = null
@@ -68,9 +66,9 @@ export function useShowMove({
     }
   }, [gameId, mode])
 
-  const showMove = useCallback((payload: GShownMoveRaw) => {
+  const sendPreview = useCallback((payload: GMovePreviewRaw) => {
     channelRef.current?.send({ type: 'broadcast', event: 'show-move', payload })
   }, [])
 
-  return { showMove }
+  return { sendPreview }
 }

@@ -16,7 +16,7 @@
  * Letters are lowercase, the data's case, everywhere here; the capitals go on
  * where a tile is drawn.
  *
- * See docs/games/scrabble.md §3 for the model.
+ * The model: docs/games/scrabble.md → The board model & constants.
  */
 
 import type { GCell, GPremiumType, GTile } from '../types.ts'
@@ -29,13 +29,21 @@ export const CENTER = 7 * BOARD_SIZE + 7
 /** The rack/bag glyph for a blank tile (a wild that's declared on play). */
 export const BLANK = '?'
 
+
 /** Flat board index from (x, y). x = column, y = row; both 0..14. */
-export const cellIndex = (x: number, y: number) => y * BOARD_SIZE + x
-export const inBounds = (x: number, y: number) =>
-  x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE
+export function cellIndex(x: number, y: number) {
+  return y * BOARD_SIZE + x
+}
+
+export function inBounds(x: number, y: number) {
+  return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE
+}
+
 
 /** A cell's id, `"x,y"`. */
-export const makeCellId = (x: number, y: number) => `${x},${y}`
+export function makeCellId(x: number, y: number) {
+  return `${x},${y}`
+}
 
 /** The cell an id names. */
 export function readCellXY(id: string): { x: number; y: number } {
@@ -65,8 +73,11 @@ export function decodePlacement(placement: string): GTile {
   return decodeTile(id, ch)
 }
 
+
 /** A board with no tile on it. */
-export const makeEmptyBoard = (): GCell[] => decodeBoard('.'.repeat(BOARD_SIZE * BOARD_SIZE))
+export function makeEmptyBoard(): GCell[] {
+  return decodeBoard('.'.repeat(BOARD_SIZE * BOARD_SIZE))
+}
 
 /**
  * The standard 15×15 premium layout, drawn as 15 rows so it reads like the
@@ -109,8 +120,9 @@ export const PREMIUMS: GPremiumType[] = LAYOUT.join('')
   .split('')
   .map((ch) => PREMIUM_OF[ch])
 
-export const premiumAt = (x: number, y: number): GPremiumType =>
-  PREMIUMS[cellIndex(x, y)]
+export function premiumAt(x: number, y: number): GPremiumType {
+  return PREMIUMS[cellIndex(x, y)]
+}
 
 /**
  * Point value per letter. Blanks (declared or glyph) score 0 — the caller is
@@ -127,9 +139,11 @@ export const LETTER_VALUES: Record<string, number> = {
   q: 10, z: 10,
 }
 
+
 /** Face value of a placed tile — 0 for a blank, the letter's value otherwise. */
-export const tileValue = (tile: { letter: string; blank: boolean }): number =>
-  tile.blank ? 0 : LETTER_VALUES[tile.letter]!
+export function tileValue(tile: { letter: string; blank: boolean }): number {
+  return tile.blank ? 0 : LETTER_VALUES[tile.letter]!
+}
 
 /**
  * The standard 100-tile bag: tile glyph → count. `?` is the blank (×2). The
@@ -148,8 +162,10 @@ export const TILE_DISTRIBUTION: Record<string, number> = {
   q: 1, z: 1,
 }
 
+
 /** The full 100-tile bag as a flat array (unshuffled), for tests / reference. */
-export const fullBag = (): string[] =>
-  Object.entries(TILE_DISTRIBUTION).flatMap(([tile, n]) =>
+export function fullBag(): string[] {
+  return Object.entries(TILE_DISTRIBUTION).flatMap(([tile, n]) =>
     Array.from({ length: n }, () => tile),
   )
+}

@@ -12,7 +12,8 @@
  * TRUSTS those numbers and only adds what the client can't be the authority on —
  * the dictionary check, the draw from the hidden bag, and the bookkeeping. So
  * there's no cross-check / mirror test (there's nothing to mirror). See
- * docs/games/scrabble.md §6 for why that trade is the right call here.
+ * docs/games/scrabble.md → Where validation lives for why that trade is the
+ * right call here.
  *
  * What this module does NOT do: check words against the dictionary (it has no
  * word list — the server uses `common.words`, the FE shows the words and lets
@@ -42,12 +43,15 @@ type PlayEvaluation =
   | { valid: false; error: string }
   | { valid: true; words: GFormedWord[]; score: number; bingo: boolean }
 
-const isEmpty = (board: GCell[], x: number, y: number) =>
-  board[cellIndex(x, y)].tile === null
+function isEmpty(board: GCell[], x: number, y: number) {
+  return board[cellIndex(x, y)].tile === null
+}
+
 
 /** The tiles a play consumes from the rack: `?` per blank, else the letter. */
-export const tilesUsed = (placements: GPlacement[]): string[] =>
-  placements.map((p) => (p.blank ? BLANK : p.letter))
+export function tilesUsed(placements: GPlacement[]): string[] {
+  return placements.map((p) => (p.blank ? BLANK : p.letter))
+}
 
 /**
  * Geometry gate. Returns an error string (suitable for FE feedback) or null.
@@ -85,7 +89,10 @@ function geometryError(board: GCell[], placements: GPlacement[]): string | null 
   // last placed tile must be filled — by a new tile or one already on the
   // board (which is how a play legally bridges over existing tiles).
   const horizontal = sameRow
-  const line = horizontal ? placements.map((p) => p.x) : placements.map((p) => p.y)
+  const line =
+    horizontal
+      ? placements.map((p) => p.x)
+      : placements.map((p) => p.y)
   const fixed = horizontal ? placements[0].y : placements[0].x
   for (let v = Math.min(...line); v <= Math.max(...line); v++) {
     const x = horizontal ? v : fixed
@@ -131,12 +138,12 @@ function formedWords(board: GCell[], placements: GPlacement[]): GFormedWord[] {
 
   // The tile on a cell, the play's own over the board's; null when empty or
   // off the board.
-  const at = (x: number, y: number): { letter: string; blank: boolean } | null => {
+  function at(x: number, y: number): { letter: string; blank: boolean } | null {
     if (!inBounds(x, y)) return null
     return placed.get(cellIndex(x, y)) ?? board[cellIndex(x, y)].tile
   }
 
-  const runFrom = (x: number, y: number, dx: number, dy: number): GWordCell[] => {
+  function runFrom(x: number, y: number, dx: number, dy: number): GWordCell[] {
     // Back up to the start of the run, then walk forward collecting cells.
     let sx = x
     let sy = y
@@ -147,7 +154,13 @@ function formedWords(board: GCell[], placements: GPlacement[]): GFormedWord[] {
     const cells: GWordCell[] = []
     for (let cx = sx, cy = sy; at(cx, cy); cx += dx, cy += dy) {
       const c = at(cx, cy)!
-      cells.push({ x: cx, y: cy, letter: c.letter, blank: c.blank, isNew: placed.has(cellIndex(cx, cy)) })
+      cells.push({
+        x: cx,
+        y: cy,
+        letter: c.letter,
+        blank: c.blank,
+        isNew: placed.has(cellIndex(cx, cy)),
+      })
     }
     return cells
   }

@@ -1,12 +1,13 @@
 // cs-unmet
 
 /**
- * Scrabble move suggester — the AI that recommends plays (docs/games/scrabble.md).
+ * Scrabble move suggester — the AI that recommends plays
+ * (docs/games/scrabble.md → The move suggester).
  *
- * This module is pure TS with no I/O: it runs inside the
- * `scrabble-suggest-move` edge function (which builds the rated trie from the
- * bundled word list) and in Vitest. It holds the legality predicate (S1) and
- * the Appel & Jacobson move generator (S2); ranking (S3) grows in beside it.
+ * This module is pure TS with no I/O: it runs inside both scrabble edge
+ * functions (which build the rated trie from the bundled word list) and in
+ * Vitest. It holds the legality predicate and the Appel & Jacobson move
+ * generator; ranking is `rank.ts`.
  *
  * The generator finds EVERY legal move — completeness is the whole game here
  * (ranking can only pick from what generation finds). Its correctness story is
@@ -63,7 +64,7 @@ type LetterAt = (x: number, y: number) => string | null
 /**
  * Every legal move on the board with this rack, as placement sets.
  *
- * Returns **placements only** — no words, no scores. S3 runs `evaluatePlay`
+ * Returns **placements only** — no words, no scores. Ranking runs `evaluatePlay`
  * over each so the suggester's scores can't drift from what the game awards,
  * and its geometry gate doubles as a free internal assertion (a generator bug
  * surfaces as `valid: false`).
@@ -85,12 +86,17 @@ export function generateMoves(
   // The rack as a multiset — decrement/increment around recursion. This makes
   // dedup of repeated tiles automatic: two E's can't generate a move twice.
   const counts = new Int32Array(27)
-  for (const glyph of rack) counts[glyph === BLANK ? BLANK_IDX : letterIdx(glyph)]++
+  for (const glyph of rack) counts[glyph === BLANK
+    ? BLANK_IDX
+    : letterIdx(glyph)]++
 
   const byKey = new Map<string, GPlacement[]>()
-  const record = (ps: GPlacement[]) => {
+
+  function record(ps: GPlacement[]) {
     const sorted = [...ps].sort((p, q) => p.y - q.y || p.x - q.x)
-    const key = sorted.map((p) => `${p.x},${p.y},${p.letter},${p.blank ? 1 : 0}`).join('|')
+    const key = sorted.map((p) => `${p.x},${p.y},${p.letter},${p.blank
+      ? 1
+      : 0}`).join('|')
     if (!byKey.has(key)) byKey.set(key, sorted)
   }
 
@@ -105,7 +111,12 @@ export function generateMoves(
   // The down moves: the same pass over the board read with x and y swapped.
   const transposedAt: LetterAt = (x, y) => letterAt(y, x)
   acrossPass(transposedAt, boardEmpty, counts, trie, bands, (ps) =>
-    record(ps.map((p) => ({ x: p.y, y: p.x, letter: p.letter, blank: p.blank }))),
+    record(ps.map((p) => ({
+      x: p.y,
+      y: p.x,
+      letter: p.letter,
+      blank: p.blank,
+    }))),
   )
 
   return [...byKey.values()]
@@ -139,7 +150,8 @@ function acrossPass(
     for (let y = 0; y < N; y++)
       for (let x = 0; x < N; x++) {
         if (occupied(x, y)) continue
-        if (occupied(x - 1, y) || occupied(x + 1, y) || occupied(x, y - 1) || occupied(x, y + 1))
+        if (occupied(x - 1, y) || occupied(x + 1, y) || occupied(x, y - 1) ||
+          occupied(x, y + 1))
           anchor[cellIndex(x, y)] = 1
       }
   }
@@ -165,7 +177,8 @@ function acrossPass(
 
       let prefixNode = 0
       for (let yy = top; yy < y && prefixNode >= 0; yy++) {
-        prefixNode = children[prefixNode * 26 + letterIdx(letterAt(x, yy)!)] || -1
+        prefixNode = children[prefixNode * 26 + letterIdx(letterAt(x, yy)!)] ||
+          -1
       }
       let m = 0
       // A dead prefix (the existing tiles above don't spell a trie prefix)
@@ -188,6 +201,7 @@ function acrossPass(
       if (!anchor[cellIndex(anchorCol, row)]) continue
       const placements: GPlacement[] = []
 
+
       /**
        * Extend rightward from `col`, having matched the word so far down to
        * `node`. `wordStartCol` is where the whole word begins (forced
@@ -205,7 +219,7 @@ function acrossPass(
        * forced prefix's own start. Length ≥ 2 needs no explicit check:
        * 1-letter strings aren't in the trie.
        */
-      const extendRight = (col: number, node: number, wordStartCol: number): void => {
+      function extendRight(col: number, node: number, wordStartCol: number): void {
         const letter = col < N ? letterAt(col, row) : null
         if (letter !== null) {
           // Standing on an existing tile: follow its letter through the trie
@@ -228,14 +242,24 @@ function acrossPass(
           if (child === 0) continue
           if (counts[c] > 0) {
             counts[c]--
-            placements.push({ x: col, y: row, letter: letterGlyph(c), blank: false })
+            placements.push({
+              x: col,
+              y: row,
+              letter: letterGlyph(c),
+              blank: false,
+            })
             extendRight(col + 1, child, wordStartCol)
             placements.pop()
             counts[c]++
           }
           if (counts[BLANK_IDX] > 0) {
             counts[BLANK_IDX]--
-            placements.push({ x: col, y: row, letter: letterGlyph(c), blank: true })
+            placements.push({
+              x: col,
+              y: row,
+              letter: letterGlyph(c),
+              blank: true,
+            })
             extendRight(col + 1, child, wordStartCol)
             placements.pop()
             counts[BLANK_IDX]++
@@ -271,7 +295,7 @@ function acrossPass(
           limit < anchorCol &&
           !occupied(anchorCol - 1 - limit, row) &&
           !anchor[cellIndex(anchorCol - 1 - limit, row)]
-        ) limit++
+          ) limit++
 
         const leftLetters: { c: number; blank: boolean }[] = []
         const buildLeft = (node: number): void => {
@@ -279,7 +303,10 @@ function acrossPass(
           for (let i = 0; i < len; i++) {
             const l = leftLetters[i]
             placements.push({
-              x: anchorCol - len + i, y: row, letter: letterGlyph(l.c), blank: l.blank,
+              x: anchorCol - len + i,
+              y: row,
+              letter: letterGlyph(l.c),
+              blank: l.blank,
             })
           }
           extendRight(anchorCol, node, anchorCol - len)

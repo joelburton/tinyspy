@@ -93,7 +93,7 @@ export function useSubmitMove({
   function claim(slots: GMoveSlots, nDrawn: number): () => void {
     const before = myMoveRef.current
     myMoveRef.current = { slots, nDrawn }
-    return () => {
+    return function unclaim() {
       myMoveRef.current = before
     }
   }

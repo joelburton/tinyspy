@@ -1,7 +1,8 @@
 // cs-unmet
 
 /**
- * Scrabble move suggester — ranking (docs/games/scrabble.md §11).
+ * Scrabble move suggester — ranking (docs/games/scrabble.md → The move
+ * suggester).
  *
  * The generator (suggest.ts) finds every legal move; this module decides
  * which ones to recommend. The model is first-order Maven (Sheppard 2002):
@@ -15,7 +16,7 @@
  * here is a bug, and throws rather than being quietly dropped).
  *
  * The leave heuristic is hand-rolled — the "strong club player, not Maven"
- * target (see the plan's ranking-tier survey). All weights are named
+ * target. All weights are named
  * constants: they ARE the tunable surface, in points of expected future
  * score. One deliberate simplification, worth stating: leave value is a
  * future-turns quantity, so it overweights late in the game — when the bag
@@ -114,12 +115,12 @@ export function leaveValue(tiles: readonly string[]): number {
  *
  * `scoreFraction` (lever 2) re-aims the list: instead of best-first, moves
  * are ordered by closeness to `fraction × best equity` (ties broken toward
- * the higher-equity move). 1.0 → best play; ~0.6 → gentle. The plan's
- * pick-the-Nth-best alternative was rejected — rank is a noisy proxy.
+ * the higher-equity move). 1.0 → best play; ~0.6 → gentle. Picking the Nth
+ * best instead was rejected — rank is a noisy proxy.
  *
- * `useLeave: false` (lever 3) drops the leave term. S5 ships max strength
- * only (all levers at their defaults); the signature is ready for the
- * strength slider.
+ * `useLeave: false` (lever 3) drops the leave term. The suggester plays at
+ * full strength (all levers at their defaults); the bots' levels use them
+ * (`lib/policy.ts`).
  */
 export function rankMoves(
   board: GCell[], moves: GPlacement[][], rack: readonly string[],
@@ -167,11 +168,11 @@ export function rankMoves(
     )
   }
 
-  // Presentation dedup (docs/games/scrabble.md fixes §1). The generator keeps an
-  // opening play's across form and its vertical transpose as distinct moves
-  // (S2 point 6 — correct for generation), and positional shifts of the same
-  // word often score identically too — so the sorted head can hold several
-  // rows a player reads as one suggestion (same formed words, same score).
+  // Presentation dedup. The generator keeps an opening play's across form and
+  // its vertical transpose as distinct moves (correct for generation), and
+  // positional shifts of the same word often score identically too — so the
+  // sorted head can hold several rows a player reads as one suggestion (same
+  // formed words, same score).
   // Collapse those for DISPLAY, keeping the first (best-ranked) of each key,
   // and keep filling until `topN` DISTINCT rows (or the list runs out). The
   // returned move list is presentation-trimmed; generation stays exhaustive.

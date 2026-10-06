@@ -1,6 +1,7 @@
 /* cs-unmet */
 
-/* scrabble's coop suggest-a-move results box (docs/games/scrabble.md S5; the
+/* scrabble's coop suggest-a-move results box (docs/games/scrabble.md → The
+ * move suggester; the
  * Suggest button itself sits in the shared action row). */
 
 /* The box is only in the tree once it has content (loading / results / error);

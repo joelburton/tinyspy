@@ -119,7 +119,7 @@ describe('rankMoves', () => {
     expect(() => rankMoves(board, [floating], ['a'], anyDifficulty)).toThrow(/invalid play/)
   })
 
-  it('collapses duplicate word+score rows for display (fixes §1)', () => {
+  it('collapses duplicate word+score rows for display', () => {
     // CAT and CAT_DOWN are the same word at the same score (the opening
     // transpose): one belongs on the list, not both. CATS is genuinely
     // different, so it fills the freed slot.

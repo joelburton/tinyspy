@@ -497,6 +497,30 @@ setgame converted alone (2026-10-05) and settled:
   came** (`useClaimMarks`): the shared marks at their shared lengths, the hold
   the same for everyone, and only pieces new to the board flash.
 
+## What scrabble added
+
+scrabble converted alone (2026-10-05) and settled, beyond the games above:
+
+- **A cell is a spot, a tile is a piece** (docs/naming.md → `cell` vs `tile`):
+  where a board has empty spots, `GCell {id, tile}` holds the `GTile` placed on
+  it, and the tile's id is its cell's. `lib/` takes the cell list — the one
+  array, no second copy of the board.
+- **A board you may lay out before your turn has two gates**, computed once:
+  `isInteractive` (stage, recall, reorder — off-turn too) and `canSubmit` (the
+  turn-spending moves). A move already out grays the others through its
+  action's `pending`, read lazily in `describe`.
+- **A move claims what it changes before its RPC returns** (`useSubmitMove`):
+  my own write can land first, and the landing must read it as mine. Every
+  answer that wrote nothing gives the claim back.
+- **One piece, two holders.** The board's tile and the rack's are one `Tile`,
+  filling whatever holds it; where it sits (`where`) carries the few
+  differences, and each holder sizes it.
+- **A shared keyboard hook hands over the data's case.** `useBoardCursorKeys`
+  passes a typed letter lowercase, as `useCaptureKeys` does; a game still in
+  capitals uppercases in its own handler until it converts.
+- **A tap can place.** One picked rack tile and a tap on an empty cell stage
+  it there; with several picked, the tap can't say which, and does nothing.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /
