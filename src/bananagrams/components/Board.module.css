@@ -1,0 +1,69 @@
+/* cs-unmet */
+
+/* bananagrams' board: a fixed 25×25 grid in a scrolling box that fills the
+ * board column. Composed with the shared scaffold
+ * (common/game-page/playArea.module.css). */
+
+/* The frame — the positioning context for the absolutely-filled scroll box
+ * and the floating controls. flex:1 so it eats the column height ABOVE the
+ * fixed-height local-feedback slot below it. */
+/* @@ */ .boardFrame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- the fixed grid's scroll box ----
+ * Absolutely filled to the FRAME so its size comes from the FRAME, never from
+ * the grid inside it. A flex/auto-sized scroll container would grow to the
+ * grid's width at high zoom and push the info column off-screen; inset:0 pins
+ * it and the grid just scrolls. */
+/* @@ */ .boardScroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  border: 1px solid var(--page-surface-border-color);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 50% 40%, var(--default-bg-color), var(--page-bg-color));
+}
+
+/* ---- floating controls (top-right of the board) ---- */
+/* TRANSLUCENT so the board/tiles read faintly through the panel (Joel's call) —
+ * a light frosted backing rather than the old opaque surface. */
+/* @@ */ .controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.4rem;
+  background: var(--bananagrams-board-veil-color);
+  backdrop-filter: blur(2px);
+  border: 1px solid var(--page-surface-border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--bananagrams-tile-shadow);
+}
+/* Native vertical slider, minimal: zero the default margins so the track fills
+ * the element (the thumb reaches the ends). */
+/* @@ */ .zoom {
+  writing-mode: vertical-lr;
+  direction: rtl; /* high zoom at the top */
+  width: auto;
+  height: 132px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--bananagrams-cursor);
+  cursor: pointer;
+}
+/* @@ */ .grid {
+  display: grid;
+  margin: auto; /* center the grid when it's smaller than the viewport (zoomed out) */
+  /* A thick outer border marks the real edge of the board, distinct from the
+   * thin internal cell lines. content-box so it sits OUTSIDE the GRID×cell
+   * content and doesn't shrink the cells. */
+  box-sizing: content-box;
+  border: 4px solid var(--bananagrams-grid-edge);
+}

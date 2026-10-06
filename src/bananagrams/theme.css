@@ -20,7 +20,7 @@
      it belongs to this game's tile-feedback conversion, where the flash itself
      gets looked at. See plans/tile-feedback.md → the roster. */
 /* @@ */   --bananagrams-error: #d84a4a;
-/* @@ */   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
+/* @@ */   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the board */
 
   /* ── Board chrome, named during the palette sweep ─────────────────────────
    * Values unchanged and deliberately NOT collapsed onto the shared elevation

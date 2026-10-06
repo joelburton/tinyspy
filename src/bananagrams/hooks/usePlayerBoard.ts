@@ -10,7 +10,7 @@ import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { DUMP_COUNT, GRID, clamp, deriveHand, idx, setChar, tilesExtent } from '../lib/board'
 import type { GBoardEditor, GBoardEditorInput } from '../reactTypes'
 import type { GCell } from '../types'
-import { useArenaZoom } from './useArenaZoom'
+import { useBoardZoom } from './useBoardZoom'
 import { useBoardAutosave } from './useBoardAutosave'
 import { useBoardDrag } from './useBoardDrag'
 import { useHandOrder } from './useHandOrder'
@@ -19,7 +19,7 @@ import { useHandOrder } from './useHandOrder'
  * The **board editor**: my board as it is on screen, the hand derived from it,
  * and everything that changes them — the drag, the keyboard cursor, Peel and
  * Check words — with the zoom and the autosave beside them. `<PlayerBoard>`
- * holds it, and the two views (`<BoardArena>`, `<HandCard>`) draw from it.
+ * holds it, and the two views (`<Board>`, `<HandCard>`) draw from it.
  *
  * One editor spans both columns, because the hand's tiles drop onto the board
  * and the dump slot takes a tile dragged off it (docs/games/bananagrams.md).
@@ -88,7 +88,7 @@ export function usePlayerBoard({
   }, [board, tiles, cursor, isBoardInteractive, reportBoardRef])
 
   const { save } = useBoardAutosave({ gameId, board, boardRef })
-  const zoom = useArenaZoom({ boardRef, cursor })
+  const zoom = useBoardZoom({ boardRef, cursor })
 
   // The cells a blocked peel or a check painted red, with the board they were
   // judged on: an edit changes `board`, they stop matching, and they clear
@@ -244,7 +244,7 @@ export function usePlayerBoard({
   function centerAndFit() {
     const ext = tilesExtent(boardRef.current)
     if (!ext) {
-      zoom.showArenaCenter()
+      zoom.showBoardCenter()
       return
     }
     const h = ext.maxY - ext.minY + 1

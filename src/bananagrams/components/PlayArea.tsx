@@ -27,7 +27,7 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 /**
  * The manifest's component: builds `gd` from the blob the page was handed and
  * draws the surface — on a desktop. bananagrams is DESKTOP-ONLY (docs/mobile.md
- * → Where each game plays): the board is a drag-heavy 25×25 arena, so every
+ * → Where each game plays): the board is a drag-heavy 25×25 grid, so every
  * touch device gets the block screen instead, and the surface never mounts.
  * The gate keys off the pointer, not the width: a touch tablet is desktop-wide
  * but has no mouse to drag with.

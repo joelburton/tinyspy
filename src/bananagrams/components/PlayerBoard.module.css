@@ -1,11 +1,11 @@
 /* cs-unmet */
 
-/* bananagrams v3 play surface — composed with the shared scaffold
+/* bananagrams' two columns — composed with the shared scaffold
  * (common/game-page/playArea.module.css): `.layout` sets the info-column
- * width, and the board column + hand region are game-specific.
+ * width, and the board column is game-specific.
  *
  * bananagrams is the documented exception to two house rules:
- *   - the board FILLS the left column (a zoom/scroll arena sized by the column,
+ *   - the board FILLS the left column (a zoom/scroll box sized by the column,
  *     not a hug board that grows to its tiles), so `.boardCol` overrides the
  *     shared hug default with flex:1;
  *   - the move controls (hand + shuffle + dump + peel) live in the RIGHT/info
@@ -28,33 +28,10 @@
   gap: 0.5rem;
 }
 
-/* The board frame — the positioning context for the absolutely-filled scroll
- * area + the floating controls. flex:1 so it eats the column height ABOVE the
- * fixed-height local-feedback slot below it. */
-/* @@ */ .boardFrame {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-/* ---- the fixed arena ----
- * Absolutely filled to the FRAME so its size comes from the FRAME, never from
- * the grid inside it. A flex/auto-sized scroll container would grow to the
- * grid's width at high zoom and push the info column off-screen; inset:0 pins
- * it and the grid just scrolls. */
-/* @@ */ .boardScroll {
-  position: absolute;
-  inset: 0;
-  overflow: auto;
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-lg);
-  background: radial-gradient(circle at 50% 40%, var(--default-bg-color), var(--page-bg-color));
-}
-
 /* The below-board REGION (universal). Shrink-wraps to its content (the feedback
  * area), and sets `--local-feedback-min-height` so the shared `.localFeedback`
  * inside reserves bananagrams' 2.5rem (a touch tighter than the 2.75rem default)
- * — the arena never reflows when the pill appears/clears. */
+ * — the board never reflows when the pill appears/clears. */
 /* @@ */ .belowBoard {
   flex: 0 0 auto;
   display: flex;
@@ -62,256 +39,8 @@
 /* @@ */   --local-feedback-min-height: 2.5rem;
 }
 
-/* bananagrams has NO below-board move controls — you drag tiles on the arena —
+/* bananagrams has NO below-board move controls — you drag tiles on the board —
  * so `.moveArea` is empty. `display: contents` (generates no box). */
 /* @@ */ .moveArea {
   display: contents;
-}
-
-/* ---- floating controls (top-right of the board) ---- */
-/* TRANSLUCENT so the board/tiles read faintly through the panel (Joel's call) —
- * a light frosted backing rather than the old opaque surface. */
-/* @@ */ .controls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.4rem;
-  background: var(--bananagrams-board-veil-color);
-  backdrop-filter: blur(2px);
-  border: 1px solid var(--page-surface-border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--bananagrams-tile-shadow);
-}
-/* Native vertical slider, minimal: zero the default margins so the track fills
- * the element (the thumb reaches the ends). */
-/* @@ */ .zoom {
-  writing-mode: vertical-lr;
-  direction: rtl; /* high zoom at the top */
-  width: auto;
-  height: 132px;
-  margin: 0;
-  padding: 0;
-  accent-color: var(--bananagrams-cursor);
-  cursor: pointer;
-}
-/* @@ */ .grid {
-  display: grid;
-  margin: auto; /* center the arena when it's smaller than the viewport (zoomed out) */
-  /* A thick outer border marks the real edge of the board, distinct from the
-   * thin internal cell lines. content-box so it sits OUTSIDE the GRID×cell
-   * content and doesn't shrink the cells. */
-  box-sizing: content-box;
-  border: 4px solid var(--bananagrams-grid-edge);
-}
-/* @@ */ .cell {
-  position: relative;
-  border: 1px solid var(--page-surface-border-color);
-  background: transparent;
-  cursor: pointer;
-}
-/* Drag-drop feedback: an OUTLINE only, never a background — the letter already
- * in the cell (red = occupied) must stay readable. A thick, saturated inset
- * outline in the app's standard success/error colors (the outcome-strong pair),
- * matching scrabble's board and the app-wide green=good / red=bad vocabulary. */
-/* @@ */ .dropOk {
-  outline: 3px solid var(--outcomes-won-ink-color);
-  outline-offset: -3px;
-}
-/* @@ */ .dropNo {
-  outline: 3px solid var(--outcomes-lost-ink-color);
-  outline-offset: -3px;
-}
-
-/* ---- tiles (board + hand + ghost) ----
- * A letter is stored lowercase and drawn as a capital, here and on the ghost. */
-.tile,
-/* @@ */ .handTile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--bananagrams-tile-ink);
-  background: var(--bananagrams-tile-face);
-  border: 1px solid var(--bananagrams-tile-edge);
-  border-radius: 6px;
-  box-shadow: var(--bananagrams-tile-resting-shadow);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-/* @@ */ .tile {
-  width: 100%;
-  height: 100%;
-  font-size: inherit; /* the grid sets font-size from the zoom */
-}
-/* A tile flagged by the legal-board check (a blocked winning peel): part of
- * an invalid word, or split off the main mass. Red border + ring so it reads
- * clearly at any zoom; stays until the player edits the board. */
-/* @@ */ .tileInvalid {
-  border-color: var(--bananagrams-error);
-  box-shadow: 0 0 0 2px var(--bananagrams-error);
-  z-index: 1;
-}
-/* @@ */ .lifted {
-  opacity: 0.28;
-}
-
-/* ---- keyboard cursor ----
- * Just the corner rounding; the ring itself (thick-on-the-axis, plus its
- * direction variants) is the shared common/board-cursor/gridCursor.module.css.
- * A touch of radius on square `.cell`s so the ring doesn't read as a hard box. */
-/* @@ */ .cursor {
-  border-radius: 4px;
-}
-/* A brief red box around the hand: "you don't hold that tile" (a keyboard
- * miss). Absolutely covers the hand (which is position:relative); rendered
- * only during the ~180ms flash and keyed by a nonce so a repeated miss
- * replays. pointer-events:none so it never blocks a tile drag underneath. */
-/* @@ */ .handError {
-  position: absolute;
-  inset: 0;
-  border: 2px solid var(--bananagrams-error);
-  border-radius: var(--radius-lg);
-  pointer-events: none;
-  z-index: 2;
-  animation: mg-hand-err 180ms ease;
-}
-/* @@ */ @keyframes mg-hand-err {
-  0% {
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* ---- info column: the HAND ----
- * Matches the shared WordList / EventLog chrome: a plain black heading OUTSIDE
- * an evident 2px-framed box. Sits BELOW the shared .noShrinkRow and fills the
- * rest of the column height (bananagrams has no event log / word list — the hand
- * takes that slot). */
-/* @@ */ .handSection {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-/* (The heading is the shared `infoPanel.heading` — same look as WordList /
- * EventLog, now by construction rather than by hand.) */
-/* The box's interior: dump zone at the top, the scrolling tiles below. The frame
- * (flex sizing + the 2px border) is the shared `infoPanel.box`, composed
- * alongside this. */
-/* @@ */ .handBox {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem 0.6rem;
-}
-/* Wraps the scrolling tiles so the ⟲ rotate can float at the BOTTOM-right of the
- * tiles area (out of the way of the tiles you reach for up top) and stay put as
- * the tiles scroll. */
-/* @@ */ .handTilesWrap {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-/* @@ */ .floatingRotate {
-  position: absolute;
-  bottom: 0.15rem;
-  right: 0.15rem;
-  z-index: 2;
-  box-shadow: var(--bananagrams-hand-shadow);
-}
-/* Shrink the shared 35px shuffle pill a touch for the hand corner. Element +
- * class (0,1,1) beats ShuffleButton's `.shuffle` (0,1,0), so this wins
- * regardless of stylesheet order. */
-/* @@ */ button.floatingRotate {
-  width: 28px;
-  height: 28px;
-}
-/* @@ */ .hand {
-  position: relative; /* positioning context for the .handError flash box */
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  /* Exactly 5 tiles across — the column is sized (--info-col-width) to hug
-   * them, so there's no dead space to their right. */
-  grid-template-columns: repeat(5, 44px);
-  gap: 0.4rem;
-  align-content: start;
-  justify-content: start;
-  overflow-y: auto;
-}
-/* @@ */ .handTile {
-  width: 44px;
-  height: 44px;
-  /* Match the board tile's letter-to-tile ratio (LETTER_SCALE = 0.6 in
-   * PlayerBoard.tsx) so a tile reads the same in the hand and on the board:
-   * 0.6 × the 44px tile. */
-  font-size: calc(44px * 0.6);
-}
-/* @@ */ .handEmpty {
-  grid-column: 1 / -1;
-  color: var(--page-text-muted-color);
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-/* Dump zone: a dashed drop target at the TOP of the hand (you dump one of a few
- * tiles often, so keep the target close to them). INFO-BLUE dashed by default;
- * brightens (solid blue) while a tile is dragged, greens when one hovers it.
- * The label sits at button-label size with an inline exchange icon. */
-/* @@ */ .dump {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  text-align: center;
-  min-height: 34px;
-  padding: 0.3rem 0.4rem;
-  font-size: 0.9rem;
-  color: var(--button-normal-primary-color);
-  border: 2px dashed var(--button-normal-primary-color);
-  border-radius: var(--radius-md);
-  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
-}
-/* @@ */ .dumpArmed {
-  border-style: solid;
-}
-/* @@ */ .dumpHot {
-  background: var(--bananagrams-drop-ok-fill-color);
-  border-color: var(--bananagrams-drop-ok-edge-color);
-  border-style: solid;
-  color: var(--page-text-color);
-}
-/* @@ */ .dumpDisabled {
-  opacity: 0.5;
-  border-style: dotted;
-  color: var(--page-text-muted-color);
-  border-color: var(--page-surface-border-color);
-}
-
-/* ---- drag ghost ----
- * The LOOK only; everything a ghost shares — the pointer-following and the
- * tier — comes from shared/grid-and-drag/dragGhost.module.css, composed
- * alongside this. */
-/* @@ */ .ghost {
-  text-transform: uppercase;
-  color: var(--bananagrams-tile-ink);
-  background: var(--bananagrams-tile-face);
-  border: 1px solid var(--bananagrams-tile-edge);
-  border-radius: 7px;
-  box-shadow: var(--bananagrams-drag-shadow);
 }

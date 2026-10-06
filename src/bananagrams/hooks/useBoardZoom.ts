@@ -8,18 +8,18 @@ import { DEFAULT_CELL, GRID, MAX_CELL, tilesExtent } from '../lib/board'
 const FIT_MARGIN = 3
 
 /**
- * The arena's zoom and scrolling. The grid never resizes — you navigate it
+ * The board's zoom and scrolling. The grid never resizes — you navigate it
  * with the zoom slider and the scrollbars — so this holds the zoom (`cell`, px
  * per cell), the smallest zoom that still shows the whole grid (`minCell`,
- * measured off the arena on mount and resize), and the scroll position: the
- * arena opens centered on the tiles, a zoom keeps the viewport's center where
+ * measured off the board on mount and resize), and the scroll position: the
+ * board opens centered on the tiles, a zoom keeps the viewport's center where
  * it was, and the keyboard cursor is kept in view.
  *
  * `fitBox` is the zoom-to-fit's second half: the editor has just moved the
  * tiles to the middle of the grid, and this picks the zoom that shows them
  * with a margin and scrolls to them.
  */
-export function useArenaZoom({
+export function useBoardZoom({
   boardRef,
   cursor,
 }: {
@@ -33,7 +33,7 @@ export function useArenaZoom({
   minCell: number
   onZoom: (next: number) => void
   // Back to the default zoom, scrolled to the middle of the grid.
-  showArenaCenter: () => void
+  showBoardCenter: () => void
   // Zoom to show a box of tiles (in cells) with a margin, and scroll to it.
   fitBox: (box: { left: number; top: number; w: number; h: number }) => void
 } {
@@ -78,7 +78,7 @@ export function useArenaZoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // The smallest zoom shows the WHOLE grid and no more: the arena's shorter
+  // The smallest zoom shows the WHOLE grid and no more: the board's shorter
   // side over the grid's cells, measured on mount and resize.
   useLayoutEffect(function measureMinZoom() {
     const c = scrollRef.current
@@ -114,7 +114,7 @@ export function useArenaZoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor.x, cursor.y])
 
-  const showArenaCenter = useCallback(() => {
+  const showBoardCenter = useCallback(() => {
     setCell(DEFAULT_CELL)
     requestAnimationFrame(() => {
       const el = scrollRef.current
@@ -145,5 +145,5 @@ export function useArenaZoom({
     [minCell],
   )
 
-  return { scrollRef, cell, minCell, onZoom, showArenaCenter, fitBox }
+  return { scrollRef, cell, minCell, onZoom, showBoardCenter, fitBox }
 }

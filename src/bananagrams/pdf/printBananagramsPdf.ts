@@ -13,7 +13,7 @@ import { drawInTracks, type Track } from '@/common/pdf/columns'
  * crossword, and the whole point of a record is comparing them.
  *
  * **Two columns, not the family's usual three.** A Bananagrams grid sprawls
- * across a 25×25 arena, so it's much wider than a wordle or waffle board; at a
+ * across a 25×25 board, so it's much wider than a wordle or waffle board; at a
  * third of a page its tiles shrink past reading. Two is the compromise that
  * keeps a realistic two-player game side by side on one sheet.
  *

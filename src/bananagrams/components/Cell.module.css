@@ -1,0 +1,29 @@
+/* cs-unmet */
+
+/* One cell of the board: a spot a tile is placed onto. */
+/* @@ */ .cell {
+  position: relative;
+  border: 1px solid var(--page-surface-border-color);
+  background: transparent;
+  cursor: pointer;
+}
+/* Drag-drop feedback: an OUTLINE only, never a background — the letter already
+ * in the cell (red = occupied) must stay readable. A thick, saturated inset
+ * outline in the app's standard success/error colors (the outcome-strong pair),
+ * matching scrabble's board and the app-wide green=good / red=bad vocabulary. */
+/* @@ */ .dropOk {
+  outline: 3px solid var(--outcomes-won-ink-color);
+  outline-offset: -3px;
+}
+/* @@ */ .dropNo {
+  outline: 3px solid var(--outcomes-lost-ink-color);
+  outline-offset: -3px;
+}
+
+/* ---- keyboard cursor ----
+ * Just the corner rounding; the ring itself (thick-on-the-axis, plus its
+ * direction variants) is the shared common/board-cursor/gridCursor.module.css.
+ * A touch of radius on square `.cell`s so the ring doesn't read as a hard box. */
+/* @@ */ .cursor {
+  border-radius: 4px;
+}

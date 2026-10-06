@@ -6,11 +6,11 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { cls } from '@/common/utils/cls'
 import { usePlayerBoard } from '../hooks/usePlayerBoard'
-import { LETTER_SCALE } from '../lib/board'
 import type { GActions } from '../reactTypes'
 import type { GCheckResult, GGameData } from '../types'
-import { BoardArena } from './BoardArena'
+import { Board } from './Board'
 import { InfoCol } from './InfoCol'
+import { Tile } from './Tile'
 import shell from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import styles from './PlayerBoard.module.css'
@@ -19,7 +19,7 @@ import styles from './PlayerBoard.module.css'
  * bananagrams' two columns — the thin coordinator under `PlayArea`. It holds
  * the board editor (`usePlayerBoard`: my board as I edit it, the hand derived
  * from it, the drag, the cursor, the zoom and the autosave) and lays out the
- * two views that draw from it: `<BoardArena>` in the board column, and the
+ * two views that draw from it: `<Board>` in the board column, and the
  * `<InfoCol>` with the hand card in the info column.
  *
  * Why not the roster's `BoardCol` + `InfoCol` split: the hand's tiles drop onto
@@ -41,7 +41,7 @@ export function PlayerBoard({
   // The ending that applies to me, or null while I play.
   endingMessage: TerminalMessage | null
   // PlayArea's below-board slot, drawn in the fixed-height slot under the
-  // board so the arena never reflows.
+  // board so the board never reflows.
   localFeedbackSlot: FeedbackSlot
   // Peel: draws a tile for everyone, or wins if the bunch can't refill the
   // table. Resolves to `{ illegalCells }` when a winning peel was BLOCKED
@@ -71,13 +71,13 @@ export function PlayerBoard({
 
   return (
     <div className={cls(shell.layout, styles.layout)}>
-      {/* The board column is game-specific (a FILL scroll arena, not the shared
+      {/* The board column is game-specific (a FILL scroll box, not the shared
           hug board), so it does NOT compose shell.boardCol — styles.boardCol is
           self-sufficient, avoiding a flex hug-vs-fill override fight. */}
       <div className={styles.boardCol}>
-        <BoardArena editor={editor} />
-        {/* Moves are made on the arena itself, so `.moveArea` is empty; the
-            slot reserves its own height so the arena never reflows when the
+        <Board editor={editor} />
+        {/* Moves are made on the board itself, so `.moveArea` is empty; the
+            slot reserves its own height so the board never reflows when the
             pill appears or clears (docs/playarea.md → The swap rule). */}
         <div className={styles.belowBoard}>
           <div className={styles.moveArea} />
@@ -94,18 +94,20 @@ export function PlayerBoard({
         endingMessage={endingMessage}
       />
 
-      {editor.drag && (
+      {/* The ghost: the tile the drag carries, following the pointer at the
+          board's tile size. The shared rule pins and tilts it; the tile is
+          its look. */}
+      {editor.drag && editor.drag.letter !== null && (
         <div
-          className={cls(dragGhost.ghost, styles.ghost)}
+          className={dragGhost.ghost}
           style={{
             left: editor.drag.x,
             top: editor.drag.y,
             width: editor.cell,
             height: editor.cell,
-            fontSize: editor.cell * LETTER_SCALE,
           }}
         >
-          {editor.drag.letter}
+          <Tile letter={editor.drag.letter} where="ghost" />
         </div>
       )}
     </div>

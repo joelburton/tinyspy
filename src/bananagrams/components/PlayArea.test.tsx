@@ -6,7 +6,7 @@
  * and do its commands reach the server through the dispatcher?
  *
  * `db` is mocked, and jsdom gets a `ResizeObserver` stub (the board editor
- * observes the arena to compute the min zoom). Everything else — the arena, the
+ * observes the board to compute the min zoom). Everything else — the board, the
  * hand, the dump zone, Peel, the info column — renders for real from
  * `ZTest_makeBananagramsCtx`'s blob.
  */
@@ -90,7 +90,7 @@ beforeEach(() => {
 })
 
 describe('bananagrams PlayArea — render', () => {
-  it('renders the arena, the hand and Concede in a solo game', () => {
+  it('renders the board, the hand and Concede in a solo game', () => {
     render(<PlayAreaLoader {...ZTest_makeBananagramsCtx()} />)
     expect(screen.getByText('Hand')).toBeInTheDocument()
     // Peel always reads "Peel"; disabled while the hand isn't empty.

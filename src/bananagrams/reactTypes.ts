@@ -78,7 +78,7 @@ export type GBoardEditorInput = {
  * onto the board and the dump slot takes a tile dragged off it.
  */
 export type GBoardEditor = {
-  // ── Board arena ──
+  // ── Board ──
   scrollRef: RefObject<HTMLDivElement | null>
   // The live board: the 625-character grid as it is on screen.
   board: string

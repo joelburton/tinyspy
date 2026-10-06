@@ -44,7 +44,7 @@ common/board-cursor/
  ├── boardPosition.ts         positionAt · cellAt: a flat board position and its cell, given the width
  ├── useBoardSelectionCursor.ts   the two above, bound to the arrows and Space: a board's selection cursor
  └── reachability.fixture.ts  for a test: the cells a cursor can never reach on a board's shape
-bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
+bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; Board renders the ring
 scrabble/components/BoardCol.tsx        runs the hook and the math; Board renders the ring
 psychicnum/components/BoardCol.tsx      runs useBoardSelectionCursor; Board renders the ring
 connections/components/BoardCol.tsx     the same

@@ -1,0 +1,132 @@
+/* cs-unmet */
+
+/* ---- info column: the HAND ----
+ * Matches the shared WordList / EventLog chrome: a plain black heading OUTSIDE
+ * an evident 2px-framed box. Sits BELOW the shared .noShrinkRow and fills the
+ * rest of the column height (bananagrams has no event log / word list — the hand
+ * takes that slot). */
+/* @@ */ .handSection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* (The heading is the shared `infoPanel.heading` — same look as WordList /
+ * EventLog, now by construction rather than by hand.) */
+/* The box's interior: dump zone at the top, the scrolling tiles below. The frame
+ * (flex sizing + the 2px border) is the shared `infoPanel.box`, composed
+ * alongside this. */
+/* @@ */ .handBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+/* Wraps the scrolling tiles so the ⟲ rotate can float at the BOTTOM-right of the
+ * tiles area (out of the way of the tiles you reach for up top) and stay put as
+ * the tiles scroll. */
+/* @@ */ .handTilesWrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+/* @@ */ .floatingRotate {
+  position: absolute;
+  bottom: 0.15rem;
+  right: 0.15rem;
+  z-index: 2;
+  box-shadow: var(--bananagrams-hand-shadow);
+}
+/* Shrink the shared 35px shuffle pill a touch for the hand corner. Element +
+ * class (0,1,1) beats ShuffleButton's `.shuffle` (0,1,0), so this wins
+ * regardless of stylesheet order. */
+/* @@ */ button.floatingRotate {
+  width: 28px;
+  height: 28px;
+}
+/* @@ */ .hand {
+  position: relative; /* positioning context for the .handError flash box */
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* Exactly 5 tiles across — the column is sized (--info-col-width) to hug
+   * them, so there's no dead space to their right. */
+  grid-template-columns: repeat(5, 44px);
+  gap: 0.4rem;
+  align-content: start;
+  justify-content: start;
+  overflow-y: auto;
+}
+/* A slot the tile fills (Tile.module.css): the hand's fixed tile size. */
+/* @@ */ .handSlot {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+/* @@ */ .handEmpty {
+  grid-column: 1 / -1;
+  color: var(--page-text-muted-color);
+  font-size: 0.85rem;
+  text-align: center;
+}
+/* A brief red box around the hand: "you don't hold that tile" (a keyboard
+ * miss). Absolutely covers the hand (which is position:relative); rendered
+ * only during the ~180ms flash and keyed by a nonce so a repeated miss
+ * replays. pointer-events:none so it never blocks a tile drag underneath. */
+/* @@ */ .handError {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--bananagrams-error);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  z-index: 2;
+  animation: mg-hand-err 180ms ease;
+}
+/* @@ */ @keyframes mg-hand-err {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Dump zone: a dashed drop target at the TOP of the hand (you dump one of a few
+ * tiles often, so keep the target close to them). INFO-BLUE dashed by default;
+ * brightens (solid blue) while a tile is dragged, greens when one hovers it.
+ * The label sits at button-label size with an inline exchange icon. */
+/* @@ */ .dump {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  min-height: 34px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.9rem;
+  color: var(--button-normal-primary-color);
+  border: 2px dashed var(--button-normal-primary-color);
+  border-radius: var(--radius-md);
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+/* @@ */ .dumpArmed {
+  border-style: solid;
+}
+/* @@ */ .dumpHot {
+  background: var(--bananagrams-drop-ok-fill-color);
+  border-color: var(--bananagrams-drop-ok-edge-color);
+  border-style: solid;
+  color: var(--page-text-color);
+}
+/* @@ */ .dumpDisabled {
+  opacity: 0.5;
+  border-style: dotted;
+  color: var(--page-text-muted-color);
+  border-color: var(--page-surface-border-color);
+}

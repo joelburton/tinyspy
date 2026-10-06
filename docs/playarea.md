@@ -40,7 +40,7 @@ classes are the scaffold's, the column's and its rows' are the column's.
 
 **What stays in each game's own module:** the board grid, any result tile fills,
 the board's tray frame, and the words of its readouts. bananagrams is the layout
-exception: a fixed arena that fills its column, with the hand in the info column
+exception: a fixed board that fills its column, with the hand in the info column
 (see [its doc](games/bananagrams.md)).
 
 **Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
@@ -237,7 +237,7 @@ in `BoardCol` until their areas open.
 **bananagrams does not fit the two columns**, because its input engine spans
 both: the hand is a drag source into the board, the dump is a drop target, and
 the hand is derived from the board. It lifts the engine into `usePlayerBoard`,
-draws two views with no input of their own (`BoardArena`, `HandCard`), and has
+draws two views with no input of their own (`Board`, `HandCard`), and has
 two coordinators: `PlayArea` above `PlayerBoard`. See
 [its doc](games/bananagrams.md).
 

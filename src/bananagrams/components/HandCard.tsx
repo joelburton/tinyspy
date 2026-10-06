@@ -5,8 +5,9 @@ import { IconExchange } from '@/common/icons/icons'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
 import { cls } from '@/common/utils/cls'
 import type { GBoardEditor } from '../reactTypes'
+import { Tile } from './Tile'
 import infoPanel from '@/common/info-sheet/infoPanel.module.css'
-import styles from './PlayerBoard.module.css'
+import styles from './HandCard.module.css'
 
 /**
  * bananagrams' info-column VIEW — the HAND card. A plain heading over a
@@ -17,7 +18,7 @@ import styles from './PlayerBoard.module.css'
  * forwards the pointer-downs.
  *
  * DOM contract (load-bearing for the drag's `elementFromPoint` and the e2e):
- * the tiles container carries `data-zone="hand"`, each tile `data-hand-tile`,
+ * the tiles container carries `data-zone="hand"`, each slot `data-hand-tile`,
  * and the dump slot `data-zone="dump"` — keep those exact.
  */
 export function HandCard({
@@ -70,16 +71,16 @@ export function HandCard({
                 a tile drag. */}
             {errFlash && <div key={errNonce} className={styles.handError} aria-hidden />}
             {displayedHand.split('').map((letter, i) => {
-              const isLifting =
+              const isLifted =
                 drag !== null && drag.source.kind === 'hand' && drag.source.index === i
               return (
                 <div
                   key={i}
                   data-hand-tile
-                  className={cls(styles.handTile, isLifting && styles.lifted)}
+                  className={styles.handSlot}
                   onPointerDown={(e) => editor.onHandPointerDown(i, letter, e)}
                 >
-                  {letter}
+                  <Tile letter={letter} where="hand" marks={{ isLifted }} />
                 </div>
               )
             })}

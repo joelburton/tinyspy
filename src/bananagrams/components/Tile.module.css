@@ -1,0 +1,61 @@
+/* cs-unmet */
+
+/* One tile, on the board, in the hand or as the drag's ghost: it fills its
+ * holder — a board cell, a hand slot, the ghost's box — and `container-type:
+ * size` lets the letter scale to a fixed FRACTION of it, so a board tile at
+ * any zoom and a hand tile look the same. */
+/* @@ */ .tile {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--bananagrams-tile-ink);
+  background: var(--bananagrams-tile-face);
+  border: 1px solid var(--bananagrams-tile-edge);
+  border-radius: 6px;
+  box-shadow: var(--bananagrams-tile-resting-shadow);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Where it sits. On the board and in the hand it looks the same (the board's
+ * only rule is its letter's border allowance, below); carried by the drag it
+ * is tilted by the shared ghost rule and casts a deeper shadow. */
+/* @@ */ .ghost {
+  border-radius: 7px;
+  box-shadow: var(--bananagrams-drag-shadow);
+}
+
+/* A tile flagged by the legal-board check (a blocked winning peel): part of
+ * an invalid word, or split off the main mass. Red border + ring so it reads
+ * clearly at any zoom; stays until the player edits the board. */
+/* @@ */ .invalid {
+  border-color: var(--bananagrams-error);
+  box-shadow: 0 0 0 2px var(--bananagrams-error);
+  z-index: 1;
+}
+/* @@ */ .lifted {
+  opacity: 0.28;
+}
+
+/* ─── The glyph ─── */
+
+/* The letter is the data's lowercase; a tile shows its capital, at 0.6 of its
+ * holder's shorter side. `cqmin` measures inside the tile's 1px border, so
+ * 1.2px (0.6 × 2px) puts the border back. */
+/* @@ */ .letter {
+  font-size: calc(60cqmin + 1.2px);
+  line-height: 1;
+  text-transform: uppercase;
+}
+/* A board cell has its own 1px border too: 0.6 × 4px. */
+/* @@ */ .board .letter {
+  font-size: calc(60cqmin + 2.4px);
+}

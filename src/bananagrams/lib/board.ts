@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Player-board model — a FIXED 25×25 arena.
+ * Player-board model — a FIXED 25×25 board.
  *
  * The board is a flat `GRID*GRID` = 625-char string: `board[idx(x, y)]` is a
  * letter or `'.'` (empty). The grid never resizes — you navigate it with zoom
@@ -24,11 +24,6 @@ export const MAX_CELL = 64
 // Tiles drawn per dump (the server's default, mirrored for the hand card's
 // label and its "bunch too low to dump" state).
 export const DUMP_COUNT = 3
-// Tile letter size as a fraction of the cell. A touch larger than half the tile
-// so the letter stays legible when the board is zoomed out — the tile shrinks
-// with zoom, the letter keeps a bit more of it. The arena grid and the drag
-// ghost both size their letters by it.
-export const LETTER_SCALE = 0.6
 
 /** Flat board index from (x, y). x = column, y = row; both 0..GRID-1.
  *  Same x-first convention as scrabble's `cellIndex`. */
@@ -150,7 +145,7 @@ export function tilesExtent(board: string): GExtent | null {
  * cell inside the box (a gap in the crossword). An empty board returns `[]`.
  *
  * This is what the print renders: it sizes the tiles to the crop's width, so the
- * board fills the paper regardless of where in the 25×25 arena the player built.
+ * board fills the paper regardless of where on the 25×25 board the player built.
  */
 export function boardToGrid(board: string): string[][] {
   const ext = tilesExtent(board)
