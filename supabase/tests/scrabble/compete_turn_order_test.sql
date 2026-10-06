@@ -62,16 +62,16 @@ select ok(
 
 select pg_temp.sc_turn((select id from g), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from g), 'ada11111-1111-1111-1111-111111111111',
-  array['A','B','C','D','E','F','G']);
+  array['a','b','c','d','e','f','g']);
 select pg_temp.sc_rack((select id from g), 'bea22222-2222-2222-2222-222222222222',
-  array['H','I','J','K','L','M','N']);
+  array['h','i','j','k','l','m','n']);
 select pg_temp.sc_bag((select id from g),
-  array['O','P','Q','R','S','T','U','V','W','X','Y','Z']);
+  array['o','p','q','r','s','t','u','v','w','x','y','z']);
 
 -- (2) bea moves on ada's turn.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
-  scrabble.exchange_tiles((select id from g), pg_temp.v(), array['H']),
+  scrabble.exchange_tiles((select id from g), pg_temp.v(), array['h']),
   '{"type":"not-ok","severity":"race","dbcode":"PN243","message":"Not your turn"}'::jsonb,
   'a move out of turn is the shared race');
 reset role;
@@ -79,7 +79,7 @@ reset role;
 -- (3) ada exchanges → bea; bea passes → the bot; the bot passes → ada.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select scrabble.exchange_tiles((select id from g), pg_temp.v(), array['A']) -> 'data' ->> 'result'),
+  (select scrabble.exchange_tiles((select id from g), pg_temp.v(), array['a']) -> 'data' ->> 'result'),
   'exchanged', 'the player on turn may exchange');
 reset role;
 select is(pg_temp.sc_current_seat((select id from g)), 1, 'an exchange hands the turn to the next seat');
@@ -107,7 +107,7 @@ reset role;
 select is(pg_temp.sc_current_seat((select id from g)), 1, 'conceding on your turn hands it on');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select scrabble.exchange_tiles((select id from g), pg_temp.v(), array['H']);
+select scrabble.exchange_tiles((select id from g), pg_temp.v(), array['h']);
 reset role;
 select is(pg_temp.sc_current_seat((select id from g)), 2, 'the rotation skips a player who conceded');
 

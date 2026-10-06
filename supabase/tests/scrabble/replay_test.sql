@@ -40,15 +40,15 @@ reset role;
 -- Rig a known rack + play CAT through the center, then end the game: that
 -- leaves tiles on the board, a play row, a non-zero score, a rewritten title
 -- and an ended game — the full state a replay must undo.
-select pg_temp.sc_coop((select id from g1), array['C','A','T','X','Y','Z','Q'],
-                       array['E','E','E','E','E','E','E']);
+select pg_temp.sc_coop((select id from g1), array['c','a','t','x','y','z','q'],
+                       array['e','e','e','e','e','e','e']);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.play_word((select id from g1),
   (select version from scrabble.games where game_id = (select id from g1)),
-  '[{"x":7,"y":7,"letter":"C","blank":false},
-    {"x":8,"y":7,"letter":"A","blank":false},
-    {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb,
-  array['CAT'], 5);
+  '[{"x":7,"y":7,"letter":"c","blank":false},
+    {"x":8,"y":7,"letter":"a","blank":false},
+    {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb,
+  array['cat'], 5);
 select scrabble.stop_game((select id from g1));
 reset role;
 
@@ -83,10 +83,10 @@ select is(
      (select board from scrabble.games where game_id = (select id from g1))) e
     where e.value <> 'null'::jsonb),
   0::bigint, 'coop: replay → the grid is empty again');
-select is((select coop_score from scrabble.games where game_id = (select id from g1)),
-  0, 'coop: replay → the coop score is zeroed');
+select is(scrabble._team_score((select id from g1)),
+  0, 'coop: replay → every player''s score, and so the team''s, is zeroed');
 select is(
-  (select array_length(coop_rack, 1) from scrabble.games where game_id = (select id from g1)),
+  (select array_length(team_rack, 1) from scrabble.games where game_id = (select id from g1)),
   7, 'coop: replay → a fresh 7-tile shared rack is dealt');
 select is(
   (select array_length(bag, 1) from scrabble.games where game_id = (select id from g1)),
@@ -138,7 +138,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- write for itself.
 select pg_temp.envelope_is(
   scrabble.play_word((select id from g2), current_setting('test.v2')::int,
-     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CAT'], 5),
+     '[{"x":7,"y":7,"letter":"c","blank":false}]'::jsonb, array['cat'], 5),
   '{"type":"not-ok","severity":"race","dbcode":"PN437",
     "message":"Board changed"}'::jsonb,
   'compete: a move carrying the pre-restart version is rejected as stale');

@@ -28,8 +28,8 @@ create temp table gco on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
-select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','?'],
-  array['H','I','J']);
+select pg_temp.sc_coop((select id from gco), array['a','b','c','d','e','f','?'],
+  array['h','i','j']);
 
 -- ─── Gates ───────────────────────────────────────────────
 -- cade is a club non-member who never sat down at this game.
@@ -95,7 +95,7 @@ select is((select (c->>'version')::int from ctx), 0,
   'version is the current optimistic-concurrency counter');
 select is((select jsonb_array_length(c->'board') from ctx), 225,
   'board is the flat 225-cell array');
-select is((select c->'rack' from ctx), '["A","B","C","D","E","F","?"]'::jsonb,
+select is((select c->'rack' from ctx), '["a","b","c","d","e","f","?"]'::jsonb,
   'rack is the shared coop rack, blanks included');
 
 -- ─── A move into a game a friend just deleted ────────────

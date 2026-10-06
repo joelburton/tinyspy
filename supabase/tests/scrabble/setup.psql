@@ -14,7 +14,7 @@
 --
 -- The dictionary check in play_word reads the real common.words table
 -- (populated by `gmake all-words`, visible inside the test transaction), so
--- tests use real words ('AT', 'CAT', …) and a deliberate non-word for the
+-- tests use real words ('at', 'cat', …) and a deliberate non-word for the
 -- reject path.
 
 reset role;
@@ -22,7 +22,7 @@ reset role;
 -- Coop: set the coop rack + remaining bag.
 create function pg_temp.sc_coop(g uuid, p_rack text[], p_bag text[])
 returns void language sql as $$
-  update scrabble.games set coop_rack = p_rack, bag = p_bag where game_id = g;
+  update scrabble.games set team_rack = p_rack, bag = p_bag where game_id = g;
 $$;
 
 -- Compete: set one player's rack.

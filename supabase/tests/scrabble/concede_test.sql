@@ -56,7 +56,7 @@ select scrabble.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select clubpage_info->'winner_user_id' from common.games where id = (select id from g)),
+  (select summary_data->'winnerIds' from common.games where id = (select id from g)),
   'null'::jsonb, 'no winner when everyone conceded (a conceder forfeits)');
 select is(
   (select count(*) from common.game_players

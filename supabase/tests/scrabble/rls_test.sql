@@ -1,18 +1,20 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: scrabble RLS + hidden-state (dictionary bands, racks)
+-- Test: scrabble RLS — the club gate, and what stays out of the grant
 -- ============================================================
--- The hidden surface is RESOURCES, not a solution: the dictionary bands are
--- server-only config, and a compete player's rack is own-only mid-game /
--- everyone's once the game has ended. Board, bag + plays are readable.
+-- The page reads the blobs on common.games; these rules cover what a club
+-- member may still read off scrabble's own tables. The dictionary bands, the
+-- bag's order and the racks stay out of the column grant; the board is
+-- readable by any club member and by nobody outside the club. Who may see a
+-- rack is the page's seat rule now (game_data_test.sql).
 
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(9);
+select plan(7);
 
 -- A compete game between ada + bea; cade is a club member but NOT a
 -- player; dee is outside the club.
@@ -26,57 +28,34 @@ create temp table g on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 
--- ─── The dictionary bands are not selectable; the bag is ──
+-- ─── The bands, the bag and the racks are not selectable ─
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok($$ select dict_2 from scrabble.games where game_id = (select id from g) $$,
-  '42501', null, 'the hidden dict_2 column is not selectable');
+  '42501', null, 'the dict_2 band is not selectable');
 select throws_ok($$ select dict_3plus from scrabble.games where game_id = (select id from g) $$,
-  '42501', null, 'the hidden dict_3plus column is not selectable');
-select is(
-  (select array_length(bag, 1) from scrabble.games_state where game_id = (select id from g)), 86,
-  'the bag is readable, and holds the real remainder (100 − 14 dealt)');
+  '42501', null, 'the dict_3plus band is not selectable');
+select throws_ok($$ select bag from scrabble.games where game_id = (select id from g) $$,
+  '42501', null, 'the bag''s order is not selectable');
+select throws_ok($$ select rack from scrabble.players where game_id = (select id from g) $$,
+  '42501', null, 'a rack is not selectable off the table — even one''s own');
 reset role;
 
--- ─── A rack is own-only mid-game ─────────────────────────
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select isnt(
-  (select rack from scrabble.players_state
-    where game_id = (select id from g) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  null, 'a player sees their own rack');
-select is(
-  (select rack from scrabble.players_state
-    where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  null, 'a player cannot see an opponent''s rack mid-game');
-select is(
-  (select rack_count from scrabble.players_state
-    where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  7, 'but the opponent''s tile COUNT is visible');
-reset role;
-
--- ─── Board + plays are public to any club member ─────────
--- cade is in the club but not playing — viewing is club-gated.
+-- ─── Board + events are public to any club member ────────
+-- cade is in the club but not playing — reading is club-gated.
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  (select jsonb_array_length(board) from scrabble.games_state where game_id = (select id from g)),
+  (select jsonb_array_length(board) from scrabble.games where game_id = (select id from g)),
   225, 'a non-player club member can read the public board');
+select is(
+  (select count(*)::int from scrabble.players where game_id = (select id from g)),
+  2, 'and the players'' rows, less the rack');
 reset role;
 
 -- ─── An outsider sees nothing ────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*)::int from scrabble.games_state where game_id = (select id from g)),
+  (select count(*)::int from scrabble.games where game_id = (select id from g)),
   0, 'a non-member sees no game (RLS hides it)');
-reset role;
-
--- ─── Racks reveal once the game has ended ────────────────
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select scrabble.stop_game((select id from g));
-reset role;
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select isnt(
-  (select rack from scrabble.players_state
-    where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  null, 'once the game has ended, an opponent''s rack is revealed (leftover-tile display)');
 reset role;
 
 select * from finish();

@@ -30,12 +30,18 @@
 --   - Every player, bot or person, is a user id. Bots are accounts
 --     (common.profiles.ai_member) seated in compete after the people; the
 --     compete turn order is common.game_players.turn_seat.
---   - Coop plays one rack and one score (`coop_rack`, `coop_score` on the
---     game row); compete gives each player a rack and a score.
+--   - Every letter is stored lowercase (`?` the blank); the page draws the
+--     capitals.
+--   - Coop plays one rack (`team_rack` on the game row); compete gives each
+--     player a rack. A player's score is their own in both modes, and the
+--     team's is the players' sum less the leftovers rows.
 --   - A game ends when a player goes out with the bag empty, when every
 --     player still in passes in a row (compete), on the clock, on a Stop, or
 --     when every person has conceded. Final scoring subtracts each rack's
---     leftover tiles, and the player who went out collects them.
+--     leftover tiles as a `leftovers` row, and the player who went out
+--     collects them as a `went_out` row.
+--   - The page reads the blobs `_rebuild_data_cols` writes onto common.games
+--     after every move, and nothing from these tables.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -46,11 +52,11 @@ grant usage on schema scrabble to authenticated;
 -- ============================================================
 -- scrabble._new_bag — the standard 100-tile English bag
 -- ============================================================
--- A flat text[] (`?` = blank ×2). Only the BAG distribution and the LETTER
--- VALUES live SQL-side (mirroring src/scrabble/lib/board.ts): the bag builder
--- uses the distribution, and final scoring (leftover-rack subtraction) needs
--- the values. The premium grid, word extraction and per-word scoring are the
--- FE's job.
+-- A flat text[] of lowercase glyphs (`?` = blank ×2). Only the BAG
+-- distribution and the LETTER VALUES live SQL-side (mirroring
+-- src/scrabble/lib/board.ts): the bag builder uses the distribution, and final
+-- scoring (leftover-rack subtraction) needs the values. The premium grid, word
+-- extraction and per-word scoring are the FE's job.
 create or replace function scrabble._new_bag()
 returns text[]
 language sql
@@ -59,11 +65,11 @@ as $$
   select array_agg(d.tile)
     from (values
       ('?', 2),
-      ('E',12),('A', 9),('I', 9),('O', 8),('N', 6),('R', 6),('T', 6),
-      ('L', 4),('S', 4),('U', 4),('D', 4),('G', 3),
-      ('B', 2),('C', 2),('M', 2),('P', 2),
-      ('F', 2),('H', 2),('V', 2),('W', 2),('Y', 2),
-      ('K', 1),('J', 1),('X', 1),('Q', 1),('Z', 1)
+      ('e',12),('a', 9),('i', 9),('o', 8),('n', 6),('r', 6),('t', 6),
+      ('l', 4),('s', 4),('u', 4),('d', 4),('g', 3),
+      ('b', 2),('c', 2),('m', 2),('p', 2),
+      ('f', 2),('h', 2),('v', 2),('w', 2),('y', 2),
+      ('k', 1),('j', 1),('x', 1),('q', 1),('z', 1)
     ) as d(tile, cnt),
     lateral generate_series(1, d.cnt) g;
 $$;
@@ -74,24 +80,25 @@ drop function if exists scrabble._tile_value(text);
 -- ============================================================
 -- scrabble._tile_value — a tile's points
 -- ============================================================
--- The point value of a tile glyph. Blanks (`?`) — and anything non-letter —
--- score 0. Used only for leftover-rack scoring at the end.
+-- The point value of a tile glyph (lowercase, as stored). Blanks (`?`) — and
+-- anything non-letter — score 0. Used only for leftover-rack scoring at the
+-- end.
 create or replace function scrabble._tile_value(p_tile text)
 returns int
 language sql
 immutable
 as $$
-  select case upper(p_tile)
-    when 'A' then 1 when 'E' then 1 when 'I' then 1 when 'O' then 1
-    when 'U' then 1 when 'L' then 1 when 'N' then 1 when 'S' then 1
-    when 'T' then 1 when 'R' then 1
-    when 'D' then 2 when 'G' then 2
-    when 'B' then 3 when 'C' then 3 when 'M' then 3 when 'P' then 3
-    when 'F' then 4 when 'H' then 4 when 'V' then 4 when 'W' then 4
-    when 'Y' then 4
-    when 'K' then 5
-    when 'J' then 8 when 'X' then 8
-    when 'Q' then 10 when 'Z' then 10
+  select case p_tile
+    when 'a' then 1 when 'e' then 1 when 'i' then 1 when 'o' then 1
+    when 'u' then 1 when 'l' then 1 when 'n' then 1 when 's' then 1
+    when 't' then 1 when 'r' then 1
+    when 'd' then 2 when 'g' then 2
+    when 'b' then 3 when 'c' then 3 when 'm' then 3 when 'p' then 3
+    when 'f' then 4 when 'h' then 4 when 'v' then 4 when 'w' then 4
+    when 'y' then 4
+    when 'k' then 5
+    when 'j' then 8 when 'x' then 8
+    when 'q' then 10 when 'z' then 10
     else 0
   end;
 $$;
@@ -133,10 +140,11 @@ end;
 $$;
 revoke execute on function scrabble._remove_tiles(text[], text[]) from public;
 
--- Everything but the dictionary bands, which are server-only config: the FE
--- never validates words. The bag is readable, and the page counts it.
+-- The columns a club member may read. The page reads the blobs on
+-- common.games and nothing from here; the bag's order and the dictionary
+-- bands stay out of the grant.
 grant select
-  (game_id, board, bag, version, coop_rack, coop_score, consecutive_passes)
+  (game_id, board, version, team_rack, consecutive_passes)
   on scrabble.games to authenticated;
 drop policy if exists games_select on scrabble.games;
 create policy games_select on scrabble.games
@@ -175,72 +183,17 @@ create policy events_select on scrabble.events
     )
   );
 
+-- The two views the page read before it read the blobs, and the definer
+-- helpers that showed a rack to its owner alone; the seat rule in the page's
+-- `useGame` does that now. supabase/sql is re-applied, not diffed.
 drop view if exists scrabble.games_state;
 drop view if exists scrabble.players_state;
 drop function if exists scrabble._bag_count_for(uuid);
 drop function if exists scrabble._rack_for(uuid, int);
+drop function if exists scrabble._rack_for(uuid, uuid);
 drop function if exists scrabble._rack_count_for(uuid, int);
+drop function if exists scrabble._rack_count_for(uuid, uuid);
 drop function if exists scrabble._seat_of(uuid, uuid);
-
--- ============================================================
--- scrabble._rack_for / _rack_count_for — a player's rack, as the caller may see it
--- ============================================================
--- A rack is revealed to its owner always, to everyone once the game has
--- ended (the end-of-game leftover-tile reveal), hidden otherwise. A bot's
--- rack is hidden mid-game like anyone's — nobody signs in as a bot, so
--- `pl.user_id = auth.uid()` is never true for one. Its tile COUNT is always
--- public ("Bea: 7 tiles"). Definer, so they can read the grant-hidden
--- column; the security_invoker view calls them as the caller.
-create or replace function scrabble._rack_for(p_game_id uuid, p_user_id uuid)
-returns text[]
-language sql
-stable
-security definer
-set search_path = scrabble, common, public, extensions
-as $$
-  select case when cg.ended_at is not null or pl.user_id = auth.uid() then pl.rack end
-    from scrabble.players pl
-    join common.games cg on cg.id = pl.game_id
-   where pl.game_id = p_game_id and pl.user_id = p_user_id;
-$$;
-
-revoke execute on function scrabble._rack_for(uuid, uuid) from public;
-grant execute on function scrabble._rack_for(uuid, uuid) to authenticated;
-
-create or replace function scrabble._rack_count_for(p_game_id uuid, p_user_id uuid)
-returns int
-language sql
-stable
-security definer
-set search_path = scrabble, common, public, extensions
-as $$
-  select coalesce(array_length(rack, 1), 0)
-    from scrabble.players where game_id = p_game_id and user_id = p_user_id;
-$$;
-
-revoke execute on function scrabble._rack_count_for(uuid, uuid) from public;
-grant execute on function scrabble._rack_count_for(uuid, uuid) to authenticated;
-
--- games_state: the FE's read shape — the granted columns.
-create view scrabble.games_state with (security_invoker = true) as
-  select g.game_id, g.board, g.version, g.coop_rack, g.coop_score,
-         g.consecutive_passes, g.bag
-    from scrabble.games g;
-
-grant select on scrabble.games_state to authenticated;
-
--- players_state: score and ai_level, the rack its owner may see, and the
--- always-public rack count.
-create view scrabble.players_state with (security_invoker = true) as
-  select p.game_id,
-         p.user_id,
-         p.score,
-         p.ai_level,
-         scrabble._rack_for(p.game_id, p.user_id)       as rack,
-         scrabble._rack_count_for(p.game_id, p.user_id) as rack_count
-    from scrabble.players p;
-
-grant select on scrabble.players_state to authenticated;
 
 drop function if exists scrabble._status(uuid);
 drop function if exists scrabble._title_for(uuid);
@@ -275,28 +228,236 @@ revoke execute on function scrabble._title_for(uuid) from public;
 drop function if exists scrabble._seat_turn_order(uuid, int);
 drop function if exists scrabble._advance_seat(uuid);
 
+-- The statuses this game wrote before the page read the blobs; supabase/sql
+-- is re-applied, not diffed.
+drop function if exists scrabble._write_statuses(uuid, boolean);
+
 -- ============================================================
--- scrabble._write_statuses — the page's copies of the game
+-- The page blobs — what scrabble writes onto common.games
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from scrabble's own tables, assigning each
--- whole (plans/common-tables.md → The statuses). Every key is always present,
--- null when it has no value:
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games`
+-- after every move (plans/seat-view.md → The page is written, not assembled),
+-- in named pieces a reader can follow, each a `_make_json_*` that builds and
+-- writes nothing. The common part of each blob is common's
+-- (supabase/sql/common.sql → The page blobs' common parts); this is
+-- scrabble's part. Every key is always present, null when it has no value.
 --
---   game_status    { bag_tiles_count } — the tiles left to draw
---   player_status  { score, rack_tiles_count, player_ended_reason }
---                  — the player's score and how many tiles they hold; in
---                  coop the team's (`coop_score`, `coop_rack`), a team-fact
---                  copied onto every row
---   clubpage_info  { coop_score, bag_tiles_count, winner_user_id,
---                    winner_score }
---                  — coop's score (null in compete); a sole compete winner
---                  and their score, once there is one
+--   game_data, scrabble's part:
+--     version                              the move counter every move sends back
+--     nBagTiles                            the bag's order never leaves the server
+--     board: {letters}                     the one board, shared in both modes:
+--                                          225 characters, row-major, "." an
+--                                          empty square, "c" a C tile, "C" a
+--                                          blank played as C
+--     team: {rack, score, nRackTiles}      the team's one rack and its score,
+--                                          the players' sum less the leftovers;
+--                                          null in compete
+--     events: [event, …]                   every row, every player's, in both modes:
+--       id, userId, kind                   word / exchange / pass / leftovers / went_out
+--       placements                         a word's, ["x,y:c", …] under the
+--                                          board's case rule; null otherwise
+--       words, score, nTiles, tookTurn, at
+--     players: [player, …]                 the common player, plus:
+--       aiLevel                            a bot's strength in this game; null
+--                                          for a person
+--       score                              own, in every mode
+--       rack                               compete: the player's; coop: null,
+--                                          the rack is the team's. Every rack
+--                                          is in the blob; the page's useGame
+--                                          withholds a rival's until the end
+--       nRackTiles                         compete; null in coop
+--
+--   summary_data, scrabble's part:
+--     team: {score}                        null in compete
+--     nBagTiles
+--     winnerIds                            every player ranked first; null in
+--                                          coop, or with no winner
+--     winnerScore                          the score the winners share; null
+--                                          likewise
+
+-- The board as one string: the 225 cells in order, "." when empty, the letter
+-- when a tile sits there — uppercase when that tile was a blank.
+create or replace function scrabble._make_json_board(p_board jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = scrabble, common, public, extensions
+as $$
+  select jsonb_build_object('letters', string_agg(
+           case when jsonb_typeof(c) <> 'object' then '.'
+                when (c->>'b')::boolean then upper(c->>'l')
+                else c->>'l' end,
+           '' order by o))
+    from jsonb_array_elements(p_board) with ordinality as x(c, o);
+$$;
+
+revoke execute on function scrabble._make_json_board(jsonb) from public;
+
+-- A word play's placements, each the square and its letter under the board's
+-- case rule: "7,7:c", or "7,7:C" for a blank played as C. Null for a row that
+-- placed nothing.
+create or replace function scrabble._make_json_placements(p_placements jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = scrabble, common, public, extensions
+as $$
+  select case when p_placements is null then null
+              else coalesce(jsonb_agg(
+                     (p->>'x') || ',' || (p->>'y') || ':'
+                     || case when coalesce((p->>'blank')::boolean, false)
+                             then upper(p->>'letter') else p->>'letter' end
+                     order by o), '[]'::jsonb) end
+    from jsonb_array_elements(coalesce(p_placements, '[]'::jsonb)) with ordinality as x(p, o);
+$$;
+
+revoke execute on function scrabble._make_json_placements(jsonb) from public;
+
+-- The log: every row, in the order of play.
+create or replace function scrabble._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',         e.id,
+           'userId',     e.user_id,
+           'kind',       e.kind,
+           'placements', scrabble._make_json_placements(e.placements),
+           'words',      to_jsonb(e.words),
+           'score',      e.score,
+           'nTiles',     e.tile_count,
+           'tookTurn',   e.took_turn,
+           'at',         e.created_at) order by e.id), '[]'::jsonb)
+    from scrabble.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function scrabble._make_json_events(uuid) from public;
+
+-- The team's score: the players' sum, less what the rack still held at the
+-- end (the `leftovers` row).
+create or replace function scrabble._team_score(p_game_id uuid)
+returns int
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select (select coalesce(sum(p.score), 0) from scrabble.players p where p.game_id = p_game_id)::int
+       + (select coalesce(sum(e.score), 0) from scrabble.events e
+           where e.game_id = p_game_id and e.kind = 'leftovers')::int;
+$$;
+
+revoke execute on function scrabble._team_score(uuid) from public;
+
+-- What the team shares: its one rack and its score. Null in compete, where
+-- there is no team (plans/team-facts.md).
+create or replace function scrabble._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'rack',       to_jsonb(g.team_rack),
+           'score',      scrabble._team_score(p_game_id),
+           'nRackTiles', coalesce(cardinality(g.team_rack), 0)) end
+    from scrabble.games g
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function scrabble._make_json_team(uuid) from public;
+
+-- Every player as scrabble's game_data shows them: the common player, with
+-- their own score, a bot's level, and in compete their rack and its count.
+create or replace function scrabble._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'aiLevel',    sp.ai_level,
+             'score',      sp.score,
+             'rack',       case when cg.mode = 'compete' then to_jsonb(sp.rack) end,
+             'nRackTiles', case when cg.mode = 'compete' then coalesce(cardinality(sp.rack), 0) end)
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join scrabble.players sp on sp.game_id = p_game_id and sp.user_id = cp.id
+    join common.games cg on cg.id = p_game_id;
+$$;
+
+revoke execute on function scrabble._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with scrabble's version, bag
+-- count, board, team, log and players on top.
+create or replace function scrabble._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'version',   g.version,
+           'nBagTiles', coalesce(cardinality(g.bag), 0),
+           'board',     scrabble._make_json_board(g.board),
+           'team',      scrabble._make_json_team(p_game_id),
+           'events',    scrabble._make_json_events(p_game_id),
+           'players',   scrabble._make_json_players(p_game_id))
+    from scrabble.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function scrabble._make_json_game_data(uuid) from public;
+
+-- The game summed up: the numbers a list of games shows for this one.
+create or replace function scrabble._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = scrabble, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'team',        case when cg.mode = 'coop'
+                        then jsonb_build_object('score', scrabble._team_score(p_game_id)) end,
+    'nBagTiles',   coalesce(cardinality(g.bag), 0),
+    'winnerIds',   (select jsonb_agg(gp.user_id order by gp.turn_seat, gp.user_id)
+                      from common.game_players gp
+                     where gp.game_id = p_game_id
+                       and cg.mode = 'compete'
+                       and gp.final_ranking = 1),
+    'winnerScore', (select max(sp.score)
+                      from scrabble.players sp
+                      join common.game_players gp
+                        on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+                     where sp.game_id = p_game_id
+                       and cg.mode = 'compete'
+                       and gp.final_ranking = 1))
+    from scrabble.games g
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function scrabble._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- scrabble._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from scrabble's own tables,
+-- assigning each whole. Every RPC calls it after a move; it is also the
+-- repair for one game by hand. The shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function scrabble._write_statuses(
+create or replace function scrabble._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -306,88 +467,118 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  g scrabble.games%rowtype;
-  v_mode text;
-  v_winner uuid;
+  v_status_changed_at timestamptz;
 begin
-  select * into g from scrabble.games where game_id = p_game_id;
-  select mode into v_mode from common.games where id = p_game_id;
-
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'score', case when v_mode = 'coop' then g.coop_score else p.score end,
-           'rack_tiles_count', coalesce(array_length(
-             case when v_mode = 'coop' then g.coop_rack else p.rack end, 1), 0),
-           'player_ended_reason', gp.player_ended_reason)
-    from scrabble.players p
-   where gp.game_id = p_game_id
-     and p.game_id = gp.game_id
-     and p.user_id = gp.user_id;
-
-  select min(user_id::text)::uuid into v_winner
-    from common.game_players
-   where game_id = p_game_id and final_ranking = 1
-  having count(*) = 1;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set game_status = jsonb_build_object(
-           'bag_tiles_count', coalesce(array_length(g.bag, 1), 0)),
-         clubpage_info = jsonb_build_object(
-           'coop_score', g.coop_score,
-           'bag_tiles_count', coalesce(array_length(g.bag, 1), 0),
-           'winner_user_id', case when v_mode = 'compete' then v_winner end,
-           'winner_score', case when v_mode = 'compete' and v_winner is not null then (
-             select score from scrabble.players
-              where game_id = p_game_id and user_id = v_winner) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+     set game_data = scrabble._make_json_game_data(p_game_id),
+         summary_data = scrabble._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;
 
-revoke execute on function scrabble._write_statuses(uuid, boolean) from public;
+revoke execute on function scrabble._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- scrabble._rebuild_data_cols_for_all — every scrabble game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every scrabble game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function scrabble._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('scrabble_coop', 'scrabble_compete')
+  loop
+    perform scrabble._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function scrabble._rebuild_data_cols_for_all() from public;
 
 drop function if exists scrabble._score_leftovers(uuid, uuid);
 
 -- ============================================================
--- scrabble._score_leftovers — final scoring
+-- scrabble._score_leftovers — final scoring, as rows and on the scores
 -- ============================================================
--- Subtracts every rack's leftover tiles: coop's from `coop_score`, each
--- compete player's from their own score. In compete the player who went out
--- (`p_going_out_user_id`, null when nobody did) collects everyone's
--- leftovers — their own rack is empty, so it is the opponents'. Going out
--- earns that bonus; it isn't the win, which is the top score after it.
-create or replace function scrabble._score_leftovers(p_game_id uuid, p_going_out_user_id uuid)
+-- Every rack's leftover tiles are subtracted, and each subtraction is a
+-- `leftovers` row: in coop one row for the team's rack, in compete one per
+-- player, taken off their score. In compete the player who went out
+-- (`p_going_out_user_id`, null when nobody did) collects everyone's leftovers
+-- as a `went_out` row — their own rack is empty, so it is the opponents'.
+-- Going out earns that bonus; it isn't the win, which is the top score after
+-- it. Neither row took a turn: the ending wrote them. The coop row's author is
+-- whose act ended the game (`p_ended_by_user_id`), or the client that reported
+-- the clock when the turn covered nobody.
+create or replace function scrabble._score_leftovers(
+  p_game_id           uuid,
+  p_going_out_user_id uuid,
+  p_ended_by_user_id  uuid
+)
 returns void
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  v_total_left int;
+  g            scrabble.games%rowtype;
+  v_left       int;
+  v_total_left int := 0;
+  r            record;
 begin
+  select * into g from scrabble.games where game_id = p_game_id;
+
   if (select mode from common.games where id = p_game_id) = 'coop' then
-    update scrabble.games
-       set coop_score = coop_score
-             - coalesce((select sum(scrabble._tile_value(t)) from unnest(coop_rack) t), 0)
-     where game_id = p_game_id;
+    v_left := coalesce((select sum(scrabble._tile_value(t)) from unnest(g.team_rack) t), 0);
+    if v_left > 0 then
+      insert into scrabble.events (game_id, user_id, kind, score, tile_count, took_turn)
+      values (p_game_id, coalesce(p_ended_by_user_id, auth.uid()), 'leftovers',
+              -v_left, cardinality(g.team_rack), false);
+    end if;
     return;
   end if;
 
-  if p_going_out_user_id is not null then
-    select coalesce(sum(scrabble._tile_value(t)), 0) into v_total_left
-      from scrabble.players p, unnest(p.rack) t
-     where p.game_id = p_game_id;
-  end if;
+  for r in select p.user_id, p.rack,
+                  coalesce((select sum(scrabble._tile_value(t)) from unnest(p.rack) t), 0) as left_value
+             from scrabble.players p
+            where p.game_id = p_game_id
+  loop
+    if r.left_value > 0 then
+      insert into scrabble.events (game_id, user_id, kind, score, tile_count, took_turn)
+      values (p_game_id, r.user_id, 'leftovers', -r.left_value, cardinality(r.rack), false);
+      update scrabble.players set score = score - r.left_value
+       where game_id = p_game_id and user_id = r.user_id;
+      v_total_left := v_total_left + r.left_value;
+    end if;
+  end loop;
 
-  update scrabble.players p
-     set score = p.score
-           - coalesce((select sum(scrabble._tile_value(t)) from unnest(p.rack) t), 0)
-           + case when p.user_id = p_going_out_user_id then v_total_left else 0 end
-   where p.game_id = p_game_id;
+  if p_going_out_user_id is not null and v_total_left > 0 then
+    insert into scrabble.events (game_id, user_id, kind, score, took_turn)
+    values (p_game_id, p_going_out_user_id, 'went_out', v_total_left, false);
+    update scrabble.players set score = score + v_total_left
+     where game_id = p_game_id and user_id = p_going_out_user_id;
+  end if;
 end;
 $$;
-revoke execute on function scrabble._score_leftovers(uuid, uuid) from public;
+revoke execute on function scrabble._score_leftovers(uuid, uuid, uuid) from public;
 
 drop function if exists scrabble._finish(uuid, text, int);
 
@@ -425,7 +616,7 @@ as $$
 declare
   v_rankings jsonb := '{}'::jsonb;
 begin
-  perform scrabble._score_leftovers(p_game_id, p_going_out_user_id);
+  perform scrabble._score_leftovers(p_game_id, p_going_out_user_id, p_ended_by_user_id);
 
   if (select mode from common.games where id = p_game_id) = 'coop' then
     if p_reason_detail = 'complete' then
@@ -636,14 +827,14 @@ begin
        set current_turn_user_id = (p_player_user_ids || v_bot_ids)[1 + floor(random() * v_total)::int]
      where id = new_id;
   else
-    -- Coop: one rack, one score, on the game row.
+    -- Coop: one rack, on the game row; each player's score is their own.
     v_drawn := v_bag[1:7];
     v_bag   := v_bag[8:];
-    insert into scrabble.games (game_id, dict_2, dict_3plus, board, bag, coop_rack, coop_score)
-    values (new_id, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_drawn, 0);
+    insert into scrabble.games (game_id, dict_2, dict_3plus, board, bag, team_rack)
+    values (new_id, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_drawn);
 
-    insert into scrabble.players (game_id, user_id)
-    select new_id, u from unnest(p_player_user_ids) u;
+    insert into scrabble.players (game_id, user_id, score)
+    select new_id, u, 0 from unnest(p_player_user_ids) u;
 
     -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the COMMON
     -- rotation so _commit_word / _commit_exchange gate the coop-rack moves.
@@ -659,7 +850,7 @@ begin
     end if;
   end if;
 
-  perform scrabble._write_statuses(new_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a
   -- call site can filter the `ok` on — without it the branch would match by
@@ -750,9 +941,11 @@ drop function if exists scrabble._commit_word(uuid, int, int, jsonb, text[], int
 -- dictionary check (the only validation it does) → apply + draw + score +
 -- log + advance + end check.
 --
--- Answers:
+-- Answers, and the page's lib/answer.ts says what each is worth:
 --   { result:'invalid', bad_words }                    -- a word fails the band (free reject)
 --   { result:'accepted', drawn, version, terminal }    -- committed
+--
+-- Every letter arrives lowercase, as it is stored and as the page holds it.
 create or replace function scrabble._commit_word(
   p_game_id      uuid,
   p_user_id      uuid,
@@ -798,7 +991,7 @@ begin
       detail = 'a play must form at least one word';
   end if;
 
-  v_rack  := case when v_mode = 'coop' then g.coop_rack
+  v_rack  := case when v_mode = 'coop' then g.team_rack
                   else (select rack from scrabble.players
                          where game_id = p_game_id and user_id = p_user_id) end;
   v_board := g.board;
@@ -809,7 +1002,7 @@ begin
   for rec in select jsonb_array_elements(p_placements) loop
     v_x := (rec->>'x')::int;
     v_y := (rec->>'y')::int;
-    v_letter := upper(rec->>'letter');
+    v_letter := rec->>'letter';
     v_blank  := coalesce((rec->>'blank')::boolean, false);
     if v_x < 0 or v_x > 14 or v_y < 0 or v_y > 14 then
       raise exception 'BUG: a tile off the board'
@@ -834,13 +1027,12 @@ begin
   -- ─── Dictionary check (the only server-side validation) ──
   -- Legal iff difficulty <= the band for the word's LENGTH (dict_2 for
   -- 2-letter words, dict_3plus for 3+) AND valid in american OR british
-  -- (permissive). Words are stored lowercase; the FE's words are uppercase
-  -- board letters.
+  -- (permissive).
   select array_agg(w) into bad_words
     from unnest(p_words) w
    where not exists (
      select 1 from common.words cw
-      where cw.word = lower(w)
+      where cw.word = w
         and cw.difficulty <= (case when length(w) = 2 then g.dict_2 else g.dict_3plus end)
         and (cw.american or cw.british)
    );
@@ -849,8 +1041,7 @@ begin
     -- the dictionary is the ONLY validation the client cannot do — asking is
     -- what the move was for, and this is the answer.
     return common._ok_envelope(
-      jsonb_build_object('result', 'invalid', 'bad_words', to_jsonb(bad_words)),
-      'lost');
+      jsonb_build_object('result', 'invalid', 'bad_words', to_jsonb(bad_words)));
   end if;
 
   -- ─── Commit ──────────────────────────────────────────────
@@ -865,16 +1056,15 @@ begin
   update scrabble.games
      set board = v_board,
          bag = g.bag[v_ndraw+1:],
-         coop_rack = case when v_mode = 'coop' then v_new_rack else coop_rack end,
-         coop_score = case when v_mode = 'coop' then coop_score + p_score else coop_score end,
+         team_rack = case when v_mode = 'coop' then v_new_rack else team_rack end,
          version = version + 1,
          consecutive_passes = 0
    where game_id = p_game_id;
-  if v_mode = 'compete' then
-    update scrabble.players
-       set rack = v_new_rack, score = score + p_score
-     where game_id = p_game_id and user_id = p_user_id;
-  end if;
+  -- The score is the player's own in both modes; the rack is theirs in compete.
+  update scrabble.players
+     set rack = case when v_mode = 'compete' then v_new_rack else rack end,
+         score = score + p_score
+   where game_id = p_game_id and user_id = p_user_id;
 
   -- Title = the first three words played (recognizable in the club list).
   update common.games gm
@@ -893,15 +1083,14 @@ begin
     perform common._advance_turn(p_game_id);
   end if;
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object(
       'result', 'accepted',
       'drawn', to_jsonb(v_drawn),
       'version', g.version + 1,
-      'terminal', v_terminal),
-    'won');
+      'terminal', v_terminal));
 
 -- The wrappers each carry their OWN copy of this block, and must: a
 -- wrapper's player gate raises BEFORE it delegates, so this block never
@@ -1066,12 +1255,9 @@ drop function if exists scrabble._commit_exchange(uuid, int, int, text[]);
 -- Coop: a rack refresh (and a turn, in turn-by-turn coop). The core shared
 -- by exchange_tiles (a person) and ai_exchange_tiles (a bot).
 --
--- `neutral`: swapping tiles is buying a better rack at the cost of a turn,
--- and whether it pays off shows up two moves later — so it is a turn that
--- counts and that nothing adjudicates. The frontend's lib/answer.ts says the
--- same word for the row this wrote. `terminal` is always false — an exchange
--- can't end a game — but every move answers with it, so the FE branches on
--- it uniformly.
+-- The page's lib/answer.ts says what the row this wrote is worth. `terminal`
+-- is always false — an exchange can't end a game — but every move answers
+-- with it, so the FE branches on it uniformly.
 create or replace function scrabble._commit_exchange(
   p_game_id      uuid,
   p_user_id      uuid,
@@ -1109,7 +1295,7 @@ begin
       detail = 'the bag holds fewer tiles than the exchange asks for';
   end if;
 
-  v_rack := case when v_mode = 'coop' then g.coop_rack
+  v_rack := case when v_mode = 'coop' then g.team_rack
                  else (select rack from scrabble.players
                         where game_id = p_game_id and user_id = p_user_id) end;
 
@@ -1127,7 +1313,7 @@ begin
 
   update scrabble.games
      set bag = v_bag, version = version + 1,
-         coop_rack = case when v_mode = 'coop' then v_rack else coop_rack end,
+         team_rack = case when v_mode = 'coop' then v_rack else team_rack end,
          consecutive_passes = 0
    where game_id = p_game_id;
   if v_mode = 'compete' then
@@ -1138,12 +1324,11 @@ begin
   -- moves on (a no-op for free-for-all coop).
   perform common._advance_turn(p_game_id);
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
-                       'version', g.version + 1, 'terminal', false),
-    'neutral');
+                       'version', g.version + 1, 'terminal', false));
 
 exception when others then
   get stacked diagnostics
@@ -1232,8 +1417,6 @@ drop function if exists scrabble._commit_pass(uuid, int, int);
 -- player who has ended, so their turn could never contribute a pass). A bot
 -- passes like anyone else, and never concedes. The core shared by pass_turn
 -- (a person) and ai_pass_turn (a bot).
---
--- `neutral`: a pass is a turn that counts and that nothing adjudicates.
 create or replace function scrabble._commit_pass(p_game_id uuid, p_user_id uuid, p_base_version int)
 returns jsonb
 language plpgsql
@@ -1277,12 +1460,11 @@ begin
     perform common._advance_turn(p_game_id);
   end if;
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
     jsonb_build_object('result', 'passed', 'version', g.version + 1,
-                       'terminal', v_terminal),
-    'neutral');
+                       'terminal', v_terminal));
 
 exception when others then
   get stacked diagnostics
@@ -1430,7 +1612,7 @@ begin
   caller_id := common._concede(p_game_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
-    perform scrabble._score_leftovers(p_game_id, null);
+    perform scrabble._score_leftovers(p_game_id, null, caller_id);
   elsif not scrabble._maybe_finish_compete(p_game_id, caller_id) then
     -- Others are still playing. If it was the conceder's turn, hand it on.
     if (select current_turn_user_id from common.games where id = p_game_id) = caller_id then
@@ -1440,7 +1622,7 @@ begin
 
   -- Bump version so optimistic-concurrency readers refetch.
   update scrabble.games set version = version + 1 where game_id = p_game_id;
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
@@ -1494,7 +1676,7 @@ begin
   perform scrabble._finish(p_game_id, 'timeout', 'timeout', null,
     (select current_turn_user_id from common.games where id = p_game_id));
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1518,12 +1700,11 @@ drop function if exists scrabble.end_game(uuid);
 -- scrabble.stop_game — the "we're done" action
 -- ============================================================
 -- Any player stops the game for the whole table, with no result, in either
--- mode (docs/common-schema.md → Stop). COOP scores the leftovers first:
--- ending with tiles still in the rack FORFEITS their value from the coop
--- score (so a team is pushed to find plays for its last tiles rather than
--- just stopping — the same leftover penalty a natural end applies), and a
--- 'leftovers' row logs the lost value as a negative score. COMPETE ends flat:
--- no scoring.
+-- mode (docs/common-schema.md → Stop). COOP scores the leftovers: ending with
+-- tiles still in the rack FORFEITS their value from the team's score (so a
+-- team is pushed to find plays for its last tiles rather than just stopping —
+-- the same leftover penalty a natural end applies), the `leftovers` row in
+-- the stopper's name. COMPETE ends flat: no scoring.
 create or replace function scrabble.stop_game(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1532,14 +1713,12 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
-  g              scrabble.games%rowtype;
-  v_leftover     int;
 begin
   -- Locked, so a Stop racing the final move waits for it and then reads the
   -- game as over. The row check comes before the membership gate:
   -- `delete_game` takes this row, `common.games` and every `game_players` row
   -- together, so a caller whose game was just deleted has no membership left.
-  select * into g from scrabble.games where game_id = p_game_id for update;
+  perform 1 from scrabble.games where game_id = p_game_id for update;
   if not found then
     perform common._raise_game_deleted('scrabble');
   end if;
@@ -1547,19 +1726,10 @@ begin
   perform common._stop(p_game_id);
 
   if (select mode from common.games where id = p_game_id) = 'coop' then
-    v_leftover := coalesce((select sum(scrabble._tile_value(t))
-                              from unnest(g.coop_rack) t), 0);
-    if v_leftover > 0 then
-      -- `took_turn` false: no player made this move. It is written when the
-      -- table stops with tiles still in the rack.
-      insert into scrabble.events (game_id, user_id, kind, score, tile_count, took_turn)
-      values (p_game_id, auth.uid(), 'leftovers', -v_leftover,
-              coalesce(array_length(g.coop_rack, 1), 0), false);
-    end if;
-    perform scrabble._score_leftovers(p_game_id, null);
+    perform scrabble._score_leftovers(p_game_id, null, auth.uid());
   end if;
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1633,7 +1803,7 @@ begin
   return common._ok_envelope(jsonb_build_object(
     'result', 'context',
     'board', g.board,
-    'rack', to_jsonb(g.coop_rack),
+    'rack', to_jsonb(g.team_rack),
     'dict_2', g.dict_2,
     'dict_3plus', g.dict_3plus,
     'version', g.version
@@ -1805,14 +1975,15 @@ begin
            consecutive_passes = 0
      where game_id = p_game_id;
   else
-    -- Coop: one rack and one score on the game row; the player rows carry
-    -- neither, so they need no reset.
+    -- Coop: one rack on the game row, and every player's own score back to
+    -- nothing.
     v_drawn := v_bag[1:7];
     v_bag   := v_bag[8:];
     update scrabble.games
        set board = v_board, bag = v_bag, version = g.version + 1,
-           coop_rack = v_drawn, coop_score = 0, consecutive_passes = 0
+           team_rack = v_drawn, consecutive_passes = 0
      where game_id = p_game_id;
+    update scrabble.players set score = 0 where game_id = p_game_id;
   end if;
 
   -- The club-list title is the first three words played (_title_for), so a
@@ -1830,7 +2001,7 @@ begin
      where id = p_game_id;
   end if;
 
-  perform scrabble._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

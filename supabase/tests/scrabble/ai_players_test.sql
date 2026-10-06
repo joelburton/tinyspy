@@ -99,7 +99,7 @@ reset role;
 -- ─── get_ai_context ───────────────────────────────────────
 -- Force the AI's turn + a known rack.
 select pg_temp.sc_turn((select id from gai), (select id from bot));
-update scrabble.players set rack = array['C','A','T','S','E','R','D']
+update scrabble.players set rack = array['c','a','t','s','e','r','d']
   where game_id = (select id from gai) and user_id = (select id from bot);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -119,13 +119,13 @@ reset role;
 
 -- ─── ai_play_word ─────────────────────────────────────────
 select pg_temp.sc_turn((select id from gai), (select id from bot));
-select pg_temp.sc_bag((select id from gai), array['X','Y','Z']);
+select pg_temp.sc_bag((select id from gai), array['x','y','z']);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table aiw on commit drop as
   select scrabble.ai_play_word((select id from gai), (select id from bot), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false},
-      {"x":8,"y":7,"letter":"A","blank":false},
-      {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 10) as res;
+    '[{"x":7,"y":7,"letter":"c","blank":false},
+      {"x":8,"y":7,"letter":"a","blank":false},
+      {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb, array['cat'], 10) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from aiw), 'accepted', 'the bot can commit a word');
 select is(pg_temp.sc_current_user((select id from gai)), 'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -143,7 +143,7 @@ select is((select user_id from scrabble.events where game_id = (select id from g
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   scrabble.ai_play_word((select id from gai), 'ada11111-1111-1111-1111-111111111111', 1,
-    '[]'::jsonb, array['AT'], 2),
+    '[]'::jsonb, array['at'], 2),
   '{"type":"not-ok","severity":"fault","dbcode":"PN444",
     "message":"BUG: an AI move for a player who is not a bot"}'::jsonb,
   'ai_play_word for a person is rejected');
@@ -174,12 +174,12 @@ update scrabble.players set rack = '{}', score = 50
   where game_id = (select id from gwin) and user_id = (select id from bot);
 select scrabble._finish((select id from gwin), 'resource_exhausted', 'complete',
   (select id from bot), (select id from bot));
-select scrabble._write_statuses((select id from gwin), true);
+select scrabble._rebuild_data_cols((select id from gwin), true);
 
-select is((select (clubpage_info->>'winner_user_id')::uuid from common.games where id = (select id from gwin)),
-  (select id from bot),
+select is((select summary_data->'winnerIds' from common.games where id = (select id from gwin)),
+  jsonb_build_array((select id from bot)),
   'a bot winner is named by uuid like any other winner');
-select is((select (clubpage_info->>'winner_score')::int from common.games where id = (select id from gwin)),
+select is((select (summary_data->>'winnerScore')::int from common.games where id = (select id from gwin)),
   50, 'the club line carries the bot winner''s score');
 select is((select game_ended_by_user_id from common.games where id = (select id from gwin)),
   (select id from bot), 'the bot going out ended the game');
@@ -211,12 +211,12 @@ select pg_temp.envelope_is(
   'get_ai_context on a deleted game is the shared race (PN485)');
 select pg_temp.envelope_is(
   scrabble.ai_play_word((select id from gdel), (select id from bot), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['C'], 1),
+    '[{"x":7,"y":7,"letter":"c","blank":false}]'::jsonb, array['c'], 1),
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'ai_play_word into a deleted game is the shared race (PN485)');
 select pg_temp.envelope_is(
-  scrabble.ai_exchange_tiles((select id from gdel), (select id from bot), 0, array['A']),
+  scrabble.ai_exchange_tiles((select id from gdel), (select id from bot), 0, array['a']),
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'ai_exchange_tiles into a deleted game is the shared race (PN485)');

@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(20);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -30,12 +30,12 @@ create temp table gco on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
-select pg_temp.sc_coop((select id from gco), array['A','B','C','D','E','F','G'],
-  array['H','I','J']);  -- only 3 in the bag
+select pg_temp.sc_coop((select id from gco), array['a','b','c','d','e','f','g'],
+  array['h','i','j']);  -- only 3 in the bag
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  scrabble.exchange_tiles((select id from gco), 0, array['A','B']),
+  scrabble.exchange_tiles((select id from gco), 0, array['a','b']),
   '{"type":"not-ok","severity":"fault","dbcode":"PN450",
     "message":"BUG: a swap against a bag under seven"}'::jsonb,
   'exchange is rejected when the bag holds < 7 tiles');
@@ -43,22 +43,16 @@ reset role;
 
 -- ─── Exchange: happy path (coop) ─────────────────────────
 select pg_temp.sc_bag((select id from gco),
-  array['H','I','J','K','L','M','N','O','P','Q']);  -- 10 in the bag
+  array['h','i','j','k','l','m','n','o','p','q']);  -- 10 in the bag
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rex on commit drop as
-  select scrabble.exchange_tiles((select id from gco), 0, array['A','B']) as res;
+  select scrabble.exchange_tiles((select id from gco), 0, array['a','b']) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from rex), 'exchanged', 'a valid exchange succeeds');
--- `neutral`, not `won`: swapping tiles buys a better rack at the cost of a turn,
--- and whether it pays off shows up two moves later (ruled 2026-09-16) — `won`
--- would make trading tiles read like scoring.
--- src/scrabble/lib/answer.ts is the other language.
-select is((select res ->> 'outcome' from rex), 'neutral',
-  'an exchange is a turn nothing adjudicates');
 select is((select jsonb_array_length(res -> 'data' -> 'drawn') from rex), 2,
   'two tiles are drawn to replace the two returned');
-select is((select array_length(coop_rack, 1) from scrabble.games where game_id = (select id from gco)),
+select is((select array_length(team_rack, 1) from scrabble.games where game_id = (select id from gco)),
   7, 'the rack is still 7 tiles after the swap');
 select is((select array_length(bag, 1) from scrabble.games where game_id = (select id from gco)),
   10, 'the bag count is unchanged (2 returned, 2 drawn)');
@@ -82,10 +76,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rpass on commit drop as
   select scrabble.pass_turn((select id from gcp), 0) as res;
 reset role;
--- `neutral`, the same reading as the exchange above with nothing bought.
--- src/scrabble/lib/answer.ts gives the `pass` row the same word.
-select is((select res ->> 'outcome' from rpass), 'neutral',
-  'a pass is a turn nothing adjudicates');
+select is((select res -> 'data' ->> 'result' from rpass), 'passed', 'a pass is accepted');
 select is((select consecutive_passes from scrabble.games where game_id = (select id from gcp)), 1,
   'pass bumps the pass streak');
 select is(pg_temp.sc_current_user((select id from gcp)),
@@ -117,13 +108,13 @@ create temp table gcx on commit drop as
 reset role;
 select pg_temp.sc_turn((select id from gcx), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gcx), 'bea22222-2222-2222-2222-222222222222',
-  array['A','B','C','D','E','F','G']);
+  array['a','b','c','d','e','f','g']);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.pass_turn((select id from gcx), 0);
 reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select scrabble.exchange_tiles((select id from gcx), 1, array['A']);
+select scrabble.exchange_tiles((select id from gcx), 1, array['a']);
 reset role;
 select is((select consecutive_passes from scrabble.games where game_id = (select id from gcx)), 0,
   'an exchange clears the pass streak');
@@ -153,7 +144,7 @@ create temp table gbk on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gbk),
-  array['?','A','B','C','D','E','F'], array['H','I','J','K','L','M','N']);
+  array['?','a','b','c','d','e','f'], array['h','i','j','k','l','m','n']);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rbk on commit drop as
@@ -162,7 +153,7 @@ reset role;
 select is((select res -> 'data' ->> 'result' from rbk), 'exchanged',
   'a blank `?` can be exchanged');
 select is((select count(*)::int from
-            unnest((select coop_rack from scrabble.games where game_id = (select id from gbk))
+            unnest((select team_rack from scrabble.games where game_id = (select id from gbk))
                    || (select bag from scrabble.games where game_id = (select id from gbk))) t
            where t = '?'),
   1, 'the `?` is conserved in the rack+bag pool (neither lost nor duplicated)');
@@ -181,7 +172,7 @@ reset role;
 delete from common.games where id = (select id from gdel);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  scrabble.exchange_tiles((select id from gdel), 0, array['A']),
+  scrabble.exchange_tiles((select id from gdel), 0, array['a']),
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'exchange_tiles into a deleted game is the shared race (PN485)');

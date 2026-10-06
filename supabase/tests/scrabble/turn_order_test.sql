@@ -40,10 +40,10 @@ create temp table g on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
--- Pin the shared rack + a 10-tile bag (no 'Z', so 'Z' is a guaranteed
+-- Pin the shared rack + a 10-tile bag (no 'z', so 'z' is a guaranteed
 -- not-in-rack tile for the soft-reject case). Exchange needs bag ≥ 7.
-select pg_temp.sc_coop((select id from g), array['A','B','C','D','E','F','G'],
-  array['H','I','J','K','L','M','N','O','P','Q']);
+select pg_temp.sc_coop((select id from g), array['a','b','c','d','e','f','g'],
+  array['h','i','j','k','l','m','n','o','p','q']);
 
 -- (1) Common pointer seated on ada.
 select is(
@@ -57,7 +57,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- PN243 comes from `common._require_turn`, shared by every turn-based game.
 select pg_temp.envelope_is(
-  scrabble.exchange_tiles((select id from g), 0, array['C']),
+  scrabble.exchange_tiles((select id from g), 0, array['c']),
   '{"type":"not-ok","severity":"race","dbcode":"PN243"}'::jsonb,
   'turns: the non-current player is rejected'
 );
@@ -65,7 +65,7 @@ select pg_temp.envelope_is(
 -- (3) ada (current) exchanges — accepted, advances.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select scrabble.exchange_tiles((select id from g), 0, array['A']) -> 'data' ->> 'result'),
+  (select scrabble.exchange_tiles((select id from g), 0, array['a']) -> 'data' ->> 'result'),
   'exchanged',
   'turns: the current player''s move is accepted'
 );
@@ -76,13 +76,13 @@ select is(
   'turns: an accepted coop move advances the common pointer to bea'
 );
 
--- (4) SOFT-REJECT does NOT advance: it's bea's turn; bea exchanges 'Z', which
+-- (4) SOFT-REJECT does NOT advance: it's bea's turn; bea exchanges 'z', which
 -- isn't in the rack → raises (rolls back). The pointer stays bea's.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- A FAULT: the version matches, so the rack the client staged from is the
 -- rack the server holds — a tile it does not contain came from a broken client.
 select pg_temp.envelope_is(
-  scrabble.exchange_tiles((select id from g), 1, array['Z']),
+  scrabble.exchange_tiles((select id from g), 1, array['z']),
   '{"type":"not-ok","severity":"fault","dbcode":"PN442",
     "message":"BUG: a tile that is not in the rack"}'::jsonb,
   'turns: an invalid-tile exchange does not advance the turn'
@@ -96,7 +96,7 @@ select is(
 
 -- bea makes a valid exchange → wraps back to ada.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select scrabble.exchange_tiles((select id from g), 1, array['B']);
+select scrabble.exchange_tiles((select id from g), 1, array['b']);
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from g)),
@@ -112,8 +112,8 @@ create temp table ffa on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
-select pg_temp.sc_coop((select id from ffa), array['A','B','C','D','E','F','G'],
-  array['H','I','J','K','L','M','N','O','P','Q']);
+select pg_temp.sc_coop((select id from ffa), array['a','b','c','d','e','f','g'],
+  array['h','i','j','k','l','m','n','o','p','q']);
 select is(
   (select current_turn_user_id from common.games where id = (select id from ffa)),
   null,
@@ -122,7 +122,7 @@ select is(
 -- bea moves first (would be out of turn in a turn game) — no gate.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select scrabble.exchange_tiles((select id from ffa), 0, array['A']) -> 'data' ->> 'result'),
+  (select scrabble.exchange_tiles((select id from ffa), 0, array['a']) -> 'data' ->> 'result'),
   'exchanged',
   'free-for-all coop: any player may move in any order'
 );

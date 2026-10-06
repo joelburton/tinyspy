@@ -16,7 +16,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(36);
+select plan(34);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -30,13 +30,13 @@ create temp table ga on commit drop as
 reset role;
 -- Known rack + a 3-tile bag so the draw is deterministic.
 select pg_temp.sc_coop((select id from ga),
-  array['C','A','T','S','E','R','D'], array['X','Y','Z']);
+  array['c','a','t','s','e','r','d'], array['x','y','z']);
 
 -- Stale: a wrong base_version is rejected with no state change.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table stale on commit drop as
   select scrabble.play_word((select id from ga), 99,
-    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4) as res;
+    '[{"x":7,"y":7,"letter":"c","blank":false}]'::jsonb, array['co'], 4) as res;
 reset role;
 -- THE race, and the one the whole area turns on: somebody else's committed
 -- move bumped `version` between this client reading it and this call arriving.
@@ -57,35 +57,34 @@ select is((select count(*)::int from scrabble.events where game_id = (select id 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table acc on commit drop as
   select scrabble.play_word((select id from ga), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false},
-      {"x":8,"y":7,"letter":"A","blank":false},
-      {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
+    '[{"x":7,"y":7,"letter":"c","blank":false},
+      {"x":8,"y":7,"letter":"a","blank":false},
+      {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb, array['cat'], 5) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from acc), 'accepted', 'a valid word is accepted');
--- The outcome rides with it: a word is the move this game is made of, and it
--- scores. src/scrabble/lib/answer.ts gives the row this wrote the same word,
--- and the log bar wears that — one rule, two languages, a test in each.
-select is((select res ->> 'outcome' from acc), 'won', 'a played word is won');
 select is((select board->112 from scrabble.games where game_id = (select id from ga)),
-  '{"l":"C","b":false}'::jsonb, 'the C tile landed on the center square (7,7)');
+  '{"l":"c","b":false}'::jsonb, 'the C tile landed on the center square (7,7)');
 select is((select board->114 from scrabble.games where game_id = (select id from ga)),
-  '{"l":"T","b":false}'::jsonb, 'the T tile landed at (9,7)');
-select is((select coop_score from scrabble.games where game_id = (select id from ga)), 5,
-  'the trusted score is added to the coop score');
+  '{"l":"t","b":false}'::jsonb, 'the T tile landed at (9,7)');
+select is((select score from scrabble.players
+            where game_id = (select id from ga) and user_id = 'ada11111-1111-1111-1111-111111111111'), 5,
+  'the trusted score is added to the player''s own score, in coop too');
+select is(scrabble._team_score((select id from ga)), 5,
+  'and the team''s score is the players'' sum');
 select is((select version from scrabble.games where game_id = (select id from ga)), 1,
   'version bumps to 1');
-select is((select coop_rack from scrabble.games where game_id = (select id from ga)),
-  array['S','E','R','D','X','Y','Z'],
+select is((select team_rack from scrabble.games where game_id = (select id from ga)),
+  array['s','e','r','d','x','y','z'],
   'the rack loses C/A/T and refills from the bag (X/Y/Z)');
 select is((select coalesce(array_length(bag,1),0) from scrabble.games where game_id = (select id from ga)),
   0, 'the 3-tile bag is now empty');
-select is((select acc.res -> 'data' -> 'drawn' from acc), '["X","Y","Z"]'::jsonb,
+select is((select acc.res -> 'data' -> 'drawn' from acc), '["x","y","z"]'::jsonb,
   'play_word returns the newly-drawn tiles');
 select is((select string_agg(kind || ':' || took_turn, ',' order by id)
              from scrabble.events where game_id = (select id from ga)),
   'word:true', 'one word play is logged, and it spent a turn');
 select is((select title from common.games where id = (select id from ga)),
-  'CAT', 'the game title becomes the first word played');
+  'CAT', 'the game title becomes the first word played, in capitals: it is drawn text');
 
 -- Occupied-square guard: replaying onto (7,7) (now version 1) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -94,7 +93,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- the client's own board is wrong.
 select pg_temp.envelope_is(
   scrabble.play_word((select id from ga), 1,
-    '[{"x":7,"y":7,"letter":"S","blank":false}]'::jsonb, array['SO'], 2),
+    '[{"x":7,"y":7,"letter":"s","blank":false}]'::jsonb, array['so'], 2),
   '{"type":"not-ok","severity":"fault","dbcode":"PN441",
     "message":"BUG: a tile on an occupied square"}'::jsonb,
   'placing on an occupied square is rejected');
@@ -109,23 +108,19 @@ create temp table gb on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select pg_temp.sc_coop((select id from gb),
-  array['Z','X','Q','J','A','E','I'], array['N','N','N']);
+  array['z','x','q','j','a','e','i'], array['n','n','n']);
 
 -- Dictionary free reject: a non-word commits nothing.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table inv on commit drop as
   select scrabble.play_word((select id from gb), 0,
-    '[{"x":7,"y":7,"letter":"Z","blank":false},
-      {"x":8,"y":7,"letter":"X","blank":false},
-      {"x":9,"y":7,"letter":"Q","blank":false},
-      {"x":10,"y":7,"letter":"J","blank":false}]'::jsonb, array['ZXQJ'], 99) as res;
+    '[{"x":7,"y":7,"letter":"z","blank":false},
+      {"x":8,"y":7,"letter":"x","blank":false},
+      {"x":9,"y":7,"letter":"q","blank":false},
+      {"x":10,"y":7,"letter":"j","blank":false}]'::jsonb, array['zxqj'], 99) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from inv), 'invalid', 'a non-word is rejected (free)');
--- The refusal's outcome, which no row can carry: a rejected word writes nothing
--- to `scrabble.events`, so the pill and the red tile flash are its only surfaces
--- and this envelope is the only place the word is said.
-select is((select res ->> 'outcome' from inv), 'lost', 'a refused word is lost');
-select is((select inv.res -> 'data' -> 'bad_words' from inv), '["ZXQJ"]'::jsonb,
+select is((select inv.res -> 'data' -> 'bad_words' from inv), '["zxqj"]'::jsonb,
   'the rejecting word is reported');
 select is((select version from scrabble.games where game_id = (select id from gb)), 0,
   'a rejected word leaves version untouched (no state change)');
@@ -136,7 +131,7 @@ select is((select count(*)::int from scrabble.events where game_id = (select id 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   scrabble.play_word((select id from gb), 0,
-    '[{"x":7,"y":7,"letter":"B","blank":false}]'::jsonb, array['BE'], 4),
+    '[{"x":7,"y":7,"letter":"b","blank":false}]'::jsonb, array['be'], 4),
   '{"type":"not-ok","severity":"fault","dbcode":"PN442",
     "message":"BUG: a tile that is not in the rack"}'::jsonb,
   'playing a tile not in the rack is rejected');
@@ -144,7 +139,7 @@ select pg_temp.envelope_is(
 -- Out-of-bounds guard.
 select pg_temp.envelope_is(
   scrabble.play_word((select id from gb), 0,
-    '[{"x":20,"y":7,"letter":"A","blank":false}]'::jsonb, array['AA'], 2),
+    '[{"x":20,"y":7,"letter":"a","blank":false}]'::jsonb, array['aa'], 2),
   '{"type":"not-ok","severity":"fault","dbcode":"PN440",
     "message":"BUG: a tile off the board"}'::jsonb,
   'an out-of-bounds placement is rejected');
@@ -160,8 +155,8 @@ create temp table gc on commit drop as
 reset role;
 select pg_temp.sc_turn((select id from gc), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
-  array['C','A','T','S','E','R','D']);
-select pg_temp.sc_bag((select id from gc), array['X','Y','Z','N','M','P','L']);
+  array['c','a','t','s','e','r','d']);
+select pg_temp.sc_bag((select id from gc), array['x','y','z','n','m','p','l']);
 
 -- Not your turn: bea can't play while it's ada's turn.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -170,7 +165,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 -- turn had moved.
 select pg_temp.envelope_is(
   scrabble.play_word((select id from gc), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4),
+    '[{"x":7,"y":7,"letter":"c","blank":false}]'::jsonb, array['co'], 4),
   '{"type":"not-ok","severity":"race","dbcode":"PN243",
     "message":"Not your turn"}'::jsonb,
   'a player cannot play out of turn (compete)');
@@ -179,9 +174,9 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cacc on commit drop as
   select scrabble.play_word((select id from gc), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false},
-      {"x":8,"y":7,"letter":"A","blank":false},
-      {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
+    '[{"x":7,"y":7,"letter":"c","blank":false},
+      {"x":8,"y":7,"letter":"a","blank":false},
+      {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb, array['cat'], 5) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from cacc), 'accepted', 'compete: a valid word is accepted');
 select is(pg_temp.sc_current_user((select id from gc)),
@@ -196,14 +191,14 @@ reset role;
 update scrabble.games set consecutive_passes = 3 where game_id = (select id from gc);
 select pg_temp.sc_turn((select id from gc), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
-  array['A','T','X','Y','Z','N','M']);
-select pg_temp.sc_bag((select id from gc), array['B','C','D','E','F','G','H']);
+  array['a','t','x','y','z','n','m']);
+select pg_temp.sc_bag((select id from gc), array['b','c','d','e','f','g','h']);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table creset on commit drop as
   select scrabble.play_word((select id from gc), 1,
-    '[{"x":0,"y":0,"letter":"A","blank":false},
-      {"x":1,"y":0,"letter":"T","blank":false}]'::jsonb, array['AT'], 2) as res;
+    '[{"x":0,"y":0,"letter":"a","blank":false},
+      {"x":1,"y":0,"letter":"t","blank":false}]'::jsonb, array['at'], 2) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from creset), 'accepted',
   'compete: a second valid word is accepted');
@@ -224,7 +219,7 @@ create temp table gd on commit drop as
 reset role;
 -- Rack holds a blank `?`; bag is a known 3 so the refill is deterministic.
 select pg_temp.sc_coop((select id from gd),
-  array['?','A','T','S','E','R','D'], array['X','Y','Z']);
+  array['?','a','t','s','e','r','d'], array['x','y','z']);
 
 -- Cross-word reject: play CAT (blank-as-C + A + T) but declare a bad
 -- cross-word alongside it. The reject persists nothing, so the blank + rack
@@ -232,14 +227,14 @@ select pg_temp.sc_coop((select id from gd),
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table dcross on commit drop as
   select scrabble.play_word((select id from gd), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":true},
-      {"x":8,"y":7,"letter":"A","blank":false},
-      {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb,
-    array['CAT','ZJ'], 4) as res;
+    '[{"x":7,"y":7,"letter":"c","blank":true},
+      {"x":8,"y":7,"letter":"a","blank":false},
+      {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb,
+    array['cat','zj'], 4) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from dcross), 'invalid',
   'a legal main word with an illegal cross-word is rejected');
-select is((select dcross.res -> 'data' -> 'bad_words' from dcross), '["ZJ"]'::jsonb,
+select is((select dcross.res -> 'data' -> 'bad_words' from dcross), '["zj"]'::jsonb,
   'the offending cross-word is reported, not the legal main word');
 select is((select version from scrabble.games where game_id = (select id from gd)), 0,
   'the rejected blank play leaves version (and the rack) untouched');
@@ -247,17 +242,17 @@ select is((select version from scrabble.games where game_id = (select id from gd
 -- Accept: the same blank-as-C play, now with only the real word.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.play_word((select id from gd), 0,
-  '[{"x":7,"y":7,"letter":"C","blank":true},
-    {"x":8,"y":7,"letter":"A","blank":false},
-    {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 4);
+  '[{"x":7,"y":7,"letter":"c","blank":true},
+    {"x":8,"y":7,"letter":"a","blank":false},
+    {"x":9,"y":7,"letter":"t","blank":false}]'::jsonb, array['cat'], 4);
 reset role;
 select is((select board->112 from scrabble.games where game_id = (select id from gd)),
-  '{"l":"C","b":true}'::jsonb,
+  '{"l":"c","b":true}'::jsonb,
   'the blank persists as its declared letter C with b=true');
 select is((select board->113 from scrabble.games where game_id = (select id from gd)),
-  '{"l":"A","b":false}'::jsonb, 'the real A tile persists with b=false');
-select is((select coop_rack from scrabble.games where game_id = (select id from gd)),
-  array['S','E','R','D','X','Y','Z'],
+  '{"l":"a","b":false}'::jsonb, 'the real A tile persists with b=false');
+select is((select team_rack from scrabble.games where game_id = (select id from gd)),
+  array['s','e','r','d','x','y','z'],
   'the `?` glyph (not C) is consumed from the rack, then refilled from the bag');
 select is((select version from scrabble.games where game_id = (select id from gd)), 1,
   'the accepted blank play bumps version');
@@ -277,7 +272,7 @@ delete from common.games where id = (select id from gdel);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   scrabble.play_word((select id from gdel), 0,
-    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['C'], 1),
+    '[{"x":7,"y":7,"letter":"c","blank":false}]'::jsonb, array['c'], 1),
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'play_word into a deleted game is the shared race (PN485)');

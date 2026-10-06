@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(12);
+select plan(14);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -30,9 +30,10 @@ create temp table gm on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
--- Known coop score + a leftover rack worth 11 (Q=10 + A=1).
-update scrabble.games set coop_score = 5, coop_rack = array['Q','A']
-  where game_id = (select id from gm);
+-- A known score (ada's 5) + a leftover rack worth 11 (Q=10 + A=1).
+update scrabble.games set team_rack = array['q','a'] where game_id = (select id from gm);
+update scrabble.players set score = 5
+  where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.stop_game((select id from gm));
@@ -45,17 +46,20 @@ select isnt((select ended_at from common.games where id = (select id from gm)), 
 select is((select game_ended_reason || '/' || game_ended_by_user_id::text
              from common.games where id = (select id from gm)),
   'stopped/ada11111-1111-1111-1111-111111111111', 'the reason is stopped, by the caller');
-select is((select coop_score from scrabble.games where game_id = (select id from gm)),
-  -6, 'leftover tiles (Q+A = 11) are forfeited: 5 − 11 = −6');
-select is((select kind || ':' || score || ':' || took_turn from scrabble.events
+select is(scrabble._team_score((select id from gm)),
+  -6, 'leftover tiles (Q+A = 11) are forfeited from the team''s score: 5 − 11 = −6');
+select is((select score from scrabble.players
+           where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  5, 'a player''s own score is untouched — the leftovers are the team''s');
+select is((select kind || ':' || score || ':' || took_turn || ':' || user_id from scrabble.events
            where game_id = (select id from gm) and kind = 'leftovers'),
-  'leftovers:-11:false',
-  'the leftover tiles are logged with the negative value lost — and spent no turn, because no player made that move');
+  'leftovers:-11:false:ada11111-1111-1111-1111-111111111111',
+  'the leftover tiles are logged with the negative value lost, in the stopper''s name — and spent no turn');
 select is((select outcome from common.game_players
            where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'neutral', 'nobody wins a stopped coop table — the score, not a verdict, is the result');
-select is((select (clubpage_info->>'coop_score')::int from common.games where id = (select id from gm)),
-  -6, 'the club line carries the final coop score');
+select is((select (summary_data->'team'->>'score')::int from common.games where id = (select id from gm)),
+  -6, 'the club line carries the final team score');
 
 -- Idempotent: a second stop_game (or a race) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -74,8 +78,9 @@ create temp table gt on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
-update scrabble.games set coop_score = 12, coop_rack = array['Q']  -- leftover 10
-  where game_id = (select id from gt);
+update scrabble.games set team_rack = array['q'] where game_id = (select id from gt);  -- leftover 10
+update scrabble.players set score = 12
+  where game_id = (select id from gt) and user_id = 'bea22222-2222-2222-2222-222222222222';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.submit_timeout((select id from gt));
@@ -90,8 +95,14 @@ select is((select count(*)::int from common.game_players
   2, 'coop timeout ranks nobody; every player lost');
 select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gt)),
   'timeout/timeout', 'the reason is timeout');
-select is((select coop_score from scrabble.games where game_id = (select id from gt)), 2,
+select is(scrabble._team_score((select id from gt)), 2,
   'leftover tiles (Q = 10) are subtracted: 12 − 10 = 2');
+-- The clock covers nobody's turn in free-for-all coop, so the row is in the
+-- name of the client that reported it.
+select is((select kind || ':' || score || ':' || user_id from scrabble.events
+           where game_id = (select id from gt) and kind = 'leftovers'),
+  'leftovers:-10:ada11111-1111-1111-1111-111111111111',
+  'a timeout logs the leftovers too, in the reporting client''s name');
 
 select * from finish();
 rollback;

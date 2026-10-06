@@ -61,11 +61,11 @@ select is(
   (select jsonb_array_length(board) from scrabble.games where game_id = (select id from gc)),
   225, 'an empty 225-cell board is seeded');
 select is(
-  (select array_length(coop_rack, 1) from scrabble.games where game_id = (select id from gc)),
+  (select array_length(team_rack, 1) from scrabble.games where game_id = (select id from gc)),
   7, 'coop deals one shared 7-tile rack');
-select is(
-  (select coop_score from scrabble.games where game_id = (select id from gc)),
-  0, 'coop_score starts at 0');
+select ok(
+  (select bool_and(score = 0) from scrabble.players where game_id = (select id from gc)),
+  'coop players start at score 0 — their own, in coop too');
 select is(
   (select array_length(bag, 1) from scrabble.games where game_id = (select id from gc)),
   93, 'bag holds the remaining 93 tiles (100 − 7 dealt)');
