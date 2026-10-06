@@ -26,11 +26,10 @@
   width: calc(var(--board-h) * 6 / 8);
   position: relative;
   /* Breathing room so the outermost discs + the last-tile ring aren't clipped
-   * by the box edge: a ring at r=0.47 of a cell overhangs the letter grid. */
-  /* Padding is bigger than the 0.25rem the discs strictly need now that there
-   * is a frame: the outermost disc shouldn't sit against the border. */
+   * by the box edge (a ring at r=0.47 of a cell overhangs the letter grid), and
+   * so the outermost disc doesn't sit against the frame. */
   padding: 0.9rem;
-  /* A real frame. Without it the letters floated in the page with nothing
+  /* A real frame. Without it the letters float in the page with nothing
    * saying where the board began or ended — the other grid games get that for
    * free from their tile boxes, and strands, having none, has to say it once
    * at the edge. */
@@ -109,35 +108,25 @@
   fill: var(--strands-missed);
 }
 
-/* The "click me again to submit" marker on the most recent tile. A ring
- * OUTSIDE the disc rather than a color change, so it reads as an extra
- * affordance rather than a different kind of selection. */
+/* The marker on the most recent tile: where the trace ends, which neighbors are
+ * live and what Backspace takes. A ring OUTSIDE the disc rather than a color
+ * change, so it reads as an extra mark rather than a different kind of
+ * selection. */
 /* @@ */ .ringLast {
   fill: none;
   stroke: var(--strands-active-ring);
   stroke-width: 0.06;
 }
 
-/* A spent hint: a ring per cell, and no line between them. That gap is the
- * whole mechanic — the reveal says WHERE the word is, never what order it
- * runs in. */
 /* The viewed turn's cells, while replaying history — the shared
  * `--history-color`, the same blue the board frame and the log's viewed-row
- * outline take. It was gold until 2026-08-18, left over from when the viewer was
- * yellow: strands was the last game whose ring disagreed with its own frame. */
+ * outline take. */
 /* @@ */ .ringHistory {
   fill: none;
   stroke: var(--history-color);
   stroke-width: 0.1;
 }
 
-/* A typed letter that matched several cells — "click the one you meant". The
- * ERROR red, the outcome vocabulary's member that never means a judgment
- * (docs/outcomes.md), because nothing here has been judged; stackdown's mark for
- * the same situation is the same color. At the viewed-turn ring's weight so it
- * reads as emphatically as the other rings, and solid rather than the hint's
- * dashes, because this is one moment's answer to one keystroke, not a standing
- * state. Cleared by `AMBIGUOUS_PICK_FLASH_MS`. */
 /* The keyboard's selection cursor — the app's cursor blue
  * (`--chrome-cursor-color`, the ring `<SelectionList>` and the other boards
  * draw), but as a ring rather than the shared outline, because this board draws
@@ -149,12 +138,22 @@
   stroke-width: 0.06;
 }
 
+/* A typed letter that matched several cells — "click the one you meant". The
+ * ERROR red, the outcome vocabulary's member that never means a judgment
+ * (docs/outcomes.md), because nothing here has been judged; stackdown's mark for
+ * the same situation is the same color. At the viewed-turn ring's weight so it
+ * reads as emphatically as the other rings, and solid rather than the hint's
+ * dashes, because this is one moment's answer to one keystroke, not a standing
+ * state. Cleared by `AMBIGUOUS_PICK_FLASH_MS`. */
 /* @@ */ .ringAmbiguous {
   fill: none;
   stroke: var(--outcomes-error-ink-color);
   stroke-width: 0.1;
 }
 
+/* A spent hint: a ring per cell, and no line between them. That gap is the
+ * whole mechanic — the reveal says WHERE the word is, never what order it
+ * runs in. */
 /* @@ */ .ringHint {
   fill: none;
   stroke: var(--strands-hint-ring);

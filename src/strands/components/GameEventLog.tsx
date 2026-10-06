@@ -84,8 +84,8 @@ const BODY: Partial<Record<GResult, string>> = {
  * divider, so a hint gets a `#N` like any other turn — which is what lets one
  * replay its ring on the board.
  *
- * **Coop shows everyone's rows.** Joel's ruling: a peer sees your word when you
- * submit it, so there is no per-player split to make here. Compete's rows are
+ * **Coop shows everyone's rows**: a peer sees your word when you submit it, so
+ * there is no per-player split to make here. Compete's rows are
  * my own mid-race, by `useGame`'s seat rule, and open up once the game ends.
  *
  * A row's `#N` is the turn-history handle (shared `EventLogNumber`), offered on

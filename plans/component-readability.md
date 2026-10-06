@@ -457,6 +457,29 @@ and settled, beyond the games above:
 - **A keystroke the board turns away is not an answer.** It writes no row, so it
   stays out of `GAnswer`, and its pill is its only surface.
 
+## What strands added
+
+strands converted alone (2026-10-05), the backfill inside its conversion, and
+settled, beyond the games above:
+
+- **A name says which kind of thing it holds** when a game has several kinds
+  of the same thing. strands has four kinds of word, so a bare `words` or
+  `nFoundWords` could not be read without the mode and the rules in mind:
+  `puzzleWords`, `foundPuzzleWords`, `nFoundPuzzleWords`. A bare `word` is
+  kept for the one thing that can be any kind — the word a trace spelled —
+  and the doc names the kinds once (docs/games/strands.md → Naming the words).
+- **A pool is the team's, a count of acts is the player's.** Coop's hint bar
+  and ringed hint are one pool — `team.hintPoints`, and the ring on the shared
+  board — while the hints cashed are each player's own `nHintsUsed`, counted to
+  whoever cashed.
+- **A reducer takes tiles; the hook holds ids.** `lib/trace.ts` works on
+  `GTile`s and `useTrace` keeps their ids, handing back the live tiles each
+  render, so the geometry reads tiles and nothing stale is held.
+- **A leaf that is live over a past turn says why.** The board's letters stay
+  clickable while history is open, because a click there is how the board goes
+  back to live; their `isDisabled` is not the column's `canPick`, and the code
+  says so.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

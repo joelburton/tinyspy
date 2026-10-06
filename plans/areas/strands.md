@@ -252,6 +252,32 @@ SQL builders `_make_json_puzzle_words`, `_make_json_found_puzzle_words` and
 `hintPoints` / `hintCost`. A bare `word` is the word a trace spelled; the doc's
 "Naming the words" says so.
 
+## The prose and the comments
+
+Step 14 (2026-10-05, Joel: "commit and continue"): `docs/games/strands.md`
+describes the blobs, the answers, the seat rule, the component tree and the
+tests as they are, with the reads, the views, the statuses and the "how it
+used to work" passages gone; plans/seat-view.md has strands' done line and
+plans/component-readability.md "What strands added". The comment pass, every
+file including the SQL, the scripts and the tests: dates and attributions out
+of comments, past tense about the code rewritten as what is, two CSS comments
+moved onto the rules they describe and `.ringLast`'s corrected (a click never
+submits), `db.ts` on the blobs, and `//` on single members (`HintBar`'s props,
+the importer's `solutions`). No Restart defenses were found.
+
+## BoardCol, decomposed
+
+2026-10-05, after step 14 (Joel: "there a lot in boardcol; it's not as
+decomposed as others … i'll take your recs and do it now"): the send is
+`useSubmitTrace`, the hint `useSpendHint`, the four commands
+`useBoardColActions` (returning `canPick` and the ambiguous tiles), the title
+prompt `useShowPuzzleTitle`; `useTrace` stays the buffer. The cursor is
+`useTileCursor`, the siblings' hook and shape (`cell`, `pickClicked`) plus
+`moveTo`, which only strands needs: a typed letter and Submit move the cursor,
+so the column calls it rather than the board, and hands the actions a
+`moveCursorTo` that only an action's run calls. BoardCol went from ~370 lines
+to under 200.
+
 ## What the InfoCol pass changed that a player can see
 
 - **Back-to-club is in the row while I am out of a race**; it was missing.

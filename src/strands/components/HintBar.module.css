@@ -34,8 +34,8 @@
 /* GREEN, not purple. Purple is spoken for on this board — it means "a found
  * theme word" — and spending it on hint progress too would make one color
  * carry two unrelated ideas. Green is what the roster already uses for a good
- * outcome, and specifically what the `valid word` pill shows when a find puts a
- * point on this bar, so the pill and the bar now agree. */
+ * outcome, and specifically what the pill shows when a hint word puts a point
+ * on this bar, so the pill and the bar agree. */
 /* @@ */ .fill {
   height: 100%;
   background: var(--outcomes-won-fill-color);

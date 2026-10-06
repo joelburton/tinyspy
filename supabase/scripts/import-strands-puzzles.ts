@@ -6,17 +6,16 @@
  * `supabase/data/strands-puzzles.jsonl`.
  *
  * **No network.** Every puzzle comes off disk, which is the whole point of the
- * split: `gmake db ENV=local` is routine and frequent, and it used to fire ~900
- * requests at nytimes.com each time. Fetching now lives in its own rare,
- * incremental step (`gmake g-strands-fetch` → fetch-strands-puzzles.ts); this
- * half only ever reads what that produced.
+ * split (fetch-strands-puzzles.ts says why): fetching lives in its own rare,
+ * incremental step (`gmake g-strands-fetch`); this half only ever reads what
+ * that produced.
  *
  * The archive is re-validated on the way in — same `validatePuzzle` the fetcher
  * ran — because a hand-edited or half-written file should fail loudly rather
  * than land in a table. Cheap: ~900 puzzles of pure array walking.
  *
- * Idempotent: upserts on `source_id` with ignoreDuplicates, so re-running is a
- * no-op on rows already present.
+ * Idempotent: upserts on `source_id`, so re-running refreshes each row in place
+ * and adds the new ones.
  *
  * Usage:
  *   npm run _strands:import

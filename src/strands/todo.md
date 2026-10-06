@@ -62,6 +62,9 @@
 
 ## Won't do
 
+- **A `MobileStatusBar`.** Not for strands (2026-10-05, Joel took the BoardCol
+  pass's recommendation: "commit and do it"): the pill slot already says the
+  prompt and the verdict on a phone.
 - **The pill reading `res.outcome`.** Overtaken 2026-10-05 by the conversion:
   the move envelopes carry no outcome, and `lib/answer.ts`'s `answerMessage`
   is what the pill and the log bar both read (plans/seat-view.md → How a game

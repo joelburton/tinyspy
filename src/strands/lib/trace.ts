@@ -25,7 +25,7 @@
  * be tested exhaustively without rendering anything, and the component reduces
  * to "draw the trace, forward the clicks and keys".
  *
- * Drag-to-trace is deliberately not built (2026-08-04): it isn't a speed game,
+ * Drag-to-trace is deliberately not built: it isn't a speed game,
  * click-by-click is simpler, and it can be layered on later as a second way to
  * produce the same actions.
  */

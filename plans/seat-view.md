@@ -552,6 +552,20 @@ next open (todo.md → Someday).
   read off the blob's stack; the board draws a `Tile` piece; one action row;
   `lib/answer.ts` says every answer and the move envelopes carry no outcome;
   every RPC call sends `p_` names.
+- **strands — done 2026-10-05**, stackdown's way: the puzzle is the theme
+  prompt (`title`), 48 `{id, letter, row, col}` tiles with the tile's place
+  `"r,c"` as id, and the puzzle words `{word, tileIds, spangram}`, null until
+  the end. Every seat's `board` is `{foundPuzzleWords, hintTileIds}` (coop's one
+  board on every seat); coop's one hint bar is `team.hintPoints`, a racer's
+  their own `hintPoints`, and each player's `nHintsUsed` and
+  `nFoundPuzzleWords` are their own (20261005000005, the column
+  `n_hints_used`). The board, the solution and the log's words are lowercase
+  (20261005000004). The statuses, both views, their definers and the events
+  mode arm went (plans/areas/strands.md → The convenience RLS). The trace is
+  `useTrace`, held as tile ids; the board draws a `Tile` piece; one action row;
+  the move envelopes carry no outcome; every RPC call sends `p_` names. The
+  words got their names: puzzle word, theme word, spangram, hint word
+  (docs/games/strands.md → Naming the words).
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

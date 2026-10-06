@@ -84,7 +84,7 @@ select lives_ok(
   'but the date picker CAN list puzzles (id, source_id, puzzle_date)'
 );
 
--- The title is READABLE from the archive (2026-08-13), and that is a decision,
+-- The title is READABLE from the archive, and that is a decision,
 -- not an oversight — so it is pinned rather than left to the absence of a
 -- failing test. The picker shows it under the date so you can recognize a
 -- puzzle you have already played; it is the game's own title and is on screen

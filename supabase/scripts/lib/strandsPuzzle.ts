@@ -35,7 +35,7 @@ export type Feed = {
   spangram: string
   themeCoords: Record<string, GCoord[]>
   spangramCoords: GCoord[]
-  /** NYT's own list of hint words. Deliberately NOT kept — see the fetcher. */
+  // NYT's own list of hint words. Deliberately NOT kept — see the fetcher.
   solutions?: string[]
 }
 

@@ -6,13 +6,12 @@
  * `supabase/data/strands-puzzles.jsonl`. **This is the only script that talks
  * to nytimes.com.**
  *
- * Why the split. The importer used to fetch every puzzle on every run, which
- * meant a `gmake db ENV=local` — a routine, frequent operation — fired ~900
- * requests at someone else's endpoint. That is rude at best and a way to get
- * blocked at worst. So the network step is now separate, incremental, and rare:
- * the archive lives on disk, database resets read from it, and this runs only
- * when there are genuinely new puzzles to pick up. Same shape as stackdown's
- * generate-then-import split.
+ * Why the split: a `gmake db ENV=local` is routine and frequent, and fetching
+ * on every reset would fire ~900 requests at someone else's endpoint — rude at
+ * best and a way to get blocked at worst. So the network step is separate,
+ * incremental and rare: the archive lives on disk, database resets read from
+ * it, and this runs only when there are genuinely new puzzles to pick up. Same
+ * shape as stackdown's generate-then-import split.
  *
  * Incremental by construction: dates already in the file are never re-fetched,
  * so a daily top-up costs one request. NYT publishes one puzzle per day with no
@@ -22,8 +21,7 @@
  * auth (unlike the NYT crossword endpoint, which needs a cookie jar in a
  * secret). Out-of-range dates 404 cleanly. The archive starts 2024-03-04.
  *
- * The feed also ships `solutions` — NYT's own 600–1300 valid non-theme words
- * per board. Deliberately NOT stored: our hint words come from `common.words`
+ * The feed also ships `solutions` — NYT's own 600–1300 hint words per board. Deliberately NOT stored: our hint words come from `common.words`
  * at the game's difficulty band, and that band IS the difficulty lever, whereas
  * NYT's list is Collins-flavored (ADAW, AESC, ALAP) and doesn't match how the
  * rest of the roster reads. It stays useful as a TEST FIXTURE — a free parity
@@ -52,7 +50,7 @@ const FEED = (date: string) => `https://www.nytimes.com/svc/strands/v2/${date}.j
 
 /**
  * Deliberately gentle. This is a guest on someone else's endpoint, and since
- * the archive is now cached on disk this loop runs rarely and usually for a
+ * the archive is cached on disk this loop runs rarely and usually for a
  * single day — so there is nothing to gain from being fast, and a modest
  * concurrency plus a small pause is cheap insurance against looking like abuse.
  */

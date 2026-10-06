@@ -6,16 +6,15 @@ import type { Action } from '@/common/actions/useBindAction'
 import styles from './HintBar.module.css'
 
 type Props = {
-  /** Points on the bar (0..hintCost). */
+  // Points on the bar (0..hintCost).
   hintPoints: number
-  /** Hint words per hint — the bar's denominator. */
+  // Hint words per hint — the bar's denominator.
   hintCost: number
-  /** A hint is already on the board. */
+  // A hint is already on the board.
   showing: boolean
-  /** Cash a hint. It carries its own reason in its bubble — "A hint is already
-   *  showing", "Find N more valid words", "Reveal the tiles of one theme word"
-   *  — because what this control can do depends on the economy, not on the
-   *  bar. Its words stay "Hint". */
+  // Cash a hint. It carries its own reason in its bubble, because what this
+  // control can do depends on the economy, not on the bar. Its words stay
+  // "Hint".
   actHint: Action
 }
 
@@ -29,9 +28,9 @@ type Props = {
  * occasionally: a player who can't see how close the next hint is has lost the
  * loop the game runs on.
  *
- * **The full bar is the only signal that further points are being lost.** Per
- * Joel's ruling the counter caps at `hintCost`, so hint words found while a hint sits
- * unspent earn nothing — and nothing warns about it, deliberately. That makes
+ * **The full bar is the only signal that further points are being lost.** The
+ * counter caps at `hintCost`, so hint words found while a hint sits unspent earn
+ * nothing — and nothing warns about it, deliberately. That makes
  * the filled state load-bearing, which is why it gets its own styling rather
  * than just being "100% wide".
  *

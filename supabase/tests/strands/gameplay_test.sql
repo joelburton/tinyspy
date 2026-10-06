@@ -122,8 +122,8 @@ select is(
 -- ============================================================
 -- (8)–(9) THE CAP: a full bar swallows further points
 -- ============================================================
--- Joel's ruling: points earned while a hint sits unspent are LOST, and the
--- player reads that off the full bar rather than being warned. So a fourth
+-- Points earned while a hint sits unspent are LOST, and the player reads that
+-- off the full bar rather than being warned. So a fourth
 -- hint word is still a hint word — logged, and honestly reported as
 -- 'hint_word' — it just doesn't move the bar.
 
@@ -253,11 +253,11 @@ select is(
 -- ============================================================
 -- (20)–(23) REGRESSION: an equivalent trace of the same tiles
 -- ============================================================
--- The 2026-08-02 bug. A puzzle word with a repeated letter can sit on two
--- interchangeable tiles, and then more than one legal trace covers the IDENTICAL
--- cells and spells the IDENTICAL word. Comparing the stored coord ARRAY rejected
--- one of them and scored it as an ordinary dictionary find — telling a player
--- who had genuinely found the word, in its place, that they hadn't.
+-- A puzzle word with a repeated letter can sit on two interchangeable tiles,
+-- and then more than one legal trace covers the IDENTICAL cells and spells the
+-- IDENTICAL word. Comparing the ordered coords would reject one of them and
+-- score it as an ordinary dictionary find — telling a player who had genuinely
+-- found the word, in its place, that they hadn't.
 --
 -- A find is identified by WHICH TILES it consumes plus the word they spell,
 -- never by the order they were visited in.

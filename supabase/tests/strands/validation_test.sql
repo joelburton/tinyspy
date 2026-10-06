@@ -45,9 +45,8 @@ select pg_temp.envelope_is(
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
   'the answer names itself, so a call site has a case to assert');
 
--- A tiny local shorthand: submit a literal path against the fixture game.
--- No `format` any more — a refusal is a VALUE now, not an exception, so the
--- call needs no deferring.
+-- A tiny local shorthand: submit a literal path against the fixture game. A
+-- refusal is a VALUE, not an exception, so the call needs no deferring.
 create function pg_temp.submit(p text) returns jsonb
 language sql as $$
   select strands.submit_path((select id from g), p::jsonb)

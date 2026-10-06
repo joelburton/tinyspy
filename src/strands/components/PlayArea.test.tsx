@@ -28,8 +28,6 @@ import { PlayAreaLoader } from './PlayArea'
  * `lib/history`, `lib/hintCopy` and the print model are pure functions with
  * their own files, and the pgTAP files own the rules. What none of them see is
  * the WIRING — which control renders in which state, and what each is handed.
- * That gap let a reveal bug ship on 2026-08-16, when a table that had just
- * solved the puzzle had to press Reveal to see words they'd traced themselves.
  *
  * So these are deliberately about STATE → CONTROLS, not about game logic:
  * playing vs out of the race vs ended, the reveal's three faces, and the
@@ -226,8 +224,8 @@ describe('strands PlayArea — the reveal at the end', () => {
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
   })
 
-  /** The 2026-08-16 bug: a coop solve stamps every teammate, so a table that
-   *  just solved the puzzle sees the words unasked. */
+  // A coop solve stamps every teammate, so a table that just solved the
+  // puzzle sees the words unasked.
   it('a COOP WIN names the words unasked, and the control says it is done', () => {
     render(
       <PlayAreaLoader

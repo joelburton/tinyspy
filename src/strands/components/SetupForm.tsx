@@ -20,12 +20,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *
  *   - **Puzzle** — a read-only line naming what Start will play, NOT a picker.
  *     The server chooses (`strands.next_puzzle_for_club`): the earliest puzzle
- *     none of the selected players has played, in any club. The date picker
- *     this replaced offered 884 identical-looking dates, and its besetting
- *     problem was starting one you'd already done — first patched by showing
- *     the title under the input, then solved properly by removing the choice.
- *     The title survives as the label on that line, which is the right place
- *     for it: it's how a person recognizes a strands puzzle.
+ *     none of the selected players has played, in any club. The puzzle's title
+ *     is the line's label: it's how a person recognizes a strands puzzle.
  *   - **Hint dictionary** — the band a word must reach to earn a hint point.
  *   - **Words per hint** / **Shortest word**.
  *
@@ -65,13 +61,12 @@ export function SetupForm({
         errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.id)}
-        // The empty cases are the SERVER's to word now, and each lands under
-        // the field that is the way out of it: PN416 (this archive is spent for
+        // The empty cases are the SERVER's to word, and each lands under the
+        // field that is the way out of it: PN416 (this archive is spent for
         // these players) and PN417 (no puzzle that day) both name `puzzle_id`,
         // so the message sits red under the puzzle field and stays there after
         // a modal is dismissed. A fault says `_` and takes the form's own line.
-        // The section has no third state, so a refusal still returns null — it
-        // just no longer passes for an empty archive.
+        // The section has no third state, so a refusal returns null.
         load={async (seenBy) => {
           const res = await runRpc<GPuzzleAnswer>(
             db.rpc('next_puzzle_for_club', { p_seen_by: seenBy }),

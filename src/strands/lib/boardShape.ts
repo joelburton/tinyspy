@@ -1,7 +1,6 @@
 // cs-unmet
 
-import type { BoardShape, Cell } from '@/common/board-cursor/stepCell'
-import type { GTile } from '../types'
+import type { BoardShape } from '@/common/board-cursor/stepCell'
 import { COLS, ROWS } from './board'
 
 /**
@@ -11,9 +10,3 @@ import { COLS, ROWS } from './board'
  * which is nothing.
  */
 export const BOARD_SHAPE: BoardShape = { numCols: COLS, numRows: ROWS, exists: () => true }
-
-/** The cursor cell a tile sits in. */
-export const cellOf = (tile: GTile): Cell => ({ x: tile.col, y: tile.row })
-
-/** The id of the tile in a cursor cell — its place, "r,c". */
-export const tileIdAt = (cell: Cell): string => `${cell.y},${cell.x}`
