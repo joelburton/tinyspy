@@ -173,6 +173,11 @@ top-level board, and the pgTAP pins of the blob.
 - **`oneBoard` is dropped in its own commit**, right after psychicnum's
   (migration 20261006000003, which also strips the key from the stored static
   blobs).
+- **A total that can only ever be the puzzle's stays in `puzzle`** (stackdown's
+  `nReqdWords`; Joel, 2026-10-06): it is game-level, with no per-player goal
+  it could become, so it is not a fact. `StateLine` takes it beside the facts:
+  `<StateLine facts={gd.me} puzzle={gd.puzzle} />`. A total that could one day
+  be a per-player goal is asked when its game is reached.
 
 ## Open
 

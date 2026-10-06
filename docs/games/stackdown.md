@@ -255,8 +255,15 @@ it into `game_data`, each key in its place.
 | blob | stackdown's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles, nReqdWords}` — the stack as 30 `{id, letter, x, y, z}` tiles by tile number (the id is the number as text); the six words to clear |
-| `game_data` | `puzzle: {solution}`, the six words themselves, null until the game ends. `team: {nFoundWords, nHintsUsed, nSpoilersUsed}`, the players' own counts summed, null in compete. `events`, every row `{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}` — a hint's text is its `clue`, a played word's tiles are ids in pick order. On each player their own `nFoundWords`, `nHintsUsed` and `nSpoilersUsed`, and `board: {tiles}` — the tiles still on their stack, the one shared stack on every seat in coop |
-| `summary_data` | `team`, as above; `nReqdWords`; `band` |
+| `game_data` | `puzzle: {solution}`, the six words themselves, null until the game ends. `team`, the team's facts sent once — the players' own counts summed, and the one stack — null in compete. `events`, every row `{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}` — a hint's text is its `clue`, a played word's tiles are ids in pick order. On each player their own facts; a coop player's `board` is null, the one stack being `team`'s |
+| `summary_data` | `team: {nFoundWords, nHintsUsed, nSpoilersUsed}`, the team's counts, null in compete; `nReqdWords`; `band` |
+
+stackdown's facts (`GFacts`) are `nFoundWords`, `nHintsUsed`, `nSpoilersUsed`
+and `board: {tiles}`, the tiles still on the stack. `useGame` puts the side's
+facts on every player — the team's in coop, their own in compete — and their
+own under `own` ([plans/team-facts.md](../../plans/team-facts.md)). The six
+words to clear are the puzzle's, the same for every side, so `StateLine` reads
+`gd.me` beside `gd.puzzle`.
 
 **The builder writes every stack and every row.** What a racer may not see yet
 — a rival's stack and log rows mid-race — `useGame`'s seat rule withholds;

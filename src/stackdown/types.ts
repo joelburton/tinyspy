@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -57,34 +57,32 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The six words, in clearing order. Null until the game ends.
     solution: string[] | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the players' own counts summed, and the one
+  // stack. Null in compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every row, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the players' own counts,
- * summed.
+ * stackdown's facts (plans/team-facts.md): the words cleared, the hints and
+ * spoilers taken, and the stack they are played on. A player carries them
+ * twice — spread on, their side's (the team's in coop, their own in compete);
+ * under `own`, their own. The words to clear are the puzzle's, the same for
+ * every side (`puzzle.nReqdWords`).
  */
-export type GTeam = {
+export type GFacts = {
   nFoundWords: number
   nHintsUsed: number
   nSpoilersUsed: number
+  // The tiles still on the stack; null for a rival mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the state line shows — "2 / 6 words cleared · 1 hint · 0 spoilers used":
- * the team's counts in coop, my own in compete. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = {
-  nFoundWords: number
-  nReqdWords: number
-  nHintsUsed: number
-  nSpoilersUsed: number
+/** `GFacts` as the builders write them: the stack is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /**
@@ -139,15 +137,10 @@ export type GEventRaw = {
 }
 
 /** A player as stackdown's game_data shows them: the common player, with
- *  their own counts and this seat's stack. */
-export type GPlayerRaw = PlayerRaw & {
-  // This player's own, in every mode; the team's are `team`'s.
-  nFoundWords: number
-  nHintsUsed: number
-  nSpoilersUsed: number
-  // What this seat sees: the tiles still on its stack — the one shared stack
-  // in coop, each racer's own in compete.
-  board: GBoard
+ *  their own facts. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own stack; null in coop, whose one stack is `team`'s.
+  board: GBoard | null
 }
 
 /*
@@ -170,7 +163,6 @@ export type GPlayerRaw = PlayerRaw & {
  *     tilesById
  *     nReqdWords                             # 6
  *     solution: [word, …]                    # null until the game ends
- *   team: {nFoundWords, nHintsUsed, nSpoilersUsed}   # the players' own, summed; null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -179,14 +171,14 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nFoundWords, nReqdWords, nHintsUsed, nSpoilersUsed}   # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   nFoundWords                              # own, in every mode
- *   nHintsUsed                               # own
- *   nSpoilersUsed                            # own
- *   board: {tiles}                           # this seat's stack, the shared one in coop; null for a rival mid-race
+ *   nFoundWords                              # the side's: the team's in coop, their own in compete
+ *   nHintsUsed
+ *   nSpoilersUsed
+ *   board: {tiles}                           # coop's one stack on every player; null for a rival mid-race
+ *   own: {nFoundWords, nHintsUsed, nSpoilersUsed, board}   # this player's own
  *
  * tile:                                      # GTile
  *   id                                       # the tile number as text
@@ -214,7 +206,7 @@ export type GPlayerRaw = PlayerRaw & {
  * rows built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   puzzle: GGameDataRaw['puzzle'] & {
     // The same tiles, keyed by id.
     tilesById: Record<string, GTile>
@@ -238,14 +230,15 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
   // My entry in `playersById`: the same object. My own stack is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's counts in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  stack withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the blob's player with
+ * stackdown's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's stack is null mid-race.
+ */
+export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat sees: the tiles still on its stack, by tile number. */
@@ -376,12 +369,12 @@ export type GSetup = SetupOf<GSetupValues>
  * there is no polished pair and no `Raw`; the play surface reads `game_data`
  * instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries, null in compete, whose summary
- * shows no progress; the winner is the common `ending.winner`. `band` is the
- * setup's dictionary band.
+ * `team` is the team's counts in coop, null in compete, whose summary shows no
+ * progress; the winner is the common `ending.winner`. `band` is the setup's
+ * dictionary band.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nFoundWords' | 'nHintsUsed' | 'nSpoilersUsed'> | null
   nReqdWords: number
   band: number
 }

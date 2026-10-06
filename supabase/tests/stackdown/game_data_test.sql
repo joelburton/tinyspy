@@ -10,11 +10,11 @@
 --
 --   1. A fresh game: the stack as 30 tiles by tile number and the six words to
 --      clear in static_game_data, no solution in game_data's puzzle; coop's
---      team at nothing and no team in compete; each
---      player fresh, with the whole stack as their board; both fresh summaries
+--      team at nothing with the whole stack, no team in compete; each player
+--      fresh, a racer with the whole stack as their board; both fresh summaries
 --   2. Mid-game coop: a word, a refused word, a hint and a spoiler in the log —
 --      the hint's text under `clue`, a word's tiles as ids in pick order; the
---      shared stack on every seat; each player's own counts and the team's sum
+--      team's one stack, sent once; each player's own counts and the team's sum
 --   3. Mid-game compete: each racer's own counts and own stack; the log
 --      carries every racer's rows (the hook withholds, not the builder)
 --   4. The endings: the solution arrives, a coop clear stamps every teammate,
@@ -71,14 +71,14 @@ create function pg_temp.shell_data(game uuid) returns jsonb language sql as
 create function pg_temp.player(game uuid, uid uuid) returns jsonb language sql as
   $$ select p from jsonb_array_elements((select game_data -> 'players' from common.games where id = game)) p
       where p ->> 'id' = uid::text $$;
--- A player's stackdown keys alone: the common player taken off, and the board
--- as its tile count.
+-- A player's stackdown keys alone, or the team's: the common player taken
+-- off, and the board as its tile count (null where there is none).
 create function pg_temp.own_keys(player jsonb) returns jsonb language sql as
   $$ select (player - 'id' - 'username' - 'color' - 'ai' - 'seat' - 'ending' - 'outcome'
                     - 'finalRanking' - 'solvedAt' - 'conceded' - 'solved' - 'stillPlaying'
                     - 'onTurn' - 'waitingForTurn' - 'board')
             || jsonb_build_object('nBoardTiles', jsonb_array_length(player -> 'board' -> 'tiles')) $$;
--- Whether a seat's stack still holds a tile.
+-- Whether a side's stack (a player's or the team's) still holds a tile.
 create function pg_temp.on_board(player jsonb, tile text) returns boolean language sql as
   $$ select exists (select 1 from jsonb_array_elements(player -> 'board' -> 'tiles') t
                      where t ->> 'id' = tile) $$;
@@ -103,9 +103,9 @@ select is(
   'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0}'::jsonb,
-  'coop: a team with nothing found or taken'
+  pg_temp.own_keys(pg_temp.game_data(pg_temp.coop()) -> 'team'),
+  '{"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": 30}'::jsonb,
+  'coop: a team with nothing found or taken, and the whole stack'
 );
 select is(
   pg_temp.game_data(pg_temp.compete()) -> 'team',
@@ -118,9 +118,12 @@ select is(
   'no log yet'
 );
 select is(
-  pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')),
-  '{"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": 30}'::jsonb,
-  'a fresh player: nothing found or taken, the whole stack as their board'
+  jsonb_build_array(
+    pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')),
+    pg_temp.own_keys(pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111'))),
+  '[{"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": null},
+    {"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": 30}]'::jsonb,
+  'a fresh player: nothing found or taken; a coop player carries no stack, a racer the whole stack'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
@@ -167,22 +170,22 @@ select is(
   'a hint''s text is its clue, never a word'
 );
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'team',
-  '{"nFoundWords": 1, "nHintsUsed": 1, "nSpoilersUsed": 1}'::jsonb,
-  'coop: the team''s counts, summed over every player''s own'
+  pg_temp.own_keys(pg_temp.game_data(pg_temp.coop()) -> 'team'),
+  '{"nFoundWords": 1, "nHintsUsed": 1, "nSpoilersUsed": 1, "nBoardTiles": 25}'::jsonb,
+  'coop: the team''s counts, summed over every player''s own, and the one stack'
 );
 select is(
   jsonb_build_array(
     pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')),
     pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222'))),
-  '[{"nFoundWords": 1, "nHintsUsed": 0, "nSpoilersUsed": 1, "nBoardTiles": 25},
-    {"nFoundWords": 0, "nHintsUsed": 1, "nSpoilersUsed": 0, "nBoardTiles": 25}]'::jsonb,
-  'coop: each player''s own counts, and the one shared stack on both seats'
+  '[{"nFoundWords": 1, "nHintsUsed": 0, "nSpoilersUsed": 1, "nBoardTiles": null},
+    {"nFoundWords": 0, "nHintsUsed": 1, "nSpoilersUsed": 0, "nBoardTiles": null}]'::jsonb,
+  'coop: each player''s own counts; the one stack is sent once, on the team'
 );
 select is(
-  pg_temp.on_board(pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222'), '19'),
+  pg_temp.on_board(pg_temp.game_data(pg_temp.coop()) -> 'team', '19'),
   false,
-  'coop: a word one player cleared is off everyone''s stack'
+  'coop: a word one player cleared is off the team''s stack'
 );
 
 -- ─── (3) Mid-game compete: ada clears EAGLE ───
@@ -228,7 +231,7 @@ select is(
   'coop cleared: the clear stamps every teammate, and the team found all six'
 );
 select is(
-  pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111')) -> 'nBoardTiles',
+  pg_temp.own_keys(pg_temp.game_data(pg_temp.coop()) -> 'team') -> 'nBoardTiles',
   '0'::jsonb,
   'coop cleared: the stack is empty'
 );
@@ -261,12 +264,12 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   jsonb_build_object(
-    'team',     pg_temp.game_data(pg_temp.coop()) -> 'team',
+    'team',     pg_temp.own_keys(pg_temp.game_data(pg_temp.coop()) -> 'team'),
     'events',   pg_temp.game_data(pg_temp.coop()) -> 'events',
     'solution', pg_temp.game_data(pg_temp.coop()) -> 'puzzle' -> 'solution',
     'ada',      pg_temp.own_keys(pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111'))),
-  '{"team": {"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0}, "events": [], "solution": null,
-    "ada": {"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": 30}}'::jsonb,
+  '{"team": {"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": 30}, "events": [], "solution": null,
+    "ada": {"nFoundWords": 0, "nHintsUsed": 0, "nSpoilersUsed": 0, "nBoardTiles": null}}'::jsonb,
   'after a Restart: the whole stack back, no log, nothing found or taken, no solution'
 );
 

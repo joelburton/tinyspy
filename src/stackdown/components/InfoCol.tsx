@@ -60,7 +60,7 @@ export function InfoCol({
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine facts={gd.me} puzzle={gd.puzzle} />
         </p>
 
         {/* Opponent strip (compete) — each player's found-word count, identity

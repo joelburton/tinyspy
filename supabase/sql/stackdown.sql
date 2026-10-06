@@ -187,24 +187,25 @@ drop function if exists stackdown._write_statuses(uuid, boolean);
 --
 --   game_data, stackdown's part:
 --     puzzle: {solution}                   the six words, null until the game ends
---     team: {nFoundWords, nHintsUsed, nSpoilersUsed}
---                                          the players' own counts, summed; null in
+--     team: {nFoundWords, nHintsUsed, nSpoilersUsed, board}
+--                                          the team's facts, once: the players' own
+--                                          counts summed, the one stack; null in
 --                                          compete (plans/team-facts.md)
 --     events: [{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}, …]
 --                                          every row, every player's; `word` a
 --                                          played word or a spoiler's, `clue` a
 --                                          hint's; what a racer may see of a rival
 --                                          mid-race is the hook's rule
---     players: [player, …]                 the common player, plus:
+--     players: [player, …]                 the common player, plus this player's own facts:
 --       nFoundWords, nHintsUsed, nSpoilersUsed
---                                          this player's own, in every mode
---       board: {tiles}                     this seat's stack, the tiles still on
---                                          it: the shared one in coop, each
---                                          racer's own in compete
+--       board: {tiles}                     a racer's own stack, the tiles still on
+--                                          it; null in coop, whose one stack is
+--                                          `team`'s
 --
 --   summary_data, stackdown's part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
---     team                                 the same group; null in compete
+--     team: {nFoundWords, nHintsUsed, nSpoilersUsed}
+--                                          the team's counts; null in compete
 --     nReqdWords
 --     band                                 the dictionary band, `setup.band`
 
@@ -228,8 +229,8 @@ $$;
 
 revoke execute on function stackdown._make_json_tiles(jsonb, int[]) from public;
 
--- The tiles a seat has cleared: every valid word's in coop, where the stack is
--- shared; the player's own in compete.
+-- The tiles a side has cleared: every valid word's for a null `p_user_id`, the
+-- coop team's one stack; else that racer's own.
 create or replace function stackdown._cleared_tile_ids(p_game_id uuid, p_user_id uuid)
 returns int[]
 language sql
@@ -237,11 +238,10 @@ stable
 set search_path = stackdown, common, public, extensions
 as $$
   select coalesce(array_agg(t), '{}'::int[])
-    from stackdown.events e
-    join common.games cg on cg.id = e.game_id,
+    from stackdown.events e,
          unnest(e.tile_ids) as t
    where e.game_id = p_game_id and e.valid
-     and (cg.mode = 'coop' or e.user_id = p_user_id);
+     and (p_user_id is null or e.user_id = p_user_id);
 $$;
 
 revoke execute on function stackdown._cleared_tile_ids(uuid, uuid) from public;
@@ -305,9 +305,25 @@ $$;
 
 revoke execute on function stackdown._make_json_counts(uuid, uuid) from public;
 
--- What the team shares: the players' own counts, summed. Null in compete, where
--- there is no team (plans/team-facts.md).
-create or replace function stackdown._make_json_team(p_game_id uuid)
+-- A side's stack: the tiles still on it. A null `p_user_id` is the coop
+-- team's one stack; else that racer's own.
+create or replace function stackdown._make_json_board(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'tiles', stackdown._make_json_tiles(sg.tiles, stackdown._cleared_tile_ids(p_game_id, p_user_id)))
+    from stackdown.games sg
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_board(uuid, uuid) from public;
+
+-- The team's counts: the players' own, summed. Null in compete, where there is
+-- no team.
+create or replace function stackdown._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -318,10 +334,27 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function stackdown._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: its counts and the one stack. Null in compete,
+-- where there is no team (plans/team-facts.md).
+create or replace function stackdown._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select stackdown._make_json_team_counts(p_game_id)
+           || jsonb_build_object('board', stackdown._make_json_board(p_game_id, null))
+    from common.games cg
+   where cg.id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function stackdown._make_json_team(uuid) from public;
 
 -- Every player as stackdown's game_data shows them: the common player, with
--- their own counts and this seat's stack.
+-- their own facts — their counts, and in compete their stack.
 create or replace function stackdown._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -331,12 +364,12 @@ as $$
   select jsonb_agg(
            cp.player
              || stackdown._make_json_counts(p_game_id, cp.id)
-             || jsonb_build_object('board', jsonb_build_object(
-                  'tiles', stackdown._make_json_tiles(
-                             sg.tiles, stackdown._cleared_tile_ids(p_game_id, cp.id))))
+             -- Coop's one stack is sent once, in `team`.
+             || jsonb_build_object('board', case when cg.mode = 'compete'
+                                              then stackdown._make_json_board(p_game_id, cp.id) end)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
-    join stackdown.games sg on sg.game_id = p_game_id;
+    join common.games cg on cg.id = p_game_id;
 $$;
 
 revoke execute on function stackdown._make_json_players(uuid) from public;
@@ -390,7 +423,7 @@ stable
 set search_path = stackdown, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',       stackdown._make_json_team(p_game_id),
+    'team',       stackdown._make_json_team_counts(p_game_id),
     'nReqdWords', cardinality(sg.solution),
     'band',       coalesce((cg.setup->>'band')::int, 1))
     from stackdown.games sg

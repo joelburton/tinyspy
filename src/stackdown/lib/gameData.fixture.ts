@@ -114,10 +114,10 @@ export function ZTest_spoiler(id: number, userId: string, word: string): GEventR
 
 /**
  * Build the `game_data` blob `stackdown._rebuild_data_cols` would write from
- * these facts: each seat's stack — the shared one in coop, each racer's own in
- * compete — with the tiles of the valid words that cleared it gone; each
- * player's own counts off their rows in the log, and coop's summed on the
- * team; the solution once ended; and where every player stands derived.
+ * these facts: each player's own counts off their rows in the log; the team's
+ * facts in coop (the counts summed, the one stack), a racer's own stack in
+ * compete — each with the tiles of the valid words that cleared it gone; the
+ * solution once ended; and where every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -138,16 +138,16 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const turnBased = turnHolderId !== undefined
 
   const rowsOf = (p: ZTest_PlayerFacts) => events.filter((e) => e.userId === p.id)
-  // The tiles off a seat's stack: every valid word's in coop, the racer's own
-  // in compete.
-  const clearedBy = (rows: GEventRaw[]) =>
-    new Set(rows.filter((e) => e.valid).flatMap((e) => e.tileIds))
+  // A stack with the tiles of these rows' valid words gone.
+  function makeBoard(rows: GEventRaw[]) {
+    const cleared = new Set(rows.filter((e) => e.valid).flatMap((e) => e.tileIds))
+    return { tiles: tiles.filter((t) => !cleared.has(t.id)) }
+  }
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
     const rows = rowsOf(p)
-    const cleared = clearedBy(coop ? events : rows)
     return {
       id: p.id,
       username: p.username,
@@ -166,7 +166,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       nFoundWords: rows.filter((e) => e.valid).length,
       nHintsUsed: rows.filter((e) => e.kind === 'hint').length,
       nSpoilersUsed: rows.filter((e) => e.kind === 'spoiler').length,
-      board: { tiles: tiles.filter((t) => !cleared.has(t.id)) },
+      // Coop's one stack is the team's.
+      board: coop ? null : makeBoard(rows),
     }
   })
 
@@ -193,7 +194,12 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       solution: ended ? ZTest_SOLUTION : null,
     },
     team: coop
-      ? { nFoundWords: sum('nFoundWords'), nHintsUsed: sum('nHintsUsed'), nSpoilersUsed: sum('nSpoilersUsed') }
+      ? {
+        nFoundWords: sum('nFoundWords'),
+        nHintsUsed: sum('nHintsUsed'),
+        nSpoilersUsed: sum('nSpoilersUsed'),
+        board: makeBoard(events),
+      }
       : null,
     events,
     players,

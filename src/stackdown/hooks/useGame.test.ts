@@ -122,24 +122,22 @@ describe('stackdown makeGameData — the puzzle', () => {
 })
 
 describe('stackdown makeGameData — the counts', () => {
-  it('coop: each player\'s counts are their own, and the team sums them', () => {
+  it('coop: every player carries the team\'s counts, and their own under `own`', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect([gd.me.nFoundWords, gd.me.nHintsUsed, gd.me.nSpoilersUsed]).toEqual([1, 0, 0])
     const moth = gd.playersById.u2!
-    expect([moth.nFoundWords, moth.nHintsUsed, moth.nSpoilersUsed]).toEqual([0, 1, 1])
-    expect(gd.team).toEqual({ nFoundWords: 1, nHintsUsed: 1, nSpoilersUsed: 1 })
+    expect([gd.me.nFoundWords, gd.me.nHintsUsed, gd.me.nSpoilersUsed]).toEqual([1, 1, 1])
+    expect([moth.nFoundWords, moth.nHintsUsed, moth.nSpoilersUsed]).toEqual([1, 1, 1])
+    expect([gd.me.own.nFoundWords, gd.me.own.nHintsUsed, gd.me.own.nSpoilersUsed]).toEqual([1, 0, 0])
+    expect([moth.own.nFoundWords, moth.own.nHintsUsed, moth.own.nSpoilersUsed]).toEqual([0, 1, 1])
+    expect(gd).not.toHaveProperty('team')
   })
 
-  it('coop: the state line shows the team\'s counts', () => {
-    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect(gd.stateLineData).toEqual({ nFoundWords: 1, nReqdWords: 6, nHintsUsed: 1, nSpoilersUsed: 1 })
-  })
-
-  it('coop: one stack, with every valid word\'s tiles gone, on every seat', () => {
+  it('coop: one stack, with every valid word\'s tiles gone, the same object on every player', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.me.board.tiles).toHaveLength(25)
     expect(gd.me.board.tiles.some((t) => t.id === '19')).toBe(false)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 })
 
@@ -173,10 +171,10 @@ describe('stackdown makeGameData — the seat rule', () => {
     expect(gd.playersById.u2!.board?.tiles).toHaveLength(20)
   })
 
-  it('a race has no team, so the state line shows my own counts', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nFoundWords: 1, nReqdWords: 6, nHintsUsed: 0, nSpoilersUsed: 0 })
+    expect([gd.me.nFoundWords, gd.me.own.nFoundWords]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a conceder is still a player, with their ending', () => {

@@ -46,7 +46,7 @@ function printFrom(facts: ZTest_GameDataFacts, solutionShown = true) {
     me: gd.me,
     events: gd.events,
     solution: solutionShown ? gd.puzzle.solution : null,
-    nFoundWords: gd.stateLineData.nFoundWords,
+    nFoundWords: gd.me.nFoundWords,
     nReqdWords: gd.puzzle.nReqdWords,
     setupRows: gd.setupRows,
   })
