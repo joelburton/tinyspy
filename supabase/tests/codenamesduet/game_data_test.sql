@@ -1,14 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: codenamesduet's page blobs — game_data and summary_data
+-- Test: codenamesduet's page blobs — static_game_data, game_data and summary_data
 -- ============================================================
 -- `codenamesduet._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/codenamesduet.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/codenamesduet.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh game: the deal — 25 tiles by position, each with both
---      players' keys — a board nobody has touched, open to both, no team
+--   1. A fresh game: the deal in the static blob — 25 tiles by position, each
+--      with both players' keys — and none in game_data; a board nobody has
+--      touched, open to both, no team
 --      progress, the opener holding the clue and the move, an empty log
 --   2. Mid-game: the turn's clue while it is guessed; an agent shown to both
 --      and guessable by neither; a bystander pointing at its guesser and
@@ -19,7 +21,8 @@
 --   6. Sudden death: the flag, the used turns stop at the budget, and an event
 --      on a turn past the budget says so
 --   7. A Restart empties the board, the log and the turn
---   8. `_rebuild_data_cols_for_all` rewrites every game without re-dating it
+--   8. `_rebuild_data_cols_for_all` rewrites every game, its static blob
+--      included, without re-dating it
 --
 -- Every key card is random, so a tile is found by its letter on both keys
 -- (`cell`).
@@ -30,7 +33,7 @@ set search_path = codenamesduet, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(31);
+select plan(32);
 
 -- The first board position that is `p_on_a` on seat A's key and `p_on_b` on
 -- seat B's.
@@ -63,6 +66,8 @@ create function pg_temp.gid() returns uuid language sql as
   $$ select id from g where name = 'played' $$;
 create function pg_temp.gd() returns jsonb language sql as
   $$ select game_data from common.games where id = pg_temp.gid() $$;
+create function pg_temp.sgd() returns jsonb language sql as
+  $$ select static_game_data from common.games where id = pg_temp.gid() $$;
 create function pg_temp.tile(pos int) returns jsonb language sql as
   $$ select pg_temp.gd() -> 'team' -> 'board' -> 'tiles' -> pos $$;
 create function pg_temp.player(uid text) returns jsonb language sql as
@@ -85,9 +90,10 @@ grant select on pos to authenticated;
 -- ============================================================
 
 select is(
-  (select jsonb_agg(t -> 'id') from jsonb_array_elements(pg_temp.gd() -> 'puzzle' -> 'tiles') t),
+  (select jsonb_agg(t -> 'id') from jsonb_array_elements(pg_temp.sgd() -> 'puzzle' -> 'tiles') t),
   (select jsonb_agg(to_jsonb(i::text) order by i) from generate_series(0, 24) i),
-  'the puzzle is the 25 tiles, by position');
+  'the static puzzle is the 25 tiles, by position');
+select is(pg_temp.gd() ? 'puzzle', false, 'game_data carries no puzzle: the deal is all static');
 
 select is(
   (select bool_and(
@@ -95,7 +101,7 @@ select is(
             and t -> 'key' = jsonb_build_object(
                   (select ada from ids), gm.key_card_a -> w.position,
                   (select bea from ids), gm.key_card_b -> w.position))
-     from jsonb_array_elements(pg_temp.gd() -> 'puzzle' -> 'tiles') t
+     from jsonb_array_elements(pg_temp.sgd() -> 'puzzle' -> 'tiles') t
      join codenamesduet.words w on w.game_id = pg_temp.gid() and w.position = (t ->> 'id')::int
      join codenamesduet.games gm on gm.game_id = pg_temp.gid()),
   true,
@@ -307,15 +313,17 @@ select is(
 -- (8) The rebuild over every game
 -- ============================================================
 
-update common.games set status_changed_at = '2026-01-01', game_data = '{}'::jsonb
+update common.games
+   set status_changed_at = '2026-01-01', game_data = '{}'::jsonb, static_game_data = null
  where id = pg_temp.gid();
 select cmp_ok(codenamesduet._rebuild_data_cols_for_all(), '>=', 2,
   '_rebuild_data_cols_for_all rewrites every codenamesduet game');
 select is(
   array[(select status_changed_at from common.games where id = pg_temp.gid())::text,
-        pg_temp.gd() ->> 'gametype'],
-  array['2026-01-01 00:00:00+00', 'codenamesduet'],
-  'it rewrites the blob and leaves the date alone');
+        pg_temp.sgd() ->> 'gametype',
+        (pg_temp.gd() ? 'team')::text],
+  array['2026-01-01 00:00:00+00', 'codenamesduet', 'true'],
+  'it rewrites both blobs and leaves the date alone');
 
 select * from finish();
 rollback;

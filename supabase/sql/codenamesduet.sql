@@ -214,11 +214,18 @@ drop function if exists codenamesduet._write_statuses(uuid, boolean);
 -- pieces below build each part, so `select game_data from common.games` shows
 -- the page what it gets.
 --
---   game_data, codenamesduet's part:
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- codenamesduet's puzzle is all of it: the deal never changes.
+--
+--   static_game_data, codenamesduet's part:
 --     puzzle: {tiles: [{id, word, key}, …]}
---                                          the deal, which never changes: the 25
---                                          words by position, each with both
---                                          players' keys for it, {[userId]: G / N / A}
+--                                          the deal: the 25 words by position,
+--                                          each with both players' keys for it,
+--                                          {[userId]: G / N / A}
+--
+--   game_data, codenamesduet's part:
 --     team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}
 --                                          what the pair shares; board is the
 --                                          table as it stands:
@@ -422,8 +429,8 @@ $$;
 
 revoke execute on function codenamesduet._make_json_players(uuid) from public;
 
--- The whole game_data blob: the common part, with codenamesduet's puzzle,
--- team, turn, log and players on top.
+-- The whole game_data blob: the common part, with codenamesduet's team, turn,
+-- log and players on top. The deal is static (`_make_json_static_game_data`).
 create or replace function codenamesduet._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -431,7 +438,6 @@ stable
 set search_path = codenamesduet, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'puzzle',  codenamesduet._make_json_puzzle(p_game_id),
            'team',    codenamesduet._make_json_team(p_game_id)
                         || jsonb_build_object('board', codenamesduet._make_json_board(p_game_id)),
            'turns',   (common._make_json_game_data(p_game_id) -> 'turns')
@@ -445,6 +451,20 @@ as $$
 $$;
 
 revoke execute on function codenamesduet._make_json_game_data(uuid) from public;
+
+-- The whole static_game_data blob: the common part, with the deal on top.
+-- Nothing in it changes after create_game.
+create or replace function codenamesduet._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', codenamesduet._make_json_puzzle(p_game_id));
+$$;
+
+revoke execute on function codenamesduet._make_json_static_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one.
 create or replace function codenamesduet._make_json_summary_data(
@@ -503,12 +523,32 @@ $$;
 revoke execute on function codenamesduet._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- codenamesduet._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function codenamesduet._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = codenamesduet._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function codenamesduet._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- codenamesduet._rebuild_data_cols_for_all — every codenamesduet game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every codenamesduet game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every codenamesduet
+-- game without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function codenamesduet._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -522,6 +562,7 @@ begin
   for v_game_id in
     select id from common.games where gametype = 'codenamesduet'
   loop
+    perform codenamesduet._write_static_game_data(v_game_id);
     perform codenamesduet._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -800,6 +841,7 @@ begin
   perform common._assign_turn_order(new_id, seat_a);
   perform codenamesduet._point_turn(new_id);
 
+  perform codenamesduet._write_static_game_data(new_id);
   perform codenamesduet._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not
