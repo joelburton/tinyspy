@@ -4,7 +4,7 @@ import type { Cell } from '@/common/board-cursor/stepCell'
 import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import { BOARD_SHAPE } from '../lib/boardShape'
-import type { GTile } from '../types'
+import type { GPlayer, GTile } from '../types'
 
 /**
  * The keyboard's way onto codenamesduet's board: arrows move the selection
@@ -19,6 +19,7 @@ export function useTileCursor({
   tiles,
   pickedTile,
   canGuess,
+  me,
   onPick,
   onGuess,
 }: {
@@ -27,6 +28,8 @@ export function useTileCursor({
   pickedTile: GTile | null
   // I may guess right now; the cursor is inert while not.
   canGuess: boolean
+  // Whose cursor: it picks only a tile I may still guess.
+  me: GPlayer
   // Pick a tile, or un-pick with null.
   onPick: (tile: GTile | null) => void
   // Guess a tile.
@@ -39,7 +42,7 @@ export function useTileCursor({
   // pick. A word the click couldn't guess can't be picked either.
   function togglePickAtCell(cell: Cell) {
     const tile = tiles[positionAt(cell.x, cell.y, BOARD_SHAPE.numCols)]
-    if (tile === undefined || !tile.guessable) return
+    if (tile === undefined || !tile.guessableBy.has(me)) return
     onPick(pickedTile?.id === tile.id ? null : tile)
   }
 

@@ -4,9 +4,11 @@ import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { StateLine } from './StateLine'
 
+const NO_BOARD = { tiles: [], tilesById: new Map() }
+
 const line = (nTurnsUsed: number, suddenDeath = false) =>
   render(
-    <StateLine data={{ nFoundAgents: 3, nAgents: 15, nTurnsUsed, maxTurns: 9, suddenDeath }} />,
+    <StateLine facts={{ nFoundAgents: 3, nTurnsUsed, maxTurns: 9, suddenDeath, board: NO_BOARD }} />,
   ).container.textContent
 
 describe('codenamesduet StateLine', () => {

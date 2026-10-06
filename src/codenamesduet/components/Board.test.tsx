@@ -59,7 +59,7 @@ function props(over: Over = {}, viewer = 'u1', facts: ZTest_GameDataFacts = {}):
   const gd = gdOf(viewer, facts)
   const o = { isViewingHistory: false, ...over }
   return {
-    tiles: o.tiles ?? gd.team.board.tiles,
+    tiles: o.tiles ?? gd.me.board.tiles,
     moveCount: o.moveCount ?? 2,
     marks: {
       pickedTile: o.pickedTile ?? null,
@@ -173,7 +173,7 @@ describe('codenamesduet Board — the bystander triangles', () => {
       ZTest_guess(7, 'u1', 3, 1, 'G'),
     ]
     const gd = makeGameData(ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: agentKey, turnNum: 3, events }), 'u1')
-    const container = drawWith({ tiles: gd.team.board.tiles })
+    const container = drawWith({ tiles: gd.me.board.tiles })
     expect(container.querySelectorAll(`.${styles.triPartner}, .${styles.triMine}`)).toHaveLength(0)
   })
 })
@@ -182,7 +182,7 @@ describe('codenamesduet Board — the board marks', () => {
   const grid = (c: HTMLElement) => c.querySelector('[data-board] > div') as HTMLElement
 
   it('dims the tile whose guess is in flight, and no other', () => {
-    const c = drawWith({ inFlightTile: gdOf().team.board.tiles[3]! })
+    const c = drawWith({ inFlightTile: gdOf().me.board.tiles[3]! })
     const dimmed = [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.dimInFlight))
     expect(dimmed.map((b) => b.textContent)).toEqual(['word3'])
   })
@@ -213,7 +213,7 @@ describe('codenamesduet Board — attention and the shake', () => {
   // The board with tile `p` showing `as` — a reveal landing.
   const turned = (tiles: GTile[], p: number, as: GKey) =>
     tiles.map((t) => (Number(t.id) === p ? { ...t, revealed: { as, arrows: new Set<GPlayer>() } } : t))
-  const at = (over: Over) => <Board {...props({ tiles: live.team.board.tiles, ...over })} />
+  const at = (over: Over) => <Board {...props({ tiles: live.me.board.tiles, ...over })} />
   const flashingWords = (c: HTMLElement) =>
     [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.attentionFlash)).map((b) => b.textContent)
 
@@ -221,26 +221,26 @@ describe('codenamesduet Board — attention and the shake', () => {
 
   it('flashes the tile a guess turned over, on the move and not otherwise', () => {
     const { container, rerender } = render(at({}))
-    rerender(at({ tiles: turned(live.team.board.tiles, 5, 'G'), moveCount: 3 }))
+    rerender(at({ tiles: turned(live.me.board.tiles, 5, 'G'), moveCount: 3 }))
     expect(flashingWords(container)).toEqual(['word5'])
   })
 
   it('does not flash a board that changed with no guess behind it', () => {
     const { container, rerender } = render(at({}))
-    rerender(at({ tiles: turned(live.team.board.tiles, 5, 'G') }))
+    rerender(at({ tiles: turned(live.me.board.tiles, 5, 'G') }))
     expect(flashingWords(container)).toEqual([])
   })
 
   it('stays quiet while a past turn is open', () => {
     const { container, rerender } = render(at({ isViewingHistory: true }))
-    rerender(at({ isViewingHistory: true, tiles: turned(live.team.board.tiles, 5, 'G'), moveCount: 3 }))
+    rerender(at({ isViewingHistory: true, tiles: turned(live.me.board.tiles, 5, 'G'), moveCount: 3 }))
     expect(flashingWords(container)).toEqual([])
   })
 
   it('shakes an assassin or a bystander once the flash is done, never an agent', () => {
     vi.useFakeTimers()
     const { container, rerender } = render(at({}))
-    rerender(at({ tiles: turned(turned(live.team.board.tiles, 5, 'G'), 6, 'A'), moveCount: 4 }))
+    rerender(at({ tiles: turned(turned(live.me.board.tiles, 5, 'G'), 6, 'A'), moveCount: 4 }))
     const shaking = () =>
       [...container.querySelectorAll('button')].filter((b) => b.classList.contains(shared.verdictShake)).map((b) => b.textContent)
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS - 1))

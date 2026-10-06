@@ -43,26 +43,33 @@ describe('codenamesduet makeGameData — the links become players and tiles', ()
 
   it('links each board tile to its puzzle tile', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(), 'u1')
-    const tile = gd.team.board.tilesById.get('7')!
+    const tile = gd.me.board.tilesById.get('7')!
     expect(tile.puzzleTile).toBe(gd.puzzle.tilesById.get('7'))
     expect(tile.puzzleTile.word).toBe('word7')
   })
 
   it('a reveal points its arrows at players, as a Set', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(PLAYED), 'u1')
-    const both = gd.team.board.tilesById.get('10')!.revealed!
+    const both = gd.me.board.tilesById.get('10')!.revealed!
     expect(both.as).toBe('N')
     expect(both.arrows.has(gd.me)).toBe(true)
     expect(both.arrows.has(gd.partner)).toBe(true)
-    expect(gd.team.board.tilesById.get('0')!.revealed).toEqual({ as: 'G', arrows: new Set() })
+    expect(gd.me.board.tilesById.get('0')!.revealed).toEqual({ as: 'G', arrows: new Set() })
   })
 
-  it('a tile is guessable for me when the builder lists me', () => {
+  it('a tile names the players who may still guess it, as a Set', () => {
     // Leah's bystander alone, in turn 1, still open to me.
     const raw = ZTest_makeGameDataRaw({ ...PLAYED, events: PLAYED.events.slice(0, 3), turnNum: 2, clueSeat: 'B' })
-    expect(makeGameData(raw, 'u1').team.board.tilesById.get('10')!.guessable).toBe(true)
-    expect(makeGameData(raw, 'u2').team.board.tilesById.get('10')!.guessable).toBe(false)
-    expect(makeGameData(raw, 'u1').team.board.tilesById.get('0')!.guessable).toBe(false)
+    const gd = makeGameData(raw, 'u1')
+    expect(gd.me.board.tilesById.get('10')!.guessableBy).toEqual(new Set([gd.me]))
+    expect(gd.me.board.tilesById.get('0')!.guessableBy.size).toBe(0)
+  })
+
+  it('the table is one object on both players, under `own` too, and gd has no team', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw(PLAYED), 'u1')
+    expect(gd.partner.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
+    expect(gd).not.toHaveProperty('team')
   })
 
   it('the turn names its holder and the clue its giver', () => {
@@ -92,11 +99,11 @@ describe('codenamesduet makeGameData — the links become players and tiles', ()
     expect(gd.setupRows.find((r) => r.key === 'first_clue_giver_user_id')!.value).toBe('me')
   })
 
-  it('the state line shows the team: agents and turns against the budget', () => {
+  it('every player carries the team\'s agents and turns, and their own is the team\'s', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(PLAYED), 'u1')
-    expect(gd.stateLineData).toEqual({
-      nFoundAgents: 1, nAgents: 15, nTurnsUsed: 2, maxTurns: 9, suddenDeath: false,
-    })
+    for (const facts of [gd.me, gd.partner, gd.me.own]) {
+      expect(facts).toMatchObject({ nFoundAgents: 1, nTurnsUsed: 2, maxTurns: 9, suddenDeath: false })
+    }
   })
 })
 

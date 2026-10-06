@@ -81,7 +81,7 @@ export function buildCodenamesduetPrintModel(o: {
   // mid-game.
   const showsPartnerKey = gd.ended && o.partnerKeyShown
 
-  const tiles: PrintTile[] = gd.team.board.tiles.map((t) => {
+  const tiles: PrintTile[] = gd.me.board.tiles.map((t) => {
     const partnerKey = showsPartnerKey ? t.puzzleTile.key[gd.partner.id] : null
     return {
       word: t.puzzleTile.word,
@@ -144,8 +144,8 @@ export function buildCodenamesduetPrintModel(o: {
     // What the on-screen `StateLine` says, from the same data: turns used, or
     // sudden death once the budget is gone — still, after such a game ends.
     summary:
-      `${gd.team.nFoundAgents}/${TOTAL_AGENTS} agents contacted · ` +
-      (gd.team.suddenDeath ? 'sudden death' : `${gd.team.nTurnsUsed}/${gd.team.maxTurns} turns spent`),
+      `${gd.me.nFoundAgents}/${TOTAL_AGENTS} agents contacted · ` +
+      (gd.me.suddenDeath ? 'sudden death' : `${gd.me.nTurnsUsed}/${gd.me.maxTurns} turns spent`),
     setupRows: gd.setupRows,
     mode: gd.mode,
     tiles,

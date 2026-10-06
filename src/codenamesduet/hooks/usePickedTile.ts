@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { GTile } from '../types'
+import type { GPlayer, GTile } from '../types'
 
 /**
  * The tile the keyboard has picked, waiting for Enter. Returns:
@@ -22,11 +22,14 @@ import type { GTile } from '../types'
  */
 export function usePickedTile({
   tilesById,
+  me,
   canGuess,
   localFeedbackSlot,
 }: {
-  // The live table's tiles, by id (`gd.team.board.tilesById`).
+  // The live table's tiles, by id (`gd.me.board.tilesById`).
   tilesById: ReadonlyMap<string, GTile>
+  // Whose pick: a tile I may no longer guess drops out of it.
+  me: GPlayer
   // I may guess right now (BoardCol's `canGuess`).
   canGuess: boolean
   localFeedbackSlot: FeedbackSlot
@@ -50,7 +53,7 @@ export function usePickedTile({
   // A pick names a tile on the live table, so the lookup cannot miss.
   const picked = pickedTileId === null ? null : tilesById.get(pickedTileId)!
   return {
-    tile: canGuess && picked !== null && picked.guessable ? picked : null,
+    tile: canGuess && picked !== null && picked.guessableBy.has(me) ? picked : null,
     choose,
     clear,
   }

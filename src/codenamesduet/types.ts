@@ -16,7 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -39,7 +39,9 @@ export type GKey = 'G' | 'N' | 'A'
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'turns' | 'players'> & {
   setup: GSetup
   puzzle: { tiles: GPuzzleTileRaw[] }
-  team: GTeam & { board: { tiles: GTileRaw[] } }
+  // The pair's facts, sent once. Duet is always a team of two, so this is
+  // never null.
+  team: GFactsRaw
   turns: GTurnsRaw
   events: GEventRaw[]
   players: GPlayerRaw[]
@@ -76,14 +78,16 @@ export type GTileRaw = {
 
 /**
  * A tile on the table as `gd` holds it: linked to its puzzle tile, its arrows
- * as players, and `guessable` for me.
+ * and who may guess it as players. The one table is the same object on both
+ * players, so a tile says who may guess it and a reader asks for me
+ * (`tile.guessableBy.has(gd.me)`).
  */
 export type GTile = {
   id: string
   puzzleTile: GPuzzleTile
   revealed: GReveal | null
-  // May I guess it: the builder's `guessableBy`, for me.
-  guessable: boolean
+  // The players who may still guess it.
+  guessableBy: ReadonlySet<GPlayer>
 }
 
 /**
@@ -97,10 +101,13 @@ export type GReveal = {
 }
 
 /**
- * What the pair shares (plans/team-facts.md). Duet is always a team of two, so
- * this is never null.
+ * codenamesduet's facts (plans/team-facts.md): the agents found, the turns
+ * against the budget, and the table. A player carries them twice — spread on,
+ * their side's; under `own`, their own — and since nothing is stored per
+ * player (a turn and a find are the pair's), both are the team's. The key
+ * cards are the puzzle's, not facts (`puzzleTile.key`).
  */
-export type GTeam = {
+export type GFacts = {
   nFoundAgents: number
   // Turns over, and the turn the game ended on when anything was played in it;
   // never past the budget.
@@ -108,6 +115,18 @@ export type GTeam = {
   maxTurns: number
   // The budget is spent; stays true once a game that reached it has ended.
   suddenDeath: boolean
+  board: GBoard
+}
+
+/** `GFacts` as the builder writes them: the table's tiles as written. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: { tiles: GTileRaw[] }
+}
+
+/** The table as `gd` holds it: the 25 tiles by position, and by id. */
+export type GBoard = {
+  tiles: GTile[]
+  tilesById: ReadonlyMap<string, GTile>
 }
 
 /** The turn: the common holder, with its number and its clue. */
@@ -181,18 +200,13 @@ export type GPlayerRaw = PlayerRaw & {
   allAgentsFound: boolean
 }
 
-export type GPlayer = GPlayerRaw
-
 /**
- * What the state line shows: the agents found and the turns used against the
- * budget, or sudden death once it is spent. Decided once, in `makeGameData`.
+ * A player as `gd` holds them: the blob's player with codenamesduet's facts
+ * twice — spread on, their side's; under `own`, their own, which is the
+ * team's (plans/team-facts.md).
  */
-export type GStateLineData = {
-  nFoundAgents: number
-  nAgents: number
-  nTurnsUsed: number
-  maxTurns: number
-  suddenDeath: boolean
+export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /*
@@ -213,12 +227,6 @@ export type GStateLineData = {
  *   puzzle:
  *     tiles: [puzzleTile, …]                 # the 25 as dealt, by position
  *     tilesById
- *   team
- *     nFoundAgents
- *     nTurnsUsed
- *     maxTurns
- *     suddenDeath
- *     board: {tiles, tilesById}              # the table as it stands
  *   turns
  *     holder                                 # null in sudden death with words on both sides
  *     num                                    # the turn being played, from 1
@@ -231,24 +239,30 @@ export type GStateLineData = {
  *   playersById
  *   me
  *   partner                                  # the other player; Duet always has two
- *   stateLineData: {nFoundAgents, nAgents, nTurnsUsed, maxTurns, suddenDeath}
  *
  * player:
  *   the common player                        # seat 0 is A, who gives the first clue
  *   clueGiver                                # gives this turn's clue
  *   allAgentsFound                           # every agent on this player's key is contacted
+ *   nFoundAgents                             # the team's, on both players
+ *   nTurnsUsed
+ *   maxTurns
+ *   suddenDeath
+ *   board: {tiles, tilesById}                # the table as it stands, the same object on both players
+ *   own: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}
+ *                                            # their own: the team's, since nothing is stored per player
  *
  * puzzleTile:                                # never changes
  *   id                                       # the position, as text
  *   word
  *   key: {[playerId]: G / N / A}             # each player's key for it; my partner's null until the end
  *
- * tile:                                      # team.board.tiles[], by position
+ * tile:                                      # board.tiles[], by position
  *   id
  *   puzzleTile                               # linked by id
  *   revealed: {as, arrows}                   # what it shows (G / N / A), and the Set of players
  *                                            # to point an arrow at; null until anyone guesses it
- *   guessable                                # may I guess it; the blob's guessableBy, for me
+ *   guessableBy                              # the Set of players who may still guess it
  *
  * event:
  *   id
@@ -277,7 +291,6 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   // and the printout (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
   puzzle: { tiles: GPuzzleTile[]; tilesById: ReadonlyMap<string, GPuzzleTile> }
-  team: GTeam & { board: { tiles: GTile[]; tilesById: ReadonlyMap<string, GTile> } }
   turns: GTurns
   events: GEvent[]
   ending: {
@@ -292,12 +305,12 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   // My entry in `playersById`, and the other one: the same objects.
   me: GPlayer
   partner: GPlayer
-  stateLineData: GStateLineData
 }
 
-/** codenamesduet's part of `summary_data`: the team, without its board. */
+/** codenamesduet's part of `summary_data`: the team's facts, without the
+ *  table. */
 export type GSummaryData = SummaryData & {
-  team: GTeam
+  team: Omit<GFactsRaw, 'board'>
 }
 
 /**

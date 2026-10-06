@@ -69,7 +69,7 @@ export function BoardCol({
   // ─── Which board is on screen ─────────────────────────────────
   // Live, or a past turn's (PlayArea picks); everything that would write to the
   // board answers to it.
-  const suddenDeath = gd.team.suddenDeath
+  const suddenDeath = gd.me.suddenDeath
   // The move is mine: the server's pointer names me — or, in sudden death with
   // words on both sides, it names nobody and the rulebook lets either of us
   // guess, which one pointer cannot say.
@@ -98,14 +98,15 @@ export function BoardCol({
   // ─── The pending move ─────────────────────────────────────────
   // The guess and its trip to the server (`useSubmitGuess`), the picked tile
   // (`usePickedTile`), and the column's keys.
-  const tilesById = gd.team.board.tilesById
+  const tilesById = gd.me.board.tilesById
   const guess = useSubmitGuess({
     gameId: gd.id,
     tilesById,
+    me: gd.me,
     localFeedbackSlot,
     isViewingHistory: historyView.isViewing,
   })
-  const pick = usePickedTile({ tilesById, canGuess, localFeedbackSlot })
+  const pick = usePickedTile({ tilesById, me: gd.me, canGuess, localFeedbackSlot })
   useBoardColActions({
     pickedTile: pick.tile,
     canGuess,
@@ -138,7 +139,7 @@ export function BoardCol({
     <div className={shared.boardCol}>
       {/* The live readout above the board, on a phone only; see `MobileStatusBar`. */}
       <MobileStatusBar>
-        <StateLine data={gd.stateLineData}/>
+        <StateLine facts={gd.me}/>
       </MobileStatusBar>
       <Board
         tiles={tiles}

@@ -190,8 +190,15 @@ hook merges it into `game_data`, each key in its place:
 | blob | codenamesduet's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles}`, the deal: the 25 words by position, each with both players' keys, `{[userId]: G / N / A}` |
-| `game_data` | `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, what the pair shares, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
-| `summary_data` | `team`, the same group without its board |
+| `game_data` | `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, the pair's facts, sent once, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
+| `summary_data` | `team`, the pair's facts without the board |
+
+The pair's facts (`GFacts`) are on both players twice — spread on, the side's;
+under `own`, their own — and since nothing is stored per player, both are the
+team's ([plans/team-facts.md](../../plans/team-facts.md)). The table is one
+object on both players, so a tile names who may still guess it
+(`guessableBy`, a Set of players) and a reader asks for me. The key cards stay
+on the puzzle. `gd` has no `team`, and the state line reads `gd.me`.
 
 What a tile shows, who it points at and who may still guess it are the
 builder's, from the rules; the page draws them and decides none.
@@ -474,7 +481,7 @@ the play state, pause, chat — and unmounts this surface on pause. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
 `useGame` builds `gd` from the `game_data` blob the page was handed
 (`makeGameData`): the players with `gd.me` and `gd.partner`, every board tile
-linked to its puzzle tile, a reveal's arrows as players, `guessable` for me,
+linked to its puzzle tile, a reveal's arrows and its guessers as players,
 and the seat rule — my partner's key is null until the game ends. It reads
 nothing and subscribes to nothing. `PlayArea`'s hooks hold the rest:
 `useActionsAndMenu` (and whether I asked to see my partner's key),
@@ -492,7 +499,8 @@ What is codenamesduet's own:
   asked. A bystander hit from one side is a triangle pointing at the player who
   hit it: my partner's above the word, mine below — the tile's `arrows`, which
   the builder decides. A word I hit as a bystander stays locked to me alone —
-  the tile's `guessable`, the builder's too, which the keyboard's Space asks.
+  the tile's `guessableBy`, the builder's too, which the keyboard's Space asks
+  of me.
 - **The keyboard's selection cursor** (`Board`'s `useTileCursor`, the shape
   `lib/boardShape.ts`) is the guesser's alone: the clue-giver's form is real
   text fields. Its pick wears the shared picked border and drops by itself
@@ -572,7 +580,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/turnOutcome.test` · `lib/endingMessage.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the clues and the guesses out of the log; a past turn's board, its bystanders pointing at their guessers and its own tiles ringed |
-| `hooks/useGame.test` | `gd` from the blob, on the fixture (`lib/gameData.fixture.ts`): the links to players and tiles, `guessable` for me, the turn and its clue, the state line, and the seat rule — my partner's key withheld until the end |
+| `hooks/useGame.test` | `gd` from the blob, on the fixture (`lib/gameData.fixture.ts`): the links to players and tiles, each tile's guessers, the facts on both players and the one table, the turn and its clue, and the seat rule — my partner's key withheld until the end |
 | `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; the help line on my move; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
 | `components/Board.test` · `components/StateLine.test` | the bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns used and sudden death |
 | `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |

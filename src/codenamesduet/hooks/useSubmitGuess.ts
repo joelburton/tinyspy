@@ -7,7 +7,7 @@ import { useSingleFlight } from '@/common/single-flight/useSingleFlight'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import type { GTile } from '../types'
+import type { GPlayer, GTile } from '../types'
 
 /**
  * What `submit_guess` answers. Four `ok`s: the two that end the game are
@@ -61,12 +61,15 @@ type GuessAnswer =
 export function useSubmitGuess({
   gameId,
   tilesById,
+  me,
   localFeedbackSlot,
   isViewingHistory,
 }: {
   gameId: string
-  // The live table's tiles, by id (`gd.team.board.tilesById`).
+  // The live table's tiles, by id (`gd.me.board.tilesById`).
   tilesById: ReadonlyMap<string, GTile>
+  // Whose guess: it is out until the tile is no longer mine to guess.
+  me: GPlayer
   localFeedbackSlot: FeedbackSlot
   isViewingHistory: boolean
 }): {
@@ -79,7 +82,7 @@ export function useSubmitGuess({
   // A sent tile names a tile on the live table, so the lookup cannot miss.
   const sentTile = sentTileId === null ? null : tilesById.get(sentTileId)!
   // Still out until its reveal makes it no longer mine to guess.
-  const inFlightTile = sentTile !== null && sentTile.guessable &&
+  const inFlightTile = sentTile !== null && sentTile.guessableBy.has(me) &&
   !isViewingHistory ? sentTile : null
 
   async function submitGuess(tile: GTile) {

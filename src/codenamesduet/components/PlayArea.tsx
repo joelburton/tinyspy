@@ -142,7 +142,7 @@ function PlayArea({
       <BoardCol
         gd={gd}
         // The board to draw: a viewed turn's, or the live one.
-        tiles={historyView.tiles ?? gd.team.board.tiles}
+        tiles={historyView.tiles ?? gd.me.board.tiles}
         historyView={historyView}
         partnerKeyShown={partnerKeyShown}
         endingOutcome={gameEndingMessage?.outcome ?? null}

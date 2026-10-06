@@ -77,7 +77,7 @@ export function replayTurn(
       revealed: contacted !== undefined
         ? { as: contacted, arrows: new Set<GPlayer>() }
         : arrows !== undefined ? { as: 'N', arrows } : null,
-      guessable: false,
+      guessableBy: new Set<GPlayer>(),
     }
   })
 

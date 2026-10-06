@@ -25,7 +25,7 @@ export function useShowPartnerMessages(gd: GGameData, globalFeedbackSlot: Feedba
   const partnerAnswer = turnAnswer({
     isClueIn: gd.turns.currClue !== null,
     isClueGiver: gd.me.clueGiver,
-    suddenDeath: gd.team.suddenDeath,
+    suddenDeath: gd.me.suddenDeath,
     isGameEnded: gd.ended,
   })
   const partnerMessage = partnerAnswer === null ? null : answerMessage(

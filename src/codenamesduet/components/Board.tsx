@@ -77,6 +77,7 @@ export function Board({
     tiles,
     pickedTile: marks.pickedTile,
     canGuess: isGuessing,
+    me,
     onPick,
     onGuess,
   })
@@ -129,7 +130,7 @@ export function Board({
               isHistoryLit: historyView.litTileIds.has(tile.id),
             }}
             // While I am guessing, and the builder says I may guess it.
-            isClickable={isGuessing && tile.guessable}
+            isClickable={isGuessing && tile.guessableBy.has(me)}
             onClick={() => tileCursor.guessClicked(tile)}
           />
         ))}

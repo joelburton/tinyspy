@@ -1,6 +1,6 @@
 # Team facts — every player carries their side's facts, and their own
 
-**Status: DECIDED 2026-10-06; psychicnum built, the rest not started.** Joel and Claude settled this
+**Status: DECIDED 2026-10-06; built for every game.** Joel and Claude settled this
 after an audit of how all sixteen games hold coop state. It replaces this
 plan's 2026-10-02 design, under which `gd.team` held what the team shares and
 a player's keys were their own in every mode. psychicnum, wordle and
@@ -155,7 +155,54 @@ top-level board, and the pgTAP pins of the blob.
   the player's own.
 - **codenamesduet, last:** its board's tiles are shared, but each seat sees a
   different key (`guessableBy`, the partner's key hidden), which `useGame`
-  works out per seat. Sketched before it is built.
+  works out per seat. Sketched below; built once its questions are answered.
+
+## codenamesduet — the sketch (2026-10-06; both questions settled, built)
+
+**Where it stands.** The wire is already the target shape: `team` carries
+the counts (`nFoundAgents`, `nTurnsUsed`, `maxTurns`, `suddenDeath`) and the
+one board, once; the players carry no facts, only `clueGiver` and
+`allAgentsFound`. Duet is coop only, so `team` is never null. No SQL changes,
+and `summary_data.team` stays as it is.
+
+What `gd` does today, and what changes:
+
+| today | after |
+|---|---|
+| `gd.team.{nFoundAgents, nTurnsUsed, maxTurns, suddenDeath}` (9 readers) | `gd.me.…` — on every player, the team's |
+| `gd.team.board` (10 readers) | `gd.me.board` — one board object on both players |
+| `gd.stateLineData` (`nAgents` is the constant `TOTAL_AGENTS`) | gone: `<StateLine facts={gd.me} />`, the line imports the constant |
+| `tile.guessable` — "may I guess it", worked out for me (5 readers, plus `lib/history.ts`) | `tile.guessableBy: ReadonlySet<GPlayer>`; a reader asks `tile.guessableBy.has(gd.me)` (question 1) |
+| `puzzleTile.key[playerId]` — each player's key card on the puzzle, the partner's null until the end | unchanged: the key card stays on the puzzle (question 2) |
+| `own` | the team's facts: nothing is stored per player (a turn and a find are the pair's), so a player's own is the team's, as a coop chain is in letterboxed |
+| `gd.partner`, `clueGiver`, `allAgentsFound` | unchanged — not facts |
+
+**Question 1 — where "may I guess this tile" lives.** Settled (Joel,
+2026-10-06): the tile carries `guessableBy`, a reader asks for me. Today `useGame` bakes
+it into each tile for me. With the board on both players, a baked `guessable`
+on `gd.partner.board` would still be about me.
+
+- **The tile carries who may guess it; a reader asks for me (recommended).**
+  The board stays one honest object:
+  ```ts
+  export type GTile = { id: string; puzzleTile: GPuzzleTile; revealed: GReveal | null
+    // The players who may still guess it.
+    guessableBy: ReadonlySet<GPlayer> }
+  // readers
+  isClickable={isGuessing && tile.guessableBy.has(gd.me)}
+  ```
+- **Each player gets their own board view**, `guessable` worked out for them.
+  Two boards, so the one-board-by-reference rule breaks for Duet.
+
+**Question 2 — whether the key card becomes a fact.** Settled (Joel,
+2026-10-06): it stays on the puzzle.
+
+- **It stays on the puzzle (recommended).** It is dealt at create and never
+  changes, and hiding the partner's is the seat rule, not a side's fact:
+  `tile.puzzleTile.key[gd.me.id]` as today.
+- **It moves onto each player** (`p.keyCard: GKey[] | null`, the partner's
+  null until the end). It reads as "my card" from the player, but it is
+  static data split off the static puzzle.
 
 ## Settled in psychicnum (Joel, 2026-10-06)
 
@@ -188,7 +235,6 @@ top-level board, and the pgTAP pins of the blob.
 
 ## Open
 
-- **codenamesduet's per-seat view**, when it is reached.
 - **`summary_data`**, after `gd`.
 
 ## Where the knowledge lands when this ships

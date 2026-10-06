@@ -44,7 +44,7 @@ export function InfoCol({
   // every remaining turn. Both players are told, so the lopsided turn flow does
   // not read as a bug. Only in normal play — nobody clues in sudden death, and
   // nothing is owed once the game is over.
-  const isBannerShown = !gd.ended && !gd.team.suddenDeath
+  const isBannerShown = !gd.ended && !gd.me.suddenDeath
   const isMineFinished = isBannerShown && gd.me.allAgentsFound
   const isPartnerFinished = isBannerShown && gd.partner.allAgentsFound
 
@@ -52,7 +52,7 @@ export function InfoCol({
   // sudden death, while the game runs, for both of us, since there the line is
   // the changed rules and the pointer can name nobody.
   const isHelpShown = gd.me.stillPlaying &&
-    (gd.me.onTurn || gd.team.suddenDeath)
+    (gd.me.onTurn || gd.me.suddenDeath)
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
@@ -67,7 +67,7 @@ export function InfoCol({
       <div className={shared.noShrinkRow}>
         {/* The same `<StateLine>` the phone's status bar renders above the board. */}
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData}/>
+          <StateLine facts={gd.me}/>
         </p>
 
         {/* Duet's finished-player rule, told to BOTH players so the lopsided turn
@@ -110,7 +110,7 @@ export function InfoCol({
             as unchanged. */}
         {isHelpShown && (
           <p className={shared.infoHelp}>
-            {gd.team.suddenDeath ? (
+            {gd.me.suddenDeath ? (
               <>
                 <strong className={styles.suddenDeathTag}>SUDDEN
                   DEATH:</strong> no clues

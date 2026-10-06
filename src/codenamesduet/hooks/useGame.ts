@@ -4,10 +4,11 @@ import { useMemo } from 'react'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
-import { TOTAL_AGENTS } from '../lib/agents'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
+  GBoard,
   GEvent,
+  GFacts,
   GGameData,
   GGameDataRaw,
   GPlayer,
@@ -25,7 +26,22 @@ import type {
  * the table is public to both.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
-  const players: GPlayer[] = raw.players
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
+  const { board: boardRaw, ...counts } = team
+
+  // The one table, the same object on both players. Its tiles name players
+  // (who may guess, who an arrow points at), so it is filled once the players
+  // exist.
+  const tiles: GTile[] = []
+  const tilesById = new Map<string, GTile>()
+  const board: GBoard = { tiles, tilesById }
+
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's; under `own`, their own — the team's, since nothing is stored per
+  // player.
+  const facts: GFacts = { ...counts, board }
+  const players: GPlayer[] = raw.players.map((p) => ({ ...p, ...facts, own: facts }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   // Links that cannot miss get a bare lookup: every id the builder writes is a
   // seated player's. An ending's `by` may be null for a timeout.
@@ -44,32 +60,28 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   }))
   const puzzleTilesById = new Map(puzzleTiles.map((t) => [t.id, t]))
 
-  const boardTiles: GTile[] = raw.team.board.tiles.map((t) => ({
-    id: t.id,
-    puzzleTile: puzzleTilesById.get(t.id)!,
-    revealed: t.revealed === null
-      ? null
-      : { as: t.revealed.as, arrows: new Set(t.revealed.arrows.map(playerOf)) },
-    guessable: t.guessableBy.includes(myId),
-  }))
+  for (const t of boardRaw.tiles) {
+    const tile: GTile = {
+      id: t.id,
+      puzzleTile: puzzleTilesById.get(t.id)!,
+      revealed: t.revealed === null
+        ? null
+        : { as: t.revealed.as, arrows: new Set(t.revealed.arrows.map(playerOf)) },
+      guessableBy: new Set(t.guessableBy.map(playerOf)),
+    }
+    tiles.push(tile)
+    tilesById.set(tile.id, tile)
+  }
 
   const events: GEvent[] = raw.events.map(({ userId, ...row }) => ({
     ...row,
     by: playerOf(userId),
   }))
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     puzzle: { tiles: puzzleTiles, tilesById: puzzleTilesById },
-    team: {
-      ...raw.team,
-      board: {
-        tiles: boardTiles,
-        tilesById: new Map(boardTiles.map((t) => [t.id, t])),
-      },
-    },
     turns: {
       holder: maybePlayerOf(turns.holder),
       num: turns.num,
@@ -95,13 +107,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     playersById,
     me,
     partner,
-    stateLineData: {
-      nFoundAgents: raw.team.nFoundAgents,
-      nAgents: TOTAL_AGENTS,
-      nTurnsUsed: raw.team.nTurnsUsed,
-      maxTurns: raw.team.maxTurns,
-      suddenDeath: raw.team.suddenDeath,
-    },
   }
 }
 
