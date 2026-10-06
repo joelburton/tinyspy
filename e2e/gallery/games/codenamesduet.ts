@@ -24,8 +24,8 @@ function tableOf(gameId: string): Table {
   const raw = execFileSync(
     'psql',
     [LOCAL_DB, '-X', '-tA', '-c',
-     `select user_a_id || '|' || user_b_id || '|' || key_card_a::text || '|' || key_card_b::text
-        from codenamesduet.games where id = '${gameId}';`],
+     `select player_a_user_id || '|' || player_b_user_id || '|' || key_card_a::text || '|' || key_card_b::text
+        from codenamesduet.games where game_id = '${gameId}';`],
     { encoding: 'utf8' },
   ).trim()
   const [userA, userB, cardA, cardB] = raw.split('|')
@@ -37,7 +37,7 @@ function giverSeat(gameId: string): string {
   return execFileSync(
     'psql',
     [LOCAL_DB, '-X', '-tA', '-c',
-     `select current_clue_giver from codenamesduet.games where id = '${gameId}';`],
+     `select current_clue_giver from codenamesduet.games where game_id = '${gameId}';`],
     { encoding: 'utf8' },
   ).trim()
 }

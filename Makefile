@@ -846,6 +846,16 @@ gallery: ## screenshot game states → gallery/index.html (GAME=, TECH=; needs `
 	  echo "     for a good one — fix the error above and run again)" >&2; \
 	  exit 1; }
 
+# What one move costs the two players' pages in every coop game: the loads it
+# triggers and the bytes they and the Realtime frames carry (docs/testing.md →
+# What a move costs). Local stack only, like the gallery; needs `npm run dev`.
+#
+#   gmake move-bytes                        every coop game
+#   gmake move-bytes GAME=crosswords,waffle just these
+.PHONY: move-bytes
+move-bytes: ## measure what one coop move sends both pages (GAME=a,b; needs `npm run dev`)
+	npm run --silent _move-bytes -- $(GAME)
+
 # Rebuild the sheet without capturing anything — for when the INDEX changed
 # (a new game registered, the renderer edited) but the images didn't.
 .PHONY: gallery-index

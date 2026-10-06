@@ -24,7 +24,7 @@ async function trace(
   for (const path of paths) {
     const res = await asUser(member.session.access_token)
       .schema('strands')
-      .rpc('submit_path', { target_game: gameId, path })
+      .rpc('submit_path', { p_game_id: gameId, p_path: path })
     if (res.error) throw new Error(`strands.submit_path: ${res.error.message}`)
   }
 }

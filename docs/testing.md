@@ -583,6 +583,26 @@ Two ways a hole can lie:
   prints a ⚠ list of declared cells with no file on disk after every run; read
   it rather than trusting the sheet.
 
+### What a move costs
+
+`gmake move-bytes` (`e2e/gallery/moveBytes.ts`) measures what ONE coop move
+sends two players' pages: the HTTP loads it triggers and the bytes those loads
+and the Realtime frames carry. It reuses each game's gallery builder for the
+coop `mid` cell, holding the build's first RPC after `create_game` until both
+pages are open, so the move it measures is the one the gallery plays.
+crosswords is the exception: it is measured on `sunday-sample.puz` rather than
+the gallery's filler grid, because the template's size is part of what a move
+resends.
+
+```bash
+gmake move-bytes                          # every coop game, then the table
+gmake move-bytes GAME=crosswords,waffle   # just these
+```
+
+Bytes are the uncompressed JSON a page parses; `refetch gz` is what the loads
+would weigh gzipped. The frames are measured as they arrive locally, and
+nothing here says whether prod's Realtime compresses them.
+
 ## Repo-wide invariant guards
 
 Most tests here sit beside their subject — `waffle/lib/history.test.ts` next to

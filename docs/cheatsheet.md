@@ -184,6 +184,8 @@ gmake gallery                                # every game × mode × phase × de
 gmake gallery GAME=waffle TECH=pdf           # narrow it — either arg alone works too
 gmake gallery-index                          # rebuild the sheet from what's already on disk
 gmake gallery-keep NAME=before-mobile-pass   # promote this run into the COMMITTED gallery-keep/
+gmake move-bytes GAME=crosswords             # what one coop move sends both pages (testing.md →
+                                             #   What a move costs); no GAME = every coop game
 
 gmake -B <target>                            # force, ignoring stamps
 gmake _stamps-clean ENV=local                # forget what we think is loaded there

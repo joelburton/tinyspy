@@ -20,7 +20,7 @@ async function play(club: E2EClub, gameId: string, words: Word[]): Promise<void>
   for (const w of words) {
     const res = await asUser(club.members[0].session.access_token)
       .schema('spellingbee')
-      .rpc('submit_word', { target_game: gameId, word: w.word, points: w.points, is_pangram: false, is_bonus: false })
+      .rpc('submit_word', { p_game_id: gameId, p_word: w.word, p_points: w.points, p_is_pangram: false, p_is_bonus: false })
     // Reaching the target rank ENDS the game, so the remaining words come back
     // refused — which for a win-building path is the success signal, not a
     // failure. Stop there rather than submitting into a finished game.

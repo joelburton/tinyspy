@@ -19,7 +19,7 @@ async function play(club: E2EClub, gameId: string, words: Word[]): Promise<void>
   for (const w of words) {
     const res = await asUser(club.members[0].session.access_token)
       .schema('boggle')
-      .rpc('submit_word', { target_game: gameId, word: w.word, points: w.points, is_bonus: false })
+      .rpc('submit_word', { p_game_id: gameId, p_word: w.word, p_points: w.points, p_is_bonus: false })
     if (res.error) throw new Error(`boggle.submit_word(${w.word}): ${res.error.message}`)
   }
 }
