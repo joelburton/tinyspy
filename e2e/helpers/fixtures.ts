@@ -457,7 +457,7 @@ export async function createCrosswordsGame(
   const ins = await admin
     .schema('crosswords')
     .from('puzzles')
-    .insert({ content_hash: `e2e-${randomUUID()}`, source: 'library', meta, solution })
+    .insert({ content_hash: `e2e-${randomUUID()}`, source: 'library', puzzle_content: meta, solution })
     .select('id')
     .single()
   if (ins.error || !ins.data) throw new Error(`crosswords puzzle insert: ${ins.error?.message}`)
@@ -466,10 +466,10 @@ export async function createCrosswordsGame(
   const res = await asUser(creator.session.access_token)
     .schema('crosswords')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
-      player_user_ids: playerUserIds,
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}` }
 }
@@ -531,7 +531,7 @@ export async function createCrosswordsGameSized(
   const ins = await admin
     .schema('crosswords')
     .from('puzzles')
-    .insert({ content_hash: `e2e-sized-${randomUUID()}`, source: 'library', meta, solution })
+    .insert({ content_hash: `e2e-sized-${randomUUID()}`, source: 'library', puzzle_content: meta, solution })
     .select('id')
     .single()
   if (ins.error || !ins.data) throw new Error(`crosswords puzzle insert: ${ins.error?.message}`)
@@ -540,10 +540,10 @@ export async function createCrosswordsGameSized(
   const res = await asUser(creator.session.access_token)
     .schema('crosswords')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
-      player_user_ids: club.members.map((m) => m.userId),
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
+      p_player_user_ids: club.members.map((m) => m.userId),
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}` }
 }
@@ -560,24 +560,24 @@ export async function createCrosswordsGameFromLibrary(
   const { data, error } = await admin
     .schema('crosswords')
     .from('puzzles')
-    .select('id, meta')
+    .select('id, puzzle_content')
     .eq('source', 'library')
   if (error || !data || data.length === 0) {
     throw new Error(`no library puzzles — run \`gmake g-crosswords-puzzles ENV=local\` (${error?.message ?? ''})`)
   }
-  const rows = data as Array<{ id: string; meta: { width: number } }>
-  const biggest = rows.reduce((a, b) => (b.meta.width > a.meta.width ? b : a))
+  const rows = data as Array<{ id: string; puzzle_content: { width: number } }>
+  const biggest = rows.reduce((a, b) => (b.puzzle_content.width > a.puzzle_content.width ? b : a))
 
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
     .schema('crosswords')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: { timer: { kind: 'none' }, puzzle_id: biggest.id },
-      player_user_ids: club.members.map((m) => m.userId),
-      mode,
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, puzzle_id: biggest.id },
+      p_player_user_ids: club.members.map((m) => m.userId),
+      p_mode: mode,
     })
-  return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}`, width: biggest.meta.width }
+  return { id: createdGameId(res, 'crosswords.create_game'), gametype: `crosswords_${mode}`, width: biggest.puzzle_content.width }
 }
 
 /**

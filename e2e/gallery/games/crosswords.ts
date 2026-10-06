@@ -90,7 +90,7 @@ export const crosswordsGallery: GameGallery = {
       const res = await asUser(viewer.session.access_token)
         .schema('crosswords')
         .rpc('set_cell', {
-          target_game: id,
+          p_game_id: id,
           p_row: sq.row,
           p_col: sq.col,
           p_fill: sq.fill,
