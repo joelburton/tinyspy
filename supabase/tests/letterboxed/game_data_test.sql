@@ -10,11 +10,12 @@
 --
 --   1. A fresh game: the box as tiles by letter, the word list and the few a
 --      hint may not offer, par, in static_game_data; no solution in
---      game_data's puzzle; coop's team at nothing and no
---      team in compete; each player fresh, a racer with their two counts and
---      a coop player without; both fresh summaries
+--      game_data's puzzle; coop's team at nothing with an empty chain and no
+--      team in compete; each player fresh, a racer with their chain and its
+--      two counts and a coop player with neither; both fresh summaries
 --   2. Mid-game coop: a word, a hint and a spoiler in the log; the team's
---      chain; one chain on every seat; hints and spoilers counted per player
+--      facts, sent once — the one chain, the hints and spoilers summed; hints
+--      and spoilers counted per player
 --   3. Mid-game compete: each racer's own counts and own chain; the log
 --      carries every racer's rows (the hook withholds, not the builder)
 --   4. The endings: an undo in the log, the solution arrives, the solve
@@ -113,8 +114,9 @@ select is(
 );
 select is(
   pg_temp.game_data(pg_temp.game('coop')) -> 'team',
-  '{"nWordsUsed": 0, "nCoveredLetters": 0}'::jsonb,
-  'coop: a team with an empty chain'
+  '{"nWordsUsed": 0, "nCoveredLetters": 0, "board": {"words": []},
+    "nHintsUsed": 0, "nSpoilersUsed": 0, "maxWords": 5}'::jsonb,
+  'coop: a team with an empty chain, nothing taken, the cap'
 );
 select is(
   pg_temp.game_data(pg_temp.game('compete')) -> 'team',
@@ -128,8 +130,9 @@ select is(
 );
 select is(
   pg_temp.own_keys(pg_temp.player(pg_temp.game('coop'), 'ada11111-1111-1111-1111-111111111111')),
-  '{"maxWords": 5, "nHintsUsed": 0, "nSpoilersUsed": 0, "board": {"words": []}}'::jsonb,
-  'coop: a player with the cap, nothing taken, an empty chain — and no chain counts, which are the team''s'
+  '{"maxWords": 5, "nHintsUsed": 0, "nSpoilersUsed": 0,
+    "nWordsUsed": null, "nCoveredLetters": null, "board": null}'::jsonb,
+  'coop: a player with the cap, nothing taken — and no chain, which is the team''s'
 );
 select is(
   pg_temp.own_keys(pg_temp.player(pg_temp.game('compete'), 'ada11111-1111-1111-1111-111111111111')),
@@ -175,15 +178,16 @@ select is(
 );
 select is(
   pg_temp.game_data(pg_temp.game('coop')) -> 'team',
-  '{"nWordsUsed": 1, "nCoveredLetters": 3}'::jsonb,
-  'coop: the team''s chain'
+  '{"nWordsUsed": 1, "nCoveredLetters": 3, "board": {"words": ["adg"]},
+    "nHintsUsed": 1, "nSpoilersUsed": 1, "maxWords": 5}'::jsonb,
+  'coop: the team''s chain, and the hints and spoilers summed'
 );
 select is(
   jsonb_build_array(
     pg_temp.player(pg_temp.game('coop'), 'ada11111-1111-1111-1111-111111111111') -> 'board',
     pg_temp.player(pg_temp.game('coop'), 'bea22222-2222-2222-2222-222222222222') -> 'board'),
-  '[{"words": ["adg"]}, {"words": ["adg"]}]'::jsonb,
-  'coop: one chain on every seat'
+  '[null, null]'::jsonb,
+  'coop: the one chain is sent once — no coop player carries it'
 );
 select is(
   (select jsonb_agg(jsonb_build_array(p -> 'nHintsUsed', p -> 'nSpoilersUsed') order by p ->> 'id')
@@ -252,8 +256,8 @@ select is(
 select is(
   (select jsonb_agg(jsonb_build_array(p -> 'solved', p -> 'outcome') order by p ->> 'id')
      from jsonb_array_elements(pg_temp.game_data(pg_temp.game('coop')) -> 'players') p)
-    || jsonb_build_array(pg_temp.game_data(pg_temp.game('coop')) -> 'team'),
-  '[[true, "won"], [true, "won"], {"nWordsUsed": 2, "nCoveredLetters": 12}]'::jsonb,
+    || jsonb_build_array(pg_temp.game_data(pg_temp.game('coop')) -> 'team' -> 'nCoveredLetters'),
+  '[[true, "won"], [true, "won"], 12]'::jsonb,
   'coop solved: the solve stamps every teammate, and the team''s chain covers the twelve'
 );
 select is(
@@ -289,8 +293,11 @@ select is(
     'events',   pg_temp.game_data(pg_temp.game('coop')) -> 'events',
     'solution', pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle' -> 'solution',
     'ada',      pg_temp.own_keys(pg_temp.player(pg_temp.game('coop'), 'ada11111-1111-1111-1111-111111111111'))),
-  '{"team": {"nWordsUsed": 0, "nCoveredLetters": 0}, "events": [], "solution": null,
-    "ada": {"maxWords": 5, "nHintsUsed": 0, "nSpoilersUsed": 0, "board": {"words": []}}}'::jsonb,
+  '{"team": {"nWordsUsed": 0, "nCoveredLetters": 0, "board": {"words": []},
+             "nHintsUsed": 0, "nSpoilersUsed": 0, "maxWords": 5},
+    "events": [], "solution": null,
+    "ada": {"maxWords": 5, "nHintsUsed": 0, "nSpoilersUsed": 0,
+            "nWordsUsed": null, "nCoveredLetters": null, "board": null}}'::jsonb,
   'after a Restart: an empty chain, no log, nothing taken, no solution'
 );
 

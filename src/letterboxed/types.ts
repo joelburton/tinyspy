@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -65,33 +65,36 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The seeded pair. Null until the game ends.
     solution: string[] | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the one chain with its counts, and the hints
+  // and spoilers summed. Null in compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every move and every hint or spoiler, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the one chain's two
- * counts. In coop a chain is the team's, so a coop player carries neither.
+ * letterboxed's facts (plans/team-facts.md): the chain and its two counts
+ * against the cap, and the hints and spoilers taken. A player carries them
+ * twice — spread on, their side's (the team's in coop, their own in compete);
+ * under `own`, their own. A coop chain is the team's alone, so a coop
+ * player's `own` holds the team's chain; their hints and spoilers are theirs.
+ * Par is the puzzle's (`puzzle.nParWords`).
  */
-export type GTeam = {
+export type GFacts = {
   nWordsUsed: number
   nCoveredLetters: number
+  // The chain-length cap.
+  maxWords: number
+  nHintsUsed: number
+  nSpoilersUsed: number
+  // The chain, in the order played; null for a rival mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the state line shows — "Letters 7/12 · Words (par 2) 3/5": the team's
- * chain in coop, my own in compete, against the cap and par. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = {
-  nCoveredLetters: number
-  nWordsUsed: number
-  maxWords: number
-  nParWords: number
+/** `GFacts` as the builders write them: the chain is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /**
@@ -143,22 +146,14 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as letterboxed's game_data shows them: the common player, with the
- *  cap, the hints and spoilers they took, this seat's chain, and — a racer
- *  only — that chain's two counts. */
-export type GPlayerRaw = PlayerRaw & {
-  // The chain-length cap. The same on every player.
-  maxWords: number
-  // This racer's chain. Compete only: a coop chain is the team's (`GTeam`),
-  // and a coop player has no such keys.
-  nWordsUsed?: number
-  nCoveredLetters?: number
-  // Taken by this player, in every mode; both are coop-only asks.
-  nHintsUsed: number
-  nSpoilersUsed: number
-  // What this seat sees: the one shared chain in coop, each racer's own in
-  // compete.
-  board: GBoard
+/** A player as letterboxed's game_data shows them: the common player, with
+ *  their own facts. */
+export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'maxWords' | 'nHintsUsed' | 'nSpoilersUsed'> & {
+  // A racer's own chain and its counts; null in coop, whose one chain is
+  // `team`'s.
+  nWordsUsed: number | null
+  nCoveredLetters: number | null
+  board: GBoard | null
 }
 
 /*
@@ -182,7 +177,6 @@ export type GPlayerRaw = PlayerRaw & {
  *     words: [{word, clean}, …]              # the blob's words and uncleanWords, joined
  *     nParWords
  *     solution: [wordA, wordB]               # null until the game ends
- *   team: {nWordsUsed, nCoveredLetters}      # the shared chain's; null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -191,16 +185,17 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nCoveredLetters, nWordsUsed, maxWords, nParWords}   # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   maxWords                                 # the same on every player
- *   nWordsUsed                               # compete only: this racer's chain
- *   nCoveredLetters                          # compete only: this racer's chain
- *   nHintsUsed                               # own
- *   nSpoilersUsed                            # own
- *   board: {words}                           # this seat's chain, the shared one in coop; null for a rival mid-race
+ *   nWordsUsed                               # the side's: the team's in coop, their own in compete
+ *   nCoveredLetters
+ *   maxWords
+ *   nHintsUsed
+ *   nSpoilersUsed
+ *   board: {words}                           # coop's one chain on every player; null for a rival mid-race
+ *   own: {nWordsUsed, nCoveredLetters, maxWords, nHintsUsed, nSpoilersUsed, board}
+ *                                            # this player's own; in coop the chain is the team's
  *
  * tile:                                      # GTile
  *   id                                       # the letter
@@ -225,7 +220,7 @@ export type GPlayerRaw = PlayerRaw & {
  * see yet is not here. Read-only: `useGame` builds it and nothing else writes
  * it.
  */
-export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   puzzle: Omit<GGameDataRaw['puzzle'], 'words' | 'uncleanWords'> & {
     // The same tiles, keyed by id (the letter).
     tilesById: Record<string, GTile>
@@ -252,14 +247,15 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'turns' | 'ending' | 'even
   // My entry in `playersById`: the same object. My own chain is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's chain in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  chain withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the common player with
+ * letterboxed's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's chain is null mid-race.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat sees: the chain, in the order played. */
@@ -403,14 +399,14 @@ export type GSetup = SetupOf<GSetupValues>
  * written, so there is no polished pair and no `Raw`; the play surface reads
  * `game_data` instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries, null in compete. The other
- * three are compete's, null in coop: the best chain's coverage so far, and the
+ * `team` is the coop chain's two counts, null in compete. The other three are
+ * compete's, null in coop: the best chain's coverage so far, and the
  * winner's chain (the winner is the common `ending.winner`) — its length once
  * a racer has solved, its coverage on a solve or a timeout. `band` is the
  * setup's dictionary band.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nWordsUsed' | 'nCoveredLetters'> | null
   maxWords: number
   band: number
   nBestCoveredLetters: number | null

@@ -105,10 +105,10 @@ export function ZTest_event(
 
 /**
  * Build the `game_data` blob `letterboxed._rebuild_data_cols` would write from
- * these facts: each seat's chain — the shared one in coop, each racer's own in
- * compete — a racer's two counts off it and coop's on the team, each player's
- * hints and spoilers off their rows in the log, the solution once ended, and
- * where every player stands derived.
+ * these facts: each player's hints and spoilers off their rows in the log; the
+ * team's facts in coop (the one chain and its counts, the asks summed), a
+ * racer's own chain and counts in compete; the solution once ended; and where
+ * every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -133,10 +133,13 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const countOf = (p: ZTest_PlayerFacts, kind: GEventRaw['kind']) =>
     events.filter((e) => e.userId === p.id && e.kind === kind).length
 
+  // A chain's facts: its two counts and the chain itself.
+  const chainFacts = (chain: string[]) =>
+    ({ nWordsUsed: chain.length, nCoveredLetters: ZTest_covered(chain), board: { words: chain } })
+
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
-    const chain = coop ? sharedChain : (p.chain ?? [])
     return {
       id: p.id,
       username: p.username,
@@ -155,8 +158,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       maxWords,
       nHintsUsed: countOf(p, 'hint'),
       nSpoilersUsed: countOf(p, 'spoiler'),
-      board: { words: chain },
-      ...(coop ? {} : { nWordsUsed: chain.length, nCoveredLetters: ZTest_covered(chain) }),
+      // Coop's one chain is the team's.
+      ...(coop ? { nWordsUsed: null, nCoveredLetters: null, board: null } : chainFacts(p.chain ?? [])),
     }
   })
 
@@ -181,7 +184,14 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       nParWords: 2,
       solution: ended ? ZTest_SOLUTION : null,
     },
-    team: coop ? { nWordsUsed: sharedChain.length, nCoveredLetters: ZTest_covered(sharedChain) } : null,
+    team: coop
+      ? {
+        ...chainFacts(sharedChain),
+        maxWords,
+        nHintsUsed: players.reduce((n, p) => n + p.nHintsUsed, 0),
+        nSpoilersUsed: players.reduce((n, p) => n + p.nSpoilersUsed, 0),
+      }
+      : null,
     events,
     players,
   }

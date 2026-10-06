@@ -37,13 +37,13 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
           // Written with the game's ending (`common._end_game` ranks every
           // player), so it is set whenever the game's outcome is.
           playerOutcome: playerOutcome!,
-          nWordsUsed: gd.stateLineData.nWordsUsed,
-          nCoveredLetters: gd.stateLineData.nCoveredLetters,
+          nWordsUsed: gd.me.nWordsUsed,
+          nCoveredLetters: gd.me.nCoveredLetters,
           winnerNames: winnerNames === '' ? [] : winnerNames.split('\n'),
         }),
     [
       outcome, reason, gd.mode, playerOutcome,
-      gd.stateLineData.nWordsUsed, gd.stateLineData.nCoveredLetters, winnerNames,
+      gd.me.nWordsUsed, gd.me.nCoveredLetters, winnerNames,
     ],
   )
 }

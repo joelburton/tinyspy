@@ -123,9 +123,12 @@ as $$
    where p ->> 'id' = uid::text;
 $$;
 
+-- A seat's chain: the team's one chain in coop, a racer's own in compete.
 create function pg_temp.lb_chain(game uuid, uid uuid)
 returns text[]
 language sql
 as $$
-  select array(select jsonb_array_elements_text(pg_temp.lb_player(game, uid) -> 'board' -> 'words'));
+  select array(select jsonb_array_elements_text(coalesce(
+           (select nullif(game_data -> 'team', 'null') from common.games where id = game),
+           pg_temp.lb_player(game, uid)) -> 'board' -> 'words'));
 $$;

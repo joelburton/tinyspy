@@ -161,13 +161,18 @@ it into `game_data`, each key in its place.
 | blob | letterboxed's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles, words, uncleanWords, nParWords}` — the box as twelve `{id, letter, side}` tiles in side order, each tile's id its letter; every word the board accepts, and the few of them a hint may not offer (§7 → The two word lists); par |
-| `game_data` | `puzzle: {solution}`, the seeded pair, null until the game ends. `team: {nWordsUsed, nCoveredLetters}`, the shared chain's, null in compete. `events`, every row `{id, userId, kind, word, nCoveredLetters, tookTurn, at}`. On each player `maxWords`, their own `nHintsUsed` and `nSpoilersUsed`, and `board: {words}` — their chain, the one shared chain on every seat in coop — and, on a racer only, that chain's `nWordsUsed` and `nCoveredLetters` |
-| `summary_data` | `team`, as above; `maxWords`; `band` (`legal_band`); and compete's `nBestCoveredLetters` (the best chain so far), `nWinnerWords` (once a racer has solved) and `nWinnerCoveredLetters` (on a solve or a timeout) — null in coop |
+| `game_data` | `puzzle: {solution}`, the seeded pair, null until the game ends. `team`, the team's facts sent once — the one chain with its counts, the hints and spoilers summed, the cap — null in compete. `events`, every row `{id, userId, kind, word, nCoveredLetters, tookTurn, at}`. On each player their own facts: `maxWords`, `nHintsUsed`, `nSpoilersUsed`, and a racer's `board: {words}` with its `nWordsUsed` and `nCoveredLetters`, the three null on a coop player |
+| `summary_data` | `team: {nWordsUsed, nCoveredLetters}`, the coop chain's counts, null in compete; `maxWords`; `band` (`legal_band`); and compete's `nBestCoveredLetters` (the best chain so far), `nWinnerWords` (once a racer has solved) and `nWinnerCoveredLetters` (on a solve or a timeout) — null in coop |
 
-**Coop's chain counts are the team's alone.** Words used and letters covered
-describe the chain, not anything a player did, so in coop they live on `team`
-and a coop player carries neither; a racer carries their own. Hints and spoilers
-are things a player did, so they are on every player in both modes.
+**Coop's chain is the team's alone.** Words used and letters covered describe
+the chain, not anything a player did, so in coop they live on `team` with the
+chain, and a coop player carries none of the three; a racer carries their own.
+Hints and spoilers are things a player did, so each player carries their own in
+both modes, and `team` sums them. letterboxed's facts (`GFacts`) are all six:
+`useGame` puts the side's on every player and their own under `own`
+([plans/team-facts.md](../../plans/team-facts.md)) — and since a coop chain is
+nobody's in particular, a coop player's `own` holds the team's chain. Par is
+the puzzle's, the same for every side.
 
 **The builder writes every chain and every row.** What a racer may not see yet —
 a rival's chain and log rows mid-race — `useGame`'s seat rule withholds; their
@@ -743,8 +748,8 @@ spoiler nothing — over the viewed row's author's rows. The boundary is
 makes an `undo` row show anything at all, since its whole content is the word no
 longer being there). Any key or click exits, per the shared viewer contract.
 
-**Info column**, canonical order: the `<StateLine>` (`gd.stateLineData` — the
-team's chain in coop, mine in compete — as two fractions: letters covered / 12,
+**Info column**, canonical order: the `<StateLine>` (`gd.me` beside
+`gd.puzzle` — the team's chain in coop, mine in compete — as two fractions: letters covered / 12,
 words used / cap **with par named in the label**, since "3/5" alone says
 nothing) → `TurnStatusLine` (turn-coop only) → `OpponentStrip` (compete:
 `7/12 · 2w` per rival — kept once the game ends, unlike wordiply's verdict

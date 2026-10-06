@@ -6,7 +6,7 @@ import type {
 } from '@/common/game-page/playAreaLoaderProps'
 import { joinSides } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer, GStateLineData, GWord } from '../types'
+import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer, GWord } from '../types'
 
 /**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
@@ -26,11 +26,27 @@ function maySeeRival(raw: GGameDataRaw): boolean {
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
 
-  const players: GPlayer[] = raw.players.map((p) => ({
-    ...p,
-    board: seeRival || isMine(p.id) ? p.board : null,
-  }))
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // A coop chain is the team's alone, so it is every player's own too, the
+  // same object on each; a racer's is theirs alone to see mid-race. A racer
+  // always carries their chain and its counts.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const chain = team ?? { nWordsUsed: p.nWordsUsed!, nCoveredLetters: p.nCoveredLetters!, board: p.board! }
+    const board = team !== null || seeRival || isMine(p.id) ? chain.board : null
+    const own: GFacts = {
+      nWordsUsed: chain.nWordsUsed,
+      nCoveredLetters: chain.nCoveredLetters,
+      maxWords: p.maxWords,
+      nHintsUsed: p.nHintsUsed,
+      nSpoilersUsed: p.nSpoilersUsed,
+      board,
+    }
+    return { ...p, ...(team ?? own), board, own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -52,16 +68,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // The gate has checked that I am seated, and my own chain is never withheld.
   const me = playersById[myId] as GGameData['me']
-  // What the state line shows: the team's chain where the game has one, else
-  // my own (plans/team-facts.md). A racer always carries their two counts.
-  const stateLineData: GStateLineData = {
-    nCoveredLetters: raw.team?.nCoveredLetters ?? me.nCoveredLetters!,
-    nWordsUsed: raw.team?.nWordsUsed ?? me.nWordsUsed!,
-    maxWords: me.maxWords,
-    nParWords: raw.puzzle.nParWords,
-  }
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     puzzle: {
@@ -85,7 +92,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData,
   }
 }
 

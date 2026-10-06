@@ -126,21 +126,23 @@ describe('letterboxed makeGameData — the puzzle', () => {
 })
 
 describe('letterboxed makeGameData — the counts', () => {
-  it('coop: the chain\'s counts are the team\'s, and a player carries neither', () => {
+  it('coop: the chain and its counts are the team\'s, on every player and under `own`', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({ players: TWO, chain: ['adg', 'gjb'], events: EVENTS }),
       'u1',
     )
-    expect(gd.team).toEqual({ nWordsUsed: 2, nCoveredLetters: 5 })
-    expect(gd.me).not.toHaveProperty('nWordsUsed')
-    expect(gd.me).not.toHaveProperty('nCoveredLetters')
-    expect(gd.stateLineData).toEqual({ nCoveredLetters: 5, nWordsUsed: 2, maxWords: 5, nParWords: 2 })
+    expect([gd.me.nWordsUsed, gd.me.nCoveredLetters]).toEqual([2, 5])
+    expect([gd.me.own.nWordsUsed, gd.me.own.nCoveredLetters]).toEqual([2, 5])
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
+    expect(gd).not.toHaveProperty('team')
   })
 
-  it('each player\'s hints and spoilers are their own', () => {
+  it('coop: the hints and spoilers on a player are the team\'s; their own are under `own`', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect([gd.me.nHintsUsed, gd.playersById.u2!.nHintsUsed]).toEqual([0, 1])
-    expect(gd.me.nSpoilersUsed).toBe(0)
+    expect([gd.me.nHintsUsed, gd.playersById.u2!.nHintsUsed]).toEqual([1, 1])
+    expect([gd.me.own.nHintsUsed, gd.playersById.u2!.own.nHintsUsed]).toEqual([0, 1])
+    expect(gd.me.own.nSpoilersUsed).toBe(0)
   })
 
   it('carries the cap and the rest through from the blob', () => {
@@ -183,13 +185,14 @@ describe('letterboxed makeGameData — the seat rule', () => {
   it('coop withholds nothing: one chain, one team', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, chain: ['adg'], events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(3)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
   })
 
-  it('a race has no team, so the state line shows my own chain', () => {
+  it('a racer\'s side is themselves, so both copies are their own chain', () => {
     const gd = makeGameData(race(), 'u1')
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toEqual({ nCoveredLetters: 3, nWordsUsed: 1, maxWords: 5, nParWords: 2 })
+    expect([gd.me.nCoveredLetters, gd.me.nWordsUsed]).toEqual([3, 1])
+    expect([gd.me.own.nCoveredLetters, gd.me.own.nWordsUsed]).toEqual([3, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('a conceder is still a player, with their ending', () => {

@@ -142,7 +142,6 @@ export function useActionsAndMenu({
   const actPrintBoard = useBindAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      const sld = gd.stateLineData
       printLetterboxedPdf(
         buildLetterboxedPrintModel({
           brand: gd.brand,
@@ -155,7 +154,7 @@ export function useActionsAndMenu({
           players: gd.players,
           events: gd.events,
           summary:
-            `${sld.nCoveredLetters}/${BOARD_SIZE} letters · ${sld.nWordsUsed}/${sld.maxWords} words`,
+            `${gd.me.nCoveredLetters}/${BOARD_SIZE} letters · ${gd.me.nWordsUsed}/${gd.me.maxWords} words`,
           setupRows: gd.setupRows,
         }),
       )

@@ -360,23 +360,24 @@ drop function if exists letterboxed._write_statuses(uuid, boolean);
 --
 --   game_data, letterboxed's part:
 --     puzzle: {solution}                   the seeded pair, null until the game ends
---     team: {nWordsUsed, nCoveredLetters}  the shared chain's; null in compete
---                                          (plans/team-facts.md)
+--     team: {nWordsUsed, nCoveredLetters, nHintsUsed, nSpoilersUsed, maxWords, board}
+--                                          the team's facts, once: the one chain and
+--                                          its counts, the hints and spoilers summed;
+--                                          null in compete (plans/team-facts.md)
 --     events: [{id, userId, kind, word, nCoveredLetters, tookTurn, at}, …]
 --                                          every move and every hint or spoiler,
 --                                          every player's; what a racer may see of a
 --                                          rival mid-race is the hook's rule
---     players: [player, …]                 the common player, plus:
+--     players: [player, …]                 the common player, plus this player's own facts:
 --       maxWords                           the cap, the same on every player
---       nWordsUsed, nCoveredLetters        this racer's chain; compete only, since a
---                                          coop chain is the team's
---       nHintsUsed, nSpoilersUsed          this player's own, off the log
---       board: {words}                     this seat's chain: the shared one in
---                                          coop, each racer's own in compete
+--       nHintsUsed, nSpoilersUsed          off the log
+--       nWordsUsed, nCoveredLetters        a racer's chain's; null in coop, whose
+--                                          one chain is `team`'s
+--       board: {words}                     a racer's own chain; null in coop
 --
 --   summary_data, letterboxed's part (the common part names and dates the game
 --   and carries its ending; the winner is `ending.winner`):
---     team: {nWordsUsed, nCoveredLetters}  the same group; null in compete
+--     team: {nWordsUsed, nCoveredLetters}  the coop chain's counts; null in compete
 --     maxWords
 --     band                                 the dictionary band, `legal_band`
 --     nBestCoveredLetters                  compete's best chain so far; null in coop
@@ -472,9 +473,42 @@ $$;
 
 revoke execute on function letterboxed._make_json_events(uuid) from public;
 
--- What the team shares: the one chain, read off any coop row since every row
--- holds it. Null in compete, where there is no team (plans/team-facts.md).
-create or replace function letterboxed._make_json_team(p_game_id uuid)
+-- A chain's facts: its two counts and the chain itself.
+create or replace function letterboxed._make_json_chain(p_chain text[])
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'nWordsUsed',      cardinality(p_chain),
+           'nCoveredLetters', letterboxed._covered(p_chain),
+           'board',           jsonb_build_object('words', to_jsonb(p_chain)));
+$$;
+
+revoke execute on function letterboxed._make_json_chain(text[]) from public;
+
+-- The hints and spoilers taken, off the log: one player's, or every player's
+-- when `p_user_id` is null — the team's.
+create or replace function letterboxed._make_json_asks(p_game_id uuid, p_user_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select jsonb_build_object(
+           'nHintsUsed',    count(*) filter (where e.kind = 'hint'),
+           'nSpoilersUsed', count(*) filter (where e.kind = 'spoiler'))
+    from letterboxed.events e
+   where e.game_id = p_game_id
+     and (p_user_id is null or e.user_id = p_user_id);
+$$;
+
+revoke execute on function letterboxed._make_json_asks(uuid, uuid) from public;
+
+-- The coop chain's two counts, read off any coop row since every row holds the
+-- chain. Null in compete, where there is no team.
+create or replace function letterboxed._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -493,11 +527,35 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function letterboxed._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: the one chain, read off any coop row since
+-- every row holds it, with its counts; the hints and spoilers summed; the cap.
+-- Null in compete, where there is no team (plans/team-facts.md).
+create or replace function letterboxed._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select (select letterboxed._make_json_chain(lp.chain)
+            from letterboxed.players lp
+           where lp.game_id = p_game_id
+           order by lp.user_id
+           limit 1)
+         || letterboxed._make_json_asks(p_game_id, null)
+         || jsonb_build_object('maxWords', lg.max_words)
+    from letterboxed.games lg
+    join common.games cg on cg.id = lg.game_id
+   where lg.game_id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function letterboxed._make_json_team(uuid) from public;
 
 -- Every player as letterboxed's game_data shows them: the common player, with
--- the cap, a racer's two counts, the hints and spoilers they took, and this
--- seat's chain.
+-- their own facts — the cap, the hints and spoilers they took, and in compete
+-- their chain and its counts.
 create or replace function letterboxed._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -506,19 +564,11 @@ set search_path = letterboxed, common, public, extensions
 as $$
   select jsonb_agg(
            cp.player
-             || jsonb_build_object(
-                  'maxWords',      lg.max_words,
-                  'nHintsUsed',    (select count(*) from letterboxed.events e
-                                     where e.game_id = p_game_id and e.user_id = cp.id
-                                       and e.kind = 'hint'),
-                  'nSpoilersUsed', (select count(*) from letterboxed.events e
-                                     where e.game_id = p_game_id and e.user_id = cp.id
-                                       and e.kind = 'spoiler'),
-                  'board',         jsonb_build_object('words', to_jsonb(lp.chain)))
-             || case when cg.mode = 'compete' then jsonb_build_object(
-                  'nWordsUsed',      cardinality(lp.chain),
-                  'nCoveredLetters', letterboxed._covered(lp.chain))
-                else '{}'::jsonb end
+             || jsonb_build_object('maxWords', lg.max_words)
+             || letterboxed._make_json_asks(p_game_id, cp.id)
+             -- Coop's one chain is sent once, in `team`.
+             || case when cg.mode = 'compete' then letterboxed._make_json_chain(lp.chain)
+                else '{"nWordsUsed": null, "nCoveredLetters": null, "board": null}'::jsonb end
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join letterboxed.players lp on lp.game_id = p_game_id and lp.user_id = cp.id
@@ -591,7 +641,7 @@ as $$
      limit 1
   )
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',                  letterboxed._make_json_team(p_game_id),
+    'team',                  letterboxed._make_json_team_counts(p_game_id),
     'maxWords',              lg.max_words,
     'band',                  lg.legal_band,
     'nBestCoveredLetters',   case when cg.mode = 'compete' then

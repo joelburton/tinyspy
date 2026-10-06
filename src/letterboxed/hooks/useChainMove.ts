@@ -124,7 +124,7 @@ export function useChainMove(gd: GGameData, localFeedbackSlot: FeedbackSlot): {
   // There is no legal move left but taking a word back, so the board and the
   // entry go inert rather than letting a player compose a word only to be
   // refused it — and the slot says so in the entry's place.
-  const isChainFull = chain.length >= maxWords && gd.stateLineData.nCoveredLetters < BOARD_SIZE
+  const isChainFull = chain.length >= maxWords && gd.me.nCoveredLetters < BOARD_SIZE
   useEffect(function showChainFull() {
     if (!isChainFull) return
     const id = localFeedbackSlot.show(FeedbackMessage.note('Chain is full — remove a word'))

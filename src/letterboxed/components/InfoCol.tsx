@@ -57,7 +57,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        <StateLine data={gd.stateLineData} />
+        <StateLine facts={gd.me} puzzle={gd.puzzle} />
 
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
             free-for-all game would print "Waiting for someone…" forever,
