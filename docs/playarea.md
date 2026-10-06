@@ -372,18 +372,15 @@ the same in both, or reading the second game means re-deriving the first.
   - **The viewer passes one prop saying it is open, and the flag is derived.**
     A column writes `const isViewingHistory = historyLabel !== null` rather than
     taking both. A column whose board data comes out of the snapshot takes the
-    snapshot and derives from that; scrabble takes `historyTarget`, a union of a
-    past turn and a teammate's shared move. The rule is the derivation, not
-    which prop carries it.
+    snapshot and derives from that; a converted game's takes `historyView` and
+    reads `historyView.isViewing`. The rule is the derivation, not which prop
+    carries it.
   - **Below-board feedback is `localFeedbackSlot`** (`FeedbackSlot`): the column
     shows its own results into it and draws it with `<FeedbackPill>`.
   - **`historyId`** is the events row's own id everywhere except scrabble, whose
-    id is a union; the hook is generic over `Id`. The viewed turn's marks are
-    `historyLit…` everywhere, never named for a color.
-  - **Where the snapshot is computed is not uniform, on purpose.** Most
-    PlayAreas compute it and hand a ready board down; scrabble's BoardCol takes
-    the raw plays and runs `historyBoard` itself, because those plays already
-    live there for the live board. Its header says so.
+    id is a union — a past turn, or a teammate's shown move; the hook is generic
+    over `Id`. The viewed turn's marks are `historyLit…` everywhere, never named
+    for a color.
 
 ## What building it taught us
 
@@ -391,7 +388,7 @@ Where the four-layer table is too clean:
 
 - **A word buffer tangled with server state stays in the data hook.** When the
   pending word is coupled to optimistic updates and realtime bookkeeping
-  (stackdown's `currentWord`, scrabble's `staged`), `PlayArea` passes the
+  (stackdown's `currentWord`), `PlayArea` passes the
   editing primitives down and `BoardCol` emits the finished word up. "BoardCol
   owns editing" means the gesture → word, not the word's state.
 - **The below-board slot belongs to the coordinator.** Things other than the
@@ -405,10 +402,10 @@ Where the four-layer table is too clean:
   board shows without touching it. So a key handler reads `if
   (isViewingHistory) exit; if (!isBoardInteractive) return`.
 - **`BoardCol` owns its RPCs when the result mutates deep input state.**
-  scrabble's moves claim `lastActionRef` before the await and their results
-  rewrite `optimistic` and `staged`; splitting the RPC from that state would
-  tear one machine in half. Emit up when the coordinator can own the result; own
-  the RPC when it can't.
+  scrabble's moves claim the rack before the await (`useSubmitMove`) and their
+  results rewrite the held tiles, the staged move and the rack order;
+  splitting the RPC from that state would tear one machine in half. Emit up
+  when the coordinator can own the result; own the RPC when it can't.
 - **Prove a decomposition with the geometry harness, not render tests.** Render
   tests, `tsc` and eslint all pass on a botched CSS move;
   `e2e/board-geometry.e2e.ts` (a `BASELINE=1` run before, a compare after)

@@ -24,8 +24,8 @@ export function Rack({
   onPointerDown,
 }: {
   tiles: RackTile[]
-  used: Set<number>
-  picked: Set<number>
+  used: ReadonlySet<number>
+  picked: ReadonlySet<number>
   /** Rack slots to outline yellow for a beat (freshly-drawn tiles). */
   flashIds: ReadonlySet<number>
   active: boolean

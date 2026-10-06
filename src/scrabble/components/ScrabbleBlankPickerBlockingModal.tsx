@@ -4,7 +4,8 @@ import { BlockingModal } from '@/common/floating-panels/BlockingModal'
 import { CancelButton } from '@/common/buttons/CancelButton'
 import styles from './ScrabbleBlankPickerBlockingModal.module.css'
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+// Lowercase, the data's case; the buttons draw capitals.
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('')
 
 /**
  * Declare what a dragged blank stands for — the one question scrabble has to

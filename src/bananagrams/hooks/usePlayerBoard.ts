@@ -555,7 +555,10 @@ export function usePlayerBoard({
       if (remove) boardToHand(remove.x, remove.y)
       setCursor(cursor)
     },
-    onLetter: (letter: string) => {
+    onLetter: (typed: string) => {
+      // This game's tiles are still capitals; its conversion takes it to the
+      // data's lowercase (src/bananagrams/todo.md).
+      const letter = typed.toUpperCase()
       const cur = cursorRef.current
       const i = idx(cur.x, cur.y)
       // Typing on a FILLED cell swaps: clear it first (its tile re-derives back into the

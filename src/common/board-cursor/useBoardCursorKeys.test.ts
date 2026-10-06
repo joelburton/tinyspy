@@ -40,14 +40,16 @@ function setup(over: Partial<BoardCursorKeysOptions> = {}) {
 }
 
 describe('useBoardCursorKeys', () => {
-  it('maps arrows → onArrow, a letter → onLetter (uppercased), Backspace, Enter', async () => {
+  it('maps arrows → onArrow, a letter → onLetter (lowercase, Shift or not), Backspace, Enter', async () => {
     const cb = setup()
     await press('ArrowLeft')
     await press('a')
+    await press('B')
     await press('Backspace')
     await press('Enter')
     expect(cb.onArrow).toHaveBeenCalledWith('ArrowLeft')
-    expect(cb.onLetter).toHaveBeenCalledWith('A')
+    expect(cb.onLetter).toHaveBeenNthCalledWith(1, 'a')
+    expect(cb.onLetter).toHaveBeenNthCalledWith(2, 'b')
     expect(cb.onBackspace).toHaveBeenCalledTimes(1)
     expect(cb.onCommit).toHaveBeenCalledTimes(1)
     cb.view.unmount()
@@ -91,7 +93,7 @@ describe('useBoardCursorKeys', () => {
     await press('Enter')
     await press('a')
     expect(cb.onCommit).not.toHaveBeenCalled()
-    expect(cb.onLetter).toHaveBeenCalledWith('A')
+    expect(cb.onLetter).toHaveBeenCalledWith('a')
     cb.view.unmount()
   })
 

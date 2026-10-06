@@ -42,6 +42,12 @@
 
 ## Soon
 
+- **A typed letter is uppercased on its way in.** The shared
+  `useBoardCursorKeys` hands over lowercase, the data's case (2026-10-05), and
+  bananagrams' tiles are still capitals, so `usePlayerBoard`'s `onLetter`
+  uppercases what it is handed. The line goes when the conversion takes the
+  tiles to lowercase and capitals go on at the draw point.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these

@@ -25,7 +25,7 @@ function makeEvents() {
 describe('answerMessage', () => {
   it('a played word scores, in capitals, with the bingo marked', () => {
     expect(answerMessage({ answerType: 'word', words: ['cat', 'at'], score: 10, bingo: false }))
-      .toEqual({ outcome: 'won', text: 'CAT, AT +10' })
+      .toEqual({ outcome: 'won', text: 'CAT · AT +10' })
     expect(answerMessage({ answerType: 'word', words: ['bingoes'], score: 64, bingo: true }))
       .toEqual({ outcome: 'won', text: 'BINGOES +64 🎉' })
   })

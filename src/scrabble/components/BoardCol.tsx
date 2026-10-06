@@ -1,967 +1,229 @@
 // cs-fixed-outcome-fix
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { runRpc } from '@/common/supabase/dbResult'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useMark } from '@/common/board-marks/useMark'
-import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { useBindAction } from '@/common/actions/useBindAction'
-import { askConfirmation } from '@/common/floating-panels/confirmationService'
-import type { ConfirmOptions } from '@/common/floating-panels/confirmations'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
-import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
-import { db } from '../db'
-import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
-import { historyBoard, evaluatePlay } from '../lib/play'
-import type { ScrabbleGame, PlayerRow, EventRow } from '../hooks/useGame'
-import type { GHistoryTarget, GPlacement, GSharedMovePayload, GTentative } from '../types'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import type { GridCursor } from '@/common/board-cursor/gridCursor'
+import { BLANK, cellIndex, readCellXY } from '../lib/board'
+import { useRackOrder } from '../hooks/useRackOrder'
+import { useStagedTiles } from '../hooks/useStagedTiles'
+import { useSubmitMove } from '../hooks/useSubmitMove'
+import { useBoardDrag } from '../hooks/useBoardDrag'
+import { useBoardColActions } from '../hooks/useBoardColActions'
+import type { GCell, GGameData, GHistoryView, GPlacement, GSharedMovePayload, GTentative } from '../types'
 import { Board } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
+import { StateLine } from './StateLine'
 import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
-import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** Pass's question. Scrabble's own rather than the registry's: passing here
- *  forfeits the turn's points and feeds the blocked-end streak, which is why
- *  it asks at all. */
-const PASS_CONFIRM: ConfirmOptions = {
-  title: 'Pass your turn?',
-  message: 'You score nothing this turn, and if every seat passes in a row the game ends.',
-  confirmLabel: 'Pass',
-  cancelLabel: 'Keep playing',
-}
+/** No cells and no staged tiles — the marks a read-only board wears for the
+ *  live move. */
+const NO_CELLS: ReadonlySet<number> = new Set()
+const NO_TENTATIVES: ReadonlyMap<number, GTentative> = new Map()
 
-/** A tile staged on the board this turn, tied to its rack slot. */
-type Staged = GPlacement & { rackIdx: number }
-type XY = { x: number; y: number }
-type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-
-function overRackAtPoint(x: number, y: number): boolean {
-  return !!document.elementFromPoint(x, y)?.closest('[data-zone="rack"]')
-}
-
-// Stable empties for the turn-viewer (the live board's overlays are suppressed),
-// so the Board doesn't get a fresh Set/Map each render.
-const NO_CELLS: Set<number> = new Set()
-const NO_TENT: Map<number, GTentative> = new Map()
-
-/** The history banner's label for one play — terse so it fits even with a couple of
- *  long words: "#1 moth: +10 APPLE, BERRY" for a word, or the action ("#5 moth
- *  passed", "#5 moth exchanged 3 tiles") for the others. Every other game returns
- *  this as its snapshot's `historyLabel`; scrabble builds it here because `plays`
- *  already lives in this column.
+/**
+ * scrabble's board column: the 15×15 board, and beneath it the rack and the
+ * commit row — and the move. Laying a move out (`useStagedTiles`, `useBoardDrag`
+ * and the cursor keys), the rack's order (`useRackOrder`), and the move's trip
+ * to the server (`useSubmitMove`) are all here, since each one reads the
+ * others' state; `useBoardColActions` binds the commands the row places.
  *
- *  `n0` is the `#N` the log printed on the clicked row, not this list's index:
- *  the log numbers what its filter is showing, and the banner owes the reader
- *  the number they saw. */
-function historyLabelFor(
-  p: EventRow,
-  n0: number | null,
-  nameOf: (id: string | null) => string,
-): string {
-  const who = nameOf(p.user_id)
-  const n = n0 === null ? '' : `#${n0} `
-  if (p.kind === 'word') {
-    const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
-    return `${n}${who}: +${p.score ?? 0} ${words}`
-  }
-  if (p.kind === 'exchange') return `${n}${who} exchanged ${p.tile_count} tiles`
-  if (p.kind === 'pass') return `${n}${who} passed`
-  return `${n}${who} ended — ${-(p.score ?? 0)} tiles unplayed` // leftovers
-}
-
-/**
- * The display position (0..N) a rack tile dropped at screen-x `px` should land at,
- * by comparing `px` to each rendered rack tile's horizontal midpoint — so dropping
- * left-of a tile inserts before it, right-of the last inserts at the end. Returns
- * null if the rack isn't on screen.
+ * Above the board sits the shared `<MobileStatusBar>`, `display: none` on
+ * desktop: on a phone the info column is off-canvas, and the state line is
+ * what a player reads between moves.
  */
-function rackInsertIndexAtPoint(px: number): number | null {
-  const tray = document.querySelector('[data-zone="rack"]')
-  if (!tray) return null
-  const tiles = [...tray.querySelectorAll('[data-rack-tile]')]
-  for (let i = 0; i < tiles.length; i++) {
-    const r = tiles[i].getBoundingClientRect()
-    if (px < r.left + r.width / 2) return i
-  }
-  return tiles.length
-}
-
-/**
- * The rack display order after a draw: keep the tiles that remain in their
- * current display order (compacted left), then append the freshly-drawn tiles
- * on the right — so it's obvious which are new. `removed` are the OLD rack
- * indices that left (played or exchanged); the server rebuilds the rack as
- * `[remaining-in-ascending-order ++ drawn]`, so new server indices
- * `[remainingCount .. newLen-1]` are the new tiles. Falls back to identity on
- * the first load (no prior action) or any length mismatch.
- */
-function nextRackOrder(
-  prevOrder: number[],
-  action: { removed: Set<number>; oldLen: number } | null,
-  newLen: number,
-): number[] {
-  const identity = Array.from({ length: newLen }, (_, i) => i)
-  if (!action) return identity
-  const remainingAsc: number[] = []
-  for (let i = 0; i < action.oldLen; i++) if (!action.removed.has(i)) remainingAsc.push(i)
-  const oldToNew = new Map(remainingAsc.map((oldIdx, k) => [oldIdx, k]))
-  const remaining = prevOrder.filter((i) => oldToNew.has(i)).map((i) => oldToNew.get(i)!)
-  const drawn: number[] = []
-  for (let i = remainingAsc.length; i < newLen; i++) drawn.push(i)
-  const result = [...remaining, ...drawn]
-  return result.length === newLen ? result : identity
-}
-
-/**
- * scrabble's board column — the 15×15 board plus the below-board GameEntryArea (the
- * rack + the action row). This is the **turn machine**: staging (drag + keyboard
- * cursor), the blank picker, the drag ghost, the optimistic just-played tiles, the
- * flashes, and — because they're inseparable from that state — the `play_word` /
- * `exchange` / `pass` RPCs themselves (they claim `lastActionRef` before the await
- * for the realtime-beats-RPC race, and their results mutate `optimistic`/`staged`,
- * which the version-reset effect reads). So, unlike the other games' BoardCol which
- * emit one action up, scrabble's owns its RPCs; PlayArea hands it the game data +
- * gameId + the local feedback slot + the history-view inputs, and renders it beside
- * the InfoCol. See docs/playarea.md.
- *
- * Two more deliberate divergences from the stackdown/waffle contract, for the same
- * reason (the raw play data already lives here):
- *   - **It reconstructs the viewed board itself.** stackdown/waffle compute the
- *     historical snapshot in PlayArea and hand a ready-to-render board *down*;
- *     scrabble takes the raw `plays` + `historyId` and runs `historyBoard` (and
- *     builds the banner via `historyLabelFor`) in here, since `plays` is already the
- *     input the live board reads.
- *   - **Its `historyId` is a union, not a row id.** The shared hook is generic
- *     over the id, and scrabble's carries two things the board can show: a past
- *     turn (`{kind: 'turn', id}`) and a teammate's shared move
- *     (`{kind: 'peerPreview', …}`), which arrives over Broadcast and belongs to
- *     no log row. PlayArea aliases it `historyTarget` for that reason.
- */
-/**
- * What the three move RPCs answer. Every one of them keeps `version`, and
- * `terminal` is on all three because the FE branches on it uniformly.
- *
- * `stale` is NOT here: a board that moved under you is a RACE, so it arrives on
- * the not-ok arm with the server's own "Board changed". The board version
- * rides in that refusal's `detail`, where the `[db]` line shows it — the
- * frontend's own `game.version` comes from the games-row subscription, which is
- * the authority.
- */
-type PlayAnswer =
-  | { result: 'accepted'; drawn: string[]; version: number; terminal: boolean }
-  | { result: 'invalid'; bad_words: string[] }
-
-type SwapAnswer = { result: 'exchanged'; drawn: string[]; version: number; terminal: boolean }
-
-type PassAnswer = { result: 'passed'; version: number; terminal: boolean }
-
 export function BoardCol({
-  mobileStatus,
-  game,
-  gameId,
-  self,
-  isMyTurn,
-  isBoardInteractive,
+  gd,
+  shownCells,
+  historyView,
   localFeedbackSlot,
-  plays,
-  historyTarget,
-  historyN,
-  historyTargetRef,
-  onExitHistory,
-  nameOf,
-  memberColorOf,
-  canShare,
   shareMove,
-  myId,
   registerSuggestionApplier,
 }: {
-  // ── Mobile-only status strip ──
-  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
-  // above the board ONLY below the `--mobile` breakpoint — where the info
-  // column is off-canvas in the InfoSheet and would otherwise take a tap to
-  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
-  mobileStatus: ReactNode
-
-  // ── Game data (the turn machine reads board/version/rack/bag off this) ──
-  game: ScrabbleGame
-  gameId: string
-  // My player row (rack in compete; null in coop where the rack is shared). undefined = I'm watching.
-  self: PlayerRow | undefined
-  // The page's `isMyTurn`: gates committing (canCommit).
-  isMyTurn: boolean
-  // The page's `isBoardInteractive`: gates staging (canPlace). scrabble drafts
-  // off-turn, so this is true on another player's turn too.
-  isBoardInteractive: boolean
-
-  // ── Below-board feedback (the slot is PlayArea's) ──
-  // PlayArea's below-board slot. The turn machine shows its results into it
-  // (played / rejected / no-tile / …), Controls draws it in the commit slot,
-  // and a board or rack interaction or a keystroke dismisses a gesture-
-  // cleared result.
+  gd: GGameData
+  // The board to show — PlayArea picks it: a past turn's, or the live one.
+  shownCells: GCell[]
+  historyView: GHistoryView
+  // PlayArea's below-board slot: a move's answer, the ending, whose turn.
   localFeedbackSlot: FeedbackSlot
-
-  // ── Board viewer (state owned by PlayArea; this renders the snapshot) ──
-  plays: EventRow[]
-  // The read-only overlay open on the board (a past turn OR a teammate's shared
-  // move), or null when live.
-  historyTarget: GHistoryTarget | null
-  // The `#N` the Moves log was printing on the row that opened this, so the
-  // banner shows the number the reader clicked. Null for a shared move, which
-  // arrives over Broadcast and has no log row.
-  historyN: number | null
-  // A ref to historyTarget, read by the once-registered board-drag pointerdown.
-  historyTargetRef: RefObject<GHistoryTarget | null>
-  // Return to the live board (a board interaction / a keystroke / a new move).
-  onExitHistory: () => void
-  // Username for a user id — for the viewer banners.
-  nameOf: (id: string | null) => string
-  // Identity-disc color NAME for a user id — for the share banner's disc.
-  memberColorOf: (id: string) => string | undefined
-
-  // ── Show-a-move (coop only — see useSharedMove) ──
-  // Coop with ≥2 players — gates the Share button (there's a teammate to show).
-  canShare: boolean
-  // Broadcast my staged tiles to teammates for a read-only preview.
+  // Show my staged tiles to my teammates (`useSharedMove`).
   shareMove: (payload: GSharedMovePayload) => void
-  // My user id — stamped on a broadcast as its `sharerId`.
-  myId: string
-
-  // ── Suggest-a-move (coop only — see docs/games/scrabble.md §11) ──
-  // Register (or, with null, unregister) the "stage this suggested move"
-  // applier with PlayArea, which calls it from the InfoCol list's click —
-  // staging lives here, the suggest state there (the menu.setGameSections
-  // register shape).
+  // Hand PlayArea the way a picked suggestion is staged; null on unmount.
   registerSuggestionApplier: (fn: ((placements: GPlacement[]) => void) | null) => void
 }) {
-  // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
-  // conventions: one prop says so, and the flag is derived, never passed).
-  const isViewingHistory = historyTarget !== null
-  const [staged, setStaged] = useState<Staged[]>([])
-  const [picked, setPicked] = useState<Set<number>>(new Set()) // rack tiles picked for exchange
-  const [order, setOrder] = useState<number[]>([])
-  const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
+  // ─── Which board is on screen ─────────────────────────────────
+  // I may lay a move out — on another player's turn too — while I'm still
+  // playing and the board is live; a press over a past turn is the viewer's
+  // exit.
+  const isInteractive = gd.me.stillPlaying && !gd.ended && !historyView.isViewing
+
+  // ─── The pending move ─────────────────────────────────────────
+  // The rack I play from: the team's in coop, my own in a race.
+  const rack = gd.team?.rack ?? gd.me.rack!
   const [cursor, setCursor] = useState<GridCursor>({ x: 7, y: 7, dir: 'h' })
-  const [submitting, setSubmitting] = useState(false)
-  // Just-played tiles, rendered as committed until the realtime refetch brings
-  // them in for real — so an accepted word never blinks off the board.
-  const [optimistic, setOptimistic] = useState<GPlacement[]>([])
-  // Three brief outlines, each on the beat the vocabulary gives its KIND
-  // (feedbackTiming): the rack slots just drawn are news arriving in place that
-  // the player did not choose, so they take the attention beat; the cells just
-  // played and the cells of a refused word are both a word's ANSWER on the
-  // board, which is read rather than glanced at and stays accordingly.
-  //
-  // WHETHER these are the right marks at all is scrabble's own tile-feedback
-  // pass to say — the green one marks the player's own move, which the audience
-  // rule says needs no mark, since the pill already answers.
-  // Three marks rather than one, because they can be up at once: a move that
-  // played tiles and drew replacements raises the green and the yellow in the
-  // same beat.
-  const [greenMark, flashGreen] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
-  const [yellowMark, flashYellow] = useMark<{ cells: ReadonlySet<number> }>(ATTENTION_FLASH_MS)
-  const [redMark, flashRed] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
-  const greenFlash = greenMark?.value.cells ?? NO_CELLS
-  const yellowFlash = yellowMark?.value.cells ?? NO_CELLS
-  const redFlash = redMark?.value.cells ?? NO_CELLS
-
-  // ─── Derived ───────────────────────────────────────────────────
-  const mode = game.mode
-  const isCompete = mode === 'compete'
-  const actingRack = useMemo(
-    () => (mode === 'coop' ? (game.sharedRack ?? []) : (self?.rack ?? [])),
-    [mode, game.sharedRack, self?.rack],
-  )
-  // Two gates, each closed while a move is in flight. `canPlace` — may stage /
-  // recall / reorder tiles, allowed on another player's turn too ("pre-play").
-  // `canCommit` — may commit a turn-consuming move (Submit / Swap / Pass), which
-  // requires it to be my turn. In free-for-all coop the two coincide.
-  const canPlace = isBoardInteractive && !submitting
-  const canCommit = isMyTurn && !submitting
-
-  const usedRackIdx = useMemo(() => new Set(staged.map((s) => s.rackIdx)), [staged])
-  const tentativeMap = useMemo(() => {
-    const m = new Map<number, GTentative>()
-    for (const s of staged) m.set(cellIndex(s.x, s.y), { letter: s.letter, blank: s.blank })
-    return m
-  }, [staged])
-  const rackTiles = useMemo(
-    () => order.filter((i) => i < actingRack.length).map((i) => ({ glyph: actingRack[i], rackIdx: i })),
-    [order, actingRack],
-  )
-  // The board we render + validate against: the server's committed board with
-  // the optimistic just-played tiles overlaid (they read as committed).
-  const board = useMemo(() => {
-    const base = game.board ?? []
-    if (optimistic.length === 0) return base
-    const b = [...base]
-    for (const p of optimistic) b[cellIndex(p.x, p.y)] = { l: p.letter, b: p.blank }
-    return b
-  }, [game.board, optimistic])
-
-  // Live preview: geometry + score of the staged tiles (dictionary is only
-  // checked on submit). Drives the Submit-button label.
-  const preview = useMemo(
-    () => (staged.length > 0 ? evaluatePlay(board, staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))) : null),
-    [board, staged],
-  )
-
-  // Refs the always-on pointer handlers read, so they can stay stable
-  // (registered once) instead of re-binding on every state change.
-  const boardRef = useRef(board)
-  const stagedRef = useRef(staged)
-  const actingRackRef = useRef(actingRack)
-  const canPlaceRef = useRef(canPlace)
-  const orderRef = useRef(order)
-  // (historyTargetRef is owned by useHistoryViewer, passed down — synced there.)
-  useEffect(() => {
-    boardRef.current = board
-    stagedRef.current = staged
-    actingRackRef.current = actingRack
-    canPlaceRef.current = canPlace
-    orderRef.current = order
-  }, [board, staged, actingRack, canPlace, order])
-
-  // How many tiles the last play/exchange drew — turned into a yellow rack
-  // flash once the new rack arrives (the drawn tiles are the rack's last N).
-  const pendingDrawRef = useRef(0)
-  // Which OLD rack slots left on the last play/exchange (+ the old rack length),
-  // so the next order keeps the remaining tiles put and adds the new ones right.
-  const lastActionRef = useRef<{ removed: Set<number>; oldLen: number } | null>(null)
-
-  // On a server version move, distinguish MY commit from an OPPONENT'S move:
-  //   - MY play/exchange (`lastActionRef` set when I acted, so I drew tiles), or
-  //     ANY coop commit (shared rack changed): reset staging + rebuild the rack
-  //     order (remaining tiles kept, drawn tiles appended + flashed).
-  //   - COMPETE + an opponent moved (I didn't act → my rack is untouched): KEEP my
-  //     pre-played tiles AND my rack order. Only if the opponent committed onto a
-  //     cell I'd pre-played do I clear the pre-play + warn (the move is invalid now).
-  const prevVersion = useRef<number | null>(null)
-  const rackLen = actingRack.length
-  useEffect(() => {
-    if (prevVersion.current === game.version) return
-    prevVersion.current = game.version
-    setPicked(new Set())
-    onExitHistory() // a new move landed — drop back to the live board
-    setOptimistic([]) // the server board now holds any just-played tiles
-    // Leave the cursor where it is — the next word is usually nearby.
-
-    const myMove = lastActionRef.current !== null
-    if (isCompete && !myMove) {
-      // An opponent's compete move (or the very first load): my rack is unchanged,
-      // so don't rebuild order/flash — EXCEPT seed the initial order when it's still
-      // empty (first load takes this branch, since I haven't acted), or the rack
-      // renders no tiles.
-      if (orderRef.current.length === 0 && rackLen > 0) {
-        setOrder(Array.from({ length: rackLen }, (_, i) => i))
-      }
-      // Keep my pre-play unless a tile I staged is now occupied on the board.
-      const committed = game.board ?? []
-      const conflict = stagedRef.current.some((s) => committed[cellIndex(s.x, s.y)] != null)
-      if (conflict) {
-        setStaged([])
-        // Terse on purpose — the commit slot is narrow.
-        localFeedbackSlot.show(FeedbackMessage.result('warning', 'Pre-play cleared: conflict'))
-      }
-      pendingDrawRef.current = 0
-      return
-    }
-
-    // My commit (compete or coop), or any coop commit: reset staging + rebuild rack.
-    setStaged([])
-    setOrder(nextRackOrder(orderRef.current, lastActionRef.current, rackLen))
-    lastActionRef.current = null
-    if (pendingDrawRef.current > 0 && rackLen > 0) {
-      const n = Math.min(pendingDrawRef.current, rackLen)
-      flashYellow({ cells: new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)) })
-    }
-    pendingDrawRef.current = 0
-  }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitHistory])
-
-  // Apply an accepted AI suggestion (docs/games/scrabble.md §11): fill the staging
-  // state with the suggested placements — the SAME state a hand-placed move
-  // uses, so the player reviews the ghost tiles on the board and commits
-  // through the normal play flow. The suggester is advisory: it never submits.
-  // Each placement is re-resolved against the live rack (a blank consumes a
-  // '?'), and the whole apply bails with a terse result if the board or rack
-  // changed under it (a teammate played while the list was open — PlayArea
-  // derives staleness off game.version, but the click can race it). Runs in
-  // the InfoCol list's click handler — PlayArea holds it via the register
-  // prop (an external-registry effect, like menu.setGameSections).
-  const applySuggestedMove = useCallback(
-    (placements: GPlacement[]) => {
-      if (!canPlaceRef.current) return
-      onExitHistory() // staging happens on the live board, never under a viewer overlay
-      const used = new Set<number>()
-      const next: Staged[] = []
-      for (const p of placements) {
-        const free = boardRef.current[cellIndex(p.x, p.y)] == null
-        const want = p.blank ? BLANK : p.letter
-        const rackIdx = actingRackRef.current.findIndex((g, i) => !used.has(i) && g === want)
-        if (!free || rackIdx < 0) {
-          localFeedbackSlot.show(FeedbackMessage.result('warning', 'Board changed'))
-          return
-        }
-        used.add(rackIdx)
-        next.push({ x: p.x, y: p.y, letter: p.letter, blank: p.blank, rackIdx })
-      }
-      localFeedbackSlot.dismiss()
-      setStaged(next) // replaces any hand-staged tiles — the player asked for this move
-    },
-    [onExitHistory, localFeedbackSlot],
-  )
-  useEffect(() => {
-    registerSuggestionApplier(applySuggestedMove)
-    return () => registerSuggestionApplier(null)
-  }, [registerSuggestionApplier, applySuggestedMove])
-
-  // ─── Cell-state helpers (ref-based; used by stable handlers) ──
-  const committedAt = useCallback((x: number, y: number) => !!boardRef.current[cellIndex(x, y)], [])
-  const stagedAt = useCallback(
-    (x: number, y: number) => stagedRef.current.find((s) => s.x === x && s.y === y),
-    [],
-  )
-
-  // ─── Drag gesture (shared pointer plumbing — see useDragGesture) ──
-  const togglePick = useCallback((rackIdx: number) => {
-    setPicked((prev) => {
-      const next = new Set(prev)
-      if (next.has(rackIdx)) next.delete(rackIdx)
-      else next.add(rackIdx)
-      return next
-    })
-  }, [])
-
-  const finishDrag = useCallback(
-    (g: DragGesture<DragSource>, px: number, py: number) => {
-      const target = cellAtPoint(px, py)
-      if (target) {
-        const ownCell = g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
-        const occupied = (committedAt(target.x, target.y) || !!stagedAt(target.x, target.y)) && !ownCell
-        if (occupied) return // taken → snap back
-        if (g.source.kind === 'rack') {
-          const rackIdx = g.source.rackIdx
-          const glyph = actingRackRef.current[rackIdx]
-          if (glyph === BLANK) {
-            setBlankAt({ x: target.x, y: target.y, rackIdx })
-            return
-          }
-          setStaged((prev) => [...prev, { x: target.x, y: target.y, letter: glyph, blank: false, rackIdx }])
-        } else {
-          // Move a staged tile to a new square.
-          const s = stagedAt(g.source.x, g.source.y)
-          if (!s) return
-          setStaged((prev) => [
-            ...prev.filter((p) => !(p.x === s.x && p.y === s.y)),
-            { x: target.x, y: target.y, letter: s.letter, blank: s.blank, rackIdx: s.rackIdx },
-          ])
-        }
-        return
-      }
-      // Dropped off the grid onto the rack → recall a staged tile.
-      if (g.source.kind === 'board' && overRackAtPoint(px, py)) {
-        const { x, y } = g.source
-        setStaged((prev) => prev.filter((p) => !(p.x === x && p.y === y)))
-        return
-      }
-      // A rack tile dropped back on the rack → REORDER it (people rearrange tiles
-      // to hunt for anagrams). Move it to the drop position in the display `order`.
-      if (g.source.kind === 'rack' && overRackAtPoint(px, py)) {
-        const insertAt = rackInsertIndexAtPoint(px)
-        if (insertAt === null) return
-        const rackIdx = g.source.rackIdx
-        setOrder((prev) => {
-          const from = prev.indexOf(rackIdx)
-          if (from < 0) return prev
-          let to = insertAt
-          const next = [...prev]
-          next.splice(from, 1)
-          if (from < to) to -= 1 // removal shifted later positions left
-          next.splice(Math.min(to, next.length), 0, rackIdx)
-          return next
-        })
-      }
-    },
-    [committedAt, stagedAt],
-  )
-
-  // A plain tap: on a rack tile toggles it for exchange; on a board square
-  // moves the keyboard cursor there.
-  const onTap = useCallback(
-    (g: DragGesture<DragSource>) => {
-      if (g.source.kind === 'rack') togglePick(g.source.rackIdx)
-      else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
-    },
-    [togglePick],
-  )
-
-  const { drag, hover, start } = useDragGesture<DragSource>({
-    onDrop: finishDrag,
-    onTap,
+  const submission = useSubmitMove({ gd, localFeedbackSlot })
+  const staged = useStagedTiles({
+    cells: submission.liveCells,
+    rack,
+    historyView,
+    localFeedbackSlot,
+    registerSuggestionApplier,
+  })
+  const rackOrder = useRackOrder(rack)
+  const pointer = useBoardDrag({
+    cells: submission.liveCells,
+    isInteractive,
+    historyView,
+    stagedAt: staged.stagedAt,
+    placeFromRack: staged.placeFromRack,
+    moveStaged: staged.moveStaged,
+    recall: staged.recall,
+    togglePick: staged.togglePick,
+    moveRackTile: rackOrder.moveTile,
+    setCursor,
+    localFeedbackSlot,
+  })
+  const actions = useBoardColActions({
+    gd,
+    rack,
+    cells: submission.liveCells,
+    cursor,
+    setCursor,
+    isInteractive,
+    staged,
+    rackOrder,
+    submission,
+    shareMove,
+    localFeedbackSlot,
   })
 
-  const onCellPointerDown = useCallback(
-    (x: number, y: number, e: React.PointerEvent) => {
-      // While a read-only overlay is open (a past turn or a teammate's shared
-      // move) the board is read-only; a click exits to live rather than placing.
-      if (historyTargetRef.current != null) {
-        onExitHistory()
-        return
-      }
-      if (!canPlaceRef.current) return
-      localFeedbackSlot.dismiss() // a board interaction is the next move
-      const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
-      start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
-    },
-    // onExitHistory + historyTargetRef are stable (from useHistoryViewer), so listing
-    // them keeps this handler's single-registration without churn.
-    [stagedAt, start, localFeedbackSlot, onExitHistory, historyTargetRef],
-  )
-
-  const onRackPointerDown = useCallback(
-    (rackIdx: number, glyph: string, e: React.PointerEvent) => {
-      if (!canPlaceRef.current) return
-      localFeedbackSlot.dismiss() // a rack interaction is the next move
-      start({ kind: 'rack', rackIdx }, glyph, null, e)
-    },
-    [start, localFeedbackSlot],
-  )
-
-  const pickBlank = useCallback(
-    (letter: string) => {
-      if (!blankAt) return
-      setStaged((prev) => [...prev, { x: blankAt.x, y: blankAt.y, letter, blank: true, rackIdx: blankAt.rackIdx }])
-      setBlankAt(null)
-    },
-    [blankAt],
-  )
-
-  // ─── Keyboard cursor (mirrors bananagrams's keys) ──────────────
-  const isFilled = useCallback(
-    (x: number, y: number) => committedAt(x, y) || !!stagedAt(x, y),
-    [committedAt, stagedAt],
-  )
-  const nextEmpty = useCallback(
-    (x: number, y: number, dir: 'h' | 'v'): XY | null => {
-      let cx = x
-      let cy = y
-      do {
-        if (dir === 'h') cx++
-        else cy++
-      } while (inBounds(cx, cy) && isFilled(cx, cy))
-      return inBounds(cx, cy) ? { x: cx, y: cy } : null
-    },
-    [isFilled],
-  )
-
-  const typeLetter = useCallback(
-    (letter: string) => {
-      // Skip forward over committed (locked) tiles to the first placeable cell.
-      let tx = cursor.x
-      let ty = cursor.y
-      while (inBounds(tx, ty) && committedAt(tx, ty)) {
-        if (cursor.dir === 'h') tx++
-        else ty++
-      }
-      if (!inBounds(tx, ty)) return
-      // A rack tile for the letter (or a blank declared as it); the slot under
-      // the cursor (if we're overwriting a staged tile) is available again.
-      const usedExcept = new Set(staged.filter((s) => !(s.x === tx && s.y === ty)).map((s) => s.rackIdx))
-      let rackIdx = actingRack.findIndex((g, i) => !usedExcept.has(i) && g === letter)
-      let blank = false
-      if (rackIdx < 0) {
-        rackIdx = actingRack.findIndex((g, i) => !usedExcept.has(i) && g === BLANK)
-        blank = true
-      }
-      if (rackIdx < 0) {
-        localFeedbackSlot.show(FeedbackMessage.result('noted', `No “${letter}” tile`))
-        return
-      }
-      setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
-      const nxt = nextEmpty(tx, ty, cursor.dir)
-      setCursor(nxt ? { x: nxt.x, y: nxt.y, dir: cursor.dir } : { x: tx, y: ty, dir: cursor.dir })
-    },
-    [cursor, staged, actingRack, committedAt, nextEmpty, localFeedbackSlot],
-  )
-
-  const backspace = useCallback(() => {
-    const { remove, cursor: next } = planBackspace(cursor, BOARD_SIZE - 1, (x, y) =>
-      stagedAt(x, y) ? 'removable' : committedAt(x, y) ? 'locked' : 'empty',
-    )
-    if (remove) setStaged((prev) => prev.filter((s) => !(s.x === remove.x && s.y === remove.y)))
-    setCursor(next)
-  }, [cursor, stagedAt, committedAt])
-
-  const recallAll = useCallback(() => setStaged([]), [])
-  const shuffle = useCallback(() => setOrder((prev) => [...prev].sort(() => Math.random() - 0.5)), [])
-
-  // ─── Server moves ─────────────────────────────────────────────
-  const submit = useCallback(async () => {
-    const placements: GPlacement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
-    const ev = evaluatePlay(board, placements)
-    // Submit is allowed for any placed tiles (it doesn't gate on legal geometry).
-    // An illegal shape never reaches the server; surface the reason as an
-    // own-move result in the commit slot and stop here. (`ev.error` is
-    // evaluatePlay's own FE-authored sentence, not server text.)
-    if (!ev.valid) {
-      localFeedbackSlot.show(FeedbackMessage.result('lost', ev.error))
+  // A move landed: back to the live board, with the picks for a swap dropped.
+  // Mine (or anyone's on coop's one rack) rebuilds the rack — what stayed
+  // stays put, what was drawn goes on the right — and clears what was staged.
+  // An opponent's leaves my rack and my laid-out move alone, unless it took a
+  // cell I had staged on.
+  const landedVersionRef = useRef(gd.version)
+  const exitHistory = historyView.exit
+  const { takeMyMove, clearHeldTiles } = submission
+  const { clearPicks, recallAll, dropIfCovered } = staged
+  const rebuildRack = rackOrder.rebuild
+  useEffect(function landMove() {
+    if (landedVersionRef.current === gd.version) return
+    landedVersionRef.current = gd.version
+    clearPicks()
+    exitHistory()
+    clearHeldTiles()
+    const myMove = takeMyMove()
+    if (gd.compete && myMove === null) {
+      dropIfCovered(gd.board.cells)
       return
     }
-    setSubmitting(true)
-    // Claim the move BEFORE the await: if my own realtime write bumps game.version
-    // during the RPC round-trip, the version effect must attribute it to ME (rebuild
-    // my rack), not take the OPPONENT branch — which would flash a spurious
-    // "Pre-play cleared: conflict" and leak lastActionRef into the next real opponent
-    // move (a scrambled rack). Snapshot for rollback: a rejected play never commits
-    // and never bumps the version, so it must un-claim.
-    const prevAction = lastActionRef.current
-    const prevDraw = pendingDrawRef.current
-    lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
-    pendingDrawRef.current = staged.length // optimistic; corrected to res.drawn on accept
-    const res = await runRpc<PlayAnswer>(db.rpc('play_word', {
-      target_game: gameId,
-      base_version: game.version,
-      placements: placements as unknown as never,
-      words: ev.words.map((w) => w.word),
-      score: ev.score,
-    }))
-    setSubmitting(false)
-    // ONE un-claim, covering every answer that didn't commit. `stale` is a
-    // RACE — somebody else's move bumped the board version — so it arrives
-    // here with the server's own "Board changed", in the orange a race reads as.
-    if (res.type === 'not-ok') {
-      lastActionRef.current = prevAction // the move didn't land — un-claim it
-      pendingDrawRef.current = prevDraw
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'accepted' && res.outcome !== null) {
-      // Hold the played tiles on the board (as committed) until the realtime
-      // refetch lands, so they don't blink out; green-flash them. The new rack
-      // tiles get the yellow flash once the rack arrives.
-      setOptimistic(placements)
-      flashGreen({ cells: new Set(placements.map((p) => cellIndex(p.x, p.y))) })
-      pendingDrawRef.current = res.data.drawn.length // exact draw count now known
-      setStaged([])
-      setPicked(new Set())
-      const words = ev.words.map((w) => w.word).join(' · ')
-      // The score line is this surface's — the server sends no sentence, since
-      // only the client holds the words `evaluatePlay` read off the board. What
-      // it does send is how the move reads, so the outcome is the other half of
-      // this case's promise and the branch asserts it.
-      localFeedbackSlot.show(
-        FeedbackMessage.result(res.outcome, `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}`),
-      )
-      return
-    } else if (res.type === 'ok' && res.data.result === 'invalid' && res.outcome !== null) {
-      // The dictionary refused it — the one validation this client cannot do,
-      // so an ok rather than a failure. Nothing was written and no version was
-      // bumped, so the claim comes back.
-      lastActionRef.current = prevAction
-      pendingDrawRef.current = prevDraw
-      const badWords = res.data.bad_words ?? []
-      localFeedbackSlot.show(
-        FeedbackMessage.result(res.outcome, `No: ${badWords.join(', ').toUpperCase()}`),
-      )
-      // Red-flash the NEW cells in each rejected word (match the server's
-      // bad_words back to the words evaluatePlay read off the board).
-      const bad = new Set(badWords.map((w) => w.toUpperCase()))
-      const cells = new Set<number>()
-      for (const w of ev.words) {
-        if (!bad.has(w.word.toUpperCase())) continue
-        for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
-      }
-      flashRed({ cells })
-      return
-    } else {
-      lastActionRef.current = prevAction
-      pendingDrawRef.current = prevDraw
-      reportUnhandled('play_word', res)
-      return
-    }
-  }, [game.version, board, staged, actingRack, gameId, localFeedbackSlot, flashGreen, flashRed])
+    recallAll()
+    rebuildRack(myMove?.slots ?? null, myMove?.nDrawn ?? 0, rack.length)
+  }, [gd.version, gd.compete, gd.board.cells, rack.length, clearPicks, exitHistory, clearHeldTiles,
+    takeMyMove, dropIfCovered, recallAll, rebuildRack])
 
-  const exchange = useCallback(async () => {
-    const tiles = [...picked].map((i) => actingRack[i])
-    setSubmitting(true)
-    // Claim before the await — same realtime-beats-RPC race as play_word.
-    const prevAction = lastActionRef.current
-    const prevDraw = pendingDrawRef.current
-    lastActionRef.current = { removed: new Set(picked), oldLen: actingRack.length }
-    pendingDrawRef.current = tiles.length // optimistic; corrected on success
-    const res = await runRpc<SwapAnswer>(
-      db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles }),
-    )
-    setSubmitting(false)
-    if (res.type === 'not-ok') {
-      lastActionRef.current = prevAction // no commit — un-claim
-      pendingDrawRef.current = prevDraw
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'exchanged' && res.outcome !== null) {
-      setPicked(new Set())
-      pendingDrawRef.current = res.data.drawn?.length ?? tiles.length
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, `Swapped ${tiles.length}`))
-      return
-    } else {
-      lastActionRef.current = prevAction
-      pendingDrawRef.current = prevDraw
-      reportUnhandled('exchange_tiles', res)
-      return
-    }
-  }, [game.version, picked, actingRack, gameId, localFeedbackSlot])
-
-  const pass = useCallback(async () => {
-    // Confirm — passing forfeits the turn AND feeds the blocked-end streak (once
-    // every seat passes in a row the game is over), and the button is easy to
-    // misclick. Asked here rather than by the registry because the question is
-    // scrabble's alone: codenamesduet's end-turn is an every-turn move and asks
-    // nothing. Exchange needs no confirm: it's disabled until tiles are
-    // picked, so it's rarely hit by accident.
-    if ((await askConfirmation(PASS_CONFIRM)) !== 'confirm') return
-    const res = await runRpc<PassAnswer>(
-      db.rpc('pass_turn', { target_game: gameId, base_version: game.version }),
-    )
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'passed') {
-      // Nothing to say: the turn hands on, and the seat strip redraws from the
-      // games row. The pass is in the event log either way.
-      return
-    } else {
-      reportUnhandled('pass_turn', res)
-      return
-    }
-  }, [game.version, gameId, localFeedbackSlot])
-
-  // Show-a-move (coop): broadcast my staged tiles to teammates for a read-only
-  // preview. Snapshot semantics — one send per click; re-click to re-show an
-  // updated move. `words`/`score` ride along for the banner (empty/0 if the
-  // arrangement isn't a legal play yet). Ephemeral: never stored, and a teammate
-  // who misses it simply doesn't see it (see useSharedMove).
-  const shareCurrentMove = useCallback(() => {
-    if (staged.length === 0) return
-    const placements: GPlacement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
-    const ev = evaluatePlay(board, placements)
-    shareMove({
-      placements,
-      sharerId: myId,
-      baseVersion: game.version,
-      words: ev.valid ? ev.words.map((w) => w.word) : [],
-      score: ev.valid ? ev.score : 0,
-    })
-  }, [staged, board, shareMove, myId, game.version])
-
-  // Any key dismisses a gesture-cleared result. A NON-consuming watcher, so the
-  // same press still stages its tile — which is why this is the shared hook
-  // rather than a branch inside the board's keys.
+  // Any key is the next move, so any key drops the previous move's result.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // Board-cursor keyboard — the shared 2-D placement engine, four
-  // actions. scrabble supplies what the keys do: type stages a tile, Backspace
-  // takes a staged one back (`planBackspace` picks which), and the commit is a
-  // SUBMIT of the staged word.
-  //
-  // Leaving a turn viewer is not the board's concern: `useHistoryViewer` binds
-  // that itself, and the dispatcher runs an any-key MODE ahead of any particular
-  // key, so the press reaches it without the board standing aside.
-  const { actCommit: actSubmit } = useBoardCursorKeys({
-    enabled: canPlace,
-    commit: 'act-submit',
-    // NARROWER than `canPlace`: in compete you may stage a play before your turn
-    // ("pre-play"), and the Submit button shows its score while it waits. The
-    // same answer grays the button and stops Enter firing a no-op.
-    canCommit: staged.length > 0 && canCommit,
-    onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
-    onLetter: (letter) => typeLetter(letter),
-    onBackspace: backspace,
-    onCommit: () => void submit(),
-  })
+  // ─── Render ───────────────────────────────────────────────────
 
-  // The Submit button's live score preview: the play's score when tiles are staged
-  // (0 for a not-yet-legal arrangement), or null (an em-dash) on an empty board.
-  const submitScore = staged.length > 0 ? (preview?.valid ? preview.score : 0) : null
-  // Submittable only on your turn (compete) — a pre-played move shows its score
-  // (a disabled Submit displaying "+N") and enables the moment your turn starts.
-  // Swapping needs a bag deep enough to draw a fresh hand from.
-  const canExchange = game.bagCount >= 7
-
-  // ─── The rack + commit row's own commands ──────────────
-  // Each is ONE action behind its control, so what a button says about itself
-  // and what it does are the same answer. A key comes with the action: Shuffle
-  // answers `⌥Z` because the registry says so, and giving another one a key is
-  // a line there rather than a change here.
-  const actShuffle = useBindAction('act-shuffle', {
-    // Live whenever there are tiles to reorder, a frozen board included:
-    // rearranging your own rack is not acting on the game.
-    describe: () => (rackTiles.length === 0 ? 'hidden' : 'active'),
-    run: shuffle,
-  })
-
-  // Recall — every staged tile back to the rack at once. Distinct from ⌫, which
-  // takes one back.
-  const actRecallTiles = useBindAction('act-recall-tiles', {
-    describe: () => (staged.length > 0 ? 'active' : 'disabled'),
-    run: recallAll,
-  })
-
-  // Show the staged play to teammates, read-only. Coop with somebody to show it
-  // to, so it hides itself in a race and in a solo game.
-  const actSharePreview = useBindAction('act-share-preview', {
-    describe: () => {
-      if (!canShare) return 'hidden'
-      return staged.length > 0 ? { state: 'active', label: 'Show move to team' } : { state: 'disabled', label: 'Show move to team' }
-    },
-    run: shareCurrentMove,
-  })
-
-  // Swap rack tiles for fresh ones — a turn-consuming move, so it waits for your
-  // turn, for a pick, and for a bag deep enough to draw from. The two gates
-  // a player can do something about say so in the bubble; the words stay "Swap".
-  const actExchange = useBindAction('act-exchange', {
-    describe: () => {
-      if (!canExchange) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
-      if (!canCommit || staged.length > 0) return { state: 'disabled', label: 'Swap' }
-      if (picked.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Pick rack tiles first' }
-      return {
-        state: 'active',
-        label: `Swap ${picked.size} picked tile${picked.size === 1 ? '' : 's'}`,
-      }
-    },
-    run: exchange,
-  })
-
-  // Pass the turn — compete only (in coop the table simply plays on), and only
-  // with nothing staged: passing is what you do INSTEAD of a move.
-  const actPass = useBindAction('act-pass', {
-    describe: () => {
-      if (!isCompete) return 'hidden'
-      return canCommit && staged.length === 0 ? 'active' : 'disabled'
-    },
-    run: pass,
-  })
-
-  // Board viewer: two read-only overlays share the chrome (frame + banner + frozen
-  // input + suppressed live overlays), picked by `historyTarget.kind`:
-  //   - a past TURN — the replayed historical board, that turn's played cells
-  //     outlined (via historyBoard); or
-  //   - a teammate's PEER PREVIEW — the live board with their staged tiles laid
-  //     on as tentative, those cells outlined.
-  const historyTurn = historyTarget?.kind === 'turn' ? historyTarget : null
-  const peerPreview = historyTarget?.kind === 'peerPreview' ? historyTarget : null
-  const historyEventRow: EventRow | null =
-    (historyTurn && plays.find((p) => p.id === historyTurn.id)) || null
-  const renderBoard = historyTurn ? historyBoard(plays, historyTurn.id) : board
-  // The previewed move's tiles, as a tentative map over the live board (stable ref
-  // when nothing is previewed, like NO_TENT, so the Board doesn't churn).
-  const peerPreviewTent = useMemo(() => {
-    if (!peerPreview) return NO_TENT
-    const m = new Map<number, GTentative>()
-    for (const p of peerPreview.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
-    return m
-  }, [peerPreview])
-  const historyLitCells = historyTurn
-    ? historyEventRow?.kind === 'word'
-      ? new Set((historyEventRow.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
-      : NO_CELLS
-    : peerPreview
-      ? new Set(peerPreview.placements.map((pl) => cellIndex(pl.x, pl.y)))
-      : NO_CELLS
+  // The live board carries my just-played tiles until the blob has them.
+  const boardCells = historyView.cells === null ? submission.liveCells : shownCells
+  // A shown move's tiles over the live board; my own staged tiles otherwise.
+  const peerMove = historyView.peerMove
+  const peerTentatives = useMemo(() => (peerMove === null
+    ? NO_TENTATIVES
+    : new Map(peerMove.placements.map((p) => [cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank }]))),
+  [peerMove])
+  const tentatives = historyView.isViewing ? peerTentatives : staged.tentatives
+  const litCells = new Set(historyView.litCellIds.map((id) => {
+    const { x, y } = readCellXY(id)
+    return cellIndex(x, y)
+  }))
 
   return (
     <>
-      {/* `.peerPreview` on the column recolors the frame + banner via the
-          cascading `--history-accent` var, so a teammate's shared move reads
-          distinctly from a history replay (theme.css → --peer-preview-color). */}
-      <div className={cls(shared.boardCol, styles.boardCol, peerPreview && history.peerPreview)}>
-        {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-            the live turn/score + bag readout, above the board. It's a fixed-height
-            row, and the square board sizes off `--avail-h` — so PlayArea.module.css
-            subtracts this row's height there too, in BOTH the --mobile and --phone
-            regimes, or the board would overflow (the hard no-scroll invariant). */}
-        <MobileStatusBar>{mobileStatus}</MobileStatusBar>
+      {/* `.peerPreview` recolors the frame and banner, so a teammate's shown
+          move reads apart from a past turn (theme.css → --peer-preview-color). */}
+      <div className={cls(shared.boardCol, styles.boardCol, peerMove !== null && history.peerPreview)}>
+        <MobileStatusBar>
+          <StateLine gd={gd} />
+        </MobileStatusBar>
         <Board
-          board={renderBoard}
-          tentative={historyTurn ? NO_TENT : peerPreview ? peerPreviewTent : tentativeMap}
+          cells={boardCells}
+          tentative={tentatives}
           cursor={cursor}
-          hover={isViewingHistory ? null : hover}
-          greenCells={isViewingHistory ? NO_CELLS : greenFlash}
-          redCells={isViewingHistory ? NO_CELLS : redFlash}
-          dragSource={drag && drag.source.kind === 'board' ? { x: drag.source.x, y: drag.source.y } : null}
-          dragging={!!drag}
-          isViewingHistory={isViewingHistory}
-          historyLitCells={historyLitCells}
-          onCellPointerDown={onCellPointerDown}
+          hover={historyView.isViewing ? null : pointer.hover}
+          greenCells={historyView.isViewing ? NO_CELLS : submission.playedCells}
+          redCells={historyView.isViewing ? NO_CELLS : submission.refusedCells}
+          dragSource={pointer.drag?.source.kind === 'board' ? { x: pointer.drag.source.x, y: pointer.drag.source.y } : null}
+          dragging={pointer.drag !== null}
+          isViewingHistory={historyView.isViewing}
+          historyLitCells={litCells}
+          onCellPointerDown={pointer.onCellPointerDown}
         />
 
         <div className={styles.belowBoard}>
-          {/* The shared banner overlays the input area while viewing — the rack
-              stays mounted underneath, so `staged` is preserved. Its label is
-              either a past turn's summary or a teammate's shared move, which is
-              why this one is markup and not a string. */}
-          {isViewingHistory && (historyEventRow || peerPreview) && (
+          {/* The banner covers the rack row while viewing; the rack stays
+              mounted underneath, so a staged move survives a look back. */}
+          {historyView.isViewing && (
             <HistoryBanner
-              onExit={onExitHistory}
-              label={
-                peerPreview ? (
-                  <>
-                    <Dot color={memberColorOf(peerPreview.sharerId)} />{' '}
-                    {nameOf(peerPreview.sharerId)} showing:{' '}
-                    {peerPreview.words.length > 0
-                      ? `+${peerPreview.score} ${peerPreview.words.map((w) => w.toUpperCase()).join(', ')}`
-                      : `${peerPreview.placements.length} tile${peerPreview.placements.length === 1 ? '' : 's'}`}
-                  </>
-                ) : (
-                  historyLabelFor(historyEventRow!, historyN, nameOf)
-                )
-              }
+              onExit={historyView.exit}
+              label={peerMove === null ? historyView.label : (
+                <>
+                  <Dot color={peerMove.sharer.color} /> {peerMove.sharer.username} showing:{' '}
+                  {peerMove.words.length > 0
+                    ? `+${peerMove.score} ${peerMove.words.map((w) => w.toUpperCase()).join(', ')}`
+                    : `${peerMove.placements.length} tile${peerMove.placements.length === 1 ? '' : 's'}`}
+                </>
+              )}
             />
           )}
-          {self ? (
-            <div className={styles.moveArea}>
-              <div className={styles.rackWrap}>
-                <Rack tiles={rackTiles} used={usedRackIdx} picked={picked} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
-                {/* Shuffle floats over the rack's top-right corner — a quick
-                    reshuffle of the RACK (not a turn action), so it sits on the
-                    rack, not in the commit row. Hidden when the rack is empty
-                    (nothing to shuffle); it floats absolutely, so no reflow. */}
-                {rackTiles.length > 0 && (
-                  <ShuffleButton action={actShuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
-                )}
-              </div>
-              <Controls
-                submitScore={submitScore}
-                actSubmit={actSubmit}
-                actRecallTiles={actRecallTiles}
-                actSharePreview={actSharePreview}
-                actExchange={actExchange}
-                actPass={actPass}
-                localFeedbackSlot={localFeedbackSlot}
+          <div className={styles.moveArea}>
+            <div className={styles.rackWrap}>
+              <Rack
+                tiles={rackOrder.tiles}
+                used={staged.usedSlots}
+                picked={staged.pickedSlots}
+                flashIds={rackOrder.drawnSlots}
+                active={isInteractive}
+                onPointerDown={pointer.onRackPointerDown}
               />
+              {/* Shuffle floats over the rack's corner: it reorders the rack,
+                  not the move. It hides itself on an empty rack. */}
+              <ShuffleButton action={actions.actShuffle} tooltip="Shuffle rack" className={styles.rackShuffle} />
             </div>
-          ) : (
-            <p className="muted">Watching — you're not in this game.</p>
-          )}
+            <Controls
+              submitScore={actions.submitScore}
+              actSubmit={actions.actSubmit}
+              actRecallTiles={actions.actRecallTiles}
+              actSharePreview={actions.actSharePreview}
+              actExchange={actions.actExchange}
+              actPass={actions.actPass}
+              localFeedbackSlot={localFeedbackSlot}
+            />
+          </div>
         </div>
       </div>
 
-      {blankAt && <ScrabbleBlankPickerBlockingModal onPick={pickBlank} onCancel={() => setBlankAt(null)} />}
+      {staged.blankAt !== null && (
+        <ScrabbleBlankPickerBlockingModal onPick={staged.pickBlank} onCancel={staged.cancelBlank} />
+      )}
 
-      {drag && (
-        <div className={cls(dragGhost.ghost, styles.ghost)} style={{ left: drag.x, top: drag.y }}>
-          {drag.letter === BLANK ? '' : drag.letter}
+      {pointer.drag !== null && (
+        <div className={cls(dragGhost.ghost, styles.ghost)} style={{ left: pointer.drag.x, top: pointer.drag.y }}>
+          {pointer.drag.letter === BLANK ? '' : pointer.drag.letter}
         </div>
       )}
     </>

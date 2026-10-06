@@ -31,7 +31,7 @@ import type { GAnswer, GEvent } from '../types'
 export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
     case 'word': {
-      const words = answer.words.map((w) => w.toUpperCase()).join(', ')
+      const words = answer.words.map((w) => w.toUpperCase()).join(' · ')
       return { outcome: 'won', text: `${words} +${answer.score}${answer.bingo ? ' 🎉' : ''}` }
     }
     case 'word_peer':

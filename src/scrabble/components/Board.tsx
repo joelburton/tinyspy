@@ -35,7 +35,7 @@ const PREMIUM_LABEL: Record<GPremiumType, string> = {
  * (`dragSource`).
  */
 export function Board({
-  board,
+  cells,
   tentative,
   cursor,
   hover,
@@ -47,8 +47,8 @@ export function Board({
   historyLitCells,
   onCellPointerDown,
 }: {
-  board: GCell[]
-  tentative: Map<number, GTentative>
+  cells: GCell[]
+  tentative: ReadonlyMap<number, GTentative>
   cursor: GridCursor
   hover: XY | null
   // Cell indices to outline green for a beat (a just-accepted word).
@@ -62,14 +62,14 @@ export function Board({
   isViewingHistory?: boolean
   // Cells the viewed turn placed — outlined green (the "good words of this
   // turn"), over the warm attention face those cells already wear.
-  historyLitCells?: Set<number>
+  historyLitCells?: ReadonlySet<number>
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
 }) {
-  const cells = []
+  const cellElements = []
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {
       const idx = cellIndex(x, y)
-      const committed = board[idx].tile
+      const committed = cells[idx].tile
       const tent = tentative.get(idx)
       const premium = premiumAt(x, y)
       const lifting = !!dragSource && dragSource.x === x && dragSource.y === y
@@ -79,7 +79,7 @@ export function Board({
       const occupied = (!!committed || !!tent) && !lifting
       const cursorHere = cursor.x === x && cursor.y === y
 
-      cells.push(
+      cellElements.push(
         <div
           key={idx}
           data-cell
@@ -137,7 +137,7 @@ export function Board({
   // game's mobile e2e uses); the cells keep their data-cell/-x/-y hooks.
   return (
     <div data-board className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)}>
-      {cells}
+      {cellElements}
     </div>
   )
 }

@@ -12,7 +12,8 @@ export type BoardCursorKeysOptions = {
   // Move the cursor. `moveCursor` may turn it onto the arrow's axis instead of
   // stepping.
   onArrow: (key: ArrowKey) => void
-  // A typed A–Z letter, uppercased: place a tile for it at the cursor.
+  // A typed A–Z letter, lowercase — the data's case — whatever Shift said:
+  // place a tile for it at the cursor.
   onLetter: (letter: string) => void
   // Remove a tile, the one `planBackspace` picks.
   onBackspace: () => void
@@ -76,7 +77,7 @@ export function useBoardCursorKeys({
 
   useBindAction('act-place-tile', {
     describe: state,
-    run: (key) => onLetter((key ?? '').toUpperCase()),
+    run: (key) => onLetter((key ?? '').toLowerCase()),
   })
 
   useBindAction('act-remove-tile', {

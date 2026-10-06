@@ -344,6 +344,18 @@ export type GEvent = Omit<GEventRaw, 'userId' | 'placements'> & {
   placements: GTile[] | null
 }
 
+/** A tile staged on the board this turn, tied to the rack slot it came from. */
+export type GStagedTile = GPlacement & {
+  rackIdx: number
+}
+
+/** The rack slots a move of mine took — played or swapped — and how long the
+ *  rack was before it: what the next rack order is rebuilt from. */
+export type GMoveSlots = {
+  removed: Set<number>
+  oldLen: number
+}
+
 /** A tile a player has placed this turn but not yet committed. */
 export type GTentative = {
   letter: string

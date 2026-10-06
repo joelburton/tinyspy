@@ -106,6 +106,8 @@
  * pointer-following and the tier — comes from
  * shared/grid-and-drag/dragGhost.module.css, composed alongside this. */
 /* @@ */ .ghost {
+  /* The letter is the data's lowercase; a tile shows its capital. */
+  text-transform: uppercase;
   width: var(--rack-tile-size);
   height: var(--rack-tile-size);
   background: var(--scrabble-tile-bg);

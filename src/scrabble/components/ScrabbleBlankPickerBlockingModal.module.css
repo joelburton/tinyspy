@@ -16,6 +16,8 @@
 }
 /* @@ */ .letter {
   aspect-ratio: 1;
+  /* The letters are the data's lowercase; a tile shows its capital. */
+  text-transform: uppercase;
   /* Reset the inherited (global) button padding/min-width/font so the tile is
      sized by its grid column, like a rack tile. */
   min-width: 0;
