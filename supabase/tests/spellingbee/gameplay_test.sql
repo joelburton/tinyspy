@@ -422,10 +422,10 @@ select pg_temp.envelope_is(
 -- game_data carries the full required list after the end as it did in play:
 -- the page has it from game start.
 select is(
-  (select count(*)::int from jsonb_array_elements((select game_data->'puzzle'->'words' from common.games where id = (select id from timeout_g))) w
+  (select count(*)::int from jsonb_array_elements((select static_game_data->'puzzle'->'words' from common.games where id = (select id from timeout_g))) w
     where not (w->>'bonus')::boolean),
   30,
-  'game_data.puzzle.words carries the required set (30 required entries)'
+  'static_game_data.puzzle.words carries the required set (30 required entries)'
 );
 
 -- ============================================================

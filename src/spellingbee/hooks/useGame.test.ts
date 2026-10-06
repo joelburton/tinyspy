@@ -7,7 +7,7 @@
  */
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { ZTest_makeSpellingbeeCtx } from '../lib/gameData.fixture'
+import { ZTest_makeGameDataRaw, ZTest_makeSpellingbeeCtx } from '../lib/gameData.fixture'
 import { makeGameData, useGame } from './useGame'
 
 const TWO = [
@@ -24,7 +24,7 @@ describe('spellingbee useGame', () => {
   })
 
   it('builds the setup rows with the board\'s letters', () => {
-    const gd = makeGameData(ZTest_makeSpellingbeeCtx({ players: TWO }).gameData as never, 'u1')
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.setupRows.map((r) => r.key)).toContain('letters')
     expect(gd.setupRows.find((r) => r.key === 'letters')?.value).toBe('E-ABCDFG')
   })

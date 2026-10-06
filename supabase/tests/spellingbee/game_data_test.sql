@@ -1,15 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: spellingbee's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: spellingbee's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `spellingbee._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/spellingbee.sql → The page blobs).
--- This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/spellingbee.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh game: the puzzle as create_game froze it, its tiles the center
---      first, no team progress, nothing found, every player fresh; compete's target
---      and no team
+--   1. A fresh game: the puzzle as create_game froze it, in the static blob, its
+--      tiles the center first, and none in game_data; no team progress, nothing
+--      found, every player fresh; compete's target and no team
 --   2. Mid-game coop: the found words in the order found, each player's own finds,
 --      the team's summed with its rank
 --   3. Mid-game compete: each racer's own finds and rank; the found words carry
@@ -17,8 +18,8 @@
 --   4. The endings: the race's winner, won; the stopped coop game's summary;
 --      shell_data rewritten beside them
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every spellingbee game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every spellingbee game, its static
+--      blob included, without re-dating it
 --
 -- The fixture board (setup.psql) has the outer letters abcdfg around the
 -- center e; the required set's count and score are read off the row.
@@ -30,7 +31,7 @@ set search_path = spellingbee, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(31);
+select plan(32);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -58,6 +59,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 create function pg_temp.shell_data(game uuid) returns jsonb language sql as
@@ -98,10 +101,11 @@ create function pg_temp.expected_puzzle(game uuid) returns jsonb language sql as
 
 -- ─── (1) A fresh game ───
 select is(
-  pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
+  pg_temp.static_game_data(pg_temp.coop()) -> 'puzzle',
   pg_temp.expected_puzzle(pg_temp.coop()),
-  'coop: the puzzle as create_game froze it — the tiles center first, every legal word flagged, the totals'
+  'coop: the static puzzle as create_game froze it — the tiles center first, every legal word flagged, the totals'
 );
+select is(pg_temp.game_data(pg_temp.coop()) ? 'puzzle', false, 'game_data carries no puzzle: it is all static');
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
   '{"nFoundWords": 0, "foundWordsScore": 0, "rankIdx": 0, "targetRankIdx": null}'::jsonb,
@@ -109,7 +113,7 @@ select is(
 );
 select is(pg_temp.game_data(pg_temp.coop()) -> 'foundWords', '[]'::jsonb, 'coop: nothing found yet');
 select is(pg_temp.counts(pg_temp.coop()), '[[0, 0, 0], [0, 0, 0]]'::jsonb, 'coop: every player fresh');
-select is(pg_temp.game_data(pg_temp.coop()) ->> 'gametype', 'spellingbee_coop', 'the common part is underneath');
+select is(pg_temp.static_game_data(pg_temp.coop()) ->> 'gametype', 'spellingbee_coop', 'the common part is underneath, in the static blob');
 select is(
   pg_temp.summary_data(pg_temp.coop()) - (select array_agg(k) from jsonb_object_keys(common._make_json_summary_data(pg_temp.coop(), now())) k),
   jsonb_build_object(
@@ -257,12 +261,16 @@ select is(pg_temp.counts(pg_temp.compete()), '[[0, 0, 0], [0, 0, 0]]'::jsonb, '�
 select is(pg_temp.game_data(pg_temp.compete()) -> 'ending', 'null'::jsonb, '… and the ending gone');
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(spellingbee._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every spellingbee game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );

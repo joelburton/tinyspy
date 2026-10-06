@@ -120,15 +120,15 @@ select is(
 );
 
 select is(
-  (select (game_data->'puzzle'->>'reqdWordsScore')::int from common.games where id = (select id from g)),
+  (select (static_game_data->'puzzle'->>'reqdWordsScore')::int from common.games where id = (select id from g)),
   50,
-  'coop game_data.puzzle.reqdWordsScore = board.reqd_words_score'
+  'coop static_game_data.puzzle.reqdWordsScore = board.reqd_words_score'
 );
 
 select is(
-  (select (game_data->'puzzle'->>'nReqdWords')::int from common.games where id = (select id from g)),
+  (select (static_game_data->'puzzle'->>'nReqdWords')::int from common.games where id = (select id from g)),
   30,
-  'coop game_data.puzzle.nReqdWords = board.n_reqd_words'
+  'coop static_game_data.puzzle.nReqdWords = board.n_reqd_words'
 );
 
 select is(
