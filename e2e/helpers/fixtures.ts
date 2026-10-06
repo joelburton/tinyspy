@@ -1396,8 +1396,8 @@ export async function createSetgameGame(
   const res = await asUser(creator.session.access_token)
     .schema('setgame')
     .rpc('create_game', {
-      target_club: club.handle,
-      setup: {
+      p_club_handle: club.handle,
+      p_setup: {
         timer: { kind: 'none' },
         deck,
         palette: 'traditional',
@@ -1405,8 +1405,8 @@ export async function createSetgameGame(
           ? { coop_style: 'turns', first_turn_user_id: firstTurnUserId }
           : {}),
       },
-      player_user_ids: playerUserIds,
-      mode,
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
     })
   return { id: createdGameId(res, 'setgame.create_game'), gametype: `setgame_${mode}` }
 }

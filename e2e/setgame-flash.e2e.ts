@@ -41,7 +41,7 @@ test.describe('setgame — the deal flash', () => {
 
     // A fifteen-tile opening, planted: only ~3% of shuffles deal one.
     execFileSync('psql', [PSQL, '-v', 'ON_ERROR_STOP=1', '-c',
-      `update setgame.games set board = deck[1:15], deck_pos = 15 where id = '${id}'`])
+      `update setgame.games set board = deck[1:15], deck_pos = 15 where game_id = '${id}'`])
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     await signIn(ctx, alice.session)
@@ -70,7 +70,7 @@ test.describe('setgame — the deal flash', () => {
 
     // ── (2) stop, then restart ──
     const rpc = (fn: string) =>
-      asUser(alice.session.access_token).schema('setgame').rpc(fn, { target_game: id })
+      asUser(alice.session.access_token).schema('setgame').rpc(fn, { p_game_id: id })
     await rpc('stop_game')
     await page.waitForTimeout(900)
     await rpc('replay_board')
@@ -95,7 +95,7 @@ test.describe('setgame — opening a finished game', () => {
     // the page first loads. That history is what used to be mistaken for a
     // claim that had just landed.
     for (let i = 0; i < 2; i++) await claim(alice, id, findSetOn(await boardOf(alice, id))!)
-    await asUser(alice.session.access_token).schema('setgame').rpc('stop_game', { target_game: id })
+    await asUser(alice.session.access_token).schema('setgame').rpc('stop_game', { p_game_id: id })
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     await signIn(ctx, alice.session)

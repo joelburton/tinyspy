@@ -16,10 +16,10 @@ closeContextsAfterEach()
  * component tests, so this drives the real path in a browser.
  *
  * setgame's printout is THE LOG: per-player totals, then every claim and hint in
- * one sequence, each drawn as pictures of the cards (see `pdf/model.ts`). Like
+ * one sequence, each drawn as pictures of the tiles (see `pdf/model.ts`). Like
  * every other print smoke in this suite it asserts a real PDF comes out, not
  * what is on it — the drawing is geometry, and pinning geometry from here would
- * cost more than it caught. What the cards actually look like on paper was
+ * cost more than it caught. What the tiles actually look like on paper was
  * settled by rendering them and looking (`docs/games/setgame.md`).
  *
  * A set is claimed first so the totals have a number in them and the log has a
@@ -37,7 +37,7 @@ test.describe('setgame — print board', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await boardReady(page, page.locator('button[class*="card"]').first())
+    await boardReady(page, page.locator('button[data-tile]').first())
     // `:visible` — the mobile status bar's copy of this row is in the DOM at
     // every width, hidden by CSS above the breakpoint (see setgame.e2e.ts).
     await expect(page.locator('[class*="counts"]:visible')).toContainText('Found: 1')

@@ -23,7 +23,7 @@ import type { Cell, GameGallery } from '../types'
 async function timeOut(club: E2EClub, gameId: string): Promise<void> {
   const res = await asUser(club.members[0].session.access_token)
     .schema('setgame')
-    .rpc('submit_timeout', { target_game: gameId })
+    .rpc('submit_timeout', { p_game_id: gameId })
   if (res.error) throw new Error(`setgame.submit_timeout: ${res.error.message}`)
 }
 

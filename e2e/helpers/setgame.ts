@@ -3,26 +3,31 @@
 import { asUser, envelopeData, type E2EClub, type E2EMember } from './fixtures'
 
 /**
- * setgame's card algebra, for the specs and the gallery.
+ * setgame's tile algebra, for the specs and the gallery.
  *
  * Restated here rather than imported from `src/setgame/lib/tiles.ts` — nothing
- * else under `e2e/` reaches into `src/`, and this is six lines. The TS suite
+ * else under `e2e/` reaches into `src/`, and this is a few lines. The TS suite
  * proves the real implementation; what these need is only a way to FIND a legal
  * move on whatever board a game dealt, since setgame has no fixture board (a
  * board is a shuffle, so every run gets a different one).
+ *
+ * A tile is its four attributes as digits, each 1..3 (count, color, fill,
+ * shape): `3121`, stored as a number.
  */
 
-/** The card completing a set with `a` and `b` — per base-3 digit, the value
- *  that makes the three sum to 0 mod 3. */
+/** The tile completing a set with `a` and `b` — per digit, the same digit when
+ *  the two agree, else the remaining value, `6 - x - y`. */
 export function third(a: number, b: number): number {
   let result = 0
-  for (const place of [27, 9, 3, 1]) {
-    result += ((6 - (Math.floor(a / place) % 3) - (Math.floor(b / place) % 3)) % 3) * place
+  for (const place of [1000, 100, 10, 1]) {
+    const x = Math.floor(a / place) % 10
+    const y = Math.floor(b / place) % 10
+    result += (x === y ? x : 6 - x - y) * place
   }
   return result
 }
 
-/** Three cards on `board` that form a set, or null. The deal-three rule means a
+/** Three tiles on `board` that form a set, or null. The deal-three rule means a
  *  playing game always has one. */
 export function findSetOn(board: readonly number[]): [number, number, number] | null {
   for (let i = 0; i < board.length; i++) {
@@ -35,10 +40,10 @@ export function findSetOn(board: readonly number[]): [number, number, number] | 
   return null
 }
 
-/** Three cards on `board` that are NOT a set — for the FE's local rejection. */
+/** Three tiles on `board` that are NOT a set — for the frontend's local refusal. */
 export function findNonSetOn(board: readonly number[]): [number, number, number] {
   const completer = third(board[0], board[1])
-  const odd = board.find((c, i) => i > 1 && c !== completer)
+  const odd = board.find((t, i) => i > 1 && t !== completer)
   if (odd === undefined) throw new Error('setgame: no non-set on this board')
   return [board[0], board[1], odd]
 }
@@ -52,13 +57,13 @@ export function letterForSlot(slot: number): string {
   return 'ABCDEFGHIJKLMNOPQRSTU'[(slot % 3) * 7 + Math.floor(slot / 3)]
 }
 
-/** The board as the server has it. */
+/** The board as the server has it, in slot order. */
 export async function boardOf(viewer: E2EMember, gameId: string): Promise<number[]> {
   const res = await asUser(viewer.session.access_token)
     .schema('setgame')
-    .from('games_state')
+    .from('games')
     .select('board')
-    .eq('id', gameId)
+    .eq('game_id', gameId)
     .single()
   if (res.error) throw new Error(`setgame board: ${res.error.message}`)
   return (res.data as { board: number[] }).board
@@ -68,11 +73,11 @@ export async function boardOf(viewer: E2EMember, gameId: string): Promise<number
 export async function claim(
   member: E2EMember,
   gameId: string,
-  cards: readonly number[],
+  tiles: readonly number[],
 ): Promise<void> {
   const res = await asUser(member.session.access_token)
     .schema('setgame')
-    .rpc('submit_set', { target_game: gameId, cards })
+    .rpc('submit_set', { p_game_id: gameId, p_tiles: tiles })
   envelopeData(res, 'setgame.submit_set')
 }
 
@@ -80,7 +85,7 @@ export async function claim(
  * Play a game to its natural end, always taking the first set the board offers
  * and rotating through `actors`. Returns how many sets were claimed.
  *
- * About 25 claims on a full deck — every one a real RPC, so the terminal that
+ * About 25 claims on a full deck — every one a real RPC, so the ending that
  * lands is the one a table would actually reach.
  */
 export async function playOut(

@@ -168,6 +168,14 @@ The comment pass over every file: "card" → "tile" outside player copy and
 real-world cards, "terminal" → the end, "clock" → timer, the dead `cards-gone`
 key, the history passages, and `//` on members.
 
+## Checks (step 15)
+
+`e2e/helpers/setgame.ts` speaks the digit tiles, reads `setgame.games.board`
+by `game_id` and claims with `p_game_id` / `p_tiles`; `createSetgameGame`
+sends `p_` names; the specs find a tile by `button[data-tile]`, plant boards
+by `game_id`, call the RPCs with `p_game_id`, and say "tile". The gallery's
+timeout call too. e2e not yet run (on Joel's word).
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,

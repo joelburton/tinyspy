@@ -12,15 +12,15 @@ closeContextsAfterEach()
 /**
  * Smoke tests for setgame (HareTrigger), covering the two things that only
  * exist in a browser: the two input routes onto one set of picks, and the
- * CONTENTION case — a rival claiming a card out from under a half-made pick,
+ * CONTENTION case — a rival claiming a tile out from under a half-made pick,
  * which no other game on the roster can produce.
  *
  * There is no fixture board: a setgame board is a shuffle, so every run deals a
  * different one and the specs find their move by reading the board (helpers/
  * setgame.ts) rather than by knowing it in advance.
  */
-const cards = (page: import('@playwright/test').Page) =>
-  page.locator('button[class*="card"]')
+const tiles = (page: import('@playwright/test').Page) =>
+  page.locator('button[data-tile]')
 
 /** The counts row that is actually ON SCREEN.
  *
@@ -35,7 +35,7 @@ const counts = (page: import('@playwright/test').Page) =>
   page.locator('[class*="counts"]:visible')
 
 test.describe('setgame', () => {
-  test('clicking three cards claims a set; a non-set is refused without a round trip', async ({
+  test('clicking three tiles claims a set; a non-set is refused without a round trip', async ({
     browser,
   }) => {
     const club = await createSoloClub('sg')
@@ -47,31 +47,31 @@ test.describe('setgame', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
 
-    await boardReady(page, cards(page).first())
-    await expect(cards(page)).toHaveCount(12)
+    await boardReady(page, tiles(page).first())
+    await expect(tiles(page)).toHaveCount(12)
     await expect(counts(page)).toContainText('Found: 0')
 
     const board = await boardOf(alice, id)
 
     // ── A non-set: refused by the FE, so nothing reaches the server ──
     const bad = findNonSetOn(board)
-    for (const card of bad) await cards(page).nth(board.indexOf(card)).click()
+    for (const tile of bad) await tiles(page).nth(board.indexOf(tile)).click()
     await expect(page.getByText('Not a set')).toBeVisible()
     await expect(counts(page)).toContainText('Found: 0')
 
     // ── A real set ──
     const good = findSetOn(board)!
-    for (const card of good) await cards(page).nth(board.indexOf(card)).click()
+    for (const tile of good) await tiles(page).nth(board.indexOf(tile)).click()
 
     await expect(counts(page)).toContainText('Found: 1', { timeout: 10000 })
-    // The claimed cards leave; their slots refill from the deck one a second,
+    // The claimed tiles leave; their slots refill from the deck one a second,
     // so the board is briefly short before settling back at twelve.
-    await expect(cards(page)).toHaveCount(12, { timeout: 10000 })
+    await expect(tiles(page)).toHaveCount(12, { timeout: 10000 })
     await expect(counts(page)).toContainText('Deck remaining:')
     await expect(page.getByText(/Last set:/)).toBeVisible()
   })
 
-  test('typing a card letter picks it, and Backspace clears the picks', async ({
+  test('typing a tile letter picks it, and Backspace clears the picks', async ({
     browser,
   }) => {
     const club = await createSoloClub('sgk')
@@ -82,7 +82,7 @@ test.describe('setgame', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await boardReady(page, cards(page).first())
+    await boardReady(page, tiles(page).first())
 
     const board = await boardOf(alice, id)
     const good = findSetOn(board)!
@@ -91,18 +91,18 @@ test.describe('setgame', () => {
     // Two of the three, then take them back.
     await page.keyboard.press(letterForSlot(slots[0]))
     await page.keyboard.press(letterForSlot(slots[1]))
-    await expect(cards(page).nth(slots[0])).toHaveClass(/picked/)
+    await expect(tiles(page).nth(slots[0])).toHaveClass(/picked/)
     await page.keyboard.press('Backspace')
-    await expect(cards(page).nth(slots[0])).not.toHaveClass(/picked/)
+    await expect(tiles(page).nth(slots[0])).not.toHaveClass(/picked/)
 
     // Now all three: the third completes the claim.
     for (const slot of slots) await page.keyboard.press(letterForSlot(slot))
     await expect(counts(page)).toContainText('Found: 1', { timeout: 10000 })
   })
 
-  test('a card claimed by someone else drops out of my picks', async ({ browser }) => {
-    // THE contention case, and the reason the picks are keyed by card rather
-    // than by slot: the slot will be refilled with a different card, and a
+  test('a tile claimed by someone else drops out of my picks', async ({ browser }) => {
+    // THE contention case, and the reason the picks are keyed by tile rather
+    // than by slot: the slot will be refilled with a different tile, and a
     // pick that followed the slot would silently re-point at it.
     const club = await createClubWithMembers(['ann', 'bo'])
     const [ann, bo] = club.members
@@ -124,15 +124,15 @@ test.describe('setgame', () => {
       page.goto(`/g/${gametype}/${id}`),
       boPage.goto(`/g/${gametype}/${id}`),
     ])
-    await boardReady(page, cards(page).first())
-    await boardReady(boPage, cards(boPage).first())
+    await boardReady(page, tiles(page).first())
+    await boardReady(boPage, tiles(boPage).first())
 
     const board = await boardOf(ann, id)
     const stolen = findSetOn(board)!
 
-    // ann picks one of the three cards bo is about to take.
-    const picked = page.locator('button[class*="card"][class*="picked"]')
-    await cards(page).nth(board.indexOf(stolen[0])).click()
+    // ann picks one of the three tiles bo is about to take.
+    const picked = page.locator('button[data-tile][class*="picked"]')
+    await tiles(page).nth(board.indexOf(stolen[0])).click()
     await expect(picked).toHaveCount(1)
 
     // bo claims the set from another session entirely.
@@ -140,10 +140,10 @@ test.describe('setgame', () => {
 
     // Once the replacements have finished arriving, NOTHING is picked on
     // ann's board. Asserting the count rather than a particular tile is the
-    // point: a pick that followed the SLOT would still show one card
+    // point: a pick that followed the SLOT would still show one tile
     // highlighted here — the new one that landed in the hole, which ann never
     // looked at and would claim with her next click.
-    await expect(cards(page)).toHaveCount(12, { timeout: 15000 })
+    await expect(tiles(page)).toHaveCount(12, { timeout: 15000 })
     await expect(picked).toHaveCount(0)
   })
 })

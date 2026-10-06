@@ -18,7 +18,7 @@ closeContextsAfterEach()
  * once, which is the thing worth guarding against drift:
  *
  *   1. the board FADES for the player who is waiting (setgame's one deliberate
- *      exception to "a card never dims", since color is one of its attributes)
+ *      exception to "a tile never dims", since color is one of its attributes)
  *   2. the below-board pill says one of two things, depending on which side of
  *      the hand-off you are on: "Waiting for your move" for the mover — the
  *      fallback, below any own-move result — or who they are waiting FOR
@@ -46,10 +46,10 @@ test.describe('setgame turn order (coop)', () => {
     const pageB = await ctxB.newPage()
     await pageB.goto(url)
 
-    const cardsA = pageA.locator('button[class*="card"]')
-    const cardsB = pageB.locator('button[class*="card"]')
-    await boardReady(pageA, cardsA.first())
-    await boardReady(pageB, cardsB.first())
+    const tilesA = pageA.locator('button[data-tile]')
+    const tilesB = pageB.locator('button[data-tile]')
+    await boardReady(pageA, tilesA.first())
+    await boardReady(pageB, tilesB.first())
 
     // The table itself, not the column around it — the fade is on the board.
     // (CSS-module class names are hashed as `_board_<hash>`; `boardCol` is the
@@ -71,12 +71,12 @@ test.describe('setgame turn order (coop)', () => {
     // their move on any surface.
     await expect(pageB.getByText('Waiting for your move')).toHaveCount(0)
 
-    // ── Bob cannot pick a card. ──
+    // ── Bob cannot pick a tile. ──
     // Clicking is the whole input surface (typing a letter routes through the
-    // same handler), and a pick is what a click does, so a card that never
+    // same handler), and a pick is what a click does, so a tile that never
     // takes the picked class proves the gate without needing an RPC to fail.
-    await cardsB.nth(0).click({ force: true })
-    await cardsB.nth(1).click({ force: true })
+    await tilesB.nth(0).click({ force: true })
+    await tilesB.nth(1).click({ force: true })
     await expect(pageB.locator('button[class*="picked"]')).toHaveCount(0)
 
     // Nor cash a hint — the button is there (so it can say why), disabled.
@@ -84,7 +84,7 @@ test.describe('setgame turn order (coop)', () => {
     await expect(actionButton(pageA, 'act-hint')).toBeEnabled()
 
     // ── Alice claims, by walking the hint ladder to a full set. ──
-    // Three presses ring one, two, then all three cards — and the third selects
+    // Three presses ring one, two, then all three tiles — and the third selects
     // a complete set, which submits. It is also the exact path a stuck player
     // takes, and the reason a hint must NOT pass the turn: she has to still be
     // the mover on the third press.
