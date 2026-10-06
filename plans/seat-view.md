@@ -794,3 +794,11 @@ Sweeps that wait for the last game, done once across all of them:
   loads. The converted games' helpers are fixed; the rest are swept together,
   each checked against its RPC's signature and the keys its `create_game`
   reads, and then each game's specs run (2026-10-04).
+- **The `supabase_realtime` publication.** Every game's migration added its
+  tables to the publication so the page could subscribe to them. A converted
+  page subscribes to `common.games` alone, but no conversion removed its
+  game's tables from the publication (scrabble's `players` and `plays`,
+  bananagrams' `player_boards`, …), so they are listed with nobody
+  listening. One migration drops every game table from the publication once
+  the last game has converted, beside the Broadcast-nudge work (Joel,
+  2026-10-05).
