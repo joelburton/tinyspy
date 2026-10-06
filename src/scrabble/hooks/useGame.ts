@@ -7,11 +7,12 @@ import type {
 import { decodeBoard, decodePlacement } from '../lib/board'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
+  GBoard,
   GEvent,
+  GFacts,
   GGameData,
   GGameDataRaw,
   GPlayer,
-  GStateLineData,
 } from '../types'
 
 /**
@@ -23,9 +24,28 @@ import type {
  * Their rack's count stays. Coop has one rack, the team's, and it is public.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
-  const players: GPlayer[] = raw.players.map((p) => (
-    raw.ended || p.id === myId ? p : { ...p, rack: null }
-  ))
+  // `team`, the board and the bag go onto the players; `gd` has none of them.
+  const { team, board: boardRaw, nBagTiles, turns, ending, ...rest } = raw
+
+  // The one board, shared in both modes: made once, the same object on every
+  // player.
+  const cells = decodeBoard(boardRaw.letters)
+  const board: GBoard = { cells, cellsById: Object.fromEntries(cells.map((c) => [c.id, c])) }
+
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // A coop rack is the team's alone, so it is every player's own too.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const maySeeRack = raw.ended || p.id === myId
+    const own: GFacts = {
+      score: p.score,
+      rack: team?.rack ?? (maySeeRack ? p.rack : null),
+      nRackTiles: team?.nRackTiles ?? p.nRackTiles!,
+      board,
+      nBagTiles,
+    }
+    return { ...p, ...own, ...(team === null ? {} : { score: team.score }), own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -43,24 +63,11 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     placements: placements === null ? null : placements.map(decodePlacement),
   }))
 
-  const cells = decodeBoard(raw.board.letters)
+  // The gate has checked that I am seated, and my own rack is never withheld.
+  const me = playersById[myId] as GGameData['me']
 
-  // The gate has checked that I am seated.
-  const me = playersById[myId]!
-  // What the state line shows: the team's score where the game has a team;
-  // compete leads with the turn and shows no score.
-  const stateLineData: GStateLineData = {
-    score: raw.team === null ? null : raw.team.score,
-    nBagTiles: raw.nBagTiles,
-  }
-
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
-    board: {
-      cells,
-      cellsById: Object.fromEntries(cells.map((c) => [c.id, c])),
-    },
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
@@ -75,7 +82,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData,
   }
 }
 

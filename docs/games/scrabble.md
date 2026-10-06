@@ -328,7 +328,7 @@ common part:
 | `version` | the move counter every move sends back |
 | `nBagTiles` | the tiles left in the bag; the bag's order never leaves the server |
 | `board.letters` | the one board, shared in both modes: 225 characters, row by row — `.` an empty cell, `c` a C tile, `C` a blank played as C. Case carries the blank, and `makeGameData` is its one reader, decoding each cell into a `GCell` holding its `GTile` |
-| `team` | coop's `{rack, score, nRackTiles}`; null in compete |
+| `team` | coop's own facts, sent once: `{rack, score, nRackTiles}`; null in compete |
 | `events` | every row, every player's: `id`, `userId`, `kind`, `placements` (a word's tiles as `"x,y:c"`, the board's case rule), `words`, `score`, `nTiles`, `tookTurn`, `at` |
 | `players` | the common player, plus `aiLevel`, `score` (own, every mode), `rack` and `nRackTiles` (compete; null in coop) |
 
@@ -338,6 +338,15 @@ common part:
 | `nBagTiles` | the tiles left in the bag |
 | `winnerIds` | every player ranked first — a compete tie shares rank 1; null in coop, or with no winner |
 | `winnerScore` | the score the winners share; null likewise |
+
+**Every player carries the facts** (`GFacts`: `score`, `rack`, `nRackTiles`,
+`board`, `nBagTiles`) twice: spread on, the side's — the team's in coop, their
+own in compete; under `own`, their own
+([plans/team-facts.md](../../plans/team-facts.md)). The board and the bag are
+one in both modes, so the wire sends them once at the top and `useGame` puts
+them on every player, the same board object on each; a coop rack is the
+team's, on every player and under `own` alike. `gd` has no `board`, `nBagTiles`
+or `team` of its own, and the state line reads `gd.me`.
 
 **The seat rule.** The blob carries every rack. `makeGameData` withholds a
 rival's (`rack: null`, `nRackTiles` kept) until the game ends — what a racer
@@ -803,7 +812,7 @@ a Stop alike (the first is a `won` outcome, drawn green), `Lost (out of time) ·
 | `lib/rackOrder.test.ts` | the rack order after a draw |
 | `lib/answer.test.ts`, `lib/gameEndingMessage.test.ts` | every answer's words and outcome, and every ending's, both modes |
 | `lib/setup.test.ts` | the setup's checks |
-| `hooks/useGame.test.ts` | `makeGameData`: the decoded board, the log's tiles, a rival's rack withheld mid-race and shown at the end, the state line |
+| `hooks/useGame.test.ts` | `makeGameData`: the decoded board, the log's tiles, a rival's rack withheld mid-race and shown at the end, the board and bag on every player, the side's facts and `own` |
 | `hooks/useStagedTiles.test.ts` | staged tiles kept when an opponent's move misses them, a typed letter's tile, a tap-placed tile |
 | `hooks/useSubmitMove.test.ts` | the claim on the rack, taken once on a played word and given back on a refusal |
 | `components/Board.test.tsx` | which marks a cell's tile wears |

@@ -180,6 +180,10 @@ top-level board, and the pgTAP pins of the blob.
   it could become, so it is not a fact. `StateLine` takes it beside the facts:
   `<StateLine facts={gd.me} puzzle={gd.puzzle} />`. A total that could one day
   be a per-player goal is asked when its game is reached.
+- **An object shared in both modes stays once at the top of the wire**
+  (scrabble's board and bag, setgame's board and deck; Joel, 2026-10-06):
+  `useGame` puts it on every player, the same object on each, so it is sent
+  once in a race too and `gd` keeps nothing game-specific at its top.
 
 ## Open
 

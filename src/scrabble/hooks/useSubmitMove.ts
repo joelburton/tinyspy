@@ -80,14 +80,14 @@ export function useSubmitMove({
   const myMoveRef = useRef<{ slots: GMoveSlots; nDrawn: number } | null>(null)
 
   const liveCells = useMemo(() => {
-    if (heldPlacements.length === 0) return gd.board.cells
-    const cells = [...gd.board.cells]
+    if (heldPlacements.length === 0) return gd.me.board.cells
+    const cells = [...gd.me.board.cells]
     for (const p of heldPlacements) {
       const id = makeCellId(p.x, p.y)
       cells[cellIndex(p.x, p.y)] = { id, tile: { id, letter: p.letter, blank: p.blank } }
     }
     return cells
-  }, [gd.board.cells, heldPlacements])
+  }, [gd.me.board.cells, heldPlacements])
 
   /** Claim the slots for a move about to go out; hand back how to undo it. */
   function claim(slots: GMoveSlots, nDrawn: number): () => void {

@@ -178,7 +178,7 @@ export function useBoardColActions({
   // something about say so in the bubble.
   const actExchange = useBindAction('act-exchange', {
     describe: () => {
-      if (gd.nBagTiles < RACK_SIZE) return {
+      if (gd.me.nBagTiles < RACK_SIZE) return {
         state: 'disabled',
         label: 'Swap',
         tooltip: 'Need ≥ 7 tiles in the bag',

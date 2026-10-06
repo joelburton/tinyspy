@@ -53,11 +53,11 @@ export function useLandMove({
     clearHeldTiles()
     const myMove = takeMyMove()
     if (gd.compete && myMove === null) {
-      dropIfCovered(gd.board.cells)
+      dropIfCovered(gd.me.board.cells)
       return
     }
     recallAll()
     rebuildRack(myMove?.slots ?? null, myMove?.nDrawn ?? 0, rack.length)
-  }, [gd.version, gd.compete, gd.board.cells, rack.length, clearPicks, exitHistory,
+  }, [gd.version, gd.compete, gd.me.board.cells, rack.length, clearPicks, exitHistory,
     clearHeldTiles, takeMyMove, dropIfCovered, recallAll, rebuildRack])
 }

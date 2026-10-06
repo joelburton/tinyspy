@@ -80,7 +80,7 @@ export function BoardCol({
 
   // ─── The pending move ─────────────────────────────────────────
   // The rack I play from: the team's in coop, my own in a race.
-  const rack = gd.team?.rack ?? gd.me.rack!
+  const rack = gd.me.rack
   const [cursor, setCursor] = useState<GridCursor>({ x: 7, y: 7, dir: 'h' })
   const submission = useSubmitMove({ gd, localFeedbackSlot })
   const staged = useStagedTiles({

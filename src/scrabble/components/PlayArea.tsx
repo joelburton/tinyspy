@@ -145,7 +145,7 @@ function PlayArea({
 
   // The board to show: a past turn's while one is open, else the live one — a
   // teammate's preview is drawn over the live board.
-  const shownCells = historyView.cells ?? gd.board.cells
+  const shownCells = historyView.cells ?? gd.me.board.cells
 
   // The ending that applies to me: the game's once it has ended, else mine.
   const endingMessage = gameEndingMessage ?? playerEndingMessage

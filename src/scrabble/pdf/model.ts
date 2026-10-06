@@ -22,9 +22,9 @@ export type ScrabblePrintModel = PrintHeader & {
  *  prints is what my page shows: my own rack, and nobody else's mid-race. */
 export function buildPrintModel({ gd, date }: { gd: GGameData; date: string }): ScrabblePrintModel {
   // The summary reads as the state line does.
-  const summary = gd.team === null
-    ? `${gd.nBagTiles} tiles in the bag`
-    : `Team score: ${gd.team.score} · ${gd.nBagTiles} tiles in the bag`
+  const summary = gd.compete
+    ? `${gd.me.nBagTiles} tiles in the bag`
+    : `Team score: ${gd.me.score} · ${gd.me.nBagTiles} tiles in the bag`
 
   return {
     brand: gd.brand,
@@ -33,10 +33,10 @@ export function buildPrintModel({ gd, date }: { gd: GGameData; date: string }): 
     summary,
     setupRows: gd.setupRows,
     mode: gd.mode,
-    board: gd.board.cells,
+    board: gd.me.board.cells,
     moves: gd.events.map((event, i) => ({ seq: i + 1, who: event.by.username, text: makeEventText(event) })),
     // A racer's own rack is never withheld from them; coop's is the team's.
-    rack: gd.team === null ? gd.me.rack! : gd.team.rack,
-    rackLabel: gd.team === null ? 'Your rack' : 'Team rack',
+    rack: gd.me.rack,
+    rackLabel: gd.compete ? 'Your rack' : 'Team rack',
   }
 }

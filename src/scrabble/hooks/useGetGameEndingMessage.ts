@@ -22,7 +22,8 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const gameOutcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const teamScore = gd.team === null ? null : gd.team.score
+  // A coop player's side is the team.
+  const teamScore = gd.coop ? gd.me.score : null
   // Joined for the memo; split again for the builder.
   const winnersKey = gd.players
     .filter((p) => p.finalRanking === 1)

@@ -35,7 +35,7 @@ function setup() {
   const gd = makeGameData(ZTest_makeGameDataRaw(), 'u1')
   const slot = { show: vi.fn(() => '1') } as unknown as FeedbackSlot
   const view = renderHook(() => useSubmitMove({ gd, localFeedbackSlot: slot }))
-  const play = evaluatePlay(gd.board.cells, PLACEMENTS)
+  const play = evaluatePlay(gd.me.board.cells, PLACEMENTS)
   if (!play.valid) throw new Error('fixture play should be legal')
   return { view, play }
 }

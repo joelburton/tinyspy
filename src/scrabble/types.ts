@@ -18,7 +18,7 @@
  * relative and ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
-import type { GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '../common/setup-form/types.ts'
@@ -149,36 +149,54 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   // The move counter every move sends back.
   version: number
-  // The tiles still in the bag. The bag's order never leaves the server.
+  // The tiles still in the bag, and the one board: shared in both modes, so
+  // sent once, here, and put on every player by `useGame`. The bag's order
+  // never leaves the server.
   nBagTiles: number
-  // The one board, shared in both modes: 225 characters, row by row, "." an
-  // empty cell, "c" a C tile, "C" a blank played as C.
+  // 225 characters, row by row, "." an empty cell, "c" a C tile, "C" a blank
+  // played as C.
   board: {
     letters: string
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's own facts, sent once: the one rack and the score. Null in
+  // compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every row, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
-/** What the team shares in coop (plans/team-facts.md): the one rack, and the
- *  score — the players' sum, less what the rack held at the end. */
-export type GTeam = {
-  rack: string[]
+/**
+ * scrabble's facts (plans/team-facts.md): the score, the rack, and the board
+ * and bag they are played from. A player carries them twice — spread on, their
+ * side's (the team's in coop, their own in compete); under `own`, their own.
+ * The board and the bag are one in both modes, the same on every side; a coop
+ * rack is the team's alone, so a coop player's `own` holds the team's.
+ */
+export type GFacts = {
+  // Coop: the players' sum, less what the rack held at the end.
   score: number
+  // Null for a rival mid-race.
+  rack: string[] | null
+  nRackTiles: number
+  board: GBoard
+  nBagTiles: number
+}
+
+/** The facts a side's own blob carries; the board and the bag are sent once
+ *  at the top, for every side. */
+export type GFactsRaw = {
+  score: number
+  rack: string[]
   nRackTiles: number
 }
 
-/**
- * What the state line shows — "Team score: 152 · 7 in bag" in coop; compete's
- * leads with the turn instead, and its score is null. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing.
- */
-export type GStateLineData = {
-  score: number | null
-  nBagTiles: number
+/** The one board as `gd` holds it. */
+export type GBoard = {
+  // The 225 cells, row by row: a cell's index is `y * 15 + x`.
+  cells: GCell[]
+  // The same cells, keyed by id.
+  cellsById: Record<string, GCell>
 }
 
 /**
@@ -230,7 +248,6 @@ export type GEventRaw = {
 export type GPlayerRaw = PlayerRaw & {
   // A bot's strength in this game; null for a person.
   aiLevel: GAiLevel | null
-  // Own, in every mode; the team's is `team`'s.
   score: number
   // Compete: the player's own. Null in coop, where the rack is the team's.
   rack: string[] | null
@@ -255,11 +272,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   version                                  # the move counter every move sends back
- *   nBagTiles
- *   board:                                   # the one board, shared in both modes
- *     cells: [cell, …]                       # 225, row by row
- *     cellsById
- *   team: {rack, score, nRackTiles}          # null in compete
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -268,14 +280,19 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {score, nBagTiles}        # score: the team's in coop; null in compete
  *
  * player:
  *   the common player
  *   aiLevel                                  # a bot's strength in this game; null for a person
- *   score                                    # own, in every mode
- *   rack                                     # compete: own; a rival's null mid-race; coop: null
- *   nRackTiles                               # compete; null in coop
+ *   score                                    # the side's: the team's in coop, their own in compete
+ *   rack                                     # a rival's null mid-race
+ *   nRackTiles
+ *   board:                                   # the one board, the same object on every player
+ *     cells: [cell, …]                       # 225, row by row
+ *     cellsById
+ *   nBagTiles
+ *   own: {score, rack, nRackTiles, board, nBagTiles}
+ *                                            # this player's own; in coop the rack is the team's
  *
  * cell:                                      # GCell: a spot a tile is placed onto
  *   id                                       # "x,y"
@@ -302,17 +319,11 @@ export type GPlayerRaw = PlayerRaw & {
  * **`gd`, the game data** — everything the play surface knows about THIS
  * game, in one object. It is the `game_data` blob the game's builder wrote
  * (`GGameDataRaw`), with its links turned into players, the board's string
- * into cells keyed by id, a rival's rack withheld mid-race, the setup rows
- * built and the state line decided. Read-only: `useGame` builds it and nothing
- * else writes it.
+ * into cells keyed by id and put on every player, a rival's rack withheld
+ * mid-race, and the setup rows built. Read-only: `useGame` builds it and
+ * nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'board' | 'turns' | 'ending' | 'events' | 'players'> & {
-  board: {
-    // The 225 cells, row by row: a cell's index is `y * 15 + x`.
-    cells: GCell[]
-    // The same cells, keyed by id.
-    cellsById: Record<string, GCell>
-  }
+export type GGameData = Omit<GGameDataRaw, 'nBagTiles' | 'board' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -328,14 +339,19 @@ export type GGameData = Omit<GGameDataRaw, 'board' | 'turns' | 'ending' | 'event
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
-  // My entry in `playersById`: the same object.
-  me: GPlayer
-  stateLineData: GStateLineData
+  // My entry in `playersById`: the same object. My own rack is always mine to
+  // see.
+  me: GPlayer & { rack: string[] }
 }
 
-/** A player as `gd` holds them: the blob's, with a rival's rack null while
- *  the race is on. */
-export type GPlayer = GPlayerRaw
+/**
+ * A player as `gd` holds them: the blob's player with scrabble's facts twice —
+ * spread on, their side's; under `own`, their own (plans/team-facts.md). A
+ * rival's rack is null while the race is on.
+ */
+export type GPlayer = Omit<GPlayerRaw, keyof GFactsRaw> & FactsApart<GFacts> & {
+  own: GFacts
+}
 
 export type GEvent = Omit<GEventRaw, 'userId' | 'placements'> & {
   // Who did it.
