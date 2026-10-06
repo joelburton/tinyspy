@@ -85,9 +85,9 @@ export function ZTest_guess(
 
 /**
  * Build the `game_data` blob `wordle._rebuild_data_cols` would write from these
- * facts: each player's own count, the team's summed from them in coop, each
- * seat's board folded from the log in the mode's scope, and where every player
- * stands derived.
+ * facts: each player's own count, the team's facts in coop (the count summed,
+ * the one board), a racer's own board in compete — each board folded from the
+ * log — and where every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -107,15 +107,18 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
   const usedOf = (p: ZTest_PlayerFacts) => p.used ?? events.filter((e) => e.userId === p.id).length
+  const makeBoard = (rows: GEventRaw[]) => ({ rows: rows.map((e) => ({ word: e.word, colors: e.colors })) })
   const team = coop
-    ? { nGuessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0) }
+    ? {
+      nGuessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0),
+      maxGuesses: setup.max_guesses,
+      board: makeBoard(events),
+    }
     : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
-    // The rows on this seat's board: the team's in coop, their own in compete.
-    const shown = events.filter((e) => coop || e.userId === p.id)
     return {
       id: p.id,
       username: p.username,
@@ -134,7 +137,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       maxGuesses: setup.max_guesses,
       nGuessesUsed: usedOf(p),
       tieBrokenByClock: p.tieBrokenByClock ?? null,
-      board: { rows: shown.map((e) => ({ word: e.word, colors: e.colors })) },
+      // Coop's one board is the team's.
+      board: coop ? null : makeBoard(events.filter((e) => e.userId === p.id)),
     }
   })
 

@@ -171,15 +171,17 @@ hook merges it into `game_data`, each key in its place:
 | blob | wordle's part |
 |---|---|
 | `static_game_data` | the common part alone: wordle's puzzle is only the answer, which waits for the end |
-| `game_data` | `puzzle: {target}` (null until the game ends); `team: {nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `maxGuesses`, their own `nGuessesUsed`, `tieBrokenByClock` and `board: {rows}`, this seat's guess rows |
-| `summary_data` | `team`, the same group; `maxGuesses`, `answerBand`, `nWinnerGuesses` |
+| `game_data` | `puzzle: {target}` (null until the game ends); `team`, the team's facts sent once, null in compete; `events`, every player's rows; on each player their own facts and `tieBrokenByClock` |
+| `summary_data` | `team: {nGuessesUsed}`, the team's count, null in compete; `maxGuesses`, `answerBand`, `nWinnerGuesses` |
 
-Each player's count is their own, on `wordle.players` and on their player in
-the blob, in both modes; `team` is their sum, and is null in a race, which has
-no team ([plans/team-facts.md](../../plans/team-facts.md)). `gd.stateLineData`
-is what the info column's state line shows — the team's count where there is
-one, else my own, against the budget — decided once in `useGame`. Compete's
-summary carries no team, where a live count would leak how close a racer is;
+wordle's facts (`GFacts`) are `nGuessesUsed`, `maxGuesses` and `board: {rows}`,
+the guess rows in the order of play. Each player's count is their own, on
+`wordle.players` and on their player in the blob, in both modes; `team`'s is
+their sum, with the one coop board, which no coop player carries. `useGame`
+puts the side's facts on every player — the team's in coop, their own in
+compete — and their own under `own`
+([plans/team-facts.md](../../plans/team-facts.md)), so the state line reads
+`gd.me`. Compete's summary carries no team, where a live count would leak how close a racer is;
 the winner's count is compete's, written once the race is won, and the winner
 is the common `ending.winner`.
 `wordle._rebuild_data_cols_for_all()` rewrites every wordle game's blobs
@@ -412,7 +414,7 @@ eight sections.
 
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the ending, pause, chat — and unmounts this whole surface on pause. `StateLine`
-draws "3/6 guesses" from `gd.stateLineData` inside the info column's state
+draws "3/6 guesses" from `gd.me` inside the info column's state
 paragraph; it has no mobile twin, since the board is the count. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
 

@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { Actor } from '@/common/members/member'
@@ -37,31 +37,31 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // The answer. Null until the game ends.
     target: string | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the count summed over every player's own,
+  // and the one board. Null in compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every accepted guess, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the guesses summed over
- * every player's own. The budget they count against is `maxGuesses`, on every
- * player.
+ * wordle's facts (plans/team-facts.md): the guesses spent against the budget,
+ * and the board they are played on. A player carries them twice — spread on,
+ * their side's (the team's in coop, their own in compete); under `own`, their
+ * own.
  */
-export type GTeam = {
+export type GFacts = {
   nGuessesUsed: number
+  // The guess budget: the team's in coop, each player's own in compete.
+  maxGuesses: number
+  // The guess rows, in the order of play; null for a rival mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the info column's state line shows — "3/6 guesses": the team's count
- * in coop, my own in compete, against the budget. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = {
-  nGuessesUsed: number
-  maxGuesses: number
+/** `GFacts` as the builders write them: the board is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -79,21 +79,15 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as wordle's game_data shows them: the common player, with the
- *  budget, their count, the clock's tie-break and this seat's board. */
-export type GPlayerRaw = PlayerRaw & {
-  // The guess budget: the team's in coop, each player's own in compete. The
-  // same on every player.
-  maxGuesses: number
-  // Guesses spent: this player's own, in every mode; the team's is `team`'s.
-  nGuessesUsed: number
+/** A player as wordle's game_data shows them: the common player, with their
+ *  own facts and the clock's tie-break. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own board; null in coop, whose one board is `team`'s.
+  board: GBoard | null
   // Compete, once ranked: the earlier solve, not the guess count, placed this
   // solver against the winner (the winner's too, when another solver matched
   // their count). Null in coop and until the game ends.
   tieBrokenByClock: boolean | null
-  // What this seat's tiles show: its guess rows, in the order of play. One
-  // board in coop, each racer's own in compete.
-  board: GBoard
 }
 
 /*
@@ -112,7 +106,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {target}                      # null until the game ends
- *   team: {nGuessesUsed}                   # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -121,7 +114,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
- *   stateLineData: {nGuessesUsed, maxGuesses}  # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -138,10 +130,11 @@ export type GPlayerRaw = PlayerRaw & {
  *   stillPlaying
  *   onTurn
  *   waitingForTurn
- *   maxGuesses                            # the same on every player
- *   nGuessesUsed                           # own, in every mode
+ *   nGuessesUsed                          # the side's: the team's in coop, their own in compete
+ *   maxGuesses
+ *   board: {rows}                         # coop's one board on every player; null for a rival mid-race
+ *   own: {nGuessesUsed, maxGuesses, board}  # this player's own
  *   tieBrokenByClock                      # compete, once ranked; null in coop and until the end
- *   board: {rows}                         # what this seat's tiles show; null for a rival mid-race
  */
 
 /**
@@ -151,7 +144,7 @@ export type GPlayerRaw = PlayerRaw & {
  * built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -171,14 +164,15 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's count in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the blob's player with
+ * wordle's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's board is null mid-race.
+ */
+export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat's tiles show: its guess rows, in the order of play. */
@@ -340,13 +334,12 @@ export type GAnswer =
  * there is no polished pair and no `Raw`; the play surface reads `game_data`
  * instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries: the team's count in coop, null
- * in compete, whose summary shows no progress; the winner's count is compete's,
+ * `team` is the team's count in coop, null in compete, whose summary shows no progress; the winner's count is compete's,
  * null until the end and always null in coop (the winner is the common
  * `ending.winner`). `answerBand` is the setup's.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nGuessesUsed'> | null
   maxGuesses: number
   answerBand: number
   nWinnerGuesses: number | null

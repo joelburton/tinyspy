@@ -181,25 +181,28 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --
 --   game_data, wordle's part:
 --     puzzle: {target}                     null until the game ends
---     team: {nGuessesUsed}                  what the team shares, summed over the rows;
---                                          null in compete, where there is no team
+--     team: {nGuessesUsed, maxGuesses, board}
+--                                          the team's facts, once: the count summed
+--                                          over the rows, the one board; null in
+--                                          compete, where there is no team
 --                                          (plans/team-facts.md)
 --     events: [{id, userId, word, colors, correct, at}, …]
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
---     players: [player, …]                 the common player, plus:
+--     players: [player, …]                 the common player, plus this player's own facts:
 --       maxGuesses                         the same on every player
---       nGuessesUsed                        this player's own, in every mode
+--       nGuessesUsed
+--       board: {rows: [{word, colors}, …]} a racer's own guess rows; null in coop,
+--                                          whose one board is `team`'s
+--       and beside them:
 --       tieBrokenByClock                   compete, once ranked: the earlier solve, not the
 --                                          count, placed this solver against the winner (the
 --                                          winner's too, when another solver matched their
 --                                          count); null in coop and until the end
---       board: {rows: [{word, colors}, …]} what this seat's tiles show: one board in
---                                          coop, each racer's own in compete
 --
 --   summary_data, wordle's part (the common part names and dates the game and
 --   carries its ending; the winner is `ending.winner`):
---     team: {nGuessesUsed}                  the same group; null in compete, whose
+--     team: {nGuessesUsed}                 the team's count; null in compete, whose
 --                                          summary shows no progress
 --     maxGuesses
 --     answerBand                           the setup's
@@ -242,10 +245,14 @@ $$;
 
 revoke execute on function wordle._make_json_events(uuid) from public;
 
--- What one seat's tiles show: its guess rows, each word with its colors, in
--- the order of play. In coop every seat shows the team's guesses; in compete,
--- the seat's own.
-create or replace function wordle._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+-- The shape this had while every coop seat carried its own copy of the board;
+-- supabase/sql is re-applied, not diffed.
+drop function if exists wordle._make_json_board(uuid, uuid, text);
+
+-- What a side's board shows: its guess rows, each word with its colors, in the
+-- order of play. A null `p_user_id` is the coop team's one board, every
+-- player's guesses; else that racer's own.
+create or replace function wordle._make_json_board(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
 stable
@@ -257,15 +264,15 @@ as $$
               'colors', e.colors::text) order by e.id), '[]'::jsonb))
     from wordle.events e
    where e.game_id = p_game_id
-     and (p_mode = 'coop' or e.user_id = p_user_id);
+     and (p_user_id is null or e.user_id = p_user_id);
 $$;
 
-revoke execute on function wordle._make_json_board(uuid, uuid, text) from public;
+revoke execute on function wordle._make_json_board(uuid, uuid) from public;
 
--- What the team shares: the guesses summed over every row. Each row holds its
+-- The team's count: the guesses summed over every row. Each row holds its
 -- player's own, so the sum counts every guess once. Null in compete, where
--- there is no team (plans/team-facts.md).
-create or replace function wordle._make_json_team(p_game_id uuid)
+-- there is no team.
+create or replace function wordle._make_json_team_counts(p_game_id uuid)
 returns jsonb
 language sql
 stable
@@ -278,10 +285,31 @@ as $$
    where cg.id = p_game_id;
 $$;
 
+revoke execute on function wordle._make_json_team_counts(uuid) from public;
+
+-- The team's facts, sent once: its count, the budget it counts against, and
+-- the one board. Null in compete, where there is no team
+-- (plans/team-facts.md).
+create or replace function wordle._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordle, common, public, extensions
+as $$
+  select wordle._make_json_team_counts(p_game_id) || jsonb_build_object(
+           'maxGuesses', wg.max_guesses,
+           'board',      wordle._make_json_board(p_game_id, null))
+    from wordle.games wg
+    join common.games cg on cg.id = wg.game_id
+   where wg.game_id = p_game_id
+     and cg.mode = 'coop';
+$$;
+
 revoke execute on function wordle._make_json_team(uuid) from public;
 
--- Every player as wordle's game_data shows them: the common player, with the
--- budget, their own count, the clock's tie-break and this seat's board.
+-- Every player as wordle's game_data shows them: the common player, with
+-- their own facts — the budget, their count, and in compete their board —
+-- and the clock's tie-break.
 create or replace function wordle._make_json_players(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -333,7 +361,9 @@ begin
                                 and other.solved_at is not null
                                 and other_wp.n_guesses_used = v_winner_used)
                  end,
-               'board',            wordle._make_json_board(p_game_id, cp.id, v_mode))
+               -- Coop's one board is sent once, in `team`.
+               'board',            case when v_mode = 'compete'
+                                     then wordle._make_json_board(p_game_id, cp.id) end)
              order by cp.ord)
       from common._make_json_players(p_game_id) cp
       join wordle.players wp on wp.game_id = p_game_id and wp.user_id = cp.id
@@ -375,7 +405,7 @@ stable
 set search_path = wordle, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',               wordle._make_json_team(p_game_id),
+    'team',               wordle._make_json_team_counts(p_game_id),
     'maxGuesses',         wg.max_guesses,
     'answerBand',         coalesce((cg.setup->>'answer_band')::int, 0),
     'nWinnerGuesses', case when cg.mode = 'compete' then
