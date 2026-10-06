@@ -470,12 +470,16 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   out is the one in-flight guard**: a tap and a drag swap with no action behind
   them, and every way of making a swap — tap, drag, Space, Enter — is quiet
   until the row lands; without that, players read the silent gap as a missed
-  click and tap the same two tiles again, queueing the REVERSE swap. One gate,
-  `isInteractive` — my move, on the live board — feeds the board and its keys.
-  The key that dismisses the slot's message is bound here too.
+  click and tap the same two tiles again, queueing the REVERSE swap. Two gates:
+  `isInteractive` — my move, on the live board — feeds the board, its cursor
+  and whether the keys show; `canPick` adds "no swap out" and gates every way
+  of making one. The picks are `usePickedTiles` (the tap, Space and drop
+  rules), the two keys `useBoardColActions`. The key that dismisses the slot's
+  message is bound here too.
 - **`Board` decides, `Tile` draws.** `Board` takes the tiles, `marks` (the
-  swap in flight, my ending's band, the waiting dim, the turn flash),
-  `historyView` and `isInteractive`, and works out each tile's marks: picked,
+  picks, the swap in flight, my ending's band, the waiting dim, the turn flash),
+  `historyView`, `isInteractive` and the three gestures (`onTap`,
+  `onTogglePick`, `onDrop`), and works out each tile's marks: picked,
   under the cursor, in flight, flashing, ringed by the history view. Held
   things are ids (the picks, the swap still out, a drag's source); passed
   things are tiles; `data-tile` is the id. The board is a **top-aligned

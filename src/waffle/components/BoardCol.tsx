@@ -9,6 +9,8 @@ import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import { useSubmitSwap } from '../hooks/useSubmitSwap'
+import { usePickedTiles } from '../hooks/usePickedTiles'
+import { useBoardColActions } from '../hooks/useBoardColActions'
 import { swapTileLetters } from '../lib/waffle'
 import { Board } from './Board'
 import { StateLine } from './StateLine'
@@ -53,17 +55,13 @@ export function BoardCol({
   const isInteractive = gd.me.onTurn && !historyView.isViewing
 
   // ─── The pending move ─────────────────────────────────────────
-  // The swap and its trip to the server (`useSubmitSwap`).
+  // The swap and its trip to the server (`useSubmitSwap`), the picks it is
+  // built from (`usePickedTiles`), and the two keys (`useBoardColActions`).
   const submission = useSubmitSwap({
     gameId: gd.id,
     newestEventId: gd.events.at(-1)?.id ?? null,
     localFeedbackSlot,
   })
-
-  // Any key is the player's next move → dismiss a gesture-cleared message.
-  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
-
-  // ─── Render ───────────────────────────────────────────────────
 
   // The swap still out belongs to the live board only: its letters have
   // already traded places there.
@@ -71,6 +69,27 @@ export function BoardCol({
   const tiles = pendingSwapTileIds === null
     ? shownTiles
     : swapTileLetters(shownTiles, pendingSwapTileIds[0], pendingSwapTileIds[1])
+  const tilesById = new Map(tiles.map((t) => [t.id, t]))
+
+  // A swap is mine to make: the board is mine, and no swap is out — every way
+  // of making one (tap, drag, Space, Enter) stays quiet until its row lands.
+  // The arrows still move.
+  const canPick = isInteractive && pendingSwapTileIds === null
+
+  const picks = usePickedTiles({ tilesById, canPick, swap: submission.send })
+  useBoardColActions({
+    isInteractive,
+    canPick,
+    pickedTileIds: picks.tileIds,
+    tilesById,
+    swap: submission.send,
+    clearPicks: picks.clear,
+  })
+
+  // Any key is the player's next move → dismiss a gesture-cleared message.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
+
+  // ─── Render ───────────────────────────────────────────────────
 
   return (
     // Exit-on-click is intrinsic to the viewer (useHistoryViewer's document
@@ -88,6 +107,7 @@ export function BoardCol({
       <Board
         tiles={tiles}
         marks={{
+          pickedTileIds: picks.tileIds,
           inFlightTileIds: new Set(pendingSwapTileIds ?? []),
           // Bands the board once I have ended: with the game, or before it
           // while the others race on — the outcome the below-board pill and
@@ -102,7 +122,9 @@ export function BoardCol({
         // compete. The reveal leaves it alone, which is what tells the flash
         // that the board swapped in was not played into existence.
         moveCount={gd.stateLineData.nSwapsUsed}
-        onSwap={submission.send}
+        onTap={picks.tap}
+        onTogglePick={picks.toggle}
+        onDrop={picks.drop}
       />
 
       <div className={styles.belowBoard}>

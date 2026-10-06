@@ -29,6 +29,13 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/waffle.md` instead; a note here never stands in for either)*
 
+- **The move left the Board** (2026-10-05, after the strands survey; Joel:
+  "start"). The picks moved from `Board`'s own state into `usePickedTiles`
+  and its `act-submit` / `act-clear-picks` into `useBoardColActions`, both
+  called by `BoardCol`, as psychicnum and connections do. `Board` keeps the
+  cursor, the drag's source and the attention flash, and reports the tap,
+  Space and drop. Board went from 281 lines to ~225.
+
 ## The convenience RLS
 
 The policies and views the frontend leans on before the page blobs, listed

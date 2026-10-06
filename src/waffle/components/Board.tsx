@@ -1,11 +1,10 @@
 // cs-fixed-outcome-fix
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { EndOutcome } from '@/common/terminal/gameEnding'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { useBindAction } from '@/common/actions/useBindAction'
 import shared from '@/common/game-page/playArea.module.css'
 import {
   makeEndingFrameClasses,
@@ -19,6 +18,8 @@ import type { GHistoryView, GTile } from '../types'
 
 /** What the board wears on and around its tiles. */
 type BoardMarks = {
+  // The ids of the tiles picked up for the next swap, in pick order.
+  pickedTileIds: readonly string[]
   // The ids of the two tiles of a swap that is OUT — sent, waiting on the
   // server — or empty.
   inFlightTileIds: ReadonlySet<string>
@@ -69,7 +70,9 @@ function findChangedTileIds(before: BoardSnapshot, after: BoardSnapshot): Readon
  * arrows move a selection cursor (`useTileCursor`), Space picks up to two
  * tiles, and Enter swaps them — the second pick WAITS for Enter, where the
  * second tap is the swap, because an arrow can land a cell off and a swap costs
- * one from the budget. Holes render as gaps, and the cursor passes over them.
+ * one from the budget. The picks and those rules are the column's
+ * (`usePickedTiles`); the board reports the tap, the Space and the drop. Holes
+ * render as gaps, and the cursor passes over them.
  * A tile's color is the server's feedback — the board only draws it, never
  * works it out (it doesn't hold the solution).
  *
@@ -83,7 +86,9 @@ export function Board({
   historyView,
   isInteractive,
   moveCount,
-  onSwap,
+  onTap,
+  onTogglePick,
+  onDrop,
 }: {
   // The board to draw, by position: the live one (with a swap in flight
   // applied), the revealed solution, or a past swap's — the caller picks.
@@ -99,13 +104,14 @@ export function Board({
   // CAUSE the attention flash reads: a board that changed while this number
   // stood still was re-dealt or revealed, not played.
   moveCount: number
-  // Swap the letters of two tiles.
-  onSwap: (a: GTile, b: GTile) => void
+  // A click or tap on a tile.
+  onTap: (tile: GTile) => void
+  // Space on the tile under the cursor.
+  onTogglePick: (tile: GTile) => void
+  // One tile dragged onto another.
+  onDrop: (from: GTile, to: GTile) => void
 }) {
   const tilesById = new Map(tiles.map((t) => [t.id, t]))
-  // The ids of the picked tiles, in pick order: one from a tap, up to two from
-  // the keyboard.
-  const [pickedTileIds, setPickedTileIds] = useState<readonly string[]>([])
   // Drag is a MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't
   // fire on touch anyway, and a `draggable` tile there just invites a
   // long-press drag-ghost), leaving the tap-two-tiles model as the sole input.
@@ -150,76 +156,14 @@ export function Board({
     changed: findChangedTileIds,
   })
 
-  // While a swap is in flight, every way of making one stays quiet — tap, drag,
-  // Space and Enter. The arrows still move.
-  const isSwapOut = marks.inFlightTileIds.size > 0
-
-  // A TAP: with nothing picked it picks; on the one picked tile it cancels; on
-  // another it swaps the two. Two picked is a keyboard state, and a tap there
-  // starts over from the tapped tile.
-  function tapTile(tile: GTile) {
-    if (!isInteractive || isSwapOut) return
-    const [firstId] = pickedTileIds
-    if (pickedTileIds.length === 1 && firstId === tile.id) {
-      setPickedTileIds([])
-    } else if (pickedTileIds.length === 1 && firstId !== undefined) {
-      onSwap(tilesById.get(firstId)!, tile)
-      setPickedTileIds([])
-    } else {
-      setPickedTileIds([tile.id])
-    }
-  }
-
   function dropOnTile(tile: GTile) {
     const fromId = dragFromTileId.current
     dragFromTileId.current = null
-    if (fromId === null || fromId === tile.id || !isInteractive ||
-      isSwapOut) return
-    onSwap(tilesById.get(fromId)!, tile)
-    setPickedTileIds([])
+    if (fromId !== null) onDrop(tilesById.get(fromId)!, tile)
   }
 
-  // ─── The keyboard ──────────────────────────────────────
-  // Space toggles the tile under the cursor into or out of the picks. A third
-  // is refused, as connections refuses a fifth: un-pick one first.
-  function togglePick(tile: GTile) {
-    if (!isInteractive || isSwapOut) return
-    if (pickedTileIds.includes(tile.id)) setPickedTileIds(pickedTileIds.filter((id) => id !==
-      tile.id))
-    else if (pickedTileIds.length <
-      2) setPickedTileIds([...pickedTileIds, tile.id])
-  }
-
-  const cursor = useTileCursor({ tiles, isInteractive, onToggle: togglePick })
-
-  // Enter swaps the two picks. Key-only — a tap is the board's own swap — so
-  // the action names itself for the key list, and hides on a board I can't
-  // play.
-  useBindAction('act-submit', {
-    describe: () => {
-      if (!isInteractive) return 'hidden'
-      return {
-        state: pickedTileIds.length === 2 && !isSwapOut
-          ? 'active'
-          : 'disabled', label: 'Swap',
-      }
-    },
-    run: () => {
-      const [aId, bId] = pickedTileIds
-      if (aId === undefined || bId === undefined || isSwapOut) return
-      onSwap(tilesById.get(aId)!, tilesById.get(bId)!)
-      setPickedTileIds([])
-    },
-  })
-
-  // ⌫ drops the picks.
-  useBindAction('act-clear-picks', {
-    describe: () => {
-      if (!isInteractive) return 'hidden'
-      return pickedTileIds.length > 0 ? 'active' : 'disabled'
-    },
-    run: () => setPickedTileIds([]),
-  })
+  // The keyboard: arrows move the cursor, Space toggles a pick.
+  const cursor = useTileCursor({ tiles, isInteractive, onToggle: onTogglePick })
 
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
@@ -252,7 +196,7 @@ export function Board({
               key={tile.id}
               tile={tile}
               marks={{
-                isPicked: pickedTileIds.includes(tile.id),
+                isPicked: marks.pickedTileIds.includes(tile.id),
                 isUnderCursor: cursor.cursorTileId === tile.id,
                 isInFlight: marks.inFlightTileIds.has(tile.id),
                 isFlashing: flashingTileIds.has(tile.id),
@@ -263,7 +207,7 @@ export function Board({
               onClick={() => {
                 // The cursor follows the hand, hidden, so the keys resume here.
                 cursor.moveToClicked(tile)
-                tapTile(tile)
+                onTap(tile)
               }}
               onDragStart={() => {
                 dragFromTileId.current = tile.id
