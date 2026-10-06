@@ -135,6 +135,20 @@ are gone; the ruling moved into plans/tile-feedback.md and docs/games/setgame.md
 marks; its helper calls are step 15's. Not yet seen on screen: the page needs
 the InfoCol pass to render.
 
+## The InfoCol pass (step 12)
+
+One action row, every action listed once (Hint, Concede, Stop, the bar,
+Restart, New game, Back to club — filled once the game has ended); the line is
+the ending that applies to me. Hint is the board column's action, placed here
+through `useAction('act-hint')`. `StateLine` (`gd.stateLineData`, its words
+unchanged, `withTilesInDeck` false on the phone's bar) replaces `Counts` and
+`lib/readouts.ts`; its rules moved verbatim into `StateLine.module.css`, and
+the dead `.breakdown` rules went (the cssClasses allowlist is empty).
+`LastSet`, `GameEventLog` and `SetupForm` read `gd`'s types; the strip is
+`getSetsOrOut`. `PlayArea.test.tsx` is rewritten on the fixture (15 cases,
+verified by planting). Three todo items closed: the action row's branches,
+`act-new-game` before load, and the doubled `LeaderRow`.
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,

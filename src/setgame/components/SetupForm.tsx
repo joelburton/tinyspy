@@ -6,8 +6,8 @@ import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import type { DeckKind } from '../lib/cards'
-import { paletteOf, type Palette, type SetgameValues } from '../lib/setup'
+import { paletteOf } from '../lib/setup'
+import type { GDeckKind, GPalette, GSetupValues } from '../types'
 
 import '../theme.css'
 
@@ -17,21 +17,21 @@ import '../theme.css'
  * renders a mode radio.
  *
  * One real knob: which deck. Everything else about a setgame board follows from
- * it — twelve cards or nine, and the deal-three rule owns the rest — so there is
+ * it — twelve tiles or nine, and the deal-three rule owns the rest — so there is
  * no board-size picker and no target to set.
  *
  * (`theme.css` is imported here as well as in PlayArea: the stylesheet is bundled
  * per lazy chunk, and the setup dialog is its own chunk. Without this the deck
- * preview's card colors are silently undefined.)
+ * preview's tile colors are silently undefined.)
  */
 export function SetupForm({
   mode, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as SetgameValues
-  const set = setValue as SetupSetter<SetgameValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   return (
     <>
@@ -58,7 +58,7 @@ export function SetupForm({
 
 
       <SetupSection label={s.deck === 'junior' ? 'Deck: Junior' : 'Deck: Full'}>
-        <RadioRow<DeckKind>
+        <RadioRow<GDeckKind>
           help="The full deck is all four attributes, 81 cards, twelve face-up. Junior drops shading — every card is solid — leaving 27 cards dealt nine at a time. Fewer things to hold in your head, and a real starting point rather than a slower version of the same game."
           name="deck"
           error={errors.deck}
@@ -74,7 +74,7 @@ export function SetupForm({
       <SetupSection
         label={paletteOf(s) === 'colorblind' ? 'Colors: Colorblind-safe' : 'Colors: Traditional'}
       >
-        <RadioRow<Palette>
+        <RadioRow<GPalette>
           help="Traditional is Set's own red, green and purple. The colorblind-safe set swaps in blue, orange and magenta, which stay apart for red-green color blindness — worth knowing that two cards can differ ONLY by color here, so shape and shading can't rescue a pair you can't tell apart. It's one choice for the whole table."
           name="palette"
           error={errors.palette}

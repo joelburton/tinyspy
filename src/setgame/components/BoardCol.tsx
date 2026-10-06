@@ -11,9 +11,8 @@ import { usePickedTiles } from '../hooks/usePickedTiles'
 import { useSubmitClaim } from '../hooks/useSubmitClaim'
 import { useSpendHint } from '../hooks/useSpendHint'
 import { useBoardColActions } from '../hooks/useBoardColActions'
-import { countsFor } from '../lib/readouts'
 import { Board } from './Board'
-import { Counts } from './Counts'
+import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -90,14 +89,7 @@ export function BoardCol({
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <Counts
-            items={countsFor('mobile', {
-              isCompete: gd.compete,
-              teamFound: gd.stateLineData.nSetsFound,
-              deckLeft: gd.stateLineData.nTilesInDeck,
-              hintsUsed: gd.stateLineData.nHintsUsed ?? 0,
-            })}
-          />
+          <StateLine data={gd.stateLineData} withTilesInDeck={false} />
           {/* On the bar in compete too, disabled and saying why — the same
               action the info column places. */}
           <ActionButton action={actions.actHint} show="icon" />

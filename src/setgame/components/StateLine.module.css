@@ -1,0 +1,32 @@
+/* cs-unmet */
+
+/* What `StateLine.tsx` wears: the readouts, one labeled number each. */
+
+/* One row — "Found: 5 • Deck remaining: 50 • Hints: 5". Wraps rather than
+ * ellipsizing: every number here is worth reading. */
+/* @@ */ .counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.4rem;
+}
+
+/* Full-strength text throughout, label included: these are real values, and the
+ * counts are the only progress this game reports. */
+/* @@ */ .count {
+  color: var(--page-text-color);
+  font-size: 0.95rem;
+}
+
+/* The separator between counts. A bullet, not a rule: this is a sentence of
+ * three readouts, and a vertical bar makes it look like a table that lost its
+ * grid. */
+/* @@ */ .dot {
+  color: var(--page-text-color);
+}
+
+/* @@ */ .count strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+

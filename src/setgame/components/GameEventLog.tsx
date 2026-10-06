@@ -1,25 +1,24 @@
 // cs-fixed-outcome-fix
 
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
-import { ANSWER_OUTCOME } from '../lib/answer'
-import type { EventRow } from '../hooks/useGame'
-import { Card } from './Card'
+import { eventToOutcome } from '../lib/answer'
+import type { GEvent, GHistoryView } from '../types'
+import { Tile } from './Tile'
 import styles from './GameEventLog.module.css'
 
 /**
  * The game log — every claim and every hint, on the shared `<EventLog>` (heading
  * + fixed-height bordered scroll box + table) so it reads like the other games'.
  *
- * **The cards ARE the row.** A set written out — "2 red striped diamonds, 1
+ * **The tiles ARE the row.** A set written out — "2 red striped diamonds, 1
  * green solid oval, 3 purple open squiggles" — is unreadable at a glance and
- * three lines long; three tiny cards say the same thing in a strip narrower
+ * three lines long; three tiny tiles say the same thing in a strip narrower
  * than a word. This is the one game whose log had to be pictures.
  *
- * A **claim** shows its three cards; a **hint** shows the one, two or three the
+ * A **claim** shows its three tiles; a **hint** shows the one, two or three the
  * asker was shown, tagged so it can't be mistaken for a find.
  *
  * ── The heading counts, and why they are not a scoreboard ───────────────────
@@ -38,28 +37,22 @@ export function GameEventLog({
   players,
   myId,
   mode,
-  isTerminal,
-  historyId,
-  onShowHistory,
+  isGameEnded,
+  historyView,
 }: {
-  /** Every event the viewer can see — claims and hints, oldest first. */
-  events: EventRow[]
+  // Every row, every player's — claims and hints, oldest first.
+  events: GEvent[]
   players: Member[]
   myId: string
   mode: 'coop' | 'compete'
-  isTerminal: boolean
-  /** The event currently open in the board viewer (highlights its row), or
-   *  null. The row's own id — see lib/history.ts. */
-  historyId: number | null
-  /** Open an event in the board viewer — the row's id, and the `#N` this log
-   *  printed beside it, which is what the banner shows back. */
-  onShowHistory: (id: number, n: number) => void
+  isGameEnded: boolean
+  historyView: GHistoryView
 }) {
-  const eventLogPicker = useEventLogPlayerPicker<EventRow>({
+  const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
     mode,
-    isTerminal,
+    isTerminal: isGameEnded,
     // setgame's compete race happens on ONE shared board, like scrabble's — so
     // "All" is literally what you are looking at, and the per-player entries
     // are the extra rather than the default.
@@ -77,32 +70,28 @@ export function GameEventLog({
       shown={shown}
     >
       {shown.map((event, i) => {
-        // The NUMBER counts the rows on show — 1, 2, 3 under whatever filter is
-        // applied, which from the reader's seat is honest. The HANDLE is the
-        // row's own id. (This reverses a decision recorded here: the number used
-        // to be the position in the FULL log, on the grounds that a filter must
-        // not renumber the game. Under the shared rule it numbers the list you
-        // are looking at, and the id is what identifies a row.)
+        // The NUMBER counts the rows on show — a filter renumbers them — while
+        // the HANDLE is the row's own id.
         return (
           <tr key={event.id} className={gameEventLog.divider}>
-            {/* The bar's word is `lib/answer.ts`'s, and the row's `kind` is
-                already its key — so the log has no word of its own to disagree
-                with the pill or a teammate's line about the same turn. */}
-            <EventLogOutcomeBar outcome={ANSWER_OUTCOME[event.kind]} />
+            {/* The bar's word is `lib/answer.ts`'s — the log names none of its
+                own, so it cannot disagree with the pill or a teammate's line
+                about the same turn. */}
+            <EventLogOutcomeBar outcome={eventToOutcome(event)} />
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === event.id}
-              onShowHistory={() => onShowHistory(event.id, i + 1)}
+              isOpenInHistory={historyView.viewedEventId === event.id}
+              onShowHistory={() => historyView.show(event.id, i + 1)}
             />
             <td className={styles.tiles}>
               {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}
               <span className={styles.mini}>
-                {event.cards.map((card) => (
-                  <Card key={card} card={card} readOnly />
+                {event.tiles.map((tile) => (
+                  <Tile key={tile.id} tile={tile} readOnly />
                 ))}
               </span>
             </td>
-            <EventLogActor actor={memberById(players, event.user_id)} />
+            <EventLogActor actor={event.by} />
           </tr>
         )
       })}

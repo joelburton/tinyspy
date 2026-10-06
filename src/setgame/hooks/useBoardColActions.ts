@@ -6,7 +6,6 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { answerMessage } from '../lib/answer'
 import { slotForKey } from '../lib/letters'
 import { CLAIM_SIZE, toggleTile } from '../lib/picks'
-import { hintLabel } from '../lib/readouts'
 import { isSet } from '../lib/tiles'
 import type { GGameData, GTile } from '../types'
 
@@ -100,7 +99,8 @@ export function useBoardColActions({
   const actHint = useBindAction('act-hint', {
     describe: () => ({
       state: gd.compete || !gd.me.onTurn ? 'disabled' : 'active',
-      label: hintLabel(gd.compete),
+      // Says why in compete, so the gray button answers the question.
+      label: gd.compete ? 'No hints when competing' : 'Show hint',
     }),
     run: spendHint,
   })

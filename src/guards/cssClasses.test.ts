@@ -204,11 +204,7 @@ for (const f of CODE_FILES) {
  */
 const MEMBER_PENDING: string[] = []
 
-const DEAD_CLASS_PENDING: string[] = [
-  // `.breakdown` + three siblings — the per-player breakdown they styled was
-  // replaced (see that game's GameEventLog). → the `setgame` area.
-  'src/setgame/components/PlayArea.module.css',
-]
+const DEAD_CLASS_PENDING: string[] = []
 
 describe('a class name resolves — the module side', () => {
   it('every styles.x is a class the module defines', () => {
