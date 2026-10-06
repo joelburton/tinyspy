@@ -1,11 +1,11 @@
 // cs-blessed-psychicnum
 
-import type { GStateLineData } from '../types'
+import type { GFacts } from '../types'
 
 
 /**
  * psychicnum's core live-state readout — "1/3 found · 4/7 guesses used" —
- * drawn from `gd.stateLineData`.
+ * drawn from my side's facts, `gd.me`: the team's in coop, my own in compete.
  *
  * Its own component because it's rendered TWICE, in two places that must never
  * drift: the info column's `.infoState` line (desktop) and the mobile
@@ -16,15 +16,15 @@ import type { GStateLineData } from '../types'
  * The counters are bold and the labels aren't: the numbers are what's read at
  * a glance.
  */
-export function StateLine({ data }: { data: GStateLineData }) {
+export function StateLine({ facts }: { facts: GFacts }) {
   return (
     <>
       <strong>
-        {data.nFoundSecrets}/{data.nReqdSecrets}
+        {facts.nFoundSecrets}/{facts.nReqdSecrets}
       </strong>{' '}
       found ·{' '}
       <strong>
-        {data.nGuessesUsed}/{data.maxGuesses}
+        {facts.nGuessesUsed}/{facts.maxGuesses}
       </strong>{' '}
       guesses used
     </>

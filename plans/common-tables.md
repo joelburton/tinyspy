@@ -2,8 +2,8 @@
 
 **Status: decided (Joel, 2026-09-27); the path is below, and no stage has
 started.** It grew out of
-[cross-game-consistency §3b](cross-game-consistency.md#3b-how-it-ended-for-me--won-lost-conceded-no-result-solved-not-started)
-and now builds that plan's step 7. The facts it rests on — both common
+cross-game-consistency's old §3b (how it ended for me)
+and built that plan's step 7. The facts it rests on — both common
 tables' columns, each game's own table, who reads and writes what, every
 `status` and `result` key, and prod's stored values — are in
 [common-tables-survey.md](common-tables-survey.md).
@@ -179,8 +179,7 @@ Decided 2026-09-27:
   is the concession that ends the game.
 - **The game's reason is the act that ended the game**, never a result: a
   `conceded` game may have a winner. In a game that plays out, it is the
-  last player's act ([cross-game-consistency §3b, step 7's question
-  4](cross-game-consistency.md#3b-how-it-ended-for-me--won-lost-conceded-no-result-solved-not-started)).
+  last player's act (docs/win-lose.md → `resource-exhausted`).
 - **`<game>.games.club_handle` is dropped.** It was copied so a security
   rule could check membership without a join; the rules join `common.games`
   instead, a primary-key lookup inside the same check (survey → `club_handle`
@@ -233,7 +232,7 @@ was the compete players' numbers and is now a subset of their
     sensible.
 - **Whether a team-fact is the same value on every player's row or each
   player's own share** (summed, Joel leans strongly) is cross-game-consistency
-  §6's question, after this plan ships; until then each game stores it as it
+  §1's question, after this plan ships; until then each game stores it as it
   does today, and its statuses copy that. scrabble's `coop_rack` and
   `coop_score`, team-facts on the games row, move to the player rows in the
   same work.
@@ -423,8 +422,8 @@ now ordered by layer, and the stages below are its content, not its order:
 6. Tests and docs move with each step.
 7. Rehearse against prod's data, re-read prod, the maintenance notice,
    **one deploy**, and, once its `supabase/sql/` step has landed, every
-   game's status builder over every game. Then cross-game-consistency §6's
-   coop team-facts, then §5.
+   game's status builder over every game. Then cross-game-consistency §1's
+   team state, then §5.
 
 The deploy below is that one deploy. "Together" is `gmake deploy`'s
 order — the migrations, then `supabase/sql/`, then the edge functions, then

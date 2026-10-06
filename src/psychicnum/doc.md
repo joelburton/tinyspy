@@ -133,16 +133,19 @@ hook merges it into `game_data`, each key in its place:
 | blob | psychicnum's part |
 |---|---|
 | `static_game_data` | `puzzle: {words}`, the dealt words |
-| `game_data` | `puzzle: {secrets}` (null until the game ends); `team: {nFoundSecrets, nGuessesUsed}`, what the team shares, null in compete; `events`, every player's rows; on each player `nReqdSecrets`, `maxGuesses`, their own `nFoundSecrets` and `nGuessesUsed`, and `board: {tiles}`, this seat's tiles — every dealt word in the puzzle's order, each with its `id` (the word, in this game), `correct` and `decidedBy`, the last two null until guessed |
-| `summary_data` | `team`, the same group; `nReqdSecrets`, `maxGuesses` |
+| `game_data` | `puzzle: {secrets}` (null until the game ends); `team`, the team's facts sent once, null in compete; `events`, every player's rows; on each player their own facts |
+| `summary_data` | `team: {nFoundSecrets, nGuessesUsed}`, the team's counts, null in compete; `nReqdSecrets`, `maxGuesses` |
 
-Every player's counts are their own, on `psychicnum.players` and on their
-player in the blob, in both modes; `team` is their sum, and is null in a race,
-which has no team ([plans/team-facts.md](../../plans/team-facts.md)).
-`gd.stateLineData` is what the state line shows — the team's counts where
-there is one, else my own, against the secrets and the budget — decided once in
-`useGame`, so the line and the board's move count read it and pick nothing.
-Compete's summary
+psychicnum's facts (`GFacts`) are `nFoundSecrets`, `nGuessesUsed`,
+`nReqdSecrets`, `maxGuesses` and `board: {tiles}` — every dealt word in the
+puzzle's order, each with its `id` (the word, in this game), `correct` and
+`decidedBy`, the last two null until guessed. Every player's counts are their
+own, on `psychicnum.players` and on their player in the blob, in both modes;
+`team`'s are their sum, with the one coop board, which no coop player carries.
+`useGame` puts the side's facts on every player — the team's in coop, their own
+in compete — and their own under `own`
+([plans/team-facts.md](../../plans/team-facts.md)), so the state line and the
+board's move count read `gd.me` and pick nothing. Compete's summary
 carries no progress; the race's winner is the common `ending.winner`.
 `psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's
 blobs without re-dating them, for a shape change.

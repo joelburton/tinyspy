@@ -1,185 +1,191 @@
-# Team facts — `gd.team` holds what the team shares; a player holds only their own
+# Team facts — every player carries their side's facts, and their own
 
-**Status: DECIDED 2026-10-02; psychicnum and wordle carry it (2026-10-02).**
-Joel and Claude settled this over psychicnum's coop counts while wordle's
-conversion to the page blobs was open in the working tree. It refines
-[seat-view](seat-view.md) decision 7's shape, which now draws `team`;
-docs/common-schema.md and code-conventions' casing section carry it. What is
-left is each remaining game writing `team` as it converts, connections first;
-this file goes when the last does.
-
-**Order (Joel, 2026-10-02):** it starts once wordle's conversion is committed,
-as its own slice — psychicnum first, then wordle — so neither game's whole-blob
-pins change inside the conversion diff.
+**Status: DECIDED 2026-10-06; psychicnum built, the rest not started.** Joel and Claude settled this
+after an audit of how all sixteen games hold coop state. It replaces this
+plan's 2026-10-02 design, under which `gd.team` held what the team shares and
+a player's keys were their own in every mode. psychicnum, wordle and
+connections were built on that design; every game now carries some form of
+it, so every game changes again.
 
 ## The problem
 
-In psychicnum coop, `psychicnum.players.found_secrets_count` is each player's
-own tally (I found 2, Moth found 1), but `game_data.players[i].nFoundSecrets`
-is the team's sum, written onto every player (3, on both of us), and
-`summary_data.nFoundSecrets` is the same sum once more. One name, three
-meanings by layer and by mode. The reader of `me.nFoundSecrets` has to know
-which mode it is in to know what the number means, and a component that wanted
-"mine" in coop would have to go around the blob.
+The 2026-10-02 design got the counts right (each player's row holds their own
+share, the builder sums the team's), but it left the front end choosing: a
+coop readout shows `gd.team`, a compete one `gd.me`. `gd.stateLineData` made
+that pick for the state line, and the other readers made it themselves —
+boggle reads `gd.team ?? gd.me` in three places, scrabble reads
+`gd.team?.rack ?? gd.me.rack!`, setgame re-sums `players[].nSetsFound`.
 
-Wordle made the opposite choice: its guess RPC writes the team's count onto
-every player's ROW in coop, so the rows do not hold the per-player fact at all.
+A shared OBJECT — a board, a chain, a rack — landed in one of three places:
 
-Each game had answered the question its own way. This plan answers it once.
+| where | games |
+|---|---|
+| a copy on every player | psychicnum, wordle, connections, letterboxed, strands, waffle, stackdown, wordiply |
+| once, in `team` | codenamesduet; crosswords (whose `useGame` then puts it on every player and nulls `gd.team`) |
+| once, at the top of the blob | scrabble, setgame |
 
-## The decisions
+So the reader of a game's board had to know which game it was in.
 
-1. **A player's keys are that player's own, in every mode.** The row and the
-   player object say the same thing: `me.nFoundSecrets` is what I found,
-   whether or not the finds are pooled. The database keeps recording who did
-   what, because "Found: Moth 1 · Joel 2 · team 3" is a readout we may want
-   one day and the rows are where it comes from.
-2. **`team` is a top-level key on every game's `gd`**, the standard place to
-   look for what the team shares. What it holds is the game's: psychicnum's
-   `nFoundSecrets` and `nGuessesUsed`, wordle's `guessesUsed`. The game's
-   builder writes it from the rows (a sum, a max,
-   whatever the game's rule is), so the database owns "guesses are shared in
-   coop for this game".
-3. **`team` is null when the game has no team.** `if (!gd.team)` means "this
-   game cannot have team facts" and never "there happens to be nothing in it".
-   A coop game with a team and nothing to say about it would carry `{}`; no
-   game needs that today, and it is written down only so the null is never
-   read two ways.
-4. **`summary_data` follows:** its team numbers move under a `team` key with
-   the same null rule, since the club page card is the one reader and it
-   should find the team's facts where the play page does.
-5. **Nothing else moves.** `requiredSecretsCount` and `maxGuesses` stay where
-   they are.
-6. **A game adjusts when its area opens.** The rule is "the row and the player
-   show the per-player fact where that is reasonable for the game"; crosswords
-   and scrabble, with large rows, may settle on something else when their
-   areas open, and that is theirs to decide then.
+## The decisions (Joel, 2026-10-06)
 
-The FE still branches on mode, but the branch becomes "which fact do I show":
-a coop readout shows `gd.team`, a compete readout shows `gd.me` beside the
-rivals. **Where that pick lives (Joel, 2026-10-02): in `gd`.** "How this game
-works" stays in `gd`, so `useGame` decides once — psychicnum's
-`gd.stateLineData` is the team's counts where there is one, else mine — and no
-component picks. The field is named for its reader, since it is what to SHOW
-there and not a fact for other components to scrounge.
-"How do I compute this" never leaves the hook either way.
+- **A side** is who a fact belongs to for showing: the team in coop, the
+  player alone in compete.
+- **`GFacts` is a game's exact list of facts** — its counts, the constants
+  shown beside them (`maxGuesses`, `maxSwaps`), and the object its side plays
+  on (`board`). Every game declares one in `types.ts`.
+- **Every player carries `GFacts` twice.** Spread onto the player, the
+  values are the **side's**: summed for a coop team, the player's own in
+  compete. Under `own`, with the same shape, they are **that player's own**.
+  So `gd.me.score` is always what to show, and `gd.me.own.score` is the rare
+  reader that wants one player's contribution (a "who found what" hover, if
+  one is ever built). In compete the two are equal, and `useGame` may give
+  both the same values.
+
+  ```ts
+  type GPlayer = CommonPlayer & GFacts & { own: GFacts }
+  ```
+
+- **A shared object is a fact like any other.** In coop every player's
+  `board` is the one board, by reference; in compete each player's is their
+  own. An object shared in compete too — scrabble's and setgame's boards, the
+  bag and deck counts — is a fact on every player in both modes. **Nothing
+  game-specific stays at the top of `gd`** for being shared.
+- **A record of who did what stays at the game level**, beside `gd.events`:
+  the word hunts' `foundWords` (each row with its finder, filtered to what I
+  may see) stays `gd.foundWords`. Their counts (`nFoundWords`,
+  `foundWordsScore`, `rankIdx`) are facts like any other game's. setgame's
+  claimed sets are already events.
+- **`gd` has no `team`.** Everything it held is on the players.
+- **`oneBoard` is dropped**, with its `common.gametypes.one_board` column (a
+  migration). Its two readers, psychicnum's and connections' `BoardCol`,
+  read `gd.coop`, which it equals in both games.
+- **`solved` stays a common player key.** It already means "my side solved":
+  every coop branch writes `solved_at` onto every teammate. Nothing records
+  which teammate solved, so an `own.solved` would have no data.
+- **A fact never shares a name with a common player key.** The spread would
+  overwrite one with the other silently, so a compile-time check holds
+  `GFacts`'s keys apart from the common player's (`id`, `name`, `color`,
+  `ending`, `outcome`, `solved`, `conceded`, `onTurn`, `stillPlaying`,
+  `finalRanking` …): one shared helper type, asserted in each game's
+  `types.ts`, so a clash fails `tsc`.
+- **The wire stays compact; storage does not change.** `game_data` carries
+  the side's facts once, as `team` (null in compete), and each player's own
+  facts; `useGame` builds every player as
+  `{ ...common, ...(raw.team ?? ownFacts), own: ownFacts }`. A shared object
+  is sent only in `team`, never again per player. The lock-step copies in
+  storage (letterboxed's chain, waffle's board, strands' hint bar and ringed
+  hint) stay; the builder reads the object off one row.
+- **`summary_data` keeps its `team` key for now.**
 
 ## The naming rule for a loose copy
 
 Inside its group a name is bare and the path supplies the context:
-`team.nFoundSecrets` and `me.nFoundSecrets` are both right, and the
-reader knows which from the dot.
+`me.nFoundSecrets` (my side's) and `me.own.nFoundSecrets` (mine) are both
+right, and the reader knows which from the path.
 
 A copy pulled out of its group — a local, a prop that carries just the one
 number — has lost that context and **must say which it is**. The spelling is
-mechanical: **a dot becomes an underscore.** `team_foundSecretsCount`,
-`me_foundSecretsCount`, `me_board_tileResults`.
-
-- It is lossless: the leaf is spelled exactly as the key, so a grep for
-  `nFoundSecrets` finds every loose copy. `teamFoundSecretsCount` would
-  hide from it.
-- It settles what camelCase leaves open: a copy of `me.…` is `me_…`, with no
-  `my` versus `me` choice, and deeper paths compose the same way.
-- Its oddness in TS is the signal. A loose copy is rare by the house rules
-  (don't destructure a group; a local name is earned), and a snake-looking
-  name says "this is a copy of a path; the group is nearby".
-
-It does not collide with the row-field convention: a row field is all
-lowercase (`team_score`), a path copy has a camelCase leaf
-(`team_foundSecretsCount`), and "has an underscore" was never the test for a
-row field anyway (`id`, `mode`, `seat`). The casing section gets a third form
-beside snake_case for row fields and camelCase for TS-native shapes and the
-page blobs' keys.
-
-The boundary: the path name is for a copy of the fact. When a parent hands a
-child a value for the child's own purpose, the purpose rule still wins:
-`canPick`, never `me_onTurn`.
-
-The rule is expected to be rare (Joel, 2026-10-02): a value passed down
-usually already has a more useful name, the way `canPick` names what
-`gd.me.onTurn` is for at the board. What it guards against is a prop called
-plainly `guessesUsed`, which cannot say on its own whether it is a player's or
-the team's.
+mechanical: **a dot becomes an underscore.** `me_nFoundSecrets`,
+`me_own_nFoundSecrets`, `me_board_tileResults`. docs/code-conventions.md →
+TypeScript casing has the rule and its boundary (a value handed to a child
+for the child's purpose takes the purpose's name: `canPick`, never
+`me_onTurn`); its examples change from `team_…` to these.
 
 ## The shape
 
+psychicnum's, as the example:
+
 ```
+game_data:
+  team: {nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses, board}   # the side's, once; null in compete
+  players: [player, …]
+
+player (game_data):
+  <the common keys>
+  nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses   # this player's own
+  board                                                   # compete only; coop's is team's
+
 gd:
-  team: {…}                               # game; null when the game has no team
   players: [player, …]
   me
 
-player:
-  nFoundSecrets                       # own, in every mode
-  nGuessesUsed                             # own, in every mode
+player (gd):
+  <the common keys>
+  nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses, board   # the side's
+  own: {nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses, board}
 
 summary_data:
-  team: {…}                               # the same key, the same null rule
+  team: {…}                       # unchanged for now
 ```
-
-psychicnum's `team` is `{nFoundSecrets, nGuessesUsed}`; wordle's is
-`{nGuessesUsed}`; connections' is `{nMatchedCats, nMistakes}`. The next game's
-starts from these.
 
 ## What it touches
 
-### psychicnum, first (the canary) — done 2026-10-02
+Each game is one commit, its e2e run, in this order: psychicnum first (the
+canary, where the wire's exact types are settled), then the routine games,
+then codenamesduet last. Per game: the SQL builders (`team` gains the shared
+object, the players lose it in coop), `types.ts` (`GFacts`, the player type,
+the overlap check), `useGame`, the fixture, every reader of `gd.team` or a
+top-level board, and the pgTAP pins of the blob.
 
-- **SQL.** A `_make_json_team(p_game_id)` piece, null in compete, summing the
-  rows in coop; `_make_json_players` passes each row through in both modes;
-  `_make_json_summary_data` writes `team`. The header comment's shape, the
-  `game_data_test.sql` and `rebuild_data_cols` pins.
-- **Types.** `GPlayerRaw`'s comments, a `team` group on `GGameDataRaw` and
-  `GSummaryData`, and `lib/gameData.fixture.ts`, which today builds the team's
-  sum onto each player.
-- **Readers.** `StateLine` (cs-blessed; reads the player's counts, so in coop
-  it shows the team's and in compete mine), `InfoCol`'s per-player score,
-  `BoardCol`'s `moveCount` (the flash's timing: in coop any player's guess
-  moves the board, so it is the team's count), `useShowOppsFoundMessages`,
-  `manifest.ts`'s summary tallies, `useGame.test.ts`, `PlayArea.test.tsx`.
+**The games with a twist:**
 
-### wordle, next — done 2026-10-02
+- **psychicnum, wordle, connections, stackdown:** the board moves from every
+  player into `team`; the readers of `gd.team` read `gd.me`.
+- **letterboxed, waffle, strands:** the same, reading the lock-step object off
+  one row. letterboxed's `team` builder already reads its counts that way.
+  strands' hint bar, sent in `team` today with a null on each coop player,
+  becomes a fact like the rest.
+- **wordiply:** its accepted words become `board` in `GFacts`, sent once in
+  coop, and the front end stops rebuilding them from `gd.events`
+  (`useSubmitGuess`'s dedup, `useMarkForeignGuesses`).
+- **crosswords:** `useGame` already puts the one grid on every player; it
+  stops nulling the rest.
+- **scrabble:** the board and `nBagTiles` move from the top of the blob into
+  `GFacts`, with the rack (`team.rack`) and the score.
+- **setgame:** the board and `nTilesInDeck` move into `GFacts`; the two
+  re-sums of `players[].nSetsFound` (`useGetGameEndingMessage`,
+  `pdf/model.ts`) read `gd.me.nSetsFound`.
+- **spellingbee, wordwheel, boggle:** the counts move; `foundWords` stays.
+  The bee pair's `targetRankIdx`, today in `team` and repeated on every
+  player, is one fact like the rest. boggle's three `gd.team ?? gd.me`
+  readers read `gd.me`.
+- **bananagrams:** compete only, so `team` is always null and every fact is
+  the player's own.
+- **codenamesduet, last:** its board's tiles are shared, but each seat sees a
+  different key (`guessableBy`, the partner's key hidden), which `useGame`
+  works out per seat. Sketched before it is built.
 
-- **SQL.** The guess RPC's coop branch writes the team's count onto every row;
-  it writes the caller's row only, in both modes, and the team's count is the
-  sum at build time. Two places read a row as the shared count and sum
-  instead: the summary's `max(guesses_used)`, and the guess RPC's budget
-  guard and out-of-guesses check, which read the caller's row. The compete
-  ranking reads each racer's own row and is untouched. `_make_json_team`,
-  `summary_data.team`, the pins.
-- **A data migration, in the same deploy.** Every existing coop wordle game
-  holds the team's count on every `wordle.players` row, so a builder that sums
-  the rows would read N times the real count. One migration rewrites each
-  row's `guesses_used` from that player's own `wordle.events` rows before the
-  new RPC and builder apply (CLAUDE.md → Production software):
-  `20261002000001_wordle_players_own_counts.sql`, which checks that every
-  coop game's rows sum to the count they all carried. After the deploy, run
-  `select wordle._rebuild_data_cols_for_all()` and psychicnum's by hand: a
-  migration cannot call what `supabase/sql/` defines, and both games' blobs
-  change shape.
-- **Types and readers.** `types.ts`'s shape comments, `InfoCol`'s guesses line
-  and per-player readout, `useGame.test.ts`.
+## Settled in psychicnum (Joel, 2026-10-06)
 
-### connections — done 2026-10-02, with its conversion
+- **`gd.stateLineData` goes** where it only copied the side's facts:
+  `StateLine` takes `facts: GFacts` and is handed `gd.me`. A game whose line
+  adds something of its own (the bee pair's rank names) decides when it is
+  reached.
+- **A key sent in `team` alone is null on each coop player**, every key
+  present: `GPlayerRaw`'s `board` is `GBoardRaw | null`, and `team` is
+  `GFactsRaw | null`. `useGame` gives a coop player's `own.board` the one
+  board, by reference.
+- **The overlap check is `FactsApart`** (src/common/game-page/gameData.ts),
+  used in the player type itself: `GPlayer = PlayerRaw & FactsApart<GFacts> &
+  { own: GFacts }`.
+- **`summary_data.team` keeps its two counts**, built by its own
+  `_make_json_team_counts`; game_data's `team` is every fact.
+- **`oneBoard` is dropped in its own commit**, right after psychicnum's.
 
-A mistake is a per-player row fact: `submit_guess` writes the caller's row in
-both modes and coop's loss guard sums the rows, as wordle's does. The
-migration `20261002000002_connections_own_counts.sql` rewrote each coop row to
-the player's own misses off their events, with the same sum check, and
-renamed the three count columns to the blobs' names (`n_matched_cats`,
-`n_mistakes`, `matched_cat_rank`). `team` is `{nMatchedCats, nMistakes}` on
-both blobs; `gd.stateLineData` is `{nMatchedCats, nMistakes, maxMistakes}`.
+## Open
 
-### The rest
-
-Each game's conversion to the blobs writes `team` as part of the slice. Until
-then nothing changes for it.
+- **codenamesduet's per-seat view**, when it is reached.
+- **`summary_data`**, after `gd`.
 
 ## Where the knowledge lands when this ships
 
-- seat-view decision 7's shape gains `team`, and its player lines lose "the
-  team's, on every player, in coop".
-- docs/common-schema.md's game_data contract: `team` on every game's blob,
-  null when the game has no team.
-- docs/code-conventions.md → TypeScript casing: the third form,
-  `group_leaf` for a loose copy of a path, with its boundary.
+- docs/common-schema.md's game_data contract: `team` on the wire as the
+  side's facts, once; the player's own facts beside the common keys; what
+  `useGame` builds from them.
+- docs/code-conventions.md: `GFacts`, the side, `own`, and the loose-copy
+  examples.
+- seat-view's shape drops `gd.team`.
+- Every comment that cites this plan (the games' `useGame.ts` and `types.ts`,
+  `src/guards/gameSummaries.test.ts`, docs/games/waffle.md,
+  src/connections/doc.md) says the rule in its own words or points at
+  docs/common-schema.md. Then this file is deleted, with its `CLAUDE.md` row.

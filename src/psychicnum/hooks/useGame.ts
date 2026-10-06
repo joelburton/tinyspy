@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { getGuessOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
-import type { GEvent, GGameData, GGameDataRaw, GPlayer } from '../types'
+import type { GBoard, GBoardRaw, GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
 /**
  * The seat rule: what a racer may not see yet. Mid-race in compete, a rival's
@@ -23,25 +23,46 @@ function maySeeRival(raw: GGameDataRaw): boolean {
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const seeRival = maySeeRival(raw)
   const isMine = (id: string) => id === myId
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
 
   // The players first, boards empty, so a tile's `decidedBy` can point at
-  // them; then each board, from the blob's tiles.
-  const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null }))
+  // them. Each carries the facts twice (plans/team-facts.md): spread on, the
+  // side's — the team's in coop, their own in compete; under `own`, their own.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const own: GFacts = {
+      nFoundSecrets: p.nFoundSecrets,
+      nGuessesUsed: p.nGuessesUsed,
+      nReqdSecrets: p.nReqdSecrets,
+      maxGuesses: p.maxGuesses,
+      board: null,
+    }
+    return { ...p, ...(team ?? own), board: null, own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
+
+  function makeBoard(board: GBoardRaw): GBoard {
+    const tiles = board.tiles.map((t) => ({
+      id: t.id,
+      word: t.word,
+      correct: t.correct,
+      // THE INBOUND SEAM for a tile's color: read once here, through
+      // `lib/answer.ts`, so the board draws it and decides nothing.
+      outcome: t.correct === null ? null : getGuessOutcome(t.word, t.correct),
+      // Every guess is a seated player's: a player's rows go with their
+      // profile (`on delete cascade`), so the lookup cannot miss.
+      decidedBy: t.decidedBy === null ? null : playersById[t.decidedBy]!,
+    }))
+    return { tiles, tilesById: new Map(tiles.map((t) => [t.id, t])) }
+  }
+
+  // Then the boards: coop's one board, made once and the same object on every
+  // player; in compete each racer's own, which only they may see mid-race.
+  const teamBoard = team === null ? null : makeBoard(team.board)
   for (const [i, p] of raw.players.entries()) {
-    if (!seeRival && !isMine(p.id)) continue
-    const tiles = p.board.tiles.map((t) => ({
-        id: t.id,
-        word: t.word,
-        correct: t.correct,
-        // THE INBOUND SEAM for a tile's color: read once here, through
-        // `lib/answer.ts`, so the board draws it and decides nothing.
-        outcome: t.correct === null ? null : getGuessOutcome(t.word, t.correct),
-        // Every guess is a seated player's: a player's rows go with their
-        // profile (`on delete cascade`), so the lookup cannot miss.
-        decidedBy: t.decidedBy === null ? null : playersById[t.decidedBy]!,
-      }))
-    players[i]!.board = { tiles, tilesById: new Map(tiles.map((t) => [t.id, t])) }
+    const board = teamBoard ?? (seeRival || isMine(p.id) ? makeBoard(p.board!) : null)
+    players[i]!.board = board
+    players[i]!.own.board = board
   }
 
   // Links that cannot miss get a bare lookup; an ending's `by` may be null for
@@ -54,11 +75,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
 
   // The gate has checked that I am seated, and my own board is never withheld.
   const me = playersById[myId] as GGameData['me']
-  // What the state line shows: the team's counts where the game has one, else
-  // my own (plans/team-facts.md).
-  const teamOrMe = raw.team ?? me
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
@@ -75,12 +92,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData: {
-      nFoundSecrets: teamOrMe.nFoundSecrets,
-      nReqdSecrets: me.nReqdSecrets,
-      nGuessesUsed: teamOrMe.nGuessesUsed,
-      maxGuesses: me.maxGuesses,
-    },
   }
 }
 

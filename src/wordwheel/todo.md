@@ -11,7 +11,7 @@
   `create_game` refuses compete with no `target_rank`; compete may leave it
   empty when the timer is a countdown, and the timeout crowns the top score
   (`co-winners` on a tie, nobody if nobody scored). The rule is
-  plans/cross-game-consistency.md §3b, "a compete word hunt needs a target,
+  plans/cross-game-consistency.md → "A compete word hunt needs a target,
   a countdown, or both".
 
 - **Every required word is the `goal-intrinsic`: coop with no target wins

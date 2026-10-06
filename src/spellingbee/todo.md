@@ -18,7 +18,7 @@
 ## Someday
 
 - **Compete with no target, when a countdown is set.** The rule for every
-  compete word hunt (plans/cross-game-consistency.md §3b, "a compete word
+  compete word hunt (plans/cross-game-consistency.md → "A compete word
   hunt needs a target, a countdown, or both"): something must be able to
   crown a winner. Today `create_game` refuses compete with no `target_rank`,
   so "best score in ten minutes" can't be played. The change: compete may

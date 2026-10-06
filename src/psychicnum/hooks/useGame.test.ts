@@ -94,23 +94,33 @@ describe('psychicnum makeGameData — the links become players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS, secrets: null }), 'u1')
     expect(gd.puzzle.words).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo'])
     expect(gd.puzzle.secrets).toBeNull()
-    // My own hit and my one guess; the team's two guesses with the one find.
-    expect([gd.me.nFoundSecrets, gd.me.nGuessesUsed]).toEqual([1, 1])
-    expect(gd.team).toEqual({ nFoundSecrets: 1, nGuessesUsed: 2 })
     expect(gd.brand).toBe('PsychicNum')
+    expect(gd).not.toHaveProperty('team')
   })
+})
 
-  it('the state line shows the team\'s counts in coop, against the secrets and the budget', () => {
+describe('psychicnum makeGameData — the facts, the side\'s and my own', () => {
+  it('coop: every player carries the team\'s facts, and their own under `own`', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect(gd.stateLineData).toEqual({
-      nFoundSecrets: 1, nReqdSecrets: 3, nGuessesUsed: 2, maxGuesses: 7,
-    })
+    // The team's two guesses with the one find, against the secrets and the budget.
+    expect([gd.me.nFoundSecrets, gd.me.nReqdSecrets, gd.me.nGuessesUsed, gd.me.maxGuesses]).toEqual([1, 3, 2, 7])
+    expect([gd.playersById.u2!.nFoundSecrets, gd.playersById.u2!.nGuessesUsed]).toEqual([1, 2])
+    // My own hit and my one guess; bea's one miss.
+    expect([gd.me.own.nFoundSecrets, gd.me.own.nGuessesUsed]).toEqual([1, 1])
+    expect([gd.playersById.u2!.own.nFoundSecrets, gd.playersById.u2!.own.nGuessesUsed]).toEqual([0, 1])
   })
 
-  it('a race has no team, so the state line shows my own', () => {
+  it('coop: the one board is the same object on every player, and under `own`', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
+  })
+
+  it('compete: a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS }), 'u1')
-    expect(gd.team).toBeNull()
-    expect([gd.stateLineData.nFoundSecrets, gd.stateLineData.nGuessesUsed]).toEqual([1, 1])
+    expect([gd.me.nFoundSecrets, gd.me.nGuessesUsed]).toEqual([1, 1])
+    expect([gd.me.own.nFoundSecrets, gd.me.own.nGuessesUsed]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 })
 
@@ -137,7 +147,7 @@ describe('psychicnum makeGameData — the seat rule', () => {
   it('coop withholds nothing: one board, one team', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(2)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
   })
 
   it('a rival\'s counts stay visible mid-race — the strip shows them', () => {

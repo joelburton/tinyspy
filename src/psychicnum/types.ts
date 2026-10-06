@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { Actor } from '@/common/members/member'
@@ -40,33 +40,39 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // Null until the game ends, since they are secret.
     secrets: GTile['word'][] | null
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the counts summed over every player's own,
+  // and the one board. Null in compete, where there is no team.
+  team: GFactsRaw | null
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the finds and the guesses
- * summed over every player's own. The budget they count against is
- * `maxGuesses`, on every player.
+ * psychicnum's facts (plans/team-facts.md): the finds against the secrets, the
+ * guesses against the budget, and the board they are played on. A player
+ * carries them twice — spread on, their side's (the team's in coop, their own
+ * in compete); under `own`, their own.
  */
-export type GTeam = {
+export type GFacts = {
   nFoundSecrets: number
   nGuessesUsed: number
+  // How many secrets the board hides.
+  nReqdSecrets: number
+  // The guess budget: the team's in coop, each player's own in compete.
+  maxGuesses: number
+  // Every dealt word, with what this side knows of it; null for a rival
+  // mid-race.
+  board: GBoard | null
 }
 
-/**
- * What the state line shows: the finds against the secrets, the guesses
- * against the budget — the team's in coop, my own in compete. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = {
-  nFoundSecrets: number
-  nReqdSecrets: number
-  nGuessesUsed: number
-  maxGuesses: number
+/** `GFacts` as the builders write them: the board is its tiles alone. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoardRaw
+}
+
+/** A board as the builder writes it: every dealt word, in the puzzle's order. */
+export type GBoardRaw = {
+  tiles: GTileRaw[]
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -87,22 +93,11 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as psychicnum's game_data shows them: the common player, with the
- *  budget, the counts and this seat's board. */
-export type GPlayerRaw = PlayerRaw & {
-  // How many secrets the board hides. The same on every player.
-  nReqdSecrets: number
-  // The guess budget: the team's in coop, each player's own in compete. The
-  // same on every player.
-  maxGuesses: number
-  // This player's own, in every mode; the team's are `team`'s.
-  nFoundSecrets: number
-  nGuessesUsed: number
-  // What this seat's tiles show. One board in coop, each racer's own in
-  // compete.
-  board: {
-    tiles: GTileRaw[]
-  }
+/** A player as psychicnum's game_data shows them: the common player, with
+ *  their own facts. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own board; null in coop, whose one board is `team`'s.
+  board: GBoardRaw | null
 }
 
 /*
@@ -122,7 +117,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   setup
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
- *   team: {nFoundSecrets, nGuessesUsed}  # what the team shares; null in compete
  *   turns: {holder}                       # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
  *   ended
@@ -131,8 +125,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   players: [player, …]                  # seat order
  *   playersById
  *   me                                    # same object as playersById[auth.user.id]
- *   stateLineData: {nFoundSecrets, nReqdSecrets, nGuessesUsed, maxGuesses}
- *                                         # what the state line shows: the team's in coop, my own in compete
  *
  * player:
  *   id
@@ -149,11 +141,13 @@ export type GPlayerRaw = PlayerRaw & {
  *   stillPlaying
  *   onTurn
  *   waitingForTurn
- *   nReqdSecrets                  # the same on every player
- *   maxGuesses                            # the same on every player
- *   nFoundSecrets                     # own, in every mode
- *   nGuessesUsed                           # own, in every mode
- *   board: {tiles, tilesById}             # what this seat's tiles show; null for a rival mid-race
+ *   nFoundSecrets                         # the side's: the team's in coop, their own in compete
+ *   nGuessesUsed
+ *   nReqdSecrets
+ *   maxGuesses
+ *   board: {tiles, tilesById}             # coop's one board on every player; null for a rival mid-race
+ *   own: {nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses, board}
+ *                                         # this player's own
  *
  * tile:                                   # board.tiles[], in the puzzle's order
  *   id                                    # the word, in this game
@@ -171,7 +165,7 @@ export type GPlayerRaw = PlayerRaw & {
  * Read-only: `useGame` builds it and nothing else writes it.
  */
 export type GGameData =
-  Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+  Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -191,14 +185,15 @@ export type GGameData =
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's counts in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  board's ids turned into players — or null, for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the common player with
+ * psychicnum's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). The board's ids are turned into players.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat's tiles show: every dealt word, in the puzzle's order, with
@@ -388,12 +383,11 @@ export type GAnswer =
  * written, so there is no polished pair and no `Raw`; the play surface reads
  * `game_data` instead (`GGameDataRaw`).
  *
- * `team` is the same group `game_data` carries: the team's finds and guesses in
- * coop, null in compete, whose summary shows no progress. The race's winner is
- * the common `ending.winner`.
+ * `team` is the team's finds and guesses in coop, null in compete, whose
+ * summary shows no progress. The race's winner is the common `ending.winner`.
  */
 export type GSummaryData = SummaryData & {
-  team: GTeam | null
+  team: Pick<GFacts, 'nFoundSecrets' | 'nGuessesUsed'> | null
   nReqdSecrets: number
   maxGuesses: number
 }

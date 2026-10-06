@@ -7,7 +7,7 @@ import {
   type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
-import type { GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
+import type { GBoardRaw, GGameDataRaw, GEventRaw, GPlayerRaw, GSetup } from '../types'
 
 /**
  * The facts a test sets up about one player. Where they stand is DERIVED the
@@ -78,9 +78,9 @@ export function ZTest_guess(
 
 /**
  * Build the `game_data` blob `psychicnum._rebuild_data_cols` would write from these
- * facts: each player's own counts, the team's summed from them in coop, each
- * seat's board folded from the log in the mode's scope, and where every player
- * stands derived.
+ * facts: each player's own counts, the team's facts in coop (the counts summed,
+ * the one board), a racer's own board in compete — each board folded from the
+ * log — and where every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -103,17 +103,33 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const ownGuesses = (p: ZTest_PlayerFacts) => events.filter((e) => e.kind === 'guess' && e.userId === p.id)
   const foundOf = (p: ZTest_PlayerFacts) => p.found ?? ownGuesses(p).filter((e) => e.correct).length
   const usedOf = (p: ZTest_PlayerFacts) => p.used ?? ownGuesses(p).length
+
+  // Every dealt word, in the puzzle's order, with the guess that decided it
+  // on this board, if any.
+  function makeBoard(guesses: GEventRaw[]): GBoardRaw {
+    return {
+      tiles: words.map((word) => {
+        const guess = guesses.find((e) => e.word === word)
+        return guess === undefined
+          ? { id: word, word, correct: null, decidedBy: null }
+          : { id: word, word, correct: guess.correct, decidedBy: guess.userId }
+      }),
+    }
+  }
+
   const team = coop
     ? {
       nFoundSecrets: playerFacts.reduce((sum, p) => sum + foundOf(p), 0),
       nGuessesUsed: playerFacts.reduce((sum, p) => sum + usedOf(p), 0),
+      nReqdSecrets: 3,
+      maxGuesses: setup.max_guesses,
+      board: makeBoard(events.filter((e) => e.kind === 'guess')),
     }
     : null
 
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
-    const own = events.filter((e) => e.kind === 'guess' && (coop || e.userId === p.id))
     return {
       id: p.id,
       username: p.username,
@@ -133,16 +149,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       maxGuesses: setup.max_guesses,
       nFoundSecrets: foundOf(p),
       nGuessesUsed: usedOf(p),
-      board: {
-        // Every dealt word, in the puzzle's order, with the guess that decided
-        // it on this seat's board, if any.
-        tiles: words.map((word) => {
-          const guess = own.find((e) => e.word === word)
-          return guess === undefined
-            ? { id: word, word, correct: null, decidedBy: null }
-            : { id: word, word, correct: guess.correct, decidedBy: guess.userId }
-        }),
-      },
+      // Coop's one board is the team's.
+      board: coop ? null : makeBoard(ownGuesses(p)),
     }
   })
 

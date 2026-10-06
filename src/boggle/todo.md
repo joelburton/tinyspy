@@ -10,7 +10,7 @@
 ## Someday
 
 - **Compete with no target needs a countdown.** The rule for every compete
-  word hunt (plans/cross-game-consistency.md §3b, "a compete word hunt needs
+  word hunt (plans/cross-game-consistency.md → "A compete word hunt needs
   a target, a countdown, or both"). Today an untimed compete game with no
   `win_percent` can be created, and nothing but a Stop or everyone conceding
   ends it, so nobody can win it. The change: `create_game` refuses it, and

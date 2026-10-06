@@ -78,13 +78,13 @@ export function BoardCol({
       {/* The info column's StateLine, for a phone, where that column is
           off-canvas (see `MobileStatusBar`). */}
       <MobileStatusBar>
-        <StateLine data={gd.stateLineData} />
+        <StateLine facts={gd.me} />
       </MobileStatusBar>
 
       <Board
         tiles={tiles}
         // The guesses on my board: the team's in coop, my own in compete.
-        moveCount={gd.stateLineData.nGuessesUsed}
+        moveCount={gd.me.nGuessesUsed}
         marks={{
           pickedTile: pick.shownTile,
           inFlightTile: submission.inFlightTile,
