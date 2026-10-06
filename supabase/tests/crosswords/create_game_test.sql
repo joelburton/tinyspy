@@ -47,12 +47,12 @@ select is(
   null, 'common.games header is being played, not ended');
 
 select is(
-  (select count(*)::int from crosswords.cells where game_id = :'gc_id'),
-  4, 'coop pre-inserts 4 cells (2x2 all-open, one shared grid)');
+  (select array_agg(owner_id) from crosswords.grids where game_id = :'gc_id'),
+  array[null::uuid], 'coop has one grid, the shared one (owner null)');
 
-select ok(
-  (select bool_and(owner_id is null) from crosswords.cells where game_id = :'gc_id'),
-  'coop cells all have null owner (shared grid)');
+select is(
+  pg_temp.xw_grid(:'gc_id', null),
+  '{}'::jsonb, 'a blank template starts a blank grid');
 
 select is(
   (select puzzle_content -> 'title' from crosswords.games where game_id = :'gc_id'),
@@ -74,16 +74,16 @@ select (crosswords.create_game(
 reset role;
 
 select is(
-  (select count(*)::int from crosswords.cells where game_id = :'gp_id'),
-  8, 'compete pre-inserts one grid per player (2 x 4 = 8 cells)');
+  (select array_agg(owner_id order by owner_id) from crosswords.grids where game_id = :'gp_id'),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete has one grid per player');
 
 select is(
-  (select count(*)::int from crosswords.cells
-    where game_id = :'gp_id'
-      and owner_id = 'ada11111-1111-1111-1111-111111111111'),
-  4, 'each compete player gets their own 4-cell grid');
+  (select array_agg(distinct cells) from crosswords.grids where game_id = :'gp_id'),
+  array['{}'::jsonb], 'each compete grid starts blank');
 
--- ── Given cells are excluded from the cells table ────────────────────
+-- ── Given cells have no place in a grid ──────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select (crosswords.create_game(
     :'club_handle', pg_temp.xw_setup(:'pzg_id'),
@@ -92,8 +92,10 @@ select (crosswords.create_game(
 reset role;
 
 select is(
-  (select count(*)::int from crosswords.cells where game_id = :'gg_id'),
-  3, 'given cell (0,0) is excluded — 3 fillable cells, not 4');
+  (select array_agg(f.key order by f.key)
+     from crosswords.games g, crosswords._fillable_cells(g.puzzle_content) f
+    where g.game_id = :'gg_id'),
+  array['0,1', '1,0', '1,1'], 'given cell (0,0) is not fillable — 3 fillable cells, not 4');
 
 -- ── Inline board path (the NYT edge-function path — puzzle data passed
 --    straight in, NOT via a crosswords.puzzles row) ────────────────────
@@ -111,11 +113,11 @@ select is(
   (select puzzle_id from crosswords.games where game_id = :'gb_id'),
   null, 'inline board game has a null puzzle_id (not from the library)');
 select is(
-  (select count(*)::int from crosswords.cells where game_id = :'gb_id'),
-  4, 'inline board pre-inserts the fillable cells');
+  (select count(*)::int from crosswords.grids where game_id = :'gb_id'),
+  1, 'inline board inserts its grid');
 select is(
-  (select fill from crosswords.cells where game_id = :'gb_id' and owner_id is null and row = 0 and col = 0),
-  null, 'a blank template seeds cells with NULL fill');
+  pg_temp.xw_grid(:'gb_id', null),
+  '{}'::jsonb, 'a blank inline template seeds a blank grid');
 
 -- Partially-solved upload (finding 1.3): a non-given cell carrying a saved
 -- `fill` in the template imports WITH that progress restored (crossplay's
@@ -129,18 +131,18 @@ select (crosswords.create_game(
     'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gsav_id \gset
 reset role;
 select is(
-  (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 1),
-  'A', 'a partial upload restores the saved fill (uppercased) on import');
+  pg_temp.xw_cell(:'gsav_id', null, 0, 1),
+  '{"fill": "A"}'::jsonb, 'a partial upload restores the saved fill (uppercased) on import');
 select is(
-  (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 0),
+  pg_temp.xw_cell(:'gsav_id', null, 0, 0),
   null, 'cells without a saved fill still import blank');
 
--- ── Template cryptic marks seed into the live cells ──────────────────
+-- ── Template cryptic marks seed into the grid ────────────────────────
 -- The NYT overlay import applies author word-break bars onto the template's
 -- cells (the board's `meta.cells`, stored as puzzle_content.cells);
--- create_game must seed them into crosswords.cells (mark_right/mark_bottom)
--- so they render on the board + PDFs (which read marks from the live cells,
--- not the template). Drive an inline board whose (0,0) carries both marks.
+-- create_game must seed them into the grid (markRight / markBottom) so they
+-- render on the board + PDFs (which read marks from the grid, not the
+-- template). Drive an inline board whose (0,0) carries both marks.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select (crosswords.create_game(
   :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
@@ -152,17 +154,14 @@ select (crosswords.create_game(
     'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gmk_id \gset
 reset role;
 select is(
-  (select mark_right from crosswords.cells
-     where game_id = :'gmk_id' and owner_id is null and row = 0 and col = 0),
-  'break', 'template markRight seeds cells.mark_right (overlay/author bars render)');
+  pg_temp.xw_cell(:'gmk_id', null, 0, 0) -> 'markRight',
+  '"break"'::jsonb, 'template markRight seeds the grid''s markRight (overlay/author bars render)');
 select is(
-  (select mark_bottom from crosswords.cells
-     where game_id = :'gmk_id' and owner_id is null and row = 0 and col = 0),
-  'hyphen', 'template markBottom seeds cells.mark_bottom');
+  pg_temp.xw_cell(:'gmk_id', null, 0, 0) -> 'markBottom',
+  '"hyphen"'::jsonb, 'template markBottom seeds the grid''s markBottom');
 select is(
-  (select mark_right from crosswords.cells
-     where game_id = :'gmk_id' and owner_id is null and row = 1 and col = 1),
-  null, 'a cell without a template mark seeds NULL mark_right');
+  pg_temp.xw_cell(:'gmk_id', null, 1, 1),
+  null, 'a cell without a template mark seeds nothing');
 
 -- ── Guards ───────────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -247,11 +246,11 @@ select ok(
   'the club saved-default (default_setup) also carries no `board`');
 
 -- ── Solution shielding ───────────────────────────────────────────────
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select game_data -> 'puzzle' -> 'solution' from common.games where id = :'gc_id'),
+  'null'::jsonb, 'mid-game: the page blob''s solution is null (hidden until the game ends)');
 
-select ok(
-  (select solution from crosswords.games_state where game_id = :'gc_id') is null,
-  'mid-game: games_state.solution is NULL (hidden until the game ends)');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format('select solution from crosswords.games where game_id = %L', :'gc_id'),

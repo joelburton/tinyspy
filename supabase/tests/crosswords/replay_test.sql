@@ -16,7 +16,7 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(9);
+select plan(11);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -45,20 +45,17 @@ select crosswords.set_mark(:'gcl_id', 0, 0, 'right', 'break');
 select crosswords.replay_board(:'gcl_id');
 reset role;
 select is(
-  (select count(*)::int from crosswords.cells
-     where game_id = :'gcl_id' and owner_id is null and fill is not null),
-  0, 'replay_board blanks every fill on the shared grid');
+  pg_temp.xw_grid(:'gcl_id', null),
+  '{}'::jsonb, 'replay_board blanks the shared grid: every fill, flag and mark');
 select is(
-  (select bool_or(revealed or wrong or pencil) from crosswords.cells
-     where game_id = :'gcl_id' and owner_id is null),
-  false, 'replay_board resets the revealed / wrong / pencil flags');
+  (select count(*)::int from crosswords.grids where game_id = :'gcl_id'),
+  1, 'replay_board keeps the grid itself');
 select is(
-  (select mark_right from crosswords.cells
-     where game_id = :'gcl_id' and owner_id is null and row = 0 and col = 0),
-  null, 'replay_board drops cryptic edge marks');
+  (select game_data -> 'team' -> 'board' -> 'fills' from common.games where id = :'gcl_id'),
+  '["", "", "", ""]'::jsonb, 'the page blob is rebuilt blank');
 select is(
-  (select count(*)::int from crosswords.cells where game_id = :'gcl_id'),
-  4, 'replay_board keeps the cell rows (givens live on the template, untouched)');
+  (select puzzle_content -> 'cells' from crosswords.games where game_id = :'gcl_id'),
+  pg_temp.xw_meta_2x2() -> 'cells', 'the template is untouched (givens live there)');
 select is(
   (select ended_at from common.games where id = :'gcl_id'),
   null, 'replay_board leaves the game being played');
@@ -98,15 +95,40 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.replay_board(:'gpcl_id');
 reset role;
 select is(
-  (select count(*)::int from crosswords.cells
-     where game_id = :'gpcl_id' and owner_id = 'ada11111-1111-1111-1111-111111111111'
-       and fill is not null),
-  0, 'replay_board (compete): the caller''s grid is blanked');
+  pg_temp.xw_grid(:'gpcl_id', 'ada11111-1111-1111-1111-111111111111'),
+  '{}'::jsonb, 'replay_board (compete): the caller''s grid is blanked');
 select is(
-  (select count(*)::int from crosswords.cells
-     where game_id = :'gpcl_id' and owner_id = 'bea22222-2222-2222-2222-222222222222'
-       and fill is not null),
-  0, 'replay_board (compete): the opponent''s grid is blanked too — a restart is for the table');
+  pg_temp.xw_grid(:'gpcl_id', 'bea22222-2222-2222-2222-222222222222'),
+  '{}'::jsonb, 'replay_board (compete): the opponent''s grid is blanked too — a restart is for the table');
+
+-- A template that starts the grid with something in it — an NYT overlay's
+-- author bar on (0,0) and an upload's saved letter on (0,1) — starts again
+-- with exactly that: the players' work goes, the template's comes back.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select (crosswords.create_game(
+  :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+  jsonb_build_object(
+    'meta', jsonb_set(
+              jsonb_set(pg_temp.xw_meta_2x2(), '{cells,0,0,markRight}', '"break"'),
+              '{cells,0,1,fill}', '"a"'),
+    'solution', pg_temp.xw_sol_2x2()))->'data'->>'id')::uuid as gst_id \gset
+reset role;
+select pg_temp.xw_grid(:'gst_id', null) as started \gset
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select crosswords.set_mark(:'gst_id', 0, 0, 'right', null);
+select crosswords.set_cell(:'gst_id', 0, 1, 'x', false);
+select crosswords.set_cell(:'gst_id', 1, 1, 's', true);
+select crosswords.replay_board(:'gst_id');
+reset role;
+select is(
+  pg_temp.xw_grid(:'gst_id', null),
+  :'started'::jsonb,
+  'replay_board starts the grid exactly as the game started it: the author''s bar and the saved letter come back');
+select is(
+  :'started'::jsonb,
+  '{"0,0": {"markRight": "break"}, "0,1": {"fill": "A"}}'::jsonb,
+  'precondition: the game started with the bar and the saved letter');
 
 
 select * from finish();

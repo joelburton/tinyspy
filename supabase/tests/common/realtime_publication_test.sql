@@ -33,14 +33,13 @@
 --   common     useCommonGame / useGameInvitations / useScratchpad /
 --              useClubChat / useClubGames / HomePage
 --   <game>     each game's hooks/useGame.ts (codenamesduet also
---              useBoard; crosswords via useCells; spellingbee
---              + wordwheel via the shared makeBeeGame factory)
+--              useBoard; spellingbee + wordwheel via the shared
+--              makeBeeGame factory)
 --
 -- Deliberately NOT subscribed, therefore NOT published (their absence
 -- from the list is itself the assertion):
 --   common.clubs, common.profiles   no live subscriber
---   crosswords.games                 useGame is a one-shot fetch; status
---                                    flows through common.games instead
+--   crosswords.games, .grids         the page reads the blobs on common.games
 --   bananagrams.games, .events       the page reads the blobs on common.games;
 --                                    player_boards is still listed from before
 --                                    the conversion, with no subscriber, until
@@ -113,8 +112,6 @@ select set_eq(
       -- boggle
       ('boggle', 'games'),
       ('boggle', 'found_words'),
-      -- crosswords (per-cell CDC only; games is one-shot, NOT published)
-      ('crosswords', 'cells'),
       -- wordwheel (makeBeeGame)
       ('wordwheel', 'games'),
       ('wordwheel', 'found_words'),

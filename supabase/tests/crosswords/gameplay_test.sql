@@ -2,7 +2,7 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(45);
+select plan(47);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -33,32 +33,31 @@ select (crosswords.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gg_id \gset
 
 -- ── set_cell ─────────────────────────────────────────────────────────
--- Lowercase input is uppercased; version starts at 0 and bumps to 1.
+-- Lowercase input is uppercased. The answer carries the revision its rebuild
+-- of the page blobs wrote: create_game's rebuild wrote 1, so this write's is 2.
 -- ONE call, two values off its `data` — calling it twice would be two writes.
 with r as (select crosswords.set_cell(:'gc_id', 0, 0, 'c', false) -> 'data' as d)
-select d ->> 'version' as sv1, d ->> 'solved' as ss1 from r \gset
-select is(:'sv1'::bigint, 1::bigint, 'set_cell returns the bumped version (1)');
+select d ->> 'revision' as sv1, d ->> 'solved' as ss1 from r \gset
+select is(:'sv1'::bigint, 2::bigint, 'set_cell answers the revision its rebuild wrote (2)');
 select is(:'ss1'::boolean, false, 'one filled cell is not solved');
 
 reset role;
-select is((select fill from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'fill',
   'C', 'set_cell uppercases the fill');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- A second write to the same cell bumps the version again.
-select (crosswords.set_cell(:'gc_id', 0, 0, 'x', false) -> 'data' ->> 'version')::bigint as sv2 \gset
-select is(:'sv2'::bigint, 2::bigint, 'second write to a cell bumps version to 2');
+-- A second write to the same cell raises the revision again.
+select (crosswords.set_cell(:'gc_id', 0, 0, 'x', false) -> 'data' ->> 'revision')::bigint as sv2 \gset
+select is(:'sv2'::bigint, 3::bigint, 'a second write raises the revision to 3');
 
 -- Pencil is stored when a letter is present.
 select crosswords.set_cell(:'gc_id', 0, 1, 'a', true);
 reset role;
-select is((select pencil from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 1),
+select is((pg_temp.xw_cell(:'gc_id', null, 0, 1) ->> 'pencil')::boolean,
   true, 'set_cell stores the pencil flag');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- Given cells have no row and can't be written.
+-- Given cells have no place in a grid and can't be written.
 -- The three shape rejections below are FAULTS: the grid renders blocks and
 -- givens as non-focusable, and the FE mirrors crossplay's `^[A-Z]{1,8}$` before
 -- sending — so any of them arriving means the keystroke did not come from our
@@ -98,47 +97,40 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- (0,0) currently holds 'X' (wrong; answer is C). Check flags it.
 select crosswords.check_cells(:'gc_id', '[{"row":0,"col":0}]'::jsonb);
 reset role;
-select is((select wrong from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is((pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'wrong')::boolean,
   true, 'check flags a wrong cell');
 
 -- (0,1) holds pencil 'A' (right answer, but pencil) — check skips pencil.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.check_cells(:'gc_id', '[{"row":0,"col":1}]'::jsonb);
 reset role;
-select is((select wrong from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 1),
-  false, 'check skips pencil cells (leaves wrong = false)');
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 1) ? 'wrong',
+  false, 'check skips pencil cells (no wrong flag)');
 
 -- Correcting the cell + re-checking clears wrong.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_cell(:'gc_id', 0, 0, 'c', false);
 select crosswords.check_cells(:'gc_id', '[{"row":0,"col":0}]'::jsonb);
 reset role;
-select is((select wrong from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ? 'wrong',
   false, 'check clears wrong once the cell is corrected');
 
 -- ── reveal_cells ─────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.reveal_cells(:'gc_id', '[{"row":1,"col":0}]'::jsonb);
 reset role;
-select is((select fill from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 1, 0) ->> 'fill',
   'T', 'reveal writes the canonical answer (T)');
-select is((select revealed from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+select is((pg_temp.xw_cell(:'gc_id', null, 1, 0) ->> 'revealed')::boolean,
   true, 'reveal marks the cell revealed');
 
 -- A revealed cell stays editable and KEEPS its revealed flag (applyFill).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_cell(:'gc_id', 1, 0, 'z', false);
 reset role;
-select is((select fill from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 1, 0) ->> 'fill',
   'Z', 'a revealed cell is still editable');
-select is((select revealed from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+select is((pg_temp.xw_cell(:'gc_id', null, 1, 0) ->> 'revealed')::boolean,
   true, 'editing a revealed cell keeps the revealed flag');
 
 -- Reveal clears an existing pencil flag on the target (a pencil-then-reveal).
@@ -147,8 +139,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_cell(:'gc_id', 1, 1, 'z', true);
 select crosswords.reveal_cells(:'gc_id', '[{"row":1,"col":1}]'::jsonb);
 reset role;
-select is((select pencil from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 1),
+select is(pg_temp.xw_cell(:'gc_id', null, 1, 1) ? 'pencil',
   false, 'reveal clears the pencil flag on the revealed cell');
 
 -- Reveal is coop-only.
@@ -167,8 +158,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- Set + cycle the RIGHT-edge mark on (0,0).
 select crosswords.set_mark(:'gc_id', 0, 0, 'right', 'break');
 reset role;
-select is((select mark_right from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'markRight',
   'break', 'set_mark sets the right-edge mark');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -176,21 +166,18 @@ select crosswords.set_mark(:'gc_id', 0, 0, 'right', 'hyphen');
 -- Setting the BOTTOM edge must leave the right edge untouched.
 select crosswords.set_mark(:'gc_id', 0, 0, 'bottom', 'break');
 reset role;
-select is((select mark_right from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'markRight',
   'hyphen', 'set_mark cycles the right edge (break → hyphen)');
-select is((select mark_bottom from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'markBottom',
   'break', 'set_mark sets the bottom edge without disturbing the right edge');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_mark(:'gc_id', 0, 0, 'right', null);
 reset role;
-select is((select mark_right from crosswords.cells
-             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
-  null, 'set_mark with null clears the edge');
+select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ? 'markRight',
+  false, 'set_mark with null clears the edge');
 
--- A given cell has no row → marks are rejected (plan option A).
+-- A given cell has no place in a grid → marks are rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   crosswords.set_mark(:'gg_id', 0, 0, 'right', 'break'),
@@ -224,7 +211,7 @@ select is(
   null::text, 'reveal_solved_word: an unsolved word leaks no answer');
 
 -- A word that spans a GIVEN cell: the given letter comes from the template
--- (not the cells table), so filling only the fillable half still solves it.
+-- (not the grid), so filling only the fillable half still solves it.
 -- gg's row-0 across word is (0,0)=given C + (0,1)=Schrödinger A/E.
 select crosswords.set_cell(:'gg_id', 0, 1, 'a', false);
 select is(
@@ -304,6 +291,16 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
     "message":"That game was already deleted"}'::jsonb,
   'export_solution on a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  crosswords.set_cell(:'gdel_id', 0, 0, 'c', false),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'set_cell on a deleted game is the shared race (PN485): the lock asks first');
+select pg_temp.envelope_is(
+  crosswords.set_mark(:'gdel_id', 0, 0, 'right', 'break'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'set_mark on a deleted game is the shared race (PN485)');
 reset role;
 
 -- ── _matches (mirror ws.ts fillMatchesSolution) ──────────────────────
@@ -324,8 +321,8 @@ select is(crosswords._matches(null, '["A"]'::jsonb), false,
   '_matches: empty fill never matches');
 
 -- ── export_solution (the .ipuz-export answer read — review M4) ──────────
--- A game player gets the full solution ANY time (unlike games_state, which
--- gates it to the game's end); a non-player is rejected.
+-- A game player gets the full solution ANY time (unlike the page blobs, which
+-- carry it only once the game has ended); a non-player is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(
   (select crosswords.export_solution(:'gc_id')), null,

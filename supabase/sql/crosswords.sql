@@ -26,13 +26,12 @@
 --   reveal_solved_word     a word's answer, only once the caller has it right
 --
 -- What is particular to crosswords (docs/games/crosswords.md has the rest):
---   - The solution is on the game row but never granted; players see it
---     through `games_state` once the game has ended.
---   - The grid is `crosswords.cells`: one shared grid in coop, one per player
---     in compete. A cell's writes (`set_cell`, `set_mark`) reach the other
---     pages through the cells subscription, so they don't rewrite the
---     statuses — except the fill that completes the grid and ends the game
---     (plans/common-tables.md → Decided).
+--   - The solution is on the game row but never granted; the page blobs carry
+--     it once the game has ended.
+--   - A grid is one row of `crosswords.grids`, a sparse jsonb keyed by place:
+--     one shared grid in coop, one per player in compete. Every write to a
+--     grid locks the game row first and rebuilds the page blobs, so the
+--     builds serialize and none misses another's letter.
 --   - The first player (compete) or the team (coop) to complete a correct
 --     grid wins at once.
 --
@@ -79,49 +78,104 @@ create policy games_select on crosswords.games
     )
   );
 
-grant select on crosswords.cells to authenticated;
+-- `crosswords.grids` has no grant to authenticated: the page reads the grids
+-- through the blobs on common.games, and every write is a definer RPC below.
 
--- Mode-aware visibility: coop — any club member reads the shared grid;
--- compete — you see only your own rows until the game has ended, when
--- opponents' grids open up. This gates the RLS-filtered READ, not the
--- Realtime payload — the FE's useCells also drops incoming compete events
--- whose owner_id != auth.uid(). Writes all go through the definer RPCs below,
--- which bypass RLS, so no write policy.
-drop policy if exists cells_select on crosswords.cells;
-create policy cells_select on crosswords.cells
-  for select to authenticated
-  using (
-    exists (
-      select 1 from common.games cg
-       where cg.id = cells.game_id
-         and common._is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or cells.owner_id = (select auth.uid())
-              or cg.ended_at is not null)
-    )
-  );
+-- The trigger that bumped a per-cell version on the table the grids replaced;
+-- supabase/sql is re-applied, not diffed.
+drop function if exists crosswords._bump_cell_version();
 
 -- ============================================================
--- crosswords._bump_cell_version — the cells trigger
+-- crosswords._cell_key — a cell's key in a grid
 -- ============================================================
--- Per-cell version bump. Any change (fill / check-wrong / reveal) advances
--- the counter, so every CDC event carries a strictly newer version than
--- the state it supersedes.
-create or replace function crosswords._bump_cell_version()
-returns trigger
-language plpgsql
+-- "row,col", the key a grid's `cells` object stores a cell under and the id
+-- the page gives it.
+create or replace function crosswords._cell_key(p_row int, p_col int)
+returns text
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
 as $$
-begin
-  new.version := old.version + 1;
-  return new;
-end;
+  select p_row || ',' || p_col;
 $$;
-revoke execute on function crosswords._bump_cell_version() from public;
+revoke execute on function crosswords._cell_key(int, int) from public;
 
-drop trigger if exists cells_bump_version on crosswords.cells;
-create trigger cells_bump_version
-  before update on crosswords.cells
-  for each row
-  execute function crosswords._bump_cell_version();
+-- ============================================================
+-- crosswords._fillable_cells — the cells a player writes
+-- ============================================================
+-- Every open, non-given cell of a puzzle's template, with its place. A given
+-- is the author's and has no place in a grid; a block is no cell at all.
+create or replace function crosswords._fillable_cells(p_puzzle_content jsonb)
+returns table ("row" int, col int, key text)
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  select (rr.ord - 1)::int, (cc.ord - 1)::int,
+         crosswords._cell_key((rr.ord - 1)::int, (cc.ord - 1)::int)
+    from jsonb_array_elements(p_puzzle_content -> 'cells') with ordinality as rr(rowval, ord)
+    cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
+   where cc.cellval ->> 'kind' = 'cell'
+     and coalesce((cc.cellval ->> 'given')::boolean, false) = false;
+$$;
+revoke execute on function crosswords._fillable_cells(jsonb) from public;
+
+-- ============================================================
+-- crosswords._make_starting_cells — a grid as the template starts it
+-- ============================================================
+-- The cells a grid starts with, which `create_game` writes and `replay_board`
+-- writes again, so a Restart starts exactly where the game did.
+--
+-- A cell's `fill` comes from the template cell's `fill` when present —
+-- normally absent (a blank library / NYT template), but an uploaded
+-- PARTIALLY-SOLVED `.ipuz` carries the solver's saved fills on its non-given
+-- cells (the ipuz `saved` grid, applied into the template by the parser), so
+-- a half-finished puzzle imports where you left off — the crossplay behavior
+-- (its `saved` round-trip). Uppercased to match set_cell.
+--
+-- `markRight` / `markBottom` come from the template cell's cryptic edge
+-- marks. These are normally player-drawn (set_mark), but a template can
+-- arrive WITH marks: the NYT overlay-PNG import applies author-drawn
+-- word-break bars onto the template's cells (see nytOverlay.ts). Seeding them
+-- into the grid is what puts them on the display path — the board and the
+-- PDFs read marks from the grid, not from the template — so overlay bars
+-- render like any other mark. (A player can still clear one with `|`/`_`;
+-- crossplay accepts the same, an author bar is not immutable.)
+create or replace function crosswords._make_starting_cells(p_puzzle_content jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  select coalesce(jsonb_object_agg(f.key, seeded), '{}'::jsonb)
+    from crosswords._fillable_cells(p_puzzle_content) f
+    cross join lateral (select jsonb_strip_nulls(jsonb_build_object(
+           'fill',       upper(nullif(p_puzzle_content -> 'cells' -> f.row -> f.col ->> 'fill', '')),
+           'markRight',  nullif(p_puzzle_content -> 'cells' -> f.row -> f.col ->> 'markRight', ''),
+           'markBottom', nullif(p_puzzle_content -> 'cells' -> f.row -> f.col ->> 'markBottom', '')
+         )) as seeded) s
+   where seeded <> '{}'::jsonb;
+$$;
+revoke execute on function crosswords._make_starting_cells(jsonb) from public;
+
+-- ============================================================
+-- crosswords._merge_cell — a grid with one cell's keys changed
+-- ============================================================
+-- `p_changes` holds the keys to set, and a key set to null is removed. A cell
+-- left with no keys leaves the grid, so a blank grid stays `{}`. Called inside
+-- the one `update … set cells = …` that writes a grid, never read into a
+-- variable and written back.
+create or replace function crosswords._merge_cell(p_cells jsonb, p_key text, p_changes jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  select case when merged = '{}'::jsonb then p_cells - p_key
+              else jsonb_set(p_cells, array[p_key], merged) end
+    from (select jsonb_strip_nulls(coalesce(p_cells -> p_key, '{}'::jsonb) || p_changes) as merged) m;
+$$;
+revoke execute on function crosswords._merge_cell(jsonb, text, jsonb) from public;
 
 -- ============================================================
 -- crosswords._matches — is this fill an acceptable answer?
@@ -162,8 +216,8 @@ drop function if exists crosswords._is_solved(uuid, uuid);
 -- ============================================================
 -- True iff every fillable cell in `p_owner_id`'s grid (null: coop's shared
 -- grid) matches the solution (`isPuzzleSolved`). An empty cell blocks the
--- solve; a pencil cell does NOT (it counts if right). Given cells aren't in
--- the table — they're author-correct by construction — so they're
+-- solve; a pencil cell does NOT (it counts if right). Given cells have no
+-- place in a grid — they're author-correct by construction — so they're
 -- implicitly satisfied.
 create or replace function crosswords._is_solved(p_game_id uuid, p_owner_id uuid)
 returns boolean
@@ -174,63 +228,229 @@ set search_path = crosswords, common, public, extensions
 as $$
   select not exists (
     select 1
-      from crosswords.cells c
-      join crosswords.games g on g.game_id = c.game_id
-     where c.game_id = p_game_id
-       and c.owner_id is not distinct from p_owner_id
-       and (c.fill is null
-            or not crosswords._matches(c.fill, g.solution -> c.row::int -> c.col::int))
+      from crosswords.games g
+      join crosswords.grids gr on gr.game_id = g.game_id
+                              and gr.owner_id is not distinct from p_owner_id
+      cross join lateral crosswords._fillable_cells(g.puzzle_content) f
+     where g.game_id = p_game_id
+       and not crosswords._matches(gr.cells -> f.key ->> 'fill', g.solution -> f.row -> f.col)
   );
 $$;
 revoke execute on function crosswords._is_solved(uuid, uuid) from public;
 
+-- The view and its definer that showed the solution once the game had ended;
+-- the page blobs carry it now (`_make_json_puzzle`). supabase/sql is
+-- re-applied, not diffed.
 drop view if exists crosswords.games_state;
 drop function if exists crosswords._solution_for(uuid);
 
+-- The statuses' writer, replaced by the page blobs below.
+drop function if exists crosswords._write_statuses(uuid, boolean);
+
 -- ============================================================
--- crosswords._solution_for — the answer, once the game has ended
+-- The page blobs — what the page shows, written by this game's builder
 -- ============================================================
--- The shielded `solution` column, surfaced once the game has ended and NULL
--- before. The security_invoker view keeps auth.uid() real so the table's
--- rules still gate rows; this definer function reads the grant-hidden
--- column.
-create or replace function crosswords._solution_for(p_game_id uuid)
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games` after
+-- every move (plans/seat-view.md → The page is written, not assembled):
+-- `shell_data` through `common._make_json_shell_data`, and these two of
+-- crosswords' own, each builder bearing its column's name. `game_data` is the
+-- common part (supabase/sql/common.sql → The page blobs' common parts) with
+-- crosswords' facts on top; the pieces below build each part, so `select
+-- game_data from common.games` shows the page what it gets.
+--
+--   game_data, crosswords' part:
+--     puzzle                       the template as the parsers write it (id,
+--                                  title, author, copyright, note, width,
+--                                  height, clues, cells), frozen at create,
+--                                  plus `solution`, null until the game ends
+--     revision                     raised by every rebuild; set_cell and
+--                                  set_mark answer the one their rebuild wrote
+--     team: {board}                coop's one grid; null in compete
+--     players: [player, …]         the common player, plus:
+--       board                      the racer's own grid in compete; null in
+--                                  coop, whose grid is the team's
+--
+--   a board, packed, since it is rebuilt on every keystroke:
+--     fills                        flat, row by row: one string per cell, ""
+--                                  when empty, a given or a block; a penciled
+--                                  letter lowercase
+--     wrong, revealed              flat cell indices (row × width + col)
+--     breaksRight, hyphensRight,
+--     breaksBottom, hyphensBottom  flat cell indices
+--     writers                      coop: one digit per cell, 0 nobody, else
+--                                  the writer's 1-based place in `players`;
+--                                  null in compete
+--
+--   summary_data, crosswords' part (the common part names and dates the game
+--   and carries its ending; the winner is `ending.winner`):
+--     nCells                       the cells a player fills
+--     team: {nFilledCells}         coop's filled cells; null in compete
+
+-- One grid, packed. `p_writer_ids` is the players in their order in
+-- `players`, for the writer digits; null in compete, which writes none.
+create or replace function crosswords._make_json_board(
+  p_puzzle_content jsonb,
+  p_cells jsonb,
+  p_writer_ids uuid[]
+)
+returns jsonb
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  with places as (
+    select i, cell
+      from generate_series(
+             0, (p_puzzle_content ->> 'width')::int * (p_puzzle_content ->> 'height')::int - 1) i
+      cross join lateral (select p_cells -> crosswords._cell_key(
+                                   i / (p_puzzle_content ->> 'width')::int,
+                                   i % (p_puzzle_content ->> 'width')::int) as cell) c
+  )
+  select jsonb_build_object(
+    'fills',         jsonb_agg(case when cell ->> 'fill' is null then ''
+                                    when (cell ->> 'pencil')::boolean then lower(cell ->> 'fill')
+                                    else cell ->> 'fill' end order by i),
+    'wrong',         coalesce(jsonb_agg(i order by i) filter (where (cell ->> 'wrong')::boolean), '[]'::jsonb),
+    'revealed',      coalesce(jsonb_agg(i order by i) filter (where (cell ->> 'revealed')::boolean), '[]'::jsonb),
+    'breaksRight',   coalesce(jsonb_agg(i order by i) filter (where cell ->> 'markRight' = 'break'), '[]'::jsonb),
+    'hyphensRight',  coalesce(jsonb_agg(i order by i) filter (where cell ->> 'markRight' = 'hyphen'), '[]'::jsonb),
+    'breaksBottom',  coalesce(jsonb_agg(i order by i) filter (where cell ->> 'markBottom' = 'break'), '[]'::jsonb),
+    'hyphensBottom', coalesce(jsonb_agg(i order by i) filter (where cell ->> 'markBottom' = 'hyphen'), '[]'::jsonb),
+    'writers',       case when p_writer_ids is not null then
+                       string_agg(coalesce(array_position(p_writer_ids, (cell ->> 'writer')::uuid), 0)::text,
+                                  '' order by i) end)
+    from places;
+$$;
+
+revoke execute on function crosswords._make_json_board(jsonb, jsonb, uuid[]) from public;
+
+-- The template, and the solution once the game has ended (wordle's rule; the
+-- column grant keeps it from any client read).
+create or replace function crosswords._make_json_puzzle(g crosswords.games, p_ended boolean)
+returns jsonb
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  select g.puzzle_content || jsonb_build_object(
+    'solution', case when p_ended then g.solution end);
+$$;
+
+revoke execute on function crosswords._make_json_puzzle(crosswords.games, boolean) from public;
+
+-- The players' ids in their order in `players`, for the writer digits.
+create or replace function crosswords._writer_ids(p_game_id uuid)
+returns uuid[]
+language sql
+stable
+set search_path = crosswords, common, public, extensions
+as $$
+  select array_agg(cp.id order by cp.ord) from common._make_json_players(p_game_id) cp;
+$$;
+
+revoke execute on function crosswords._writer_ids(uuid) from public;
+
+-- What the team shares: coop's one grid. Null in compete, where there is no
+-- team (plans/team-facts.md).
+create or replace function crosswords._make_json_team(p_game_id uuid)
 returns jsonb
 language sql
 stable
-security definer
 set search_path = crosswords, common, public, extensions
 as $$
-  select case when cg.ended_at is not null then g.solution end
+  select case when cg.mode = 'coop' then jsonb_build_object(
+           'board', crosswords._make_json_board(
+                      g.puzzle_content, gr.cells, crosswords._writer_ids(p_game_id)))
+         end
+    from crosswords.games g
+    join common.games cg on cg.id = g.game_id
+    left join crosswords.grids gr on gr.game_id = g.game_id and gr.owner_id is null
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function crosswords._make_json_team(uuid) from public;
+
+-- Every player as crosswords' game_data shows them: the common player, with
+-- their own grid in compete. In coop the grid is the team's, and `board` is
+-- null here.
+create or replace function crosswords._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = crosswords, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'board', case when gr.id is not null
+                        then crosswords._make_json_board(g.puzzle_content, gr.cells, null) end)
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join crosswords.games g on g.game_id = p_game_id
+    left join crosswords.grids gr on gr.game_id = p_game_id and gr.owner_id = cp.id;
+$$;
+
+revoke execute on function crosswords._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with crosswords' puzzle,
+-- revision, team and players on top.
+create or replace function crosswords._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = crosswords, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'puzzle',   crosswords._make_json_puzzle(g, cg.ended_at is not null),
+           'revision', g.revision,
+           'team',     crosswords._make_json_team(p_game_id),
+           'players',  crosswords._make_json_players(p_game_id))
     from crosswords.games g
     join common.games cg on cg.id = g.game_id
    where g.game_id = p_game_id;
 $$;
-revoke execute on function crosswords._solution_for(uuid) from public;
-grant execute on function crosswords._solution_for(uuid) to authenticated;
 
-create view crosswords.games_state with (security_invoker = true) as
-  select g.game_id, g.puzzle_id, g.puzzle_content,
-         crosswords._solution_for(g.game_id) as solution   -- NULL until the end
-    from crosswords.games g;
-grant select on crosswords.games_state to authenticated;
+revoke execute on function crosswords._make_json_game_data(uuid) from public;
+
+-- The game summed up: how much of coop's grid is filled, so the club list can
+-- say "60% filled". A racer's grid is their own, so compete has no team count.
+create or replace function crosswords._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = crosswords, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+    'nCells', (select count(*) from crosswords._fillable_cells(g.puzzle_content)),
+    'team',   case when cg.mode = 'coop' then jsonb_build_object(
+                'nFilledCells', (select count(*)
+                                   from crosswords.grids gr, jsonb_each(gr.cells) e(k, v)
+                                  where gr.game_id = p_game_id and gr.owner_id is null
+                                    and v ? 'fill'))
+              end)
+    from crosswords.games g
+    join common.games cg on cg.id = g.game_id
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function crosswords._make_json_summary_data(uuid, timestamptz) from public;
 
 -- ============================================================
--- crosswords._write_statuses — the page's copies of the game
+-- crosswords._rebuild_data_cols — one game's data columns, rebuilt
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from crosswords' own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
---
---   game_status    {} — crosswords has no info column
---   player_status  {} — and no strip
---   clubpage_info  { winner_user_id } — who completed a compete grid first
+-- Raises the game's revision, then rebuilds the page blobs (`game_data`,
+-- `summary_data`, and `shell_data` through `common._make_json_shell_data`)
+-- from crosswords' own tables, assigning each whole. Every RPC calls it after
+-- a move, holding the game row's lock, so revisions follow the order the moves
+-- commit in; it is also the repair for one game by hand. Every key is always
+-- present, null when it has no value; the shapes are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function crosswords._write_statuses(
+create or replace function crosswords._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -239,24 +459,82 @@ language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
+declare
+  v_status_changed_at timestamptz;
 begin
-  update common.game_players
-     set player_status = '{}'::jsonb
-   where game_id = p_game_id;
+  update crosswords.games set revision = revision + 1 where game_id = p_game_id;
 
-  update common.games cg
-     set game_status = '{}'::jsonb,
-         clubpage_info = jsonb_build_object(
-           'winner_user_id', case when cg.mode = 'compete' then (
-             select user_id from common.game_players
-              where game_id = p_game_id and final_ranking = 1) end),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else cg.status_changed_at end
-   where cg.id = p_game_id;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
+
+  update common.games
+     set game_data = crosswords._make_json_game_data(p_game_id),
+         summary_data = crosswords._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
+   where id = p_game_id;
 end;
 $$;
 
-revoke execute on function crosswords._write_statuses(uuid, boolean) from public;
+revoke execute on function crosswords._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- crosswords._rebuild_data_cols_for_all — every crosswords game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every crosswords game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function crosswords._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype in ('crosswords_coop', 'crosswords_compete')
+  loop
+    perform crosswords._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function crosswords._rebuild_data_cols_for_all() from public;
+
+-- ============================================================
+-- crosswords._lock_game — the game row, locked, before any write
+-- ============================================================
+-- Every RPC that writes takes the game row's lock first, so its rebuild of the
+-- page blobs reads every grid write committed before it, and the revisions
+-- follow the order of the writes. A missing row is the shared race: a friend
+-- deleted the game from the club list. Asked before the membership gate, since
+-- the delete takes the memberships with it (docs/envelopes.md → a missing
+-- game row is PN485). Returns the row.
+create or replace function crosswords._lock_game(p_game_id uuid)
+returns crosswords.games
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  g crosswords.games;
+begin
+  select * into g from crosswords.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('crosswords');
+  end if;
+  return g;
+end;
+$$;
+revoke execute on function crosswords._lock_game(uuid) from public;
 
 drop function if exists crosswords.next_nyt_date_for_club(uuid[], int);
 
@@ -478,8 +756,8 @@ drop function if exists crosswords._maybe_finish(uuid, uuid, text, uuid);
 --            solved; the rest are short of the goal
 --
 -- The caller holds the game row's lock, so a second solver in the same moment
--- finds the game over. Returns whether the grid is solved, whoever ended the
--- game.
+-- finds the game over, and rebuilds the page blobs after. Returns whether the
+-- grid is solved, whoever ended the game.
 create or replace function crosswords._maybe_finish(
   p_game_id uuid, p_owner_id uuid, p_caller uuid
 )
@@ -517,7 +795,6 @@ begin
     p_is_no_result => false,
     p_final_rankings => v_rankings
   );
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
   return true;
 end;
 $$;
@@ -536,8 +813,8 @@ drop function if exists crosswords.create_game(text, jsonb, uuid[], text, jsonb)
 --     in, NOT stored in crosswords.puzzles. This is the NYT edge-function and
 --     upload path — a self-contained game with puzzle_id null; it does NOT
 --     add to the shared library.
--- Either way one cells row is pre-inserted per fillable NON-given cell (one
--- shared grid for coop; one per player for compete).
+-- Either way one grid is inserted (one shared grid for coop; one per player
+-- for compete).
 create or replace function crosswords.create_game(
   p_club_handle text,
   p_setup jsonb,
@@ -636,40 +913,16 @@ begin
     v_puzzle_content, v_solution
   );
 
-  -- Pre-insert the fillable, non-given cells: one shared grid (owner null)
-  -- for coop, one grid per player for compete. `with ordinality` gives
-  -- 1-based indices; subtract 1 for 0-based (row, col).
-  --
-  -- `fill` is seeded from the template cell's `fill` when present — normally
-  -- NULL (a blank library / NYT template), but an uploaded PARTIALLY-SOLVED
-  -- `.ipuz` carries the solver's saved fills on its non-given cells (the ipuz
-  -- `saved` grid, applied into the template by the parser). Restoring them
-  -- here means a half-finished puzzle imports where you left off — the
-  -- crossplay behavior (its `saved` round-trip). Uppercased to match set_cell.
-  --
-  -- `mark_right` / `mark_bottom` are likewise seeded from the template cell's
-  -- cryptic edge marks. These are normally player-drawn (set_mark), but a
-  -- template can arrive WITH marks: the NYT overlay-PNG import applies
-  -- author-drawn word-break bars onto the template's cells (see
-  -- nytOverlay.ts). Seeding them into the live cells here is what puts them
-  -- on the display path — the board + PDFs read marks from
-  -- `crosswords.cells`, not from the template — so overlay bars render like
-  -- any other mark. (A player can still clear one with `|`/`_`; crossplay
-  -- accepts the same, an author bar is not immutable.)
-  insert into crosswords.cells (game_id, owner_id, row, col, fill, mark_right, mark_bottom)
-  select new_id, o.owner, (rr.ord - 1)::smallint, (cc.ord - 1)::smallint,
-         upper(nullif(cc.cellval ->> 'fill', '')),
-         nullif(cc.cellval ->> 'markRight', ''),
-         nullif(cc.cellval ->> 'markBottom', '')
-    from jsonb_array_elements(v_puzzle_content -> 'cells') with ordinality as rr(rowval, ord)
-    cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
-    cross join unnest(
+  -- One grid per owner: one shared grid (owner null) for coop, one per player
+  -- for compete, each holding what the template starts it with (an upload's
+  -- saved fills, an NYT overlay's bars; see `_make_starting_cells`).
+  insert into crosswords.grids (game_id, owner_id, cells)
+  select new_id, o.owner, crosswords._make_starting_cells(v_puzzle_content)
+    from unnest(
       case when p_mode = 'coop' then array[null::uuid] else p_player_user_ids end
-    ) as o(owner)
-   where cc.cellval ->> 'kind' = 'cell'
-     and coalesce((cc.cellval ->> 'given')::boolean, false) = false;
+    ) as o(owner);
 
-  perform crosswords._write_statuses(new_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing
   -- a call site can filter the `ok` on, and it reaches all three start paths —
@@ -724,25 +977,41 @@ end;
 $$;
 revoke execute on function crosswords._require_cell_write(uuid) from public;
 
+-- ============================================================
+-- crosswords._is_fillable — may a player write this cell?
+-- ============================================================
+-- True iff (`p_row`, `p_col`) is an open, non-given cell of the template. The
+-- bounds are asked first: a negative jsonb index counts from the end.
+create or replace function crosswords._is_fillable(p_puzzle_content jsonb, p_row int, p_col int)
+returns boolean
+language sql
+immutable
+set search_path = crosswords, common, public, extensions
+as $$
+  select coalesce(
+    p_row >= 0 and p_col >= 0
+    and p_puzzle_content -> 'cells' -> p_row -> p_col ->> 'kind' = 'cell'
+    and coalesce((p_puzzle_content -> 'cells' -> p_row -> p_col ->> 'given')::boolean, false) = false,
+    false);
+$$;
+revoke execute on function crosswords._is_fillable(jsonb, int, int) from public;
+
 drop function if exists crosswords.set_cell(uuid, int, int, text, boolean);
 
 -- ============================================================
 -- crosswords.set_cell — the hot path (one call per keystroke)
 -- ============================================================
 -- Writes a fill into the caller's grid (coop's shared grid, or the caller's
--- own in compete), clears `wrong`, sets `pencil`. Mirrors applyFill: given
--- cells are immutable (and have no row); a REVEALED cell IS editable and
--- keeps its `revealed` flag. Then runs the solved check, which ends the game
--- on a complete, correct grid.
+-- own in compete), clears `wrong`, sets `pencil`, and in coop names the
+-- caller its writer. Mirrors applyFill: given cells are immutable (and have
+-- no place in a grid); a REVEALED cell IS editable and keeps its `revealed`
+-- flag. Then runs the solved check, which ends the game on a complete,
+-- correct grid, and rebuilds the page blobs.
 --
--- Returns the new per-cell version (so the FE adopts it and its own CDC echo
--- is a no-op) and whether the caller's grid is now solved. No outcome: typing
--- a letter is not adjudicated, and the cell is already on screen
--- optimistically.
---
--- The game row is locked only for the fill that completes the grid, so that
--- two finishing fills can't both end the game; every other keystroke goes
--- straight to its cell.
+-- Answers the revision its rebuild wrote, so the page knows when a blob it
+-- reads carries this letter, and whether the caller's grid is now solved. No
+-- outcome: typing a letter is not adjudicated, and the cell is already on
+-- screen.
 create or replace function crosswords.set_cell(
   p_game_id uuid,
   p_row int,
@@ -756,13 +1025,14 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  g           crosswords.games;
   v_owner     uuid;
   v_fill      text;
   v_pencil    boolean;
-  v_version   bigint;
   v_solved    boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  g := crosswords._lock_game(p_game_id);
   v_owner := crosswords._require_cell_write(p_game_id);
 
   if p_fill is null or char_length(p_fill) = 0 then
@@ -780,13 +1050,7 @@ begin
   end if;
   v_pencil := coalesce(p_pencil, false) and v_fill is not null;
 
-  update crosswords.cells c
-     set fill = v_fill, wrong = false, pencil = v_pencil
-   where c.game_id = p_game_id
-     and c.owner_id is not distinct from v_owner
-     and c.row = p_row and c.col = p_col
-  returning c.version into v_version;
-  if not found then
+  if not crosswords._is_fillable(g.puzzle_content, p_row, p_col) then
     -- Also a fault: the grid renders blocks and givens as non-focusable, so a
     -- write to one could not have come from a keystroke on our board.
     raise exception 'BUG: a write to a block or a given'
@@ -794,14 +1058,23 @@ begin
       detail = 'that cell is a block or a given';
   end if;
 
-  v_solved := crosswords._is_solved(p_game_id, v_owner);
-  if v_solved then
-    perform 1 from crosswords.games where game_id = p_game_id for update;
-    v_solved := crosswords._maybe_finish(p_game_id, v_owner, auth.uid());
-  end if;
+  update crosswords.grids gr
+     set cells = crosswords._merge_cell(gr.cells, crosswords._cell_key(p_row, p_col), jsonb_build_object(
+           'fill',   v_fill,
+           'pencil', nullif(v_pencil, false),
+           'wrong',  null,
+           -- coop only: a racer's grid has one writer, its owner
+           'writer', case when v_owner is null and v_fill is not null then auth.uid() end))
+   where gr.game_id = p_game_id
+     and gr.owner_id is not distinct from v_owner;
 
+  v_solved := crosswords._maybe_finish(p_game_id, v_owner, auth.uid());
+
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
-    'result', 'set', 'version', v_version, 'solved', v_solved));
+    'result', 'set',
+    'revision', (select revision from crosswords.games where game_id = p_game_id),
+    'solved', v_solved));
 
 exception when others then
   get stacked diagnostics
@@ -823,10 +1096,8 @@ drop function if exists crosswords.set_mark(uuid, int, int, text, text);
 -- Sets / clears a word-break or hyphen mark on ONE edge of the caller's
 -- grid cell (coop's shared grid, or the caller's own in compete). Marks
 -- are player annotations, NOT gameplay — no solve check runs. Only fillable
--- cells have rows, so a mark aimed at a given cell finds no row and is
--- rejected. The version trigger bumps `version`, so the mark syncs via the
--- same useCells CDC path as a fill; the RPC returns the new version so the
--- FE's own echo is a no-op.
+-- cells have a place in a grid, so a mark aimed at a given cell is refused.
+-- Answers the revision its rebuild of the page blobs wrote, as set_cell does.
 create or replace function crosswords.set_mark(
   p_game_id uuid,
   p_row int,
@@ -840,10 +1111,11 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  g           crosswords.games;
   v_owner     uuid;
-  v_version   bigint;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  g := crosswords._lock_game(p_game_id);
   v_owner := crosswords._require_cell_write(p_game_id);
   if p_side not in ('right', 'bottom') then
     -- Both this and the mark below are faults: the value comes from the
@@ -858,21 +1130,23 @@ begin
       detail = 'mark must be break, hyphen or null';
   end if;
 
-  -- Update only the targeted edge; leave the other edge's mark untouched.
-  update crosswords.cells c
-     set mark_right  = case when p_side = 'right'  then p_mark else c.mark_right  end,
-         mark_bottom = case when p_side = 'bottom' then p_mark else c.mark_bottom end
-   where c.game_id = p_game_id
-     and c.owner_id is not distinct from v_owner
-     and c.row = p_row and c.col = p_col
-  returning c.version into v_version;
-  if not found then
+  if not crosswords._is_fillable(g.puzzle_content, p_row, p_col) then
     raise exception 'BUG: a mark on a block or a given'
       using errcode = 'PN472', hint = 'fault', column = '_',
       detail = 'that cell is a block or a given';
   end if;
 
-  return common._ok_envelope(jsonb_build_object('result', 'marked', 'version', v_version));
+  -- Only the targeted edge's key; the other edge's mark is left as it is.
+  update crosswords.grids gr
+     set cells = crosswords._merge_cell(gr.cells, crosswords._cell_key(p_row, p_col),
+           jsonb_build_object(case when p_side = 'right' then 'markRight' else 'markBottom' end, p_mark))
+   where gr.game_id = p_game_id
+     and gr.owner_id is not distinct from v_owner;
+
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object(
+    'result', 'marked',
+    'revision', (select revision from crosswords.games where game_id = p_game_id)));
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -895,7 +1169,7 @@ drop function if exists crosswords.check_cells(uuid, jsonb);
 -- about correctness — only about which cells were asked.
 --
 -- Flags/unflags `wrong` against the solution, skipping empty and pencil
--- cells (givens have no row). Available in both modes; wrong is
+-- cells (givens have no place in a grid). Available in both modes; wrong is
 -- self-informative, not answer-leaking. Answers with how many it flagged, so
 -- "checked, all correct" and "checked nothing" are told apart.
 create or replace function crosswords.check_cells(p_game_id uuid, p_cells jsonb)
@@ -905,40 +1179,39 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  g           crosswords.games;
   v_owner     uuid;
   v_wrong int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform 1 from crosswords.games where game_id = p_game_id for update;
-  if not found then
-    perform common._raise_game_deleted('crosswords');
-  end if;
+  g := crosswords._lock_game(p_game_id);
   v_owner := crosswords._require_cell_write(p_game_id);
 
-  update crosswords.cells c
-     set wrong = not crosswords._matches(c.fill, g.solution -> c.row::int -> c.col::int)
-    from crosswords.games g
-   where g.game_id = c.game_id
-     and c.game_id = p_game_id
-     and c.owner_id is not distinct from v_owner
-     and c.fill is not null
-     and c.pencil = false
-     and exists (
-       select 1 from jsonb_array_elements(p_cells) e
-        where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
-     );
+  -- Every asked cell that holds a letter in pen, its `wrong` set or cleared.
+  -- Each such cell has a fill, so none is left empty and the merge is a plain
+  -- `||` of the checked cells over the grid.
+  update crosswords.grids gr
+     set cells = gr.cells || coalesce((
+           select jsonb_object_agg(a.key, jsonb_strip_nulls((gr.cells -> a.key) || jsonb_build_object(
+                    'wrong', nullif(not crosswords._matches(gr.cells -> a.key ->> 'fill',
+                                                            g.solution -> a.row -> a.col), false))))
+             from (select distinct (e ->> 'row')::int as row, (e ->> 'col')::int as col,
+                          crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
+                     from jsonb_array_elements(p_cells) e) a
+            where gr.cells -> a.key ->> 'fill' is not null
+              and not coalesce((gr.cells -> a.key ->> 'pencil')::boolean, false)), '{}'::jsonb)
+   where gr.game_id = p_game_id
+     and gr.owner_id is not distinct from v_owner;
 
   select count(*) into v_wrong
-    from crosswords.cells c
-   where c.game_id = p_game_id
-     and c.owner_id is not distinct from v_owner
-     and c.wrong
-     and exists (
-       select 1 from jsonb_array_elements(p_cells) e
-        where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
-     );
+    from crosswords.grids gr
+    cross join lateral (select distinct crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
+                          from jsonb_array_elements(p_cells) e) a
+   where gr.game_id = p_game_id
+     and gr.owner_id is not distinct from v_owner
+     and coalesce((gr.cells -> a.key ->> 'wrong')::boolean, false);
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'checked', 'wrong_count', v_wrong));
 exception when others then
@@ -978,13 +1251,11 @@ security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
+  g        crosswords.games;
   v_solved boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform 1 from crosswords.games where game_id = p_game_id for update;
-  if not found then
-    perform common._raise_game_deleted('crosswords');
-  end if;
+  g := crosswords._lock_game(p_game_id);
   perform common._require_game_player(p_game_id);
   if (select mode from common.games where id = p_game_id) <> 'coop' then
     -- A fault: mode is fixed at create_game and the FE hides the reveal items
@@ -997,26 +1268,33 @@ begin
     perform common._raise_game_over();
   end if;
 
-  update crosswords.cells c
-     set fill = (g.solution -> c.row::int -> c.col::int ->> 0),
-         revealed = true, wrong = false, pencil = false
-    from crosswords.games g
-   where g.game_id = c.game_id
-     and c.game_id = p_game_id
-     and c.owner_id is null
-     and g.solution -> c.row::int -> c.col::int is not null
-     -- Skip a (degenerate) empty solution array: crossplay's revealAt does the
-     -- same. `->> 0` on `[]` is null, so without this the reveal would blank
-     -- the cell + flag it revealed. Never happens with real puzzles.
-     and jsonb_array_length(g.solution -> c.row::int -> c.col::int) > 0
-     and exists (
-       select 1 from jsonb_array_elements(p_cells) e
-        where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
-     );
+  -- Every asked fillable cell takes the answer, `revealed`, and the revealer
+  -- as its writer, its `wrong` and `pencil` cleared; its marks stay. Each has
+  -- a fill now, so the merge is a plain `||` over the grid.
+  update crosswords.grids gr
+     set cells = gr.cells || coalesce((
+           select jsonb_object_agg(a.key, jsonb_strip_nulls(coalesce(gr.cells -> a.key, '{}'::jsonb)
+                    || jsonb_build_object(
+                         'fill',     g.solution -> a.row -> a.col ->> 0,
+                         'revealed', true,
+                         'wrong',    null,
+                         'pencil',   null,
+                         'writer',   auth.uid())))
+             from (select distinct (e ->> 'row')::int as row, (e ->> 'col')::int as col,
+                          crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
+                     from jsonb_array_elements(p_cells) e) a
+            where crosswords._is_fillable(g.puzzle_content, a.row, a.col)
+              -- Skip a (degenerate) empty solution array: crossplay's revealAt
+              -- does the same. `->> 0` on `[]` is null, so without this the
+              -- reveal would flag a blank cell revealed. Never happens with
+              -- real puzzles.
+              and coalesce(jsonb_array_length(g.solution -> a.row -> a.col), 0) > 0), '{}'::jsonb)
+   where gr.game_id = p_game_id
+     and gr.owner_id is null;
 
   v_solved := crosswords._maybe_finish(p_game_id, null, auth.uid());
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'revealed', 'solved', v_solved));
 
@@ -1038,15 +1316,15 @@ drop function if exists crosswords.replay_board(uuid);
 -- crosswords.replay_board — solve this puzzle again from scratch
 -- ============================================================
 -- The "Restart" game-menu item / terminal-row Restart, and the only
--- board-clearing action. Wipes every cell of the puzzle — fill, pencil,
--- wrong/revealed marks, and the scribbled edge marks — for EVERY owner, then
--- hands the common half to `common._reset_game`. A restart is a whole-table
--- thing in every game, so a compete restart re-opens the race for everyone.
+-- board-clearing action. Puts EVERY owner's grid back exactly as the game
+-- started it (`_make_starting_cells`: an upload's saved fills and an NYT
+-- overlay's bars come back; everything the players did goes), then hands the
+-- common half to `common._reset_game`. A restart is a whole-table thing in
+-- every game, so a compete restart re-opens the race for everyone.
 --
--- The solution re-shields on its own: `_solution_for` shows it only once the
+-- The solution re-shields on its own: the page blobs carry it only once the
 -- game has ended, which the reset undoes, so a replayed puzzle starts
--- covered. (The FE puts its own local reveal away too — see handleRestart —
--- because the answers it already fetched are cached client-side.)
+-- covered.
 --
 -- Any game player may call it, mid-game or after the game ends (no ended
 -- check — it's a restart; the FE confirms mid-game).
@@ -1070,16 +1348,17 @@ begin
   -- told "You are not in this game" — they WERE in it; it is gone.
   perform common._require_game_player(p_game_id);
 
-  update crosswords.cells c
-     set fill = null, pencil = false, wrong = false, revealed = false,
-         mark_right = null, mark_bottom = null
-   where c.game_id = p_game_id;
+  update crosswords.grids gr
+     set cells = crosswords._make_starting_cells(g.puzzle_content)
+    from crosswords.games g
+   where g.game_id = gr.game_id
+     and gr.game_id = p_game_id;
 
   update common.game_players set solved_at = null where game_id = p_game_id;
 
   perform common._reset_game(p_game_id);
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1162,16 +1441,15 @@ begin
     -- Answer = the first accepted solution per cell (Schrödinger primary).
     v_answer := v_answer || upper(coalesce(v_sols ->> 0, ''));
     -- The caller's fill: given cells carry theirs on the template; fillable
-    -- cells in the caller's own grid rows.
+    -- cells in the caller's own grid.
     v_given := coalesce((v_tmpl ->> 'given')::boolean, false);
     if v_given then
       v_fill := upper(coalesce(v_tmpl ->> 'fill', ''));
     else
-      select upper(coalesce(cl.fill, '')) into v_fill
-        from crosswords.cells cl
-       where cl.game_id = p_game_id
-         and cl.owner_id is not distinct from v_owner
-         and cl.row = r and cl.col = c;
+      select upper(gr.cells -> crosswords._cell_key(r, c) ->> 'fill') into v_fill
+        from crosswords.grids gr
+       where gr.game_id = p_game_id
+         and gr.owner_id is not distinct from v_owner;
       v_fill := coalesce(v_fill, '');
     end if;
     if v_fill = '' or not crosswords._matches(v_fill, v_sols) then
@@ -1206,13 +1484,9 @@ drop function if exists crosswords.export_solution(uuid);
 -- The full answer grid for the "Download as .ipuz" export and the answer-key
 -- PDF.
 --
--- NAMED DELIBERATELY UNLIKE `_solution_for` above. The two have OPPOSITE
--- shielding semantics — that one shows the answer only once the game has
--- ended, this one hands a member the grid at any time — so the names differ
--- at a glance.
---
--- Unlike `games_state`, export needs the whole grid at ANY time so a
--- downloaded file carries real answers. Handing the solution to the client
+-- Unlike the page blobs, which carry the solution only once the game has
+-- ended, export needs the whole grid at ANY time so a downloaded file
+-- carries real answers. Handing the solution to the client
 -- on demand relaxes the shielding, which the friends-only trust model
 -- tolerates (CLAUDE.md → Trust model); it's a deliberate, member-gated
 -- exception, not the solving path.
@@ -1286,7 +1560,7 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1330,7 +1604,7 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1382,7 +1656,7 @@ begin
     p_final_rankings => '{}'::jsonb
   );
 
-  perform crosswords._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

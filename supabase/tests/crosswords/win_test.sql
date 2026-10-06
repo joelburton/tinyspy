@@ -46,12 +46,11 @@ select is(
      where game_id = :'gc_id' and final_ranking = 1 and outcome = 'won' and solved_at is not null),
   2, 'coop solved → each player ranked 1, won, and solved');
 
--- Solution reveals once the game has ended.
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select isnt(
-  (select solution from crosswords.games_state where game_id = :'gc_id'), null,
-  'once ended: games_state.solution is revealed');
-reset role;
+-- The page blob carries the solution once the game has ended.
+select is(
+  (select game_data -> 'puzzle' -> 'solution' from common.games where id = :'gc_id'),
+  pg_temp.xw_sol_2x2(),
+  'once ended: the page blob carries the solution');
 
 -- ── Pencil counts toward solve (mirror isPuzzleSolved) ───────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -134,8 +133,7 @@ select crosswords.set_cell(:'gr_first', 0, 0, 'h', false);
 -- so the check must NOT flag it wrong.
 select crosswords.check_cells(:'gr_first', '[{"row":0,"col":0}]'::jsonb);
 reset role;
-select is((select wrong from crosswords.cells
-             where game_id = :'gr_first' and owner_id is null and row = 0 and col = 0),
+select is(pg_temp.xw_cell(:'gr_first', null, 0, 0) ? 'wrong',
   false, 'rebus: check does not flag a correct bare first-letter fill');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select (crosswords.set_cell(:'gr_first', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_first \gset

@@ -8,16 +8,17 @@
 -- Provides puzzle builders + an insert helper. Two tiny puzzles:
 --
 --   xw_meta_2x2 / xw_sol_2x2 — a 2×2 all-open grid, answers C A / T S
---     (across 1=CA 3=TS, down 1=CT 2=AS). No blocks, no givens →
---     create_game pre-inserts 4 cells (per grid).
+--     (across 1=CA 3=TS, down 1=CT 2=AS). No blocks, no givens → 4
+--     fillable cells.
 --
 --   xw_meta_given / xw_sol_given — a 2×2 with a GIVEN at (0,0)=C and a
---     Schrödinger cell at (0,1) accepting A or E. The given is excluded
---     from the cells table (author-correct), so create_game inserts 3.
+--     Schrödinger cell at (0,1) accepting A or E. The given is the author's
+--     and has no place in a grid, so 3 fillable cells.
 --
 -- xw_insert_puzzle(hash, meta, solution[, source]) inserts a puzzles row
 -- (distinct content_hash per call) and returns its id. xw_setup(id) is
--- the `setup` jsonb create_game wants.
+-- the `setup` jsonb create_game wants. xw_grid(game, owner) and
+-- xw_cell(game, owner, row, col) read what a grid stores.
 
 create function pg_temp.xw_meta_2x2()
 returns jsonb language sql as $$
@@ -118,4 +119,18 @@ returns jsonb language sql as $$
   select jsonb_build_object(
     'timer', jsonb_build_object('kind', 'none'),
     'puzzle_id', p_puzzle_id);
+$$;
+
+-- One grid's stored cells (`crosswords.grids.cells`): owner null for coop's
+-- shared grid. Read as the superuser — the table has no client grant.
+create function pg_temp.xw_grid(p_game_id uuid, p_owner uuid)
+returns jsonb language sql as $$
+  select cells from crosswords.grids
+   where game_id = p_game_id and owner_id is not distinct from p_owner;
+$$;
+
+-- One stored cell of a grid, or null when the grid holds nothing for it.
+create function pg_temp.xw_cell(p_game_id uuid, p_owner uuid, p_row int, p_col int)
+returns jsonb language sql as $$
+  select pg_temp.xw_grid(p_game_id, p_owner) -> (p_row || ',' || p_col);
 $$;
