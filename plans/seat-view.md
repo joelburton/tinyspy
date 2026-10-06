@@ -64,7 +64,7 @@ players, one comparison each):
 | the server's facts | `playerEnding`, `outcome`, `finalRanking`, `solvedAt`, the counts |
 | read off them | `isConceded`, `isPlayerEnded`, `isEliminated`, `hasSolved` (= `solvedAt !== null`; a coop solve stamps every teammate, so it is right in both modes) |
 | the turn | `isStillPlaying`, `isOnTurn` (was `isMyTurn`), `isWaitingForTurn`, `isBoardInteractive` — derived by the hook from `gd.turns`, so no component writes `turnHolder.user_id === me.user_id` itself |
-| the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` (the player's own in every mode; what the team shares is `gd.team`'s — [team-facts](team-facts.md)) |
+| the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` — on each player, their side's and their own ([common-schema.md → A player's facts](../docs/common-schema.md#a-players-facts--the-sides-and-their-own)) |
 | the board | `board`: the seat's view — connections' `matchedCats` + `tilesLeft`, wordle's rows, psychicnum's tiles (decision 9). In coop every seat's board is the same board |
 | the picks (connections) | `picks`: mine held by the hook, a teammate's by Broadcast in coop, an opponent's null in compete |
 
@@ -172,7 +172,6 @@ gd:                                       # the common part is every line not ma
   setup
   setupRows                               # game
   puzzle: {words, secrets}                # game; what the game is solved against (docs/naming.md → puzzle); secrets null until the game ends
-  team: {nFoundSecrets, nGuessesUsed}     # game; what the team shares; null when the game has no team (team-facts.md)
   turns: {holder}                         # null: no turn order; holder is a player
   ending: {reason, detail, by, winner}    # null while playing; by is a player
   outcome                                 # null until the game ends
@@ -673,8 +672,8 @@ reason to rush one out).
    shows; whether its coop solve stamps every teammate.
 2. **Sketch `gd` and `summary_data`**, one key per line, and get the names
    approved before any code. Every seat fact on the player, `board` among
-   them (→ One home); `team` holding what the team shares, null in compete
-   (plans/team-facts.md); `puzzle` frozen at create; links as ids in the
+   them (→ One home); every fact on each player twice, the side's and
+   `own` (docs/common-schema.md → A player's facts); `puzzle` frozen at create; links as ids in the
    blob and players in `gd`; counts `nFoo` and the permitted abbreviations
    (docs/code-conventions.md → A few words may be abbreviated); camelCase
    keys; `stateLineData` decided once; `ended` / `ending` / `stillPlaying`;

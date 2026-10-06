@@ -17,8 +17,8 @@ by the conversions, is gone from here; git history holds it. What stays keeps
 its ruling in Joel's words. Line numbers rot; the file and the name are the
 handle.
 
-**The order** (common-tables.md → The path): the team state (§1, built by
-team-facts.md), then the endings (§2), then placement (§5). The renames (§3) each need Joel's go, and
+**The order** (common-tables.md → The path): the endings (§2), then
+placement (§5). The renames (§3) each need Joel's go, and
 "terminal" → "ended" is a slice of its own. §4 is small and fits beside any
 of them.
 
@@ -29,14 +29,10 @@ selected" (below, §4) is built in every identifier.
 
 ---
 
-## 1. Team state — decided, built by team-facts
+## 1. Team state — done
 
-Joel, 2026-10-06, after an audit of all sixteen games' coop state: every
-player carries `GFacts`, the game's exact list of facts — spread on, its
-side's (summed for a coop team); under `own`, its own — and a shared object
-(a board, a chain, a rack) is one of those facts, sent once. `gd` has no
-`team`. [team-facts.md](team-facts.md) holds the design and the order, one
-game at a time.
+Built for every game, 2026-10-06; what it settled is
+[common-schema.md → A player's facts](../docs/common-schema.md#a-players-facts--the-sides-and-their-own).
 
 ## 2. Endings
 

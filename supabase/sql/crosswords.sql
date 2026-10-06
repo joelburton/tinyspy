@@ -361,7 +361,7 @@ $$;
 revoke execute on function crosswords._writer_ids(uuid) from public;
 
 -- What the team shares: coop's one grid. Null in compete, where there is no
--- team (plans/team-facts.md).
+-- team (docs/common-schema.md → A player's facts).
 create or replace function crosswords._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

@@ -468,10 +468,10 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * crosswords' facts (plans/team-facts.md): the grid, and nothing else. A
- * player carries it twice — spread on, their side's (the team's in coop,
- * their own in compete); under `own`, their own. A coop grid is nobody's in
- * particular, so a coop player's `own` holds the team's.
+ * crosswords' facts (docs/common-schema.md → A player's facts): the grid, and
+ * nothing else. A player carries it twice — spread on, their side's (the team's
+ * in coop, their own in compete); under `own`, their own. A coop grid is
+ * nobody's in particular, so a coop player's `own` holds the team's.
  */
 export type GFacts = {
   // Null for a rival mid-race.
@@ -595,9 +595,9 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'player
 
 /**
  * A player as `gd` holds them: the common player with crosswords' facts twice
- * — spread on, their side's; under `own`, their own (plans/team-facts.md). The
- * grid unpacked: coop's one grid on every player, a racer's own in compete, a
- * rival's null while the race is on.
+ * — spread on, their side's; under `own`, their own (docs/common-schema.md → A
+ * player's facts). The grid unpacked: coop's one grid on every player, a
+ * racer's own in compete, a rival's null while the race is on.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

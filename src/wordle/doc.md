@@ -180,7 +180,7 @@ the guess rows in the order of play. Each player's count is their own, on
 their sum, with the one coop board, which no coop player carries. `useGame`
 puts the side's facts on every player — the team's in coop, their own in
 compete — and their own under `own`
-([plans/team-facts.md](../../plans/team-facts.md)), so the state line reads
+([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)), so the state line reads
 `gd.me`. Compete's summary carries no team, where a live count would leak how close a racer is;
 the winner's count is compete's, written once the race is won, and the winner
 is the common `ending.winner`.

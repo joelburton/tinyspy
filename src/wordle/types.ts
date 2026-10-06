@@ -46,10 +46,10 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * wordle's facts (plans/team-facts.md): the guesses spent against the budget,
- * and the board they are played on. A player carries them twice — spread on,
- * their side's (the team's in coop, their own in compete); under `own`, their
- * own.
+ * wordle's facts (docs/common-schema.md → A player's facts): the guesses spent
+ * against the budget, and the board they are played on. A player carries them
+ * twice — spread on, their side's (the team's in coop, their own in compete);
+ * under `own`, their own.
  */
 export type GFacts = {
   nGuessesUsed: number
@@ -169,7 +169,7 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
 /**
  * One player of this game, as `gd` holds them: the blob's player with
  * wordle's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's board is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's board is null mid-race.
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts

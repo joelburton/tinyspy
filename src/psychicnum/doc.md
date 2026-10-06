@@ -144,7 +144,7 @@ own, on `psychicnum.players` and on their player in the blob, in both modes;
 `team`'s are their sum, with the one coop board, which no coop player carries.
 `useGame` puts the side's facts on every player — the team's in coop, their own
 in compete — and their own under `own`
-([plans/team-facts.md](../../plans/team-facts.md)), so the state line and the
+([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)), so the state line and the
 board's move count read `gd.me` and pick nothing. Compete's summary
 carries no progress; the race's winner is the common `ending.winner`.
 `psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's

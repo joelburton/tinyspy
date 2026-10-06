@@ -37,9 +37,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const tilesById = new Map<string, GTile>()
   const board: GBoard = { tiles, tilesById }
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's; under `own`, their own — the team's, since nothing is stored per
-  // player.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's; under `own`, their own — the team's, since
+  // nothing is stored per player.
   const facts: GFacts = { ...counts, board }
   const players: GPlayer[] = raw.players.map((p) => ({ ...p, ...facts, own: facts }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))

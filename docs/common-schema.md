@@ -95,13 +95,12 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   title, the turn, the ending, each player's standing ([win-lose.md → Where a
   player stands](win-lose.md#where-a-player-stands--the-terms-as-formulas)) —
   comes from `common._make_json_game_data`, and the game's builder adds its
-  own fields on top. One of those is `team`: what the team shares, summed from
-  the rows, and null when the game has no team; a player's own keys are that
-  player's in every mode ([plans/team-facts.md](../plans/team-facts.md)).
+  own fields on top, among them its facts ([→ A player's
+  facts](#a-players-facts--the-sides-and-their-own)).
 - **`static_game_data`** is the game's too: what nothing after `create_game`
   changes — no move, no ending, no Restart. Its common part, from
   `common._make_json_static_game_data`, is the game facts every game shares
-  that are fixed at create — id, gametype, brand, club, mode, one board — and
+  that are fixed at create — id, gametype, brand, club, mode — and
   `setup`; the game's builder adds the part of its puzzle it never withholds,
   and leaves in `game_data.puzzle` what it shows only once the game has ended
   (a solution, the secrets), since that changes once, at the end. A game with
@@ -129,6 +128,54 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   alone, and opening or leaving a game never moves it.
 - **`updated_at`** is when the row was last written, by anything: a trigger
   stamps it on every update and nothing else writes it.
+
+### A player's facts — the side's, and their own
+
+**A side** is who a fact belongs to for showing: the team in coop, the player
+alone in compete. **`GFacts`** is a game's exact list of facts, declared in
+its `types.ts`: its counts, the constants shown beside them (`maxGuesses`,
+`maxSwaps`), and the object its side plays on (`board`).
+
+**Every player in `gd` carries `GFacts` twice.** Spread on, the values are
+the side's — summed for a coop team, the player's own in compete; under
+`own`, with the same shape, they are that player's own. So `gd.me.nGuessesUsed`
+is always what to show, and `gd.me.own.nGuessesUsed` is the rare reader that
+wants one player's share. In compete the two are equal. A fact nobody stores
+per player — a coop chain, a coop hint bar, a crossword grid, a Duet pair's
+turns — is the team's under `own` too. `gd` has no `team`, and nothing
+game-specific sits at its top: the state line reads `gd.me`
+(`<StateLine facts={gd.me} />`).
+
+```ts
+type GPlayer = PlayerRaw & FactsApart<GFacts> & { own: GFacts }
+```
+
+`FactsApart` (`src/common/game-page/gameData.ts`) fails `tsc` if a fact
+shares a name with a common player key, since the spread would silently
+overwrite one with the other.
+
+**On the wire**, `game_data.team` carries the side's facts once (null in
+compete), and each player carries their own; a key sent in `team` alone — the
+coop board — is null on each coop player, every key present. A shared object
+is the same object on every player in `gd`, by reference. What is not a fact:
+
+- **An object shared in both modes** (scrabble's board and bag, setgame's
+  table and deck, bananagrams' piles) is sent once at the top of the wire, and
+  `useGame` puts it on every player.
+- **A total that can only ever be the puzzle's** (stackdown's words to clear,
+  waffle's par, the bee pair's required set) stays in `puzzle`; `StateLine`
+  takes it beside the facts (`puzzle={gd.puzzle}`).
+- **A record of who did what** stays at the game level beside `gd.events`:
+  the word hunts' `foundWords`.
+- **`solved`** stays a common player key: every coop branch stamps
+  `solved_at` on every teammate.
+- **A per-seat view of a shared object** is asked at the read: codenamesduet's
+  tile carries `guessableBy`, and a reader asks `.has(gd.me)`.
+
+Storage does not change for any of this: the lock-step copies some games keep
+(letterboxed's chain, waffle's board, strands' bar and ring) stay, and the
+builder reads the object off one row. `summary_data.team` is the team's
+counts alone, never its board.
 
 ## Starting a game
 

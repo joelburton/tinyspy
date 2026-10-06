@@ -69,10 +69,11 @@ export type GTrack = {
 }
 
 /**
- * wordiply's facts (plans/team-facts.md): the track, the budget it counts
- * against, and the board of accepted words. A player carries them twice —
- * spread on, their side's (the team's in coop, their own in compete); under
- * `own`, their own. The board's longest is the puzzle's (`puzzle.maxWordLen`).
+ * wordiply's facts (docs/common-schema.md → A player's facts): the track, the
+ * budget it counts against, and the board of accepted words. A player carries
+ * them twice — spread on, their side's (the team's in coop, their own in
+ * compete); under `own`, their own. The board's longest is the puzzle's
+ * (`puzzle.maxWordLen`).
  */
 export type GFacts = GTrack & {
   // The guess budget: the team's in coop, each player's own in compete.
@@ -193,7 +194,7 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
 /**
  * One player of this game, as `gd` holds them: the common player with
  * wordiply's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's board is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's board is null mid-race.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

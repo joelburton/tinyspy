@@ -94,10 +94,10 @@ export type GMatchedCat = GCategory & {
 }
 
 /**
- * connections' facts (plans/team-facts.md): the categories matched, the
- * mistakes against the budget, and the grid they are played on. A player
- * carries them twice — spread on, their side's (the team's in coop, their own
- * in compete); under `own`, their own.
+ * connections' facts (docs/common-schema.md → A player's facts): the categories
+ * matched, the mistakes against the budget, and the grid they are played on. A
+ * player carries them twice — spread on, their side's (the team's in coop,
+ * their own in compete); under `own`, their own.
  */
 export type GFacts = {
   nMatchedCats: number
@@ -249,7 +249,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
 /**
  * One player of this game, as `gd` holds them: the blob's player with
  * connections' facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's board is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's board is null mid-race.
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts

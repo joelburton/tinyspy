@@ -124,7 +124,7 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          the team's facts, once: the counts summed
 --                                          over the rows, the one board; null in
 --                                          compete, where there is no team
---                                          (plans/team-facts.md)
+--                                          (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, word, correct, kind, at}, …]
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
@@ -240,7 +240,7 @@ revoke execute on function psychicnum._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its counts, the budget and the secrets they
 -- count against, and the one board. Null in compete, where there is no team
--- (plans/team-facts.md).
+-- (docs/common-schema.md → A player's facts).
 create or replace function psychicnum._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

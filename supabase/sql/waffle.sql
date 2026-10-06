@@ -368,7 +368,7 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --     puzzle: {solution}                   null until the game ends; tiles as above
 --     team: {nSwapsUsed, maxSwaps, board}  the team's facts, once: the swaps summed
 --                                          over every player's own, the one board;
---                                          null in compete (plans/team-facts.md)
+--                                          null in compete (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, swaps, colors, at}, …]
 --                                          every swap, every player's; `swaps` the two
 --                                          cells, each {id, letter} with the letter it
@@ -477,7 +477,7 @@ revoke execute on function waffle._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its count, the budget, and the one board, read
 -- off any coop row since every row holds it in lock-step. Null in compete,
--- where there is no team (plans/team-facts.md).
+-- where there is no team (docs/common-schema.md → A player's facts).
 create or replace function waffle._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

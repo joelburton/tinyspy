@@ -27,9 +27,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // has none of them.
   const { nBunchTiles, nBagTiles, team, turns, ending, ...rest } = raw
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's; under `own`, their own — the same, since a racer's side is
-  // themselves. The piles are one for every racer.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's; under `own`, their own — the same, since a
+  // racer's side is themselves. The piles are one for every racer.
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const maySee = raw.ended || p.id === myId
     const own: GFacts = {

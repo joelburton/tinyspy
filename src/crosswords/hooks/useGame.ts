@@ -72,9 +72,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const { team, turns, ending, ...rest } = raw
   // The players first, their boards after: a cell's writer is one of these
   // same objects, so it is the player `playersById` holds.
-  // Each carries the grid twice (plans/team-facts.md): spread on, the side's;
-  // under `own`, their own — in coop the team's, which is nobody's in
-  // particular.
+  // Each carries the grid twice (docs/common-schema.md → A player's facts):
+  // spread on, the side's; under `own`, their own — in coop the team's, which
+  // is nobody's in particular.
   const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null, own: { board: null } }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

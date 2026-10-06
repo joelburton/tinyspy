@@ -227,7 +227,7 @@ drop function if exists wordwheel._write_statuses(uuid, boolean);
 --   game_data, wordwheel's part:
 --     team: {nFoundWords, foundWordsScore,        what the team shares, over every row, and the
 --            rankIdx, targetRankIdx}              rank it set out for; null in compete
---                                                 (plans/team-facts.md)
+--                                                 (docs/common-schema.md → A player's facts)
 --     foundWords: [{userId, word, points,         every found word, in the order found, with
 --                   pangram, bonus, at}, …]       its finder; what a racer may see of a rival
 --                                                 mid-race is the hook's rule
@@ -317,7 +317,8 @@ revoke execute on function wordwheel._make_json_puzzle(wordwheel.games) from pub
 
 -- What the team shares: every row's count and points, the rank that score
 -- reaches on the ladder, and the rank the team set out for (null for coop's
--- open hunt). Null in compete, where there is no team (plans/team-facts.md).
+-- open hunt). Null in compete, where there is no team (docs/common-schema.md →
+-- A player's facts).
 create or replace function wordwheel._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

@@ -3,13 +3,13 @@
 -- ============================================================
 -- strands.players' hint count is each player's own, in coop too, and says so
 -- ============================================================
--- plans/team-facts.md: a player's keys are that player's own in every mode,
--- and what the team shares is summed at build time. Until now `spend_hint`
--- kept every coop row at the TEAM's count of hints spent, so a builder that
--- sums the rows would read a coop game at N times its real count. This
--- rewrites each coop row to the hints that player cashed, counted off their
--- `kind = 'hint'` rows in `strands.events`. The hint bar (`hint_points`) and
--- the ringed hint (`active_hint_coords`) stay lock-step on every coop row:
+-- docs/common-schema.md → A player's facts: a player's keys are that player's
+-- own in every mode, and what the team shares is summed at build time. Until
+-- now `spend_hint` kept every coop row at the TEAM's count of hints spent, so a
+-- builder that sums the rows would read a coop game at N times its real count.
+-- This rewrites each coop row to the hints that player cashed, counted off
+-- their `kind = 'hint'` rows in `strands.events`. The hint bar (`hint_points`)
+-- and the ringed hint (`active_hint_coords`) stay lock-step on every coop row:
 -- they are the team's one pool, not a fact about a player.
 --
 -- The column then takes the blob's name: a count is `nFoo`

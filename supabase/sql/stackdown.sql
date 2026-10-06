@@ -190,7 +190,7 @@ drop function if exists stackdown._write_statuses(uuid, boolean);
 --     team: {nFoundWords, nHintsUsed, nSpoilersUsed, board}
 --                                          the team's facts, once: the players' own
 --                                          counts summed, the one stack; null in
---                                          compete (plans/team-facts.md)
+--                                          compete (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, kind, word, clue, tileIds, valid, tookTurn, at}, …]
 --                                          every row, every player's; `word` a
 --                                          played word or a spoiler's, `clue` a
@@ -337,7 +337,7 @@ $$;
 revoke execute on function stackdown._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its counts and the one stack. Null in compete,
--- where there is no team (plans/team-facts.md).
+-- where there is no team (docs/common-schema.md → A player's facts).
 create or replace function stackdown._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

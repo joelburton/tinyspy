@@ -26,8 +26,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // `team` goes onto the players; `gd` has none.
   const { team, turns, ending, ...rest } = raw
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's — the team's in coop, their own in compete;
+  // under `own`, their own.
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const own: GFacts = {
       nFoundWords: p.nFoundWords,

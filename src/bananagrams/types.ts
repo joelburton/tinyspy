@@ -99,11 +99,11 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * bananagrams' facts (plans/team-facts.md): the letters a racer holds, their
- * board, and the two piles every racer draws from. A player carries them twice
- * — spread on, their side's; under `own`, their own — and since bananagrams is
- * compete only, a side is always one player, so the two are the same. The
- * piles are one for every racer.
+ * bananagrams' facts (docs/common-schema.md → A player's facts): the letters a
+ * racer holds, their board, and the two piles every racer draws from. A player
+ * carries them twice — spread on, their side's; under `own`, their own — and
+ * since bananagrams is compete only, a side is always one player, so the two
+ * are the same. The piles are one for every racer.
  */
 export type GFacts = {
   // Every letter they hold, hand and board together, as one lowercase string;
@@ -235,9 +235,9 @@ export type GGameData = Omit<GGameDataRaw, 'nBunchTiles' | 'nBagTiles' | 'team' 
 
 /**
  * A player as `gd` holds them: the common player with bananagrams' facts twice
- * — spread on, their side's; under `own`, their own (plans/team-facts.md). A
- * rival's `tiles` and `board` are null while the race is on; their counts
- * stay.
+ * — spread on, their side's; under `own`, their own (docs/common-schema.md → A
+ * player's facts). A rival's `tiles` and `board` are null while the race is on;
+ * their counts stay.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

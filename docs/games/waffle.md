@@ -124,7 +124,7 @@ so one storage shape and one read path serve both modes; the cost is the 25-char
 board stored redundantly across a handful of rows. A player's `n_swaps_used` is
 **their own** in both modes — a coop swap counts only for the player who made
 it — and the team's count is the sum
-([plans/team-facts.md](../../plans/team-facts.md)).
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)).
 
 | table | purpose |
 |---|---|
@@ -461,7 +461,7 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   setup rows, and waffle's facts (`GFacts`: `nSwapsUsed`, `maxSwaps`, `board`)
   on every player twice — spread on, the side's (the team's in coop, their own
   in compete); under `own`, their own
-  ([plans/team-facts.md](../../plans/team-facts.md)). The state line reads
+  ([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). The state line reads
   `gd.me` beside `gd.puzzle`, whose par is the deal's. It reads nothing and
   subscribes to nothing.
 - **`PlayArea` picks the board to show:** a past swap's while one is open

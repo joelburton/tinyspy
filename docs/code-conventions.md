@@ -124,16 +124,17 @@ onChange={({ coopStyle, firstTurnUserId }) =>
 queried by key from the client.
 
 **A loose copy of a path is spelled `group_leaf`.** Inside its group a name is
-bare and the path supplies the context: `team.nGuessesUsed` and `me.nGuessesUsed`
-are both right. A copy pulled out of its group — a local, a prop carrying the
-one number — has lost that context and says which it is, with a dot become an
-underscore: `team_guessesUsed`, `me_board_rows`. Lossless (the leaf is spelled
-as the key, so a grep finds every copy), and odd-looking on purpose: such a
-copy is rare, since a value a parent hands a child for the child's own purpose
-takes the purpose's name (`canPick`, never `me_onTurn`), and a pick that reads
-only `gd` goes into `gd` ([plans/team-facts.md](../plans/team-facts.md) → The
-naming rule for a loose copy). A row field is all lowercase (`team_score`); a
-path copy has a camelCase leaf.
+bare and the path supplies the context: `me.nGuessesUsed` (my side's) and
+`me.own.nGuessesUsed` (mine) are both right ([common-schema.md → A player's
+facts](common-schema.md#a-players-facts--the-sides-and-their-own)). A copy
+pulled out of its group — a local, a prop carrying the one number — has lost
+that context and says which it is, with a dot become an underscore:
+`me_nGuessesUsed`, `me_own_nGuessesUsed`, `me_board_rows`. Lossless (the leaf
+is spelled as the key, so a grep finds every copy), and odd-looking on
+purpose: such a copy is rare, since a value a parent hands a child for the
+child's own purpose takes the purpose's name (`canPick`, never `me_onTurn`),
+and a pick that reads only `gd` goes into `gd`. A row field is all lowercase
+(`team_score`); a path copy has a camelCase leaf.
 
 **A few words may be abbreviated, and a count may be `nFoo`.** `msg`, `err`,
 `cats`, `fn`, `btn`, `idx`, `curr`, `num`, `len` read instantly to anyone, so new code may use them

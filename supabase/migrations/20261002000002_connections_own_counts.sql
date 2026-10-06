@@ -11,13 +11,13 @@
 -- `nMistakes`, `matched_cat_rank` → `matchedCatRank`. A rename carries every
 -- row and its check constraint with it.
 --
--- `n_mistakes` becomes each player's own in coop too (plans/team-facts.md: a
--- player's keys are that player's own in every mode, and what the team
--- shares is summed from the rows at build time). Until now the guess RPC
--- kept every coop row at the TEAM's count (lock-step), so a builder that
--- sums the rows would read a coop game at N times its real count. This
--- rewrites each coop row to the player's own misses, counted off their rows
--- in `connections.events`, before the new RPC and builder apply.
+-- `n_mistakes` becomes each player's own in coop too (docs/common-schema.md → A
+-- player's facts: a player's keys are that player's own in every mode, and what
+-- the team shares is summed from the rows at build time). Until now the guess
+-- RPC kept every coop row at the TEAM's count (lock-step), so a builder that
+-- sums the rows would read a coop game at N times its real count. This rewrites
+-- each coop row to the player's own misses, counted off their rows in
+-- `connections.events`, before the new RPC and builder apply.
 --
 -- Compete rows were each player's own all along, and `n_matched_cats` was in
 -- both modes; both are left alone. The page blobs are rebuilt by hand after

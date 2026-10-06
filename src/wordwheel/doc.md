@@ -200,7 +200,7 @@ its twin, so the title is the multiset.
 The facts (`GFacts`: `nFoundWords`, `foundWordsScore`, `rankIdx`,
 `targetRankIdx`, with the two rank names beside them) are on every player
 twice — spread on, the side's (the team's in coop, their own in compete);
-under `own`, their own ([plans/team-facts.md](../../plans/team-facts.md)).
+under `own`, their own ([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)).
 `gd` has no `team`; `foundWords` stays at the game level beside it, a record
 of who found what. The required set is the puzzle's, the same for every side.
 

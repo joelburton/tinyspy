@@ -89,7 +89,7 @@ rows are
 It draws `gd.stateLineData`, which `useGame` builds: what the line shows is
 the game's decision, made there, and `StateLine` prettifies it, full stop. A
 game whose players carry their side's facts draws those instead, `gd.me`
-(psychicnum's; [plans/team-facts.md](../plans/team-facts.md)). It
+(psychicnum's; [common-schema.md → A player's facts](common-schema.md#a-players-facts--the-sides-and-their-own)). It
 returns a fragment — the numbers and words, no element of its own — and the
 caller supplies the box: the info column's `.infoState` paragraph, and the
 `MobileStatusBar` in a game that shows the line above the board on a phone.

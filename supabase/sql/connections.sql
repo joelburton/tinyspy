@@ -24,7 +24,7 @@
 --   - A player is out on the fourth mistake. Coop's budget is the team's,
 --     spent by every player's own misses summed; in compete each racer has
 --     their own, and the first to match all four categories wins at once.
---   - Every row is each player's own, in both modes (plans/team-facts.md);
+--   - Every row is each player's own, in both modes (docs/common-schema.md → A player's facts);
 --     what the team shares is summed at build time, into `team`.
 --   - The frontend reads none of these tables: it reads the page blobs the
 --     builder writes onto `common.games` (The page blobs, below). What a
@@ -332,7 +332,7 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --                                           the team's facts, once: the counts summed
 --                                           over the rows, the one board; null in
 --                                           compete, where there is no team
---                                           (plans/team-facts.md)
+--                                           (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, tiles, result, matchedCatRank, at}, …]
 --                                           every player's, `tiles` their four ids;
 --                                           what a racer may see of a rival mid-race
@@ -504,7 +504,8 @@ $$;
 revoke execute on function connections._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its counts, the budget, and the one board.
--- Null in compete, where there is no team (plans/team-facts.md).
+-- Null in compete, where there is no team (docs/common-schema.md → A player's
+-- facts).
 create or replace function connections._make_json_team(p_game_id uuid)
 returns jsonb
 language sql
@@ -985,9 +986,9 @@ drop function if exists connections.submit_guess(uuid, text[], text, int);
 -- result='correct', the matched category's rank. This validates auth, the
 -- payload shape and the game state, then records and branches on mode.
 --
--- Every write lands on the CALLER's row, in both modes (plans/team-facts.md):
--- a match is theirs, a miss is theirs. What differs by mode is what the
--- counts are checked against.
+-- Every write lands on the CALLER's row, in both modes (docs/common-schema.md →
+-- A player's facts): a match is theirs, a miss is theirs. What differs by mode
+-- is what the counts are checked against.
 --
 -- Coop branch:
 --   - correct → a rank anyone already matched is a race; otherwise insert

@@ -3,13 +3,13 @@
 -- ============================================================
 -- waffle.players' swap count is each player's own, in coop too, and says so
 -- ============================================================
--- plans/team-facts.md: a player's keys are that player's own in every mode,
--- and what the team shares is summed from the rows at build time. Until now
--- `submit_swap` kept every coop row at the TEAM's count (lock-step, beside
--- the shared board), so a builder that sums the rows would read a coop game
--- at N times its real count. This rewrites each coop row to the player's own
--- swaps, counted off their rows in `waffle.events`, before the new RPC and
--- builder apply. The board stays lock-step: it is one shared board.
+-- docs/common-schema.md → A player's facts: a player's keys are that player's
+-- own in every mode, and what the team shares is summed from the rows at build
+-- time. Until now `submit_swap` kept every coop row at the TEAM's count
+-- (lock-step, beside the shared board), so a builder that sums the rows would
+-- read a coop game at N times its real count. This rewrites each coop row to
+-- the player's own swaps, counted off their rows in `waffle.events`, before the
+-- new RPC and builder apply. The board stays lock-step: it is one shared board.
 --
 -- The column then takes the blob's name: a count is `nFoo`
 -- (docs/code-conventions.md → A few words may be abbreviated), so

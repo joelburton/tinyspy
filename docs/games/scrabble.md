@@ -342,7 +342,7 @@ common part:
 **Every player carries the facts** (`GFacts`: `score`, `rack`, `nRackTiles`,
 `board`, `nBagTiles`) twice: spread on, the side's — the team's in coop, their
 own in compete; under `own`, their own
-([plans/team-facts.md](../../plans/team-facts.md)). The board and the bag are
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). The board and the bag are
 one in both modes, so the wire sends them once at the top and `useGame` puts
 them on every player, the same board object on each; a coop rack is the
 team's, on every player and under `own` alike. `gd` has no `board`, `nBagTiles`

@@ -309,7 +309,7 @@ drop function if exists wordiply._write_statuses(uuid, boolean);
 --     team: {nGuessesUsed, lengthScore, nLetters, longestWordLen, maxGuesses, board}
 --                                          the team's facts, once: its words, summed,
 --                                          and the one board; null in compete, where
---                                          there is no team (plans/team-facts.md); the
+--                                          there is no team (docs/common-schema.md → A player's facts); the
 --                                          three scores null until the game ends
 --     events: [{id, userId, word, valid, reason, tookTurn, at}, …]
 --                                          every submission, rejects included, every
@@ -426,7 +426,8 @@ $$;
 revoke execute on function wordiply._make_json_board(uuid, uuid) from public;
 
 -- The team's facts, sent once: the whole team's track, the budget, and the one
--- board. Null in compete, where there is no team (plans/team-facts.md).
+-- board. Null in compete, where there is no team (docs/common-schema.md → A
+-- player's facts).
 create or replace function wordiply._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

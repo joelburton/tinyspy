@@ -101,11 +101,11 @@ export type GReveal = {
 }
 
 /**
- * codenamesduet's facts (plans/team-facts.md): the agents found, the turns
- * against the budget, and the table. A player carries them twice — spread on,
- * their side's; under `own`, their own — and since nothing is stored per
- * player (a turn and a find are the pair's), both are the team's. The key
- * cards are the puzzle's, not facts (`puzzleTile.key`).
+ * codenamesduet's facts (docs/common-schema.md → A player's facts): the agents
+ * found, the turns against the budget, and the table. A player carries them
+ * twice — spread on, their side's; under `own`, their own — and since nothing
+ * is stored per player (a turn and a find are the pair's), both are the team's.
+ * The key cards are the puzzle's, not facts (`puzzleTile.key`).
  */
 export type GFacts = {
   nFoundAgents: number
@@ -203,7 +203,7 @@ export type GPlayerRaw = PlayerRaw & {
 /**
  * A player as `gd` holds them: the blob's player with codenamesduet's facts
  * twice — spread on, their side's; under `own`, their own, which is the
- * team's (plans/team-facts.md).
+ * team's (docs/common-schema.md → A player's facts).
  */
 export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
   own: GFacts

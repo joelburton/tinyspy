@@ -66,10 +66,10 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * waffle's facts (plans/team-facts.md): the swaps spent against the budget,
- * and the board they are made on. A player carries them twice — spread on,
- * their side's (the team's in coop, their own in compete); under `own`, their
- * own. Par is the deal's (`puzzle.parSwaps`).
+ * waffle's facts (docs/common-schema.md → A player's facts): the swaps spent
+ * against the budget, and the board they are made on. A player carries them
+ * twice — spread on, their side's (the team's in coop, their own in compete);
+ * under `own`, their own. Par is the deal's (`puzzle.parSwaps`).
  */
 export type GFacts = {
   nSwapsUsed: number
@@ -201,7 +201,7 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
 /**
  * One player of this game, as `gd` holds them: the blob's player with
  * waffle's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's board is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's board is null mid-race.
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts

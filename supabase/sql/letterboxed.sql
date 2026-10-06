@@ -363,7 +363,7 @@ drop function if exists letterboxed._write_statuses(uuid, boolean);
 --     team: {nWordsUsed, nCoveredLetters, nHintsUsed, nSpoilersUsed, maxWords, board}
 --                                          the team's facts, once: the one chain and
 --                                          its counts, the hints and spoilers summed;
---                                          null in compete (plans/team-facts.md)
+--                                          null in compete (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, kind, word, nCoveredLetters, tookTurn, at}, …]
 --                                          every move and every hint or spoiler,
 --                                          every player's; what a racer may see of a
@@ -531,7 +531,8 @@ revoke execute on function letterboxed._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: the one chain, read off any coop row since
 -- every row holds it, with its counts; the hints and spoilers summed; the cap.
--- Null in compete, where there is no team (plans/team-facts.md).
+-- Null in compete, where there is no team (docs/common-schema.md → A player's
+-- facts).
 create or replace function letterboxed._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

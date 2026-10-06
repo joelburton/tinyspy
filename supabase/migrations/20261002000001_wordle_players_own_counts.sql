@@ -3,12 +3,13 @@
 -- ============================================================
 -- wordle.players.guesses_used is each player's own count, in coop too
 -- ============================================================
--- plans/team-facts.md: a player's keys are that player's own in every mode,
--- and what the team shares is summed from the rows at build time. Until now
--- wordle's guess RPC kept every coop row at the TEAM's count (lock-step), so
--- a builder that sums the rows would read a coop game at N times its real
--- count. This rewrites each coop row to the player's own guesses, counted off
--- their rows in `wordle.events`, before the new RPC and builder apply.
+-- docs/common-schema.md → A player's facts: a player's keys are that player's
+-- own in every mode, and what the team shares is summed from the rows at build
+-- time. Until now wordle's guess RPC kept every coop row at the TEAM's count
+-- (lock-step), so a builder that sums the rows would read a coop game at N
+-- times its real count. This rewrites each coop row to the player's own
+-- guesses, counted off their rows in `wordle.events`, before the new RPC and
+-- builder apply.
 --
 -- Compete rows were each player's own all along, and are left alone. The
 -- page blobs are rebuilt by hand after the deploy

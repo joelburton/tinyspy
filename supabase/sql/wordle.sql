@@ -185,7 +185,7 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --                                          the team's facts, once: the count summed
 --                                          over the rows, the one board; null in
 --                                          compete, where there is no team
---                                          (plans/team-facts.md)
+--                                          (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, word, colors, correct, at}, …]
 --                                          every player's; what a racer may see
 --                                          of a rival mid-race is the hook's rule
@@ -289,7 +289,7 @@ revoke execute on function wordle._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its count, the budget it counts against, and
 -- the one board. Null in compete, where there is no team
--- (plans/team-facts.md).
+-- (docs/common-schema.md → A player's facts).
 create or replace function wordle._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

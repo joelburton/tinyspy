@@ -34,8 +34,8 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 Joel, 2026-10-05, opening the seat-view conversion with a database-structure
 discussion before any code:
 
-- **A coop player's `score` is their own** (plans/team-facts.md): the points
-  from the words they committed, in both modes. `coop_score` goes; the team's
+- **A coop player's `score` is their own** (docs/common-schema.md → A
+  player's facts): the points from the words they committed, in both modes. `coop_score` goes; the team's
   score is the players' sum plus the leftovers rows.
 - **The leftover and going-out rows are written in the conversion**, where the
   deduction happens (`_score_leftovers`), on every ending in both modes: a

@@ -261,7 +261,7 @@ it into `game_data`, each key in its place.
 stackdown's facts (`GFacts`) are `nFoundWords`, `nHintsUsed`, `nSpoilersUsed`
 and `board: {tiles}`, the tiles still on the stack. `useGame` puts the side's
 facts on every player — the team's in coop, their own in compete — and their
-own under `own` ([plans/team-facts.md](../../plans/team-facts.md)). The six
+own under `own` ([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). The six
 words to clear are the puzzle's, the same for every side, so `StateLine` reads
 `gd.me` beside `gd.puzzle`.
 

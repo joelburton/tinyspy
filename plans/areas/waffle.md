@@ -62,7 +62,7 @@ opponent strip), `winner_user_id` (the compete verdict), `max_swaps` /
 **A coop solve stamps every teammate:** yes — `submit_swap` sets `solved_at`
 on every coop player and ranks them all 1.
 
-**Coop's count was lock-step**, as wordle's was before plans/team-facts.md:
+**Coop's count was lock-step**, as wordle's was before each player's count became their own:
 `submit_swap` wrote the team's `swaps_used` and board onto every coop
 `waffle.players` row. `20261005000000_waffle_players_own_counts.sql` rewrote
 each coop row from the player's own swaps, checking the sums against the old

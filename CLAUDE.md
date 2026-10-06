@@ -171,7 +171,6 @@ feedback) is read when app-audit opens a game's area.
 | [plans/component-readability.md](plans/component-readability.md) | What psychicnum settled for `gd`, the endings, PlayArea, Board/BoardCol and InfoCol; read it per conversion, beside playarea-readability |
 | [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
-| [plans/team-facts.md](plans/team-facts.md) | **Decided, not started.** Every player carries `GFacts`, a game's exact list of facts: spread on, its side's (the team's in coop); under `own`, its own. A shared board is sent once; `gd` has no `team` |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |
 | [plans/DO-NOT-READ-smaller-payload.md](plans/DO-NOT-READ-smaller-payload.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: splitting what never changes out of `game_data` so a move doesn't resend it |

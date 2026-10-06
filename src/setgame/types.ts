@@ -79,11 +79,11 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * setgame's facts (plans/team-facts.md): the sets found, the hints taken, and
- * the table and deck they are played from. A player carries them twice —
- * spread on, their side's (the team's in coop, their own in compete); under
- * `own`, their own. The table and the deck are one in both modes, the same on
- * every side.
+ * setgame's facts (docs/common-schema.md → A player's facts): the sets found,
+ * the hints taken, and the table and deck they are played from. A player
+ * carries them twice — spread on, their side's (the team's in coop, their own
+ * in compete); under `own`, their own. The table and the deck are one in both
+ * modes, the same on every side.
  */
 export type GFacts = {
   nSetsFound: number
@@ -218,8 +218,8 @@ export type GGameData = Omit<GGameDataRaw, 'board' | 'nTilesInDeck' | 'team' | '
 
 /**
  * A player as `gd` holds them: the common player with setgame's facts twice —
- * spread on, their side's; under `own`, their own (plans/team-facts.md).
- * Nothing of theirs is withheld.
+ * spread on, their side's; under `own`, their own (docs/common-schema.md → A
+ * player's facts). Nothing of theirs is withheld.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

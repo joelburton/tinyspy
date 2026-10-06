@@ -51,10 +51,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // Coop's one board, made once and the same object on every player.
   const teamBoard = team === null ? null : boardOf(team.board)
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's — the team's in coop, their own in compete; under `own`, their own.
-  // A coop bar and board are the team's alone, so they are every player's own
-  // too. A racer always carries their bar and board.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's — the team's in coop, their own in compete;
+  // under `own`, their own. A coop bar and board are the team's alone, so they
+  // are every player's own too. A racer always carries their bar and board.
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const mayShow = seeRival || isMine(p.id)
     const own: GFacts = team === null

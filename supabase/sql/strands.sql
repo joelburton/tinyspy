@@ -189,7 +189,7 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --                                          the team's facts, once: the puzzle words
 --                                          found, the players' hints summed, the
 --                                          one hint bar, the one board; null in
---                                          compete (plans/team-facts.md)
+--                                          compete (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, kind, word, result, tileIds, tookTurn, at}, …]
 --                                          every row, every player's; a guess's
 --                                          trace, or a hint's ringed word; what a
@@ -389,7 +389,7 @@ $$;
 revoke execute on function strands._make_json_team_counts(uuid) from public;
 
 -- The team's facts, sent once: its counts and bar, and the one board. Null in
--- compete, where there is no team (plans/team-facts.md).
+-- compete, where there is no team (docs/common-schema.md → A player's facts).
 create or replace function strands._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

@@ -111,7 +111,7 @@ it into `game_data`, each key in its place.
 crosswords' one fact (`GFacts`) is `board`. `useGame` unpacks it onto every
 player twice — spread on, the side's (coop's one grid, the same object on
 every player; a racer's own in compete); under `own`, their own, which in coop
-is the team's grid ([plans/team-facts.md](../../plans/team-facts.md)). `gd`
+is the team's grid ([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). `gd`
 has no `team`.
 
 **A board is packed**, since it is rebuilt on every keystroke

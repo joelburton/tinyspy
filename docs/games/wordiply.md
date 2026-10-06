@@ -527,7 +527,7 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   setup rows, and wordiply's facts (`GFacts`: the track, `maxGuesses`,
   `board`) on every player twice — spread on, the side's (the team's in coop,
   their own in compete); under `own`, their own
-  ([plans/team-facts.md](../../plans/team-facts.md)). The state line reads
+  ([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). The state line reads
   `gd.me` beside `gd.puzzle`, whose `maxWordLen` is the board's longest. It
   reads nothing and subscribes to nothing.
 - **`BoardCol` owns the move.** `useSubmitGuess` holds the shared

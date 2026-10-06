@@ -158,7 +158,7 @@ it into `game_data`, each key in its place.
 **Every player carries the facts** (`GFacts`: `nSetsFound`, `nHintsUsed`,
 `board`, `nTilesInDeck`) twice: spread on, the side's — the team's in coop,
 their own in compete; under `own`, their own
-([plans/team-facts.md](../../plans/team-facts.md)). The table and the deck are
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). The table and the deck are
 one in both modes, so the wire sends them once at the top and `useGame` puts
 them on every player, the same table object on each; `gd` has no `board`,
 `nTilesInDeck` or `team` of its own.

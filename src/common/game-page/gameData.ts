@@ -103,8 +103,8 @@ export type PlayerRaw = Player & {
 
 /**
  * A game's `GFacts`, held apart from the common player's keys. Every game
- * spreads its facts onto its player (plans/team-facts.md), where a key shared
- * with `PlayerRaw` would silently overwrite one with the other; a clash fails
- * `tsc` where the game's player type uses this.
+ * spreads its facts onto its player (docs/common-schema.md → A player's facts),
+ * where a key shared with `PlayerRaw` would silently overwrite one with the
+ * other; a clash fails `tsc` where the game's player type uses this.
  */
 export type FactsApart<F extends { [K in keyof F]: K extends keyof PlayerRaw ? never : unknown }> = F

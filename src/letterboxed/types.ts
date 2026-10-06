@@ -74,12 +74,12 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * letterboxed's facts (plans/team-facts.md): the chain and its two counts
- * against the cap, and the hints and spoilers taken. A player carries them
- * twice — spread on, their side's (the team's in coop, their own in compete);
- * under `own`, their own. A coop chain is the team's alone, so a coop
- * player's `own` holds the team's chain; their hints and spoilers are theirs.
- * Par is the puzzle's (`puzzle.nParWords`).
+ * letterboxed's facts (docs/common-schema.md → A player's facts): the chain and
+ * its two counts against the cap, and the hints and spoilers taken. A player
+ * carries them twice — spread on, their side's (the team's in coop, their own
+ * in compete); under `own`, their own. A coop chain is the team's alone, so a
+ * coop player's `own` holds the team's chain; their hints and spoilers are
+ * theirs. Par is the puzzle's (`puzzle.nParWords`).
  */
 export type GFacts = {
   nWordsUsed: number
@@ -252,7 +252,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
 /**
  * One player of this game, as `gd` holds them: the common player with
  * letterboxed's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's chain is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's chain is null mid-race.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

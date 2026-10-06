@@ -200,7 +200,7 @@ it into `game_data`, each key in its place.
 **Every player carries the facts** (`GFacts`: `tiles`, `nTiles`,
 `nUnplacedTiles`, `board`, `nBunchTiles`, `nBagTiles`) twice — spread on,
 their side's; under `own`, their own
-([plans/team-facts.md](../../plans/team-facts.md)) — and since bananagrams is
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)) — and since bananagrams is
 compete only, the two are the same. The piles are one for every racer, so the
 wire sends them once at the top and `useGame` puts them on every player; `gd`
 has no piles or `team` of its own, and the state line reads `gd.me`.

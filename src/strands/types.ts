@@ -85,11 +85,11 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * strands' facts (plans/team-facts.md): the puzzle words found, the hints
- * cashed, the hint bar, and the board. A player carries them twice — spread
- * on, their side's (the team's in coop, their own in compete); under `own`,
- * their own. A coop bar and board are the team's alone, so a coop player's
- * `own` holds the team's; their finds and hints are theirs.
+ * strands' facts (docs/common-schema.md → A player's facts): the puzzle words
+ * found, the hints cashed, the hint bar, and the board. A player carries them
+ * twice — spread on, their side's (the team's in coop, their own in compete);
+ * under `own`, their own. A coop bar and board are the team's alone, so a coop
+ * player's `own` holds the team's; their finds and hints are theirs.
  */
 export type GFacts = {
   // Null for a rival mid-race.
@@ -274,8 +274,8 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
 /**
  * One player of this game, as `gd` holds them: the common player with
  * strands' facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's found-word count, bar and board are null
- * mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's found-word count, bar
+ * and board are null mid-race.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

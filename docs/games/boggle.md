@@ -326,7 +326,7 @@ it into `game_data`, each key in its place:
 
 The six counts are boggle's facts (`GFacts`), on every player twice: spread
 on, the side's — the team's in coop, their own in compete; under `own`, their
-own ([plans/team-facts.md](../../plans/team-facts.md)). `gd` has no `team`;
+own ([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)). `gd` has no `team`;
 `foundWords` stays at the game level beside it, a record of who found what.
 The lists' totals are the puzzle's, the same for every side, and the state
 line reads `gd.me` beside `gd.puzzle`.

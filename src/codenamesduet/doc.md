@@ -195,7 +195,7 @@ hook merges it into `game_data`, each key in its place:
 
 The pair's facts (`GFacts`) are on both players twice — spread on, the side's;
 under `own`, their own — and since nothing is stored per player, both are the
-team's ([plans/team-facts.md](../../plans/team-facts.md)). The table is one
+team's ([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)). The table is one
 object on both players, so a tile names who may still guess it
 (`guessableBy`, a Set of players) and a reader asks for me. The key cards stay
 on the puzzle. `gd` has no `team`, and the state line reads `gd.me`.

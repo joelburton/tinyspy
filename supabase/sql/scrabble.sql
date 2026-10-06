@@ -360,7 +360,7 @@ $$;
 revoke execute on function scrabble._team_score(uuid) from public;
 
 -- What the team shares: its one rack and its score. Null in compete, where
--- there is no team (plans/team-facts.md).
+-- there is no team (docs/common-schema.md → A player's facts).
 create or replace function scrabble._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

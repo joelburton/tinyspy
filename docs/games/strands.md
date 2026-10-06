@@ -202,7 +202,7 @@ it into `game_data`, each key in its place.
 strands' facts (`GFacts`) are `nFoundPuzzleWords`, `nHintsUsed`, `hintPoints`
 and `board`. `useGame` puts the side's on every player — the team's in coop,
 their own in compete — and their own under `own`
-([plans/team-facts.md](../../plans/team-facts.md)); a coop bar and board are
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)); a coop bar and board are
 nobody's in particular, so a coop player's `own` holds the team's. The state
 line and the hint bar read `gd.me`, the bar's cost `gd.setup.hint_cost`.
 

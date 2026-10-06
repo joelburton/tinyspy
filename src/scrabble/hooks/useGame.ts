@@ -32,9 +32,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const cells = decodeBoard(boardRaw.letters)
   const board: GBoard = { cells, cellsById: Object.fromEntries(cells.map((c) => [c.id, c])) }
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's — the team's in coop, their own in compete; under `own`, their own.
-  // A coop rack is the team's alone, so it is every player's own too.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's — the team's in coop, their own in compete;
+  // under `own`, their own. A coop rack is the team's alone, so it is every
+  // player's own too.
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const maySeeRack = raw.ended || p.id === myId
     const own: GFacts = {

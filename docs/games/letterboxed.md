@@ -170,7 +170,7 @@ chain, and a coop player carries none of the three; a racer carries their own.
 Hints and spoilers are things a player did, so each player carries their own in
 both modes, and `team` sums them. letterboxed's facts (`GFacts`) are all six:
 `useGame` puts the side's on every player and their own under `own`
-([plans/team-facts.md](../../plans/team-facts.md)) — and since a coop chain is
+([common-schema.md → A player's facts](../common-schema.md#a-players-facts--the-sides-and-their-own)) — and since a coop chain is
 nobody's in particular, a coop player's `own` holds the team's chain. Par is
 the puzzle's, the same for every side.
 

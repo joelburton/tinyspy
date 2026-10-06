@@ -287,7 +287,7 @@ drop function if exists setgame._write_statuses(uuid, boolean);
 --     nTilesInDeck                         the tiles still to be dealt
 --     team: {nSetsFound, nHintsUsed}       what the team shares: the players'
 --                                          counts, summed; null in compete
---                                          (plans/team-facts.md)
+--                                          (docs/common-schema.md → A player's facts)
 --     events: [{id, userId, kind, tiles, boardAfter, tookTurn, at}, …]
 --                                          every row, every player's: a
 --                                          claim's three tiles or a hint's
@@ -345,7 +345,8 @@ $$;
 revoke execute on function setgame._make_json_events(uuid) from public;
 
 -- What the team shares: the sets found and the hints asked, the players'
--- counts summed. Null in compete, where there is no team (plans/team-facts.md).
+-- counts summed. Null in compete, where there is no team (docs/common-schema.md
+-- → A player's facts).
 create or replace function setgame._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

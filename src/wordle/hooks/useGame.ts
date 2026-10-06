@@ -25,10 +25,10 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // `team` goes onto the players; `gd` has none.
   const { team, turns, ending, ...rest } = raw
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's — the team's in coop, their own in compete; under `own`, their own.
-  // Coop's one board is the same object on every player; a racer's own is
-  // theirs alone to see mid-race.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's — the team's in coop, their own in compete;
+  // under `own`, their own. Coop's one board is the same object on every
+  // player; a racer's own is theirs alone to see mid-race.
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const board = team?.board ?? (seeRival || isMine(p.id) ? p.board : null)
     const own: GFacts = { nGuessesUsed: p.nGuessesUsed, maxGuesses: p.maxGuesses, board }

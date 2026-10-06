@@ -74,12 +74,12 @@ export type GPuzzle = {
 }
 
 /**
- * boggle's facts (plans/team-facts.md): what one player, or the team, has
- * found — every find, then the required and bonus finds apart. A target counts
- * the required points alone; the strip and a race with no target count them
- * all. A player carries them twice — spread on, their side's (the team's in
- * coop, their own in compete); under `own`, their own. The lists' totals are
- * the puzzle's, the same for every side.
+ * boggle's facts (docs/common-schema.md → A player's facts): what one player,
+ * or the team, has found — every find, then the required and bonus finds apart.
+ * A target counts the required points alone; the strip and a race with no
+ * target count them all. A player carries them twice — spread on, their side's
+ * (the team's in coop, their own in compete); under `own`, their own. The
+ * lists' totals are the puzzle's, the same for every side.
  */
 export type GFacts = {
   nFoundWords: number
@@ -95,7 +95,7 @@ export type GFacts = {
 export type GPlayerRaw = PlayerRaw & GFacts
 
 /** A player as `gd` holds them: the common player with boggle's facts twice —
- *  spread on, their side's; under `own`, their own (plans/team-facts.md). */
+ *  spread on, their side's; under `own`, their own (docs/common-schema.md → A player's facts). */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
 }

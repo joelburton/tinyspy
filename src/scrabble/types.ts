@@ -167,11 +167,12 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * scrabble's facts (plans/team-facts.md): the score, the rack, and the board
- * and bag they are played from. A player carries them twice — spread on, their
- * side's (the team's in coop, their own in compete); under `own`, their own.
- * The board and the bag are one in both modes, the same on every side; a coop
- * rack is the team's alone, so a coop player's `own` holds the team's.
+ * scrabble's facts (docs/common-schema.md → A player's facts): the score, the
+ * rack, and the board and bag they are played from. A player carries them twice
+ * — spread on, their side's (the team's in coop, their own in compete); under
+ * `own`, their own. The board and the bag are one in both modes, the same on
+ * every side; a coop rack is the team's alone, so a coop player's `own` holds
+ * the team's.
  */
 export type GFacts = {
   // Coop: the players' sum, less what the rack held at the end.
@@ -346,8 +347,8 @@ export type GGameData = Omit<GGameDataRaw, 'nBagTiles' | 'board' | 'team' | 'tur
 
 /**
  * A player as `gd` holds them: the blob's player with scrabble's facts twice —
- * spread on, their side's; under `own`, their own (plans/team-facts.md). A
- * rival's rack is null while the race is on.
+ * spread on, their side's; under `own`, their own (docs/common-schema.md → A
+ * player's facts). A rival's rack is null while the race is on.
  */
 export type GPlayer = Omit<GPlayerRaw, keyof GFactsRaw> & FactsApart<GFacts> & {
   own: GFacts

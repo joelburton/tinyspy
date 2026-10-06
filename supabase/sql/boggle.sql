@@ -97,7 +97,7 @@ drop function if exists boggle._write_statuses(uuid, boolean);
 --
 --   game_data, boggle's part:
 --     team: {the six counts}                      what the team shares, over every row; null
---                                                 in compete (plans/team-facts.md)
+--                                                 in compete (docs/common-schema.md → A player's facts)
 --     foundWords: [{userId, word, points,         every found word, in the order found, with
 --                   bonus, at}, …]                its finder; what a racer may see of a rival
 --                                                 mid-race is the page's rule
@@ -201,7 +201,7 @@ $$;
 revoke execute on function boggle._make_json_found_counts(uuid, uuid) from public;
 
 -- What the team shares: the six counts over every row. Null in compete, where
--- there is no team (plans/team-facts.md).
+-- there is no team (docs/common-schema.md → A player's facts).
 create or replace function boggle._make_json_team(p_game_id uuid)
 returns jsonb
 language sql

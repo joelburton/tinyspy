@@ -139,7 +139,8 @@ const CASES: Record<string, Family | GameEndingFamily> = {
     ],
   },
   // psychicnum._make_json_summary_data: `team` holds the found and used counts in coop and
-  // is null in compete (plans/team-facts.md); the winner is the common ending's.
+  // is null in compete (docs/common-schema.md → A player's facts); the winner
+  // is the common ending's.
   psychicnum: {
     live: { team: { nFoundSecrets: 2, nGuessesUsed: 2 }, nReqdSecrets: 3, maxGuesses: 7 },
     coop: [
@@ -228,8 +229,8 @@ const CASES: Record<string, Family | GameEndingFamily> = {
     ],
   },
   // wordle._make_json_summary_data: `team` holds the used count in coop and is null in compete
-  // (plans/team-facts.md); the winner's count is compete's alone; the answer band is the
-  // setup's.
+  // (docs/common-schema.md → A player's facts); the winner's count is compete's
+  // alone; the answer band is the setup's.
   wordle: {
     live: { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null },
     coop: [

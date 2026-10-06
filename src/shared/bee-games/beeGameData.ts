@@ -60,10 +60,10 @@ export type BeePuzzle = {
 }
 
 /**
- * A bee game's facts as the builders write them (plans/team-facts.md): what
- * one player, or the team, has found — the count and the points, bonus
- * included, and the rank that score reaches (`common._rank_idx`) — and the
- * rank they set out for. The required set they count against is the
+ * A bee game's facts as the builders write them (docs/common-schema.md → A
+ * player's facts): what one player, or the team, has found — the count and the
+ * points, bonus included, and the rank that score reaches (`common._rank_idx`)
+ * — and the rank they set out for. The required set they count against is the
  * puzzle's, the same for every side.
  */
 export type BeeFactsRaw = {
@@ -95,7 +95,7 @@ export type BeePlayerRaw = PlayerRaw & BeeFactsRaw
 /**
  * A player as `gd` holds them: the common player with the facts twice —
  * spread on, their side's (the team's in coop, their own in compete); under
- * `own`, their own (plans/team-facts.md).
+ * `own`, their own (docs/common-schema.md → A player's facts).
  */
 export type BeePlayer = PlayerRaw & FactsApart<BeeFacts> & {
   own: BeeFacts
@@ -265,8 +265,9 @@ export function makeBeeGameData<Setup>(
   const { team, turns, ending, ...rest } = raw
   const teamFacts = team === null ? null : addRankNames(team)
 
-  // Each player carries the facts twice (plans/team-facts.md): spread on, the
-  // side's — the team's in coop, their own in compete; under `own`, their own.
+  // Each player carries the facts twice (docs/common-schema.md → A player's
+  // facts): spread on, the side's — the team's in coop, their own in compete;
+  // under `own`, their own.
   const players: BeePlayer[] = raw.players.map(function makePlayer(p) {
     const own = addRankNames(p)
     return { ...p, ...(teamFacts ?? own), own }

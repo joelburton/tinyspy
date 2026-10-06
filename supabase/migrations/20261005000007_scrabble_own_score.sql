@@ -12,7 +12,7 @@
 --               capitals. `?` is still the blank. A game's title keeps its
 --               capitals: it is drawn text.
 --   OWN SCORE   A coop player's `score` is their own in every mode
---               (plans/team-facts.md): the points from the words they
+--               (docs/common-schema.md → A player's facts): the points from the words they
 --               committed, counted off their rows in `scrabble.events`. The
 --               team's score is the players' sum plus the leftovers rows, so
 --               `games.coop_score` goes, and `players.score` is never null.

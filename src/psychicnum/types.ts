@@ -48,10 +48,10 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * psychicnum's facts (plans/team-facts.md): the finds against the secrets, the
- * guesses against the budget, and the board they are played on. A player
- * carries them twice — spread on, their side's (the team's in coop, their own
- * in compete); under `own`, their own.
+ * psychicnum's facts (docs/common-schema.md → A player's facts): the finds
+ * against the secrets, the guesses against the budget, and the board they are
+ * played on. A player carries them twice — spread on, their side's (the team's
+ * in coop, their own in compete); under `own`, their own.
  */
 export type GFacts = {
   nFoundSecrets: number
@@ -189,7 +189,8 @@ export type GGameData =
 /**
  * One player of this game, as `gd` holds them: the common player with
  * psychicnum's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). The board's ids are turned into players.
+ * (docs/common-schema.md → A player's facts). The board's ids are turned into
+ * players.
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts

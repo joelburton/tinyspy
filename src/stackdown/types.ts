@@ -66,11 +66,11 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * stackdown's facts (plans/team-facts.md): the words cleared, the hints and
- * spoilers taken, and the stack they are played on. A player carries them
- * twice — spread on, their side's (the team's in coop, their own in compete);
- * under `own`, their own. The words to clear are the puzzle's, the same for
- * every side (`puzzle.nReqdWords`).
+ * stackdown's facts (docs/common-schema.md → A player's facts): the words
+ * cleared, the hints and spoilers taken, and the stack they are played on. A
+ * player carries them twice — spread on, their side's (the team's in coop,
+ * their own in compete); under `own`, their own. The words to clear are the
+ * puzzle's, the same for every side (`puzzle.nReqdWords`).
  */
 export type GFacts = {
   nFoundWords: number
@@ -235,7 +235,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
 /**
  * One player of this game, as `gd` holds them: the blob's player with
  * stackdown's facts twice — spread on, their side's; under `own`, their own
- * (plans/team-facts.md). A rival's stack is null mid-race.
+ * (docs/common-schema.md → A player's facts). A rival's stack is null mid-race.
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts
