@@ -64,8 +64,8 @@ export function PlayerBoard({
     onPeel,
     onCheckResult,
     onDump,
-    bunchCount: gd.nBunchTiles,
-    bagCount: gd.nBagTiles,
+    nBunchTiles: gd.nBunchTiles,
+    nBagTiles: gd.nBagTiles,
     reportBoardRef,
   })
 
@@ -75,19 +75,7 @@ export function PlayerBoard({
           hug board), so it does NOT compose shell.boardCol — styles.boardCol is
           self-sufficient, avoiding a flex hug-vs-fill override fight. */}
       <div className={styles.boardCol}>
-        <BoardArena
-          scrollRef={editor.scrollRef}
-          cell={editor.cell}
-          minCell={editor.minCell}
-          onZoom={editor.onZoom}
-          actZoomFit={editor.actZoomFit}
-          board={editor.board}
-          cursor={editor.cursor}
-          hover={editor.hover}
-          drag={editor.drag}
-          invalidCells={editor.invalidCells}
-          onCellPointerDown={editor.onCellPointerDown}
-        />
+        <BoardArena editor={editor} />
         {/* Moves are made on the arena itself, so `.moveArea` is empty; the
             slot reserves its own height so the arena never reflows when the
             pill appears or clears (docs/playarea.md → The swap rule). */}
@@ -104,7 +92,6 @@ export function PlayerBoard({
         editor={editor}
         actions={actions}
         endingMessage={endingMessage}
-        hasDump
       />
 
       {editor.drag && (

@@ -6,8 +6,9 @@ import type { ArrowKey } from './gridCursor'
 
 export type BoardCursorKeysOptions = {
   // May the caller act on keys right now? When false every action goes
-  // DISABLED — the arrows, the letters, Backspace and the commit — and a
-  // disabled action leaves the keystroke for whoever else wants it.
+  // DISABLED — the arrows, the letters, Backspace and the submit — and a
+  // disabled action leaves the keystroke for whoever else wants it. The
+  // submit's BUTTON goes hidden: an inert board has no move to make.
   enabled: boolean
   // Move the cursor. `moveCursor` may turn it onto the arrow's axis instead of
   // stepping.
@@ -17,34 +18,34 @@ export type BoardCursorKeysOptions = {
   onLetter: (letter: string) => void
   // Remove a tile, the one `planBackspace` picks.
   onBackspace: () => void
-  // Make the move, on whichever keys `commit`'s action carries. The callback
+  // Make the move, on whichever keys `submit`'s action carries. The callback
   // does its own "is it legal right now" check.
-  onCommit: () => void
-  // Which action the commit IS. Its keys come with it: `act-submit` carries
+  onSubmit: () => void
+  // Which action the submit IS. Its keys come with it: `act-submit` carries
   // Enter, `act-peel` Enter and Space.
-  commit: 'act-peel' | 'act-submit'
-  // May the commit fire right now? A NARROWER question than `enabled`: the
+  submit: 'act-peel' | 'act-submit'
+  // May the submit fire right now? A NARROWER question than `enabled`: the
   // cursor keys stay live while the move itself isn't available, and the same
   // answer grays the button. Defaults to `enabled`.
-  canCommit?: boolean
+  canSubmit?: boolean
 }
 
-/** What the caller gets back — the commit action, to place as a button. The
+/** What the caller gets back — the submit action, to place as a button. The
  *  other actions are keys with no control of their own: nothing on screen "is"
  *  the left arrow. */
 export type BoardCursorKeys = {
-  actCommit: Action
+  actSubmit: Action
 }
 
 /**
  * The shared **2-D board-cursor keyboard** for a game that types tiles onto a
  * grid: the arrow keys MOVE a cursor, an A–Z letter places a tile at it,
- * Backspace removes one, and the commit's keys make the move. What each of
+ * Backspace removes one, and the submit's keys make the move. What each of
  * those DOES is the game's, supplied as callbacks: which cells can be edited,
  * where a placed tile comes from, and what the move is.
  *
  * This binds four actions — `act-move-cursor`,
- * `act-place-tile`, `act-remove-tile`, and the game's own commit. The arrows
+ * `act-place-tile`, `act-remove-tile`, and the game's own submit. The arrows
  * and the letters are PATTERN actions, handed whichever key fired them, which
  * is what makes four arrows and twenty-six letters two actions rather than
  * thirty.
@@ -64,9 +65,9 @@ export function useBoardCursorKeys({
   onArrow,
   onLetter,
   onBackspace,
-  onCommit,
-  commit,
-  canCommit,
+  onSubmit,
+  submit,
+  canSubmit,
 }: BoardCursorKeysOptions): BoardCursorKeys {
   const state = () => (enabled ? 'active' : 'disabled')
 
@@ -85,10 +86,16 @@ export function useBoardCursorKeys({
     run: onBackspace,
   })
 
-  const actCommit = useBindAction(commit, {
-    describe: () => (enabled && (canCommit ?? true) ? 'active' : 'disabled'),
-    run: onCommit,
+  // An inert board has no move to make, so its button goes; its keys stay
+  // disabled, which keeps them from the browser (Space does not scroll the
+  // page). A move not available yet is disabled to both: the button grays.
+  const actSubmit = useBindAction(submit, {
+    describe: (asker) => {
+      if (!enabled) return asker === 'button' ? 'hidden' : 'disabled'
+      return (canSubmit ?? true) ? 'active' : 'disabled'
+    },
+    run: onSubmit,
   })
 
-  return { actCommit }
+  return { actSubmit }
 }

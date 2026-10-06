@@ -28,38 +28,38 @@ describe('boardWords', () => {
   })
 
   it('a lone tile is not a word', () => {
-    expect(boardWords(setChar(emptyBoard(), idx(5, 5), 'A'))).toEqual([])
+    expect(boardWords(setChar(emptyBoard(), idx(5, 5), 'a'))).toEqual([])
   })
 
-  it('reads an across run left-to-right, uppercased', () => {
-    expect(boardWords(place('cat', 3, 4, 'h'))).toEqual(['CAT'])
+  it('reads an across run left-to-right, lowercase as stored', () => {
+    expect(boardWords(place('cat', 3, 4, 'h'))).toEqual(['cat'])
   })
 
   it('reads a down run top-to-bottom', () => {
-    expect(boardWords(place('dog', 6, 2, 'v'))).toEqual(['DOG'])
+    expect(boardWords(place('dog', 6, 2, 'v'))).toEqual(['dog'])
   })
 
   it('finds both words of a crossword (across first, then down)', () => {
     // CAT across at (3,4); CAR down sharing the C at (3,4).
     const b = place('car', 3, 4, 'v', place('cat', 3, 4, 'h'))
-    expect(boardWords(b)).toEqual(['CAT', 'CAR'])
+    expect(boardWords(b)).toEqual(['cat', 'car'])
   })
 
   it('keeps duplicates — the caller de-dupes', () => {
     // "AN" placed twice on separate rows.
     const b = place('an', 1, 1, 'h', place('an', 1, 5, 'h'))
-    expect(boardWords(b)).toEqual(['AN', 'AN'])
+    expect(boardWords(b)).toEqual(['an', 'an'])
   })
 
   it('splits runs at a gap and ignores the lone leftover', () => {
     // "HI" then a gap then a single "X" on the same row → only HI.
     let b = place('hi', 0, 0, 'h')
-    b = setChar(b, idx(4, 0), 'X')
-    expect(boardWords(b)).toEqual(['HI'])
+    b = setChar(b, idx(4, 0), 'x')
+    expect(boardWords(b)).toEqual(['hi'])
   })
 
   it('flushes a run that reaches the last column', () => {
     // Two tiles ending exactly at the right edge (x = 23, 24).
-    expect(boardWords(place('ok', 23, 7, 'h'))).toEqual(['OK'])
+    expect(boardWords(place('ok', 23, 7, 'h'))).toEqual(['ok'])
   })
 })

@@ -139,8 +139,8 @@ export type GPlayerRaw = PlayerRaw & {
 /**
  * A board as the server holds it: the 25×25 grid as one 625-character string,
  * row by row, "." an empty cell, a lowercase letter a tile. Mine is read once,
- * at mount, to seed the board editor; the engine of play is the editor's own
- * copy after that (`reactTypes.ts` → `GBoardEditor`).
+ * at mount, to seed the board editor, whose own copy is the live one after that
+ * (`reactTypes.ts` → `GBoardEditor`).
  */
 export type GBoard = {
   letters: string

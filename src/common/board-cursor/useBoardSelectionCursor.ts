@@ -30,9 +30,9 @@ export type BoardSelectionCursor = {
  * follows `useSelectionCursor`'s rules — hidden until an arrow asks, the first
  * arrow only showing it, a click moving it and hiding it.
  *
- * It binds two actions, `act-move-cursor` and `act-toggle-tile`. **The commit
+ * It binds two actions, `act-move-cursor` and `act-toggle-tile`. **The submit
  * is the game's own**: its Submit is an action with Enter on it, bound beside
- * the button it draws, and it acts whether or not the cursor shows — it commits
+ * the button it draws, and it acts whether or not the cursor shows — it submits
  * the selection, which is always drawn, so a click followed by Enter makes the
  * move. **Space acts on the cursor, so it is inert while the cursor is hidden.**
  *

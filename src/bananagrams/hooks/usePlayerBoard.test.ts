@@ -1,17 +1,14 @@
 // cs-unmet
 
 /**
- * Tests for usePlayerBoard — bananagrams' board+hand interaction engine, the other
- * of the two most intricate hooks in the codebase (the twin is crosswords'
- * useGridKeyboard).
- * It spans both columns, so the load-bearing pieces are: the hand DERIVED from the
- * server tiles minus the board, the persistence (debounced autosave + the
- * save-on-unmount that PauseBoundary depends on), the keyboard cursor (place a held
- * tile / return one / flash when you don't hold it), and doPeel's guards.
+ * Tests for usePlayerBoard, the board editor: the hand derived from the tiles
+ * I hold less the board, the save on a timer and on unmount (the one
+ * `PauseBoundary` depends on), the keyboard cursor (place a held tile, return
+ * one, flash when I don't hold it), the peel's guards, and an inert board.
  *
- * db, useDragGesture, and the shared board-cursor keyboard are mocked; the pure
- * board lib (deriveHand/idx/setChar/GRID) runs for real. We drive the keyboard by
- * invoking the config the hook hands useBoardCursorKeys.
+ * db, the drag gesture and the shared cursor keyboard are mocked; the pure
+ * board lib runs for real. The keyboard is driven by calling what the editor
+ * hands `useBoardCursorKeys`.
  */
 
 import { renderHook, act } from '@testing-library/react'
@@ -34,11 +31,11 @@ vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
 }))
 // The cursor keyboard is captured rather than driven: what this file tests is
 // what bananagrams supplies (the callbacks), not the shared action. It hands
-// back a commit action, so the fake does too.
+// back the submit action, so the fake does too.
 vi.mock('@/common/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
-    return { actCommit: ZTest_actionFixture('act-peel') }
+    return { actSubmit: ZTest_actionFixture('act-peel') }
   },
 }))
 
@@ -49,9 +46,24 @@ const withCenter = (letter: string) => setChar(EMPTY, CENTER, letter)
 
 function render(input: Partial<GBoardEditorInput> = {}) {
   return renderHook(() =>
-    usePlayerBoard({ gameId: 'g1', initialBoard: EMPTY, tiles: 'A', isBoardInteractive: true, ...input }),
+    usePlayerBoard({
+      gameId: 'g1',
+      initialBoard: EMPTY,
+      tiles: 'a',
+      isBoardInteractive: true,
+      onPeel: () => Promise.resolve(null),
+      onCheckResult: () => {},
+      onDump: () => {},
+      nBunchTiles: 100,
+      nBagTiles: 0,
+      reportBoardRef: { current: '' },
+      ...input,
+    }),
   )
 }
+
+/** The peel, as Enter or Space fires it. */
+const pressPeel = () => act(async () => keyCfg.current.onSubmit())
 
 beforeEach(() => {
   mockRpc.mockReset().mockReturnValue(Promise.resolve({ error: null }))
@@ -63,104 +75,106 @@ afterEach(() => {
 
 describe('derived hand', () => {
   it('is the held tiles minus what is on the board', () => {
-    const { result } = render({ tiles: 'ABC', initialBoard: withCenter('A') })
-    expect([...result.current.derivedHand].sort().join('')).toBe('BC')
+    const { result } = render({ tiles: 'abc', initialBoard: withCenter('a') })
+    expect([...result.current.derivedHand].sort().join('')).toBe('bc')
   })
 })
 
 describe('persistence', () => {
-  it('snapshots the board to save_player_board on UNMOUNT (the pause path)', () => {
-    const { unmount } = render({ tiles: 'A', initialBoard: EMPTY })
+  it('saves the board on UNMOUNT (the pause path)', () => {
+    const { unmount } = render({ tiles: 'a', initialBoard: EMPTY })
     expect(mockRpc).not.toHaveBeenCalled() // no save while mounted + unchanged
     unmount()
     expect(mockRpc).toHaveBeenCalledWith('save_player_board', { p_game_id: 'g1', p_board: EMPTY })
   })
 
-  it('debounces an autosave after a board edit', () => {
+  it('saves a little after a board edit', () => {
     vi.useFakeTimers()
-    render({ tiles: 'A', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('A' as never)) // places 'A' at center → board changes
-    expect(mockRpc).not.toHaveBeenCalled() // not yet — it's debounced
+    render({ tiles: 'a', initialBoard: EMPTY })
+    act(() => keyCfg.current.onLetter('a' as never)) // places 'a' at center → board changes
+    expect(mockRpc).not.toHaveBeenCalled() // not yet — it waits
     act(() => vi.advanceTimersByTime(800))
     expect(mockRpc).toHaveBeenCalledWith('save_player_board', {
       p_game_id: 'g1',
-      p_board: withCenter('A'),
+      p_board: withCenter('a'),
     })
   })
 })
 
 describe('keyboard cursor', () => {
-  it('typing a held letter fills the cursor cell and advances', () => {
-    const { result } = render({ tiles: 'A', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('A' as never))
-    expect(result.current.board[CENTER]).toBe('A')
+  it('typing a held letter fills the cursor cell, in the data\'s lowercase, and advances', () => {
+    const { result } = render({ tiles: 'a', initialBoard: EMPTY })
+    act(() => keyCfg.current.onLetter('a' as never))
+    expect(result.current.board).toBe(withCenter('a'))
     expect(result.current.cursor.x).toBe(C + 1) // advanced one cell (dir 'h')
   })
 
   it('typing a letter you do NOT hold flashes the hand and leaves the board', () => {
-    const { result } = render({ tiles: 'A', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('B' as never))
+    const { result } = render({ tiles: 'a', initialBoard: EMPTY })
+    act(() => keyCfg.current.onLetter('b' as never))
     expect(result.current.errFlash).toBe(true)
     expect(result.current.board).toBe(EMPTY)
   })
 
   it('Backspace returns the tile under the cursor to the hand', () => {
-    const { result } = render({ tiles: 'A', initialBoard: withCenter('A') })
-    expect(result.current.board[CENTER]).toBe('A')
+    const { result } = render({ tiles: 'a', initialBoard: withCenter('a') })
+    expect(result.current.board[CENTER]).toBe('a')
     act(() => keyCfg.current.onBackspace())
     expect(result.current.board[CENTER]).toBe('.') // cleared → re-derives into the hand
     expect(result.current.cursor.x).toBe(C) // the cursor stays
   })
 
   it('one Backspace right after typing returns the letter just typed', () => {
-    const { result } = render({ tiles: 'A', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('A' as never)) // cursor advances past it
+    const { result } = render({ tiles: 'a', initialBoard: EMPTY })
+    act(() => keyCfg.current.onLetter('a' as never)) // cursor advances past it
     act(() => keyCfg.current.onBackspace())
     expect(result.current.board).toBe(EMPTY)
     expect(result.current.cursor.x).toBe(C) // back on the emptied cell
   })
 })
 
-describe('doPeel', () => {
+describe('peel', () => {
   it('no-ops while the hand still holds tiles', async () => {
     const onPeel = vi.fn(() => Promise.resolve(null))
-    const { result } = render({ tiles: 'AB', initialBoard: withCenter('A'), onPeel }) // hand = 'B'
-    await act(async () => {
-      await result.current.doPeel()
-    })
+    render({ tiles: 'ab', initialBoard: withCenter('a'), onPeel }) // hand = 'b'
+    await pressPeel()
     expect(onPeel).not.toHaveBeenCalled()
   })
 
-  it('peels once every held tile is placed, and paints back the blocked cells', async () => {
+  it('saves the board first, peels once every held tile is placed, and paints back the blocked cells', async () => {
     const onPeel = vi.fn(() => Promise.resolve({ illegalCells: [CENTER] }))
-    const { result } = render({ tiles: 'A', initialBoard: withCenter('A'), onPeel }) // hand empty
-    await act(async () => {
-      await result.current.doPeel()
-    })
+    const { result } = render({ tiles: 'a', initialBoard: withCenter('a'), onPeel }) // hand empty
+    await pressPeel()
+    expect(mockRpc).toHaveBeenCalledWith('save_player_board', expect.anything())
     expect(onPeel).toHaveBeenCalledTimes(1)
     expect(result.current.invalidCells.has(CENTER)).toBe(true)
   })
 
   it('is inert once the board is (the game over, or I conceded)', async () => {
     const onPeel = vi.fn(() => Promise.resolve(null))
-    const { result } = render({ tiles: 'A', initialBoard: withCenter('A'), onPeel, isBoardInteractive: false })
-    await act(async () => {
-      await result.current.doPeel()
-    })
+    render({ tiles: 'a', initialBoard: withCenter('a'), onPeel, isBoardInteractive: false })
+    await pressPeel()
     expect(onPeel).not.toHaveBeenCalled()
   })
 })
 
-describe('frozen (conceded / terminal)', () => {
-  it('disables the keyboard and blocks pointer-down on an inert board', () => {
-    const { result } = render({ tiles: 'A', isBoardInteractive: false })
+describe('the dump', () => {
+  it('can draw while the bunch and the bag together cover it', () => {
+    expect(render({ nBunchTiles: 1, nBagTiles: 2 }).result.current.canDump).toBe(true)
+    expect(render({ nBunchTiles: 1, nBagTiles: 1 }).result.current.canDump).toBe(false)
+  })
+})
+
+describe('an inert board (conceded, or the game over)', () => {
+  it('disables the keyboard and blocks pointer-down', () => {
+    const { result } = render({ tiles: 'a', isBoardInteractive: false })
     expect(keyCfg.current.enabled).toBe(false)
     result.current.onCellPointerDown(C, C, {} as never)
     expect(mockStart).not.toHaveBeenCalled()
   })
 
   it('starts a drag on pointer-down while live', () => {
-    const { result } = render({ tiles: 'A', initialBoard: withCenter('A') })
+    const { result } = render({ tiles: 'a', initialBoard: withCenter('a') })
     result.current.onCellPointerDown(C, C, {} as never)
     expect(mockStart).toHaveBeenCalledTimes(1)
   })

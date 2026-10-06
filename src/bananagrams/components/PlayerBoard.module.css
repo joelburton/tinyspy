@@ -127,13 +127,15 @@
   outline-offset: -3px;
 }
 
-/* ---- tiles (board + hand + ghost) ---- */
+/* ---- tiles (board + hand + ghost) ----
+ * A letter is stored lowercase and drawn as a capital, here and on the ghost. */
 .tile,
 /* @@ */ .handTile {
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  text-transform: uppercase;
   color: var(--bananagrams-tile-ink);
   background: var(--bananagrams-tile-face);
   border: 1px solid var(--bananagrams-tile-edge);
@@ -306,6 +308,7 @@
  * tier — comes from shared/grid-and-drag/dragGhost.module.css, composed
  * alongside this. */
 /* @@ */ .ghost {
+  text-transform: uppercase;
   color: var(--bananagrams-tile-ink);
   background: var(--bananagrams-tile-face);
   border: 1px solid var(--bananagrams-tile-edge);

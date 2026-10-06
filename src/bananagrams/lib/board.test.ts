@@ -70,13 +70,13 @@ describe('boardToGrid', () => {
     expect(boardToGrid(emptyBoard())).toEqual([])
   })
   it('crops to the tiles bounding box, gaps as empty strings, uppercased', () => {
-    // A little crossword: "CAT" across at (3,4) and "CAR" down at (3,4).
+    // A little crossword: "cat" across at (3,4) and "car" down at (3,4), drawn as capitals.
     let b = emptyBoard()
-    b = setChar(b, idx(3, 4), 'C')
-    b = setChar(b, idx(4, 4), 'A')
-    b = setChar(b, idx(5, 4), 'T')
-    b = setChar(b, idx(3, 5), 'A')
-    b = setChar(b, idx(3, 6), 'R')
+    b = setChar(b, idx(3, 4), 'c')
+    b = setChar(b, idx(4, 4), 'a')
+    b = setChar(b, idx(5, 4), 't')
+    b = setChar(b, idx(3, 5), 'a')
+    b = setChar(b, idx(3, 6), 'r')
     // Bounding box is x 3..5, y 4..6 → 3×3, with gaps as ''.
     expect(boardToGrid(b)).toEqual([
       ['C', 'A', 'T'],

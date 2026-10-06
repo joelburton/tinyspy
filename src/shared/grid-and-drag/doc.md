@@ -40,7 +40,7 @@ shared/grid-and-drag/
  ├── useDragGesture.ts   useDragGesture · cellAtPoint · DRAGGING_CLASS
  │    └── dragging.css   the body rule while a tile is carried
  └── dragGhost.module.css  .ghost, composed with each game's own
-bananagrams/hooks/usePlayerBoard.ts   runs the hook; BoardArena renders drag and hover, HandCard drag
+bananagrams/hooks/useBoardDrag.ts     runs the hook; BoardArena renders drag and hover, HandCard drag
 bananagrams/components/PlayerBoard.tsx  renders the ghost
 scrabble/components/BoardCol.tsx       runs the hook and renders the ghost; Board and Rack forward pointer-downs
 ```

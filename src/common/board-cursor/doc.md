@@ -1,6 +1,6 @@
 # board-cursor
 
-Arrows move a cursor over a board — the key handling every board-cursor game reuses, the axis-cursor math the letter-grid games use, and the selection cursor the picking boards and `<SelectionList>` use. `useBoardCursorKeys` binds four actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, and the game's own commit; `useBoardSelectionCursor` binds two, `act-move-cursor` and `act-toggle-tile`.
+Arrows move a cursor over a board — the key handling every board-cursor game reuses, the axis-cursor math the letter-grid games use, and the selection cursor the picking boards and `<SelectionList>` use. `useBoardCursorKeys` binds four actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, and the game's own submit; `useBoardSelectionCursor` binds two, `act-move-cursor` and `act-toggle-tile`.
 
 ## Intro to area
 
@@ -9,7 +9,7 @@ Two kinds of cursor live here, and they answer different questions.
 In bananagrams and scrabble you can build words from the keyboard as well as
 by dragging tiles. A cursor sits on one cell of the grid, pointing across or
 down. Type a letter and a tile for it goes there and the cursor moves on;
-Backspace takes one back; the commit's key makes the move. It is a
+Backspace takes one back; the submit's key makes the move. It is a
 crossword's cursor, laid over a board of loose tiles — a GEOGRAPHIC cursor,
 which the player needs to read the board, so it always shows.
 `gridCursor.ts` is its math: where an arrow moves it, and which cell a
@@ -19,7 +19,7 @@ the letters will run between, so the direction reads at a glance.
 On the boards where clicking a piece IS the move — psychicnum, connections,
 codenamesduet, waffle, strands — you can make the move from the keyboard too.
 Arrows move a ring over the pieces, Space picks the one under it, Enter
-commits. That is a SELECTION cursor — an alternative to clicking, so it stays
+submits. That is a SELECTION cursor — an alternative to clicking, so it stays
 hidden until an arrow asks for it. `useSelectionCursor` holds its show/hide
 rules, which `<SelectionList>` keeps too; `stepCell` says where an arrow takes
 it over a board's cells; `useBoardSelectionCursor` puts those together with
@@ -29,7 +29,7 @@ Both kinds bind their keys as actions and hand each press to the game — the
 letter-grid cursor through `useBoardCursorKeys`, the selection cursor through
 `useBoardSelectionCursor`. What stays in each game is what a key means there:
 where a placed tile comes from, which tiles may be removed, what a pick is,
-and what the commit is. The pointer side of the letter-grid boards is
+and what the submit is. The pointer side of the letter-grid boards is
 `shared/grid-and-drag`'s.
 
 ## Details
@@ -58,10 +58,11 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   so the dispatcher's gates come with them: a modified chord never matches, a
   keystroke aimed at a focused field never arrives, and a disabled action
   still keeps its key from the browser (Space never scrolls the page).
-  `enabled` disables them all; `canCommit` disables only the commit, and the
-  same answer grays the commit's button, which is the action the hook
+  `enabled` disables them all, and hides the submit's button, since an inert
+  board has no move to make; `canSubmit` disables only the submit, and the
+  same answer grays the submit's button, which is the action the hook
   returns.
-- **The commit brings its own keys.** `commit` names the action, and the
+- **The submit brings its own keys.** `submit` names the action, and the
   registry says which keys it carries: `act-submit` Enter, `act-peel` Enter
   and Space.
 - **Backspace is crosswords' two-step rule.** A removable tile under the
@@ -90,10 +91,10 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   folder is in `common/` (common never imports shared).
 - **On a board, Space acts on the cursor and Enter does not.** Space picks the
   piece under the cursor, so it is inert while the cursor is hidden. Enter
-  commits the selection, which is always drawn (the picked border), so it
-  commits with the cursor hidden — a click then Enter makes the move.
+  submits the selection, which is always drawn (the picked border), so it
+  submits with the cursor hidden — a click then Enter makes the move.
 - **The game binds its own Submit**, beside the button it draws, and
-  `useBoardSelectionCursor` has no commit. A game's Submit knows things no
+  `useBoardSelectionCursor` has no submit. A game's Submit knows things no
   shared hook should: when it hides, what it says while a guess is in flight.
   It is also why Enter ignores the cursor — an action cannot be off for its
   key and on for its button.
@@ -119,8 +120,8 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   already names a piece (letterboxed's twelve unique letters, setgame's
   lettered cards); not stackdown, whose overlapping stack has no "one cell
   left".
-- **Enter is the only key that commits a keyboard move.** A pointer's aim is
-  its confirmation, so a click may commit; an arrow can land a cell off, so the
+- **Enter is the only key that submits a keyboard move.** A pointer's aim is
+  its confirmation, so a click may submit; an arrow can land a cell off, so the
   keyboard confirms with a second key. codenamesduet (a click guesses) and
   waffle (the second tap swaps) keep their clicks, and their keyboard picks
   wait for Enter. Where a click only ever picks (connections, strands), Space
@@ -132,7 +133,7 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 - **No board piece is ever focused.** The cursor is state and a mark, and the
   keys are actions; a focused tile would be promoted to `:focus-visible` by
   the next keystroke.
-- **No on-screen cue teaches Enter** where a click commits (a `⏎ to guess`
+- **No on-screen cue teaches Enter** where a click submits (a `⏎ to guess`
   line under the board was declined): Help and the key list do. codenamesduet
   and waffle each keep a Someday about it.
 - **A new board brings** a shape with its reachability test, an `onToggle`,

@@ -214,17 +214,17 @@ export function useBoardColActions({
     run: passTurn,
   })
 
-  // The cursor keys, with Submit as their commit (Enter). A staged move shows
+  // The cursor keys, with Submit as their submit (Enter). A staged move shows
   // its score on a gray Submit until my turn comes.
-  const { actCommit: actSubmit } = useBoardCursorKeys({
+  const { actSubmit: actSubmit } = useBoardCursorKeys({
     enabled: isInteractive,
-    commit: 'act-submit',
-    canCommit: canSubmit && staged.tiles.length > 0 && !actExchange.pending &&
+    submit: 'act-submit',
+    canSubmit: canSubmit && staged.tiles.length > 0 && !actExchange.pending &&
       !actPass.pending,
     onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
     onLetter: typeLetter,
     onBackspace: backspace,
-    onCommit: () => void submitWord(),
+    onSubmit: () => void submitWord(),
   })
 
   // Every staged tile back to the rack at once; ⌫ takes one.

@@ -7,9 +7,9 @@ import { getActions } from '@/common/actions/actionsStore'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
 
 // The shared 2-D board-cursor keyboard: arrows move the cursor, a letter
-// places, Backspace removes, and the commit fires on the keys its OWN action
+// places, Backspace removes, and the submit fires on the keys its OWN action
 // carries — Enter for a submit, Enter or Space for a peel. Everything is inert
-// while disabled, and each action says so — the commit on its own narrower
+// while disabled, and each action says so — the submit on its own narrower
 // gate, the rest together on `enabled`.
 //
 // The dispatcher's gates are NOT retested here: a modified chord never matches
@@ -30,11 +30,11 @@ function setup(over: Partial<BoardCursorKeysOptions> = {}) {
     onArrow: vi.fn(),
     onLetter: vi.fn(),
     onBackspace: vi.fn(),
-    onCommit: vi.fn(),
+    onSubmit: vi.fn(),
   }
   const view = renderHook(() => {
     useActionDispatcher()
-    useBoardCursorKeys({ enabled: true, commit: 'act-submit', ...cb, ...over })
+    useBoardCursorKeys({ enabled: true, submit: 'act-submit', ...cb, ...over })
   })
   return { ...cb, view }
 }
@@ -51,48 +51,48 @@ describe('useBoardCursorKeys', () => {
     expect(cb.onLetter).toHaveBeenNthCalledWith(1, 'a')
     expect(cb.onLetter).toHaveBeenNthCalledWith(2, 'b')
     expect(cb.onBackspace).toHaveBeenCalledTimes(1)
-    expect(cb.onCommit).toHaveBeenCalledTimes(1)
+    expect(cb.onSubmit).toHaveBeenCalledTimes(1)
     cb.view.unmount()
   })
 
-  // Which keys commit is the ACTION's business, not a flag here: `act-submit`
+  // Which keys submit is the ACTION's business, not a flag here: `act-submit`
   // carries Enter, `act-peel` carries Enter and Space.
-  it('Space commits only for a peel', async () => {
+  it('Space submits only for a peel', async () => {
     const submit = setup()
     await press(' ')
-    expect(submit.onCommit).not.toHaveBeenCalled()
+    expect(submit.onSubmit).not.toHaveBeenCalled()
     submit.view.unmount()
 
-    const peel = setup({ commit: 'act-peel' })
+    const peel = setup({ submit: 'act-peel' })
     await press(' ')
-    expect(peel.onCommit).toHaveBeenCalledTimes(1)
+    expect(peel.onSubmit).toHaveBeenCalledTimes(1)
     peel.view.unmount()
   })
 
-  it('hands back the commit action, so a game can place it as a button', async () => {
+  it('hands back the submit action, so a game can place it as a button', async () => {
     const cb = vi.fn()
     const { result, unmount } = renderHook(() =>
       useBoardCursorKeys({
         enabled: true,
-        commit: 'act-peel',
+        submit: 'act-peel',
         onArrow: vi.fn(),
         onLetter: vi.fn(),
         onBackspace: vi.fn(),
-        onCommit: cb,
+        onSubmit: cb,
       }),
     )
-    expect(result.current.actCommit.id).toBe('act-peel')
-    await act(async () => result.current.actCommit.run())
+    expect(result.current.actSubmit.id).toBe('act-peel')
+    await act(async () => result.current.actSubmit.run())
     expect(cb).toHaveBeenCalledTimes(1)
     unmount()
   })
 
-  it('the commit has its OWN availability, narrower than the cursor keys', async () => {
+  it('the submit has its OWN availability, narrower than the cursor keys', async () => {
     // A move that isn't available yet, while the board keeps moving.
-    const cb = setup({ canCommit: false })
+    const cb = setup({ canSubmit: false })
     await press('Enter')
     await press('a')
-    expect(cb.onCommit).not.toHaveBeenCalled()
+    expect(cb.onSubmit).not.toHaveBeenCalled()
     expect(cb.onLetter).toHaveBeenCalledWith('a')
     cb.view.unmount()
   })
@@ -106,7 +106,7 @@ describe('useBoardCursorKeys', () => {
     expect(cb.onLetter).not.toHaveBeenCalled()
     expect(cb.onArrow).not.toHaveBeenCalled()
     expect(cb.onBackspace).not.toHaveBeenCalled()
-    expect(cb.onCommit).not.toHaveBeenCalled()
+    expect(cb.onSubmit).not.toHaveBeenCalled()
     cb.view.unmount()
   })
 
@@ -115,8 +115,8 @@ describe('useBoardCursorKeys', () => {
     const states = () =>
       Object.fromEntries(getActions().map((b) => [b.id, b.describe('button').state]))
 
-    it('with canCommit false only the commit is disabled; the cursor keys stay live', () => {
-      const cb = setup({ canCommit: false })
+    it('with canSubmit false only the submit is disabled; the cursor keys stay live', () => {
+      const cb = setup({ canSubmit: false })
       expect(states()).toEqual({
         'act-move-cursor': 'active',
         'act-place-tile': 'active',
@@ -126,17 +126,19 @@ describe('useBoardCursorKeys', () => {
       cb.view.unmount()
     })
 
-    // Disabled rather than hidden: the keys are still this board's keys, so
-    // the help list keeps them and grays them, and a disabled match still
-    // keeps the key from the browser (Space does not scroll the page).
-    it('with enabled false all four are disabled', () => {
+    // Disabled rather than hidden to the keyboard: the keys are still this
+    // board's keys, so the help list keeps them and grays them, and a disabled
+    // match still keeps the key from the browser (Space does not scroll the
+    // page). The submit's button alone goes: an inert board has no move.
+    it('with enabled false all four are disabled, and the submit button goes', () => {
       const cb = setup({ enabled: false })
       expect(states()).toEqual({
         'act-move-cursor': 'disabled',
         'act-place-tile': 'disabled',
         'act-remove-tile': 'disabled',
-        'act-submit': 'disabled',
+        'act-submit': 'hidden',
       })
+      expect(getActions().find((b) => b.id === 'act-submit')!.describe('key').state).toBe('disabled')
       cb.view.unmount()
     })
   })

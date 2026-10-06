@@ -40,7 +40,9 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled
  * and the on-screen keycaps make.
  */
 export function SubmitWithScore({ score, action, className, ...rest }: Props) {
-  const { buttonProps } = actionSurface(action)
+  const { hidden, buttonProps } = actionSurface(action)
+  // Nothing renders when the action is hidden, as the other action buttons.
+  if (hidden) return null
   return (
     <button
       type="button"

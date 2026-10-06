@@ -1,86 +1,53 @@
 // cs-unmet
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { runRpc } from '@/common/supabase/dbResult'
-import {
-  GRID,
-  DEFAULT_CELL,
-  MAX_CELL,
-  DUMP_COUNT,
-  idx,
-  clamp,
-  setChar,
-  tilesExtent,
-  deriveHand,
-  reconcileHandOrder,
-  shuffleString,
-} from '../lib/board'
-import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import { useBindAction } from '@/common/actions/useBindAction'
 import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
-import { useBindAction } from '@/common/actions/useBindAction'
-import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-import type { GDragSource } from '../types'
+import { DUMP_COUNT, GRID, clamp, deriveHand, idx, setChar, tilesExtent } from '../lib/board'
 import type { GBoardEditor, GBoardEditorInput } from '../reactTypes'
+import type { GCell } from '../types'
+import { useArenaZoom } from './useArenaZoom'
+import { useBoardAutosave } from './useBoardAutosave'
+import { useBoardDrag } from './useBoardDrag'
+import { useHandOrder } from './useHandOrder'
 
 /**
- * bananagrams' player-board **interaction engine** — the cross-column state and
- * behavior behind `<PlayerBoard>`, as a hook.
+ * The **board editor**: my board as it is on screen, the hand derived from it,
+ * and everything that changes them — the drag, the keyboard cursor, Peel and
+ * Check words — with the zoom and the autosave beside them. `<PlayerBoard>`
+ * holds it, and the two views (`<BoardArena>`, `<HandCard>`) draw from it.
  *
- * Why a hook (and not the roster's `BoardCol` + `InfoCol` split): bananagrams is the
- * documented exception where the board and the hand are NOT independently-owned
- * columns. One engine spans both — the hand tiles (info column) are drag SOURCES that
- * drop onto the board (board column); the dump zone (info column) is a drop TARGET
- * during a board drag; the derived hand (`deriveHand(tiles, board)`) is a function of
- * BOARD state; the keyboard cursor types onto the board but checks the hand; Peel /
- * rotate read board + hand. So the engine can't be split by column — it lives here as
- * ONE unit, and the two thin VIEWS (`<BoardArena>` / `<HandCard>`) render what it
- * returns. See docs/games/bananagrams.md + docs/playarea.md.
+ * One editor spans both columns, because the hand's tiles drop onto the board
+ * and the dump slot takes a tile dragged off it (docs/games/bananagrams.md).
  *
- * The board model (unchanged from the old inline version): this owns only the `board`
- * (seeded once from `initialBoard`); the HAND is DERIVED from the server-owned `tiles`
- * as `deriveHand(tiles, board)`. Every mutation writes the board ONLY — placing a tile
- * fills a cell and the hand shrinks by re-derivation; a peel/dump grows `tiles`
- * upstream and the hand grows by re-derivation. A local shuffle order (the ⟲ button)
- * layers on with `reconcileHandOrder`. Persistence snapshots the board to
- * `save_player_board` on a debounce AND on unmount (the unmount save is load-bearing —
- * `PauseBoundary` unmounts the play area on pause).
+ * The board is seeded once from the server's copy and owned here after; the
+ * hand is never stored — it is the tiles I hold less the letters on the board
+ * (`deriveHand`), so every move writes the board alone and the hand follows. A
+ * peel or a dump grows my tiles upstream, and the hand grows the same way.
  */
 
-const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
-const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
-// Stable empty set for "no red flags" — a fresh `new Set()` each render would be a new
-// reference and defeat memoization downstream.
+// The board cursor is always present during play (you can type the moment the
+// board loads). It starts dead center — Bananagrams builds outward from the
+// middle — and goes back there after a zoom-to-fit.
+const CENTER_CURSOR: GridCursor = {
+  x: Math.floor(GRID / 2),
+  y: Math.floor(GRID / 2),
+  dir: 'h',
+}
+
+// One empty set for "no red cells": a fresh `new Set()` each render would be a
+// new reference and defeat memoization downstream.
 const NO_CELLS: ReadonlySet<number> = new Set()
 
-// The board cursor is always present during play (you can type the moment the board
-// loads). It starts dead center — Bananagrams builds outward from the middle — and is
-// reset there after a recenter.
-const CENTER_CURSOR: GridCursor ={ x: Math.floor(GRID / 2), y: Math.floor(GRID / 2), dir: 'h' }
-
-function overHandAtPoint(x: number, y: number): boolean {
-  return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
-}
-function overDumpAtPoint(x: number, y: number): boolean {
-  return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
-}
-
-/** What `bananagrams.save_player_board` puts in `data`. The two no-op results
- *  are named rather than silent: a snapshot dropped ON PURPOSE (the game is
- *  over, or this player conceded and their board is frozen) and one that was
- *  stored are different facts, and an unnamed no-op makes them one answer. */
-type SavedBoard = { result: 'saved' } | { result: 'game-over' } | { result: 'conceded' } | null
+/** How long the "you don't hold that tile" box shows. */
+const HAND_ERROR_MS = 180
 
 /** What `bananagrams.check_board` puts in `data`. Three results because the
- *  check panel says three things — and `empty` is its own, since a board with
+ *  check says three things — and `empty` is its own, since a board with
  *  nothing on it has no blockers and would otherwise read as clean. */
 type CheckedBoard =
   | { result: 'invalid'; invalid_cells: number[]; placed: number }
@@ -96,195 +63,43 @@ export function usePlayerBoard({
   onPeel,
   onCheckResult,
   onDump,
-  bunchCount,
-  bagCount,
+  nBunchTiles,
+  nBagTiles,
   reportBoardRef,
 }: GBoardEditorInput): GBoardEditor {
+  // ─── The board and the hand ────────────────────────────
   const [board, setBoard] = useState(initialBoard)
-  // A local shuffle order for the hand (the ⟲ button). null = use the canonical
-  // derived order. Reconciled against the live hand each render, so it survives
-  // placements / peels without going stale.
-  const [handOrder, setHandOrder] = useState<string | null>(null)
-  const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
-  const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
   const [cursor, setCursor] = useState<GridCursor>(CENTER_CURSOR)
-  // Board cells flagged illegal by a blocked peel (disconnected, or — with
-  // word_check on — in an invalid word). Stored WITH the board they were computed
-  // against, so any edit (which changes `board`) makes them stop matching in render —
-  // they clear themselves, no effect needed.
+  const derivedHand = deriveHand(tiles, board)
+  const { displayedHand, actShuffle } = useHandOrder(derivedHand)
+
+  // Refs mirror state for the handlers registered once (the pointer's and the
+  // keyboard's), synced in an effect and never written during render.
+  const boardRef = useRef(board)
+  const tilesRef = useRef(tiles)
+  const cursorRef = useRef(cursor)
+  const isBoardInteractiveRef = useRef(isBoardInteractive)
+  useEffect(function syncRefs() {
+    boardRef.current = board
+    tilesRef.current = tiles
+    cursorRef.current = cursor
+    isBoardInteractiveRef.current = isBoardInteractive
+    reportBoardRef.current = board
+  }, [board, tiles, cursor, isBoardInteractive, reportBoardRef])
+
+  const { save } = useBoardAutosave({ gameId, board, boardRef })
+  const zoom = useArenaZoom({ boardRef, cursor })
+
+  // The cells a blocked peel or a check painted red, with the board they were
+  // judged on: an edit changes `board`, they stop matching, and they clear
+  // themselves with no effect.
   const [invalid, setInvalid] = useState<{
     board: string
     cells: ReadonlySet<number>
   } | null>(null)
-  const [dumpHot, setDumpHot] = useState(false) // a hand tile is hovering the dump slot
-  const [errFlash, setErrFlash] = useState(false)
-  const [errNonce, setErrNonce] = useState(0)
-  const [declaring, setDeclaring] = useState(false) // Done click in flight
-  const [checking, setChecking] = useState(false) // Check-words click in flight
+  const invalidCells = invalid && invalid.board === board ? invalid.cells : NO_CELLS
 
-  // The derived hand: held tiles minus what's on the board. `displayedHand` applies the
-  // local shuffle order on top (reconciled so it never drifts from the canonical
-  // multiset).
-  const derivedHand = deriveHand(tiles, board)
-  const displayedHand = handOrder !== null ? reconcileHandOrder(handOrder, derivedHand) : derivedHand
-
-  // Refs mirror state for the always-on pointer/key handlers (synced in an effect,
-  // never written during render). `tilesRef` lets the keyboard handler check tile
-  // availability against the live holdings.
-  const boardRef = useRef(board)
-  const tilesRef = useRef(tiles)
-  const cursorRef = useRef(cursor)
-  const declaringRef = useRef(declaring) // lets the peel shortcut see an in-flight peel
-  const checkingRef = useRef(checking) // same, for the check-words round trip
-  // The board is frozen when the player is out of the game — either they
-  // conceded OR the game is over. Freezing at TERMINAL too matters: otherwise
-  // post-game keystrokes/drags keep mutating the local board (which
-  // save_player_board no-ops server-side and "Print board (PDF)" snapshots
-  // live), so the on-screen and printed "final" board would silently diverge
-  // from the stored one. The always-on pointer/key handlers read this ref to
-  // bail (they're stable, so they can't close over the props directly).
-  const frozen = !isBoardInteractive
-  const frozenRef = useRef(frozen)
-  useEffect(() => {
-    boardRef.current = board
-    tilesRef.current = tiles
-    cursorRef.current = cursor
-    declaringRef.current = declaring
-    checkingRef.current = checking
-    frozenRef.current = frozen
-    if (reportBoardRef) reportBoardRef.current = board // expose the live board upward
-  }, [board, tiles, cursor, declaring, checking, frozen, reportBoardRef])
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  // --- Persistence: debounced autosave + save-on-unmount ----------------
-  // Returns its promise so the two FLUSH sites below (peel, check-words) can
-  // await the same one chain rather than each calling the RPC raw — they need
-  // the write to land before the server judges the board.
-  const save = useCallback(() => {
-    // Only the board is sent; `tiles` is server-owned. Nothing is rendered from
-    // the answer — the board on screen is already what was sent — so every arm
-    // here is about whether something went wrong, and `runRpc` has raised the
-    // modal by the time we see it.
-    return runRpc<SavedBoard>(
-      db.rpc('save_player_board', { p_game_id: gameId, p_board: boardRef.current }),
-    ).then((res) => {
-      if (res.type === 'ok' && res.data?.result === 'saved') {
-        // Stored, and `progress` recomputed for the peers strip.
-      } else if (res.type === 'ok' && res.data?.result === 'game-over') {
-        // Dropped ON PURPOSE: a late unmount-snapshot must not clobber the
-        // final board.
-      } else if (res.type === 'ok' && res.data?.result === 'conceded') {
-        // Dropped on purpose too: this player is out and their board is frozen.
-      } else if (res.type === 'not-ok') {
-        // Both are `BUG:`s and the modal is already up. Nothing to add on a
-        // surface whose whole job was to store what is already on screen.
-      } else {
-        reportUnhandled('save_player_board', res)
-      }
-    })
-  }, [gameId])
-  const saveTimer = useRef(0)
-  const firstSave = useRef(true)
-  useEffect(() => {
-    if (firstSave.current) {
-      firstSave.current = false
-      return
-    }
-    clearTimeout(saveTimer.current)
-    saveTimer.current = window.setTimeout(save, AUTOSAVE_MS)
-    return () => clearTimeout(saveTimer.current)
-  }, [board, save])
-  useEffect(() => {
-    return () => {
-      clearTimeout(saveTimer.current)
-      save()
-    }
-  }, [save])
-
-  // --- Zoom keeps the viewport center fixed -----------------------------
-  const zoomAnchor = useRef<{ cx: number; cy: number } | null>(null)
-  const onZoom = useCallback(
-    (next: number) => {
-      const c = scrollRef.current
-      if (c) {
-        zoomAnchor.current = {
-          cx: (c.scrollLeft + c.clientWidth / 2) / cell,
-          cy: (c.scrollTop + c.clientHeight / 2) / cell,
-        }
-      }
-      setCell(next)
-    },
-    [cell],
-  )
-  useLayoutEffect(() => {
-    const c = scrollRef.current
-    if (!c || !zoomAnchor.current) return
-    const { cx, cy } = zoomAnchor.current
-    c.scrollLeft = cx * cell - c.clientWidth / 2
-    c.scrollTop = cy * cell - c.clientHeight / 2
-    zoomAnchor.current = null
-  }, [cell])
-
-  // Start centered on the middle of the arena (or the player's tiles).
-  useLayoutEffect(() => {
-    const c = scrollRef.current
-    if (!c) return
-    const ext = tilesExtent(boardRef.current)
-    const cy = ext ? (ext.minY + ext.maxY + 1) / 2 : GRID / 2
-    const cx = ext ? (ext.minX + ext.maxX + 1) / 2 : GRID / 2
-    c.scrollLeft = cx * cell - c.clientWidth / 2
-    c.scrollTop = cy * cell - c.clientHeight / 2
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // The smallest zoom shows the WHOLE grid and no more: min cell = the board area's
-  // binding dimension / GRID. Measured on mount + resize.
-  useLayoutEffect(() => {
-    const c = scrollRef.current
-    if (!c) return
-    const ro = new ResizeObserver(() => {
-      const el = scrollRef.current
-      if (!el) return
-      const m = Math.max(8, Math.floor(Math.min(el.clientWidth, el.clientHeight) / GRID))
-      setMinCell(m)
-      setCell((cur) => Math.max(cur, m))
-    })
-    ro.observe(c)
-    return () => ro.disconnect()
-  }, [])
-
-  // Keep the keyboard cursor in view (just scrolls — the grid never moves).
-  useLayoutEffect(() => {
-    const c = scrollRef.current
-    if (!c) return
-    const m = cell
-    const x = cursor.x * cell
-    const y = cursor.y * cell
-    if (x - m < c.scrollLeft) c.scrollLeft = x - m
-    else if (x + cell + m > c.scrollLeft + c.clientWidth) c.scrollLeft = x + cell + m - c.clientWidth
-    if (y - m < c.scrollTop) c.scrollTop = y - m
-    else if (y + cell + m > c.scrollTop + c.clientHeight) c.scrollTop = y + cell + m - c.clientHeight
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursor.x, cursor.y])
-
-  // --- Hand error flash -------------------------------------------------
-  // A brief red box around the hand: "you don't hold that tile." Bumping the nonce
-  // remounts the overlay (keyed by it) so the flash replays even on a repeated miss —
-  // e.g. mashing a letter you don't have.
-  const flashHandError = useCallback(() => {
-    setErrFlash(true)
-    setErrNonce((n) => n + 1)
-  }, [])
-  useEffect(() => {
-    if (!errFlash) return
-    const id = setTimeout(() => setErrFlash(false), 180)
-    return () => clearTimeout(id)
-  }, [errFlash, errNonce])
-
-  // --- Mutations (board-only; the hand re-derives) ----------------------
-  // Placing a hand tile just fills a cell — the derived hand loses that letter
-  // automatically. (No hand index needed: tiles are interchangeable by letter.)
+  // ─── The moves: every one writes the board; the hand follows ───
   const handToBoard = useCallback((letter: string, x: number, y: number) => {
     setBoard((b) => setChar(b, idx(x, y), letter))
   }, [])
@@ -294,79 +109,44 @@ export function usePlayerBoard({
       return setChar(setChar(b, idx(x1, y1), '.'), idx(x2, y2), letter)
     })
   }, [])
-  // Returning a tile to the hand just empties its cell — the derived hand gains the
-  // letter back.
   const boardToHand = useCallback((x: number, y: number) => {
     if (boardRef.current[idx(x, y)] === '.') return
     setBoard((b) => setChar(b, idx(x, y), '.'))
   }, [])
 
-  // --- Drag plumbing (shared hook owns the window listeners) ------------
-  const finishDrag = useCallback(
-    (g: DragGesture<GDragSource>, x: number, y: number) => {
-      const target = cellAtPoint(x, y)
-      if (target) {
-        const occupied = boardRef.current[idx(target.x, target.y)] !== '.'
-        const ownCell =
-          g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
-        if (occupied && !ownCell) return // taken → snap back
-        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter, target.x, target.y)
-        else if (g.source.kind === 'board') boardToBoard(g.source.x, g.source.y, target.x, target.y)
-        return
-      }
-      // Drop a tile on the dump slot → dump it (server swaps it for DUMP_COUNT; the live
-      // `tiles` update re-derives the hand). Snap back if the bunch is too low to cover
-      // the draw — the slot shows that state. A tile dragged off the BOARD is dumpable
-      // too (it's a legal move): clear its cell first so `board` loses the letter in
-      // lock-step with the server removing it from `tiles`. Without the clear, the
-      // dumped letter would still sit on the board while `tiles` dropped it — the exact
-      // board/holdings desync we want to avoid. (The derived hand briefly regains the
-      // letter between the clear and the server's `tiles` update, ending
-      // one-instance-lighter just like dumping a hand tile.) A dump draws from the
-      // bunch, topping up from the bag when short — so what it can draw is bunch + bag.
-      const drawable = bunchCount === undefined ? undefined : bunchCount + (bagCount ?? 0)
-      const canDump = drawable === undefined || drawable >= DUMP_COUNT
-      if (overDumpAtPoint(x, y) && g.letter && canDump) {
-        if (g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
-        onDump?.(g.letter)
-        return
-      }
-      if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
-    },
-    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, bagCount],
+  // A dump draws from the bunch, topping up from the bag when it is short.
+  const canDump = nBunchTiles + nBagTiles >= DUMP_COUNT
+
+  const putCursorAt = useCallback(
+    (cell: GCell) => setCursor({ x: cell.x, y: cell.y, dir: 'h' }),
+    [],
   )
-
-  // A plain tap on a board cell moves the keyboard cursor there.
-  const onTap = useCallback((g: DragGesture<GDragSource>) => {
-    if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
-  }, [])
-
-  const { drag, hover, start } = useDragGesture<GDragSource>({
-    onDrop: finishDrag,
-    onTap,
-    // Any dragged tile (hand or board) can be dumped; light the slot when one hovers
-    // it, and clear that highlight once the drag ends.
-    onDragMove: (x, y) => setDumpHot(overDumpAtPoint(x, y)),
-    onDragEnd: () => setDumpHot(false),
+  const { drag, hover, dumpHot, onCellPointerDown, onHandPointerDown } = useBoardDrag({
+    boardRef,
+    isBoardInteractiveRef,
+    canDump,
+    handToBoard,
+    boardToBoard,
+    boardToHand,
+    onDump,
+    onTapCell: putCursorAt,
   })
 
-  const onCellPointerDown = useCallback(
-    (x: number, y: number, e: ReactPointerEvent) => {
-      if (frozenRef.current) return // conceded → board is frozen
-      const letter = boardRef.current[idx(x, y)]
-      start({ kind: 'board', x, y }, letter !== '.' ? letter : null, { x, y }, e)
-    },
-    [start],
-  )
-  const onHandPointerDown = useCallback(
-    (index: number, letter: string, e: ReactPointerEvent) => {
-      if (frozenRef.current) return // conceded → hand is frozen
-      start({ kind: 'hand', index }, letter, null, e)
-    },
-    [start],
-  )
+  // ─── The keyboard ──────────────────────────────────────
+  // A brief red box around the hand: "you don't hold that tile". The nonce
+  // remounts the box, so a repeated miss replays the flash.
+  const [errFlash, setErrFlash] = useState(false)
+  const [errNonce, setErrNonce] = useState(0)
+  const flashHandError = useCallback(() => {
+    setErrFlash(true)
+    setErrNonce((n) => n + 1)
+  }, [])
+  useEffect(function endHandErrorFlash() {
+    if (!errFlash) return
+    const id = setTimeout(() => setErrFlash(false), HAND_ERROR_MS)
+    return () => clearTimeout(id)
+  }, [errFlash, errNonce])
 
-  // --- Keyboard cursor --------------------------------------------------
   const advance = useCallback((cur: GridCursor) => {
     setCursor({
       x: clamp(cur.x + (cur.dir === 'h' ? 1 : 0)),
@@ -375,85 +155,28 @@ export function usePlayerBoard({
     })
   }, [])
 
-  // Peel as a callable action (the button and the keyboard shortcut share it). Guarded
-  // to exactly the button's enabled condition — every held tile placed (derived hand
-  // empty), game live, no peel already in flight — read from live refs so the keyboard
-  // path can't act on stale state. Flushes the board first so the server's `placed ==
-  // tiles` check sees the latest placements.
-  const doPeel = useCallback(async () => {
-    if (!onPeel || !isBoardInteractive || declaringRef.current) return
-    if (deriveHand(tilesRef.current, boardRef.current).length !== 0) return
-    setDeclaring(true)
-    try {
-      await save()
-      // A blocked winning peel (legal-board check) hands back the offending cells; paint
-      // them red against the board they were judged on. boardRef equals the saved board
-      // here, and the board doesn't change on a peel — so the flags show until the
-      // player's next edit moves `board` past it.
-      const outcome = await onPeel()
-      if (outcome && outcome.illegalCells.length > 0) {
-        setInvalid({ board: boardRef.current, cells: new Set(outcome.illegalCells) })
-      }
-    } finally {
-      setDeclaring(false)
+  // Peel: the board is saved first, so the server's "every tile placed" check
+  // sees what the player sees. A blocked winning peel hands back its cells,
+  // painted against the board they were judged on.
+  async function peel() {
+    if (!isBoardInteractive || deriveHand(tilesRef.current, boardRef.current).length !== 0) return
+    await save()
+    const outcome = await onPeel()
+    if (outcome && outcome.illegalCells.length > 0) {
+      setInvalid({ board: boardRef.current, cells: new Set(outcome.illegalCells) })
     }
-  }, [onPeel, isBoardInteractive, save])
+  }
 
-  // Check words — the same legality test a winning peel runs (one connected mass,
-  // every word real), on demand and read-only. Flushes the board first for the same
-  // reason doPeel does: the server judges what it HAS, and the board is FE-owned.
-  //
-  // The flags land in the same `invalid` slot a blocked peel uses, tagged with the
-  // board they were judged against — so they paint identically and clear themselves
-  // on the player's next edit, with no second mechanism to keep in step.
-  const doWordCheck = useCallback(async () => {
-    if (!isBoardInteractive || checkingRef.current) return
-    setChecking(true)
-    try {
-      await save()
-      const res = await runRpc<CheckedBoard>(db.rpc('check_board', { p_game_id: gameId }))
-      if (res.type === 'not-ok') {
-        // Both are faults and `runRpc` has raised the modal; this line is what
-        // the check panel says once it is dismissed.
-        onCheckResult?.({ kind: 'error', message: res.message })
-      } else if (res.type === 'ok' && res.data?.result === 'invalid') {
-        setInvalid({ board: boardRef.current, cells: new Set(res.data.invalid_cells) })
-        onCheckResult?.({ kind: 'invalid', count: res.data.invalid_cells.length })
-      } else if (res.type === 'ok' && res.data?.result === 'empty') {
-        // Its own answer, not a count of zero: an empty board has no blockers
-        // either, and "all good" must not congratulate someone who has not put
-        // a tile down.
-        setInvalid(null)
-        onCheckResult?.({ kind: 'empty' })
-      } else if (res.type === 'ok' && res.data?.result === 'clean') {
-        setInvalid(null)
-        onCheckResult?.({ kind: 'clean' })
-      } else {
-        reportUnhandled('check_board', res)
-      }
-    } finally {
-      setChecking(false)
-    }
-  }, [isBoardInteractive, gameId, onCheckResult, save])
-
-  // Board-cursor keyboard — the shared 2-D placement engine (it binds the
-  // arrows, the letters and Backspace as actions, and the commit as whichever
-  // action the game commits WITH). bananagrams supplies what the keys do: EVERY
-  // cell is editable (typing over a filled cell swaps its tile back to the hand
-  // — no "committed" tiles, unlike scrabble), Backspace returns a tile to the
-  // hand (`planBackspace` picks which), and the commit is a PEEL, whose action carries Enter and Space
-  // (`doPeel` self-no-ops when a peel isn't legal). Every one goes inert while
-  // conceded: the board freezes and the others keep racing.
-  //
-  // `actPeel` comes back out so the Peel BUTTON is that same action — one
-  // thing behind the key and the control.
-  const { actCommit: actPeel } = useBoardCursorKeys({
-    enabled: !frozen,
-    commit: 'act-peel',
-    // A peel FLUSHES the board, so it waits until every tile is placed — the
-    // same answer grays the button and stops Enter/Space firing a no-op.
-    canCommit: derivedHand.length === 0 && !declaring,
-    onCommit: () => void doPeel(),
+  // The shared 2-D cursor keyboard (common/board-cursor): arrows move, a letter
+  // places a tile from the hand, Backspace returns one, and the submit is a
+  // PEEL, whose action carries Enter and Space. Every cell is editable: typing
+  // over a filled cell swaps its tile back to the hand.
+  const { actSubmit: actPeel } = useBoardCursorKeys({
+    enabled: isBoardInteractive,
+    submit: 'act-peel',
+    // The same answer grays the button and stops Enter firing a no-op.
+    canSubmit: derivedHand.length === 0,
+    onSubmit: () => void peel(),
     onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
     onBackspace: () => {
       const { remove, cursor } = planBackspace(
@@ -464,20 +187,15 @@ export function usePlayerBoard({
       if (remove) boardToHand(remove.x, remove.y)
       setCursor(cursor)
     },
-    onLetter: (typed: string) => {
-      // This game's tiles are still capitals; its conversion takes it to the
-      // data's lowercase (src/bananagrams/todo.md).
-      const letter = typed.toUpperCase()
+    onLetter: (letter: string) => {
       const cur = cursorRef.current
       const i = idx(cur.x, cur.y)
-      // Typing on a FILLED cell swaps: clear it first (its tile re-derives back into the
-      // hand), then ask "do I hold the typed letter?". On an empty cell that clear is a
-      // no-op. Because the hand is DERIVED from the board, the one overwrite below does
-      // both halves of the swap.
+      // A filled cell is cleared first, so its tile is back in the hand when
+      // the hand is asked whether it holds the typed letter.
       const freed =
         boardRef.current[i] === '.' ? boardRef.current : setChar(boardRef.current, i, '.')
       if (!deriveHand(tilesRef.current, freed).includes(letter)) {
-        flashHandError() // you don't hold that tile → red flash around the hand
+        flashHandError()
         return
       }
       handToBoard(letter, cur.x, cur.y)
@@ -485,19 +203,48 @@ export function usePlayerBoard({
     },
   })
 
-  // --- Center + fit -----------------------------------------------------
-  const centerAndFit = useCallback(() => {
-    const c = scrollRef.current
-    if (!c) return
+  // ─── Check words, and the view control ─────────────────
+  // The same legality test a winning peel runs, on demand, after saving the
+  // board for the same reason. Its red cells land in the same place a blocked
+  // peel's do, so they paint and clear alike.
+  async function checkBoard() {
+    await save()
+    const res = await runRpc<CheckedBoard>(db.rpc('check_board', { p_game_id: gameId }))
+    if (res.type === 'not-ok') {
+      onCheckResult({ kind: 'error', message: res.message })
+    } else if (res.type === 'ok' && res.data?.result === 'invalid') {
+      setInvalid({ board: boardRef.current, cells: new Set(res.data.invalid_cells) })
+      onCheckResult({ kind: 'invalid', count: res.data.invalid_cells.length })
+    } else if (res.type === 'ok' && res.data?.result === 'empty') {
+      setInvalid(null)
+      onCheckResult({ kind: 'empty' })
+    } else if (res.type === 'ok' && res.data?.result === 'clean') {
+      setInvalid(null)
+      onCheckResult({ kind: 'clean' })
+    } else {
+      reportUnhandled('check_board', res)
+    }
+  }
+
+  // Always offered while I can act, whatever `setup.word_check` says: that
+  // option governs when the server ENFORCES words, not whether I may ask. An
+  // inert board has nothing to ask about, so the button goes.
+  const actCheckBoard = useBindAction('act-check-board', {
+    describe: (asker) => {
+      if (!isBoardInteractive) return asker === 'button' ? 'hidden' : 'disabled'
+      return 'active'
+    },
+    run: checkBoard,
+  })
+
+  // Zoom to fit: the tiles move to the middle of the grid, the cursor goes
+  // back to the center, and the zoom shows them with a margin. A view control,
+  // so it stays live at every phase: a finished board is exactly the one you
+  // want to see all of.
+  function centerAndFit() {
     const ext = tilesExtent(boardRef.current)
     if (!ext) {
-      setCell(DEFAULT_CELL)
-      requestAnimationFrame(() => {
-        const el = scrollRef.current
-        if (!el) return
-        el.scrollLeft = (GRID / 2) * DEFAULT_CELL - el.clientWidth / 2
-        el.scrollTop = (GRID / 2) * DEFAULT_CELL - el.clientHeight / 2
-      })
+      zoom.showArenaCenter()
       return
     }
     const h = ext.maxY - ext.minY + 1
@@ -507,86 +254,44 @@ export function usePlayerBoard({
     const dy = top - ext.minY
     const dx = left - ext.minX
     setBoard((b) => {
-      const nb = new Array(GRID * GRID).fill('.')
-      for (let y = 0; y < GRID; y++)
+      const moved = new Array<string>(GRID * GRID).fill('.')
+      for (let y = 0; y < GRID; y++) {
         for (let x = 0; x < GRID; x++) {
           const ch = b[idx(x, y)]
-          if (ch !== '.') nb[idx(x + dx, y + dy)] = ch
+          if (ch !== '.') moved[idx(x + dx, y + dy)] = ch
         }
-      return nb.join('')
+      }
+      return moved.join('')
     })
-    // Tiles just moved under the cursor; reset it to center rather than leave it
-    // pointing at a now-stale cell.
     setCursor(CENTER_CURSOR)
-
-    const usedW = Math.min(GRID, w + 2 * FIT_MARGIN)
-    const usedH = Math.min(GRID, h + 2 * FIT_MARGIN)
-    const fit = Math.max(
-      minCell,
-      Math.min(MAX_CELL, Math.floor(Math.min(c.clientWidth / usedW, c.clientHeight / usedH))),
-    )
-    setCell(fit)
-    requestAnimationFrame(() => {
-      const el = scrollRef.current
-      if (!el) return
-      el.scrollLeft = (left + w / 2) * fit - el.clientWidth / 2
-      el.scrollTop = (top + h / 2) * fit - el.clientHeight / 2
-    })
-  }, [minCell])
-
-  // The red flags apply only while the board still matches the one the legal check ran
-  // on; any edit moves `board` past it and they vanish (no effect).
-  const invalidCells = invalid && invalid.board === board ? invalid.cells : NO_CELLS
-
-  // The ⟲ rotate: a local view-only shuffle of the hand order. Bound so the pill
-  // and ⌥Z are one thing; live whenever there are tiles to rearrange, a frozen
-  // board included — reordering your own hand is not acting on the game.
-  const onShuffle = () => setHandOrder(shuffleString(displayedHand))
-  const actShuffle = useBindAction('act-shuffle', {
-    describe: () => (displayedHand.length === 0 ? 'disabled' : 'active'),
-    run: onShuffle,
-  })
-
-  // Check words — ask the server whether the board reads right now. Always
-  // offered while the game is live, whatever `setup.word_check` says.
-  const actCheckBoard = useBindAction('act-check-board', {
-    describe: () => (frozen || checking ? 'disabled' : 'active'),
-    run: doWordCheck,
-  })
-
-  // Fit the board — a view control, so it stays live at every phase: a finished
-  // board is exactly the one you want to see all of.
+    zoom.fitBox({ left, top, w, h })
+  }
   const actZoomFit = useBindAction('act-zoom-fit', {
     describe: () => 'active',
     run: centerAndFit,
   })
 
   return {
-    scrollRef,
+    scrollRef: zoom.scrollRef,
     board,
-    cell,
-    minCell,
+    cell: zoom.cell,
+    minCell: zoom.minCell,
     cursor,
     hover,
     drag,
     invalidCells,
-    onZoom,
-    centerAndFit,
+    onZoom: zoom.onZoom,
     onCellPointerDown,
     displayedHand,
     derivedHand,
     dumpHot,
+    canDump,
     errFlash,
     errNonce,
     onHandPointerDown,
-    onShuffle,
-    declaring,
-    doPeel,
     actPeel,
     actShuffle,
     actCheckBoard,
     actZoomFit,
-    doWordCheck,
-    checking,
   }
 }

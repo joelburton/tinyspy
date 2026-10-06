@@ -1,130 +1,91 @@
 // cs-unmet
 
-import type { PointerEvent as ReactPointerEvent } from 'react'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import type { Action } from '@/common/actions/useBindAction'
 import { IconExchange } from '@/common/icons/icons'
-import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
-import type { GDragSource } from '../types'
-import { DUMP_COUNT } from '../lib/board'
 import { cls } from '@/common/utils/cls'
+import type { GBoardEditor } from '../reactTypes'
 import infoPanel from '@/common/info-sheet/infoPanel.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**
- * bananagrams' info-column VIEW — the HAND card. A plain heading over a bordered box
- * (matching the shared WordList / EventLog chrome): the dump zone at the top (you dump
- * one of a few tiles often, so keep the target close), the ⟲ rotate floating over the
- * tiles' corner, and the scrolling hand tiles below.
+ * bananagrams' info-column VIEW — the HAND card. A plain heading over a
+ * bordered box (matching the shared WordList / EventLog chrome): the dump zone
+ * at the top (you dump one of a few tiles often, so keep the target close),
+ * the ⟲ shuffle floating over the tiles' corner, and the scrolling hand tiles
+ * below. It owns no input: the board editor does, and this draws its hand and
+ * forwards the pointer-downs.
  *
- * Purely presentational: `usePlayerBoard` owns the state; this renders `displayedHand`
- * and forwards the pointer-downs. It is NOT an `InfoCol` (it owns no input — the hand
- * tiles are drag SOURCES into the board, and the dump zone is a drop TARGET, both
- * driven by the shared engine; see usePlayerBoard).
- *
- * DOM contract (load-bearing for the drag `elementFromPoint` + the e2e): the tiles
- * container carries `data-zone="hand"`, each tile `data-hand-tile`, and the dump slot
- * `data-zone="dump"` — keep those exact.
+ * DOM contract (load-bearing for the drag's `elementFromPoint` and the e2e):
+ * the tiles container carries `data-zone="hand"`, each tile `data-hand-tile`,
+ * and the dump slot `data-zone="dump"` — keep those exact.
  */
 export function HandCard({
-  displayedHand,
-  drag,
-  dumpHot,
-  errFlash,
-  errNonce,
-  onHandPointerDown,
-  actShuffle,
-  hasDump,
+  editor,
   isBoardInteractive,
-  bunchCount,
-  bagCount,
 }: {
-  /** The hand to render (held tiles minus what's on the board, in shuffle order). */
-  displayedHand: string
-  /** The live drag state (for the "lifting this hand tile" dim + arming the dump),
-   *  or null. */
-  drag: DragState<GDragSource> | null
-  /** A dragged tile is hovering the dump slot (greens it). */
-  dumpHot: boolean
-  /** The "you don't hold that tile" red flash, and a nonce so a repeat miss replays. */
-  errFlash: boolean
-  errNonce: number
-  onHandPointerDown: (index: number, letter: string, e: ReactPointerEvent) => void
-  /** The hand's ⟲ rotate — an action, so the pill and ⌥Z are one thing and
-   *  it grays itself when there is nothing to rearrange. */
-  actShuffle: Action
-  /** Is dumping wired (PlayArea passed `onDump`)? Gates the dump zone. */
-  hasDump: boolean
-  /** The board responds to me (the page's `isBoardInteractive`) — the dump and
-   *  rotate show only then: not once the game is over or I am out of it. */
+  editor: GBoardEditor
+  // The board responds to me: the dump zone shows only then. Shuffle stays,
+  // since reordering your own hand is not acting on the game.
   isBoardInteractive: boolean
-  /** Bunch + bag counts — the dump can draw from both; too low ⇒ the slot disables. */
-  bunchCount?: number
-  bagCount?: number
 }) {
-  const showDump = hasDump && isBoardInteractive
-  const showControls = isBoardInteractive // rotate is hidden once out of the race
-  // A dump draws from the bunch + bag together (see usePlayerBoard's finishDrag).
-  const drawable = bunchCount === undefined ? undefined : bunchCount + (bagCount ?? 0)
-  const dumpTooLow = drawable !== undefined && drawable < DUMP_COUNT
+  const { displayedHand, drag, dumpHot, canDump, errFlash, errNonce } = editor
 
   return (
     <div className={styles.handSection}>
       <h3 className={infoPanel.heading}>Hand</h3>
       <div className={cls(infoPanel.box, styles.handBox)}>
-        {/* Dump zone — drop a tile here (from the hand OR the board) to swap it for
-            DUMP_COUNT. Info-blue dashed target; brightens while a tile is dragged,
-            greens when one hovers it. Hidden once terminal or conceded. */}
-        {showDump && (
+        {/* Drop a tile here, from the hand OR the board, to swap it for
+            DUMP_COUNT. Brightens while a tile is dragged, greens when one
+            hovers it, and says so when the piles cannot cover the draw. */}
+        {isBoardInteractive && (
           <div
             data-zone="dump"
-            className={
-              styles.dump +
-              (drag && !dumpTooLow ? ' ' + styles.dumpArmed : '') +
-              (dumpHot ? ' ' + styles.dumpHot : '') +
-              (dumpTooLow ? ' ' + styles.dumpDisabled : '')
-            }
+            className={cls(
+              styles.dump,
+              drag !== null && canDump && styles.dumpArmed,
+              dumpHot && styles.dumpHot,
+              !canDump && styles.dumpDisabled,
+            )}
           >
-            {dumpTooLow ? (
-              'Bunch too low to dump'
-            ) : (
+            {canDump ? (
               <>
                 <IconExchange size={16} aria-hidden /> Drag tile here to dump
               </>
+            ) : (
+              'Bunch too low to dump'
             )}
           </div>
         )}
 
         <div className={styles.handTilesWrap}>
-          {showControls && (
-            <ShuffleButton
-              className={styles.floatingRotate}
-              action={actShuffle}
-              tooltip="Shuffle hand"
-            />
-          )}
+          <ShuffleButton
+            className={styles.floatingRotate}
+            action={editor.actShuffle}
+            tooltip="Shuffle hand"
+          />
           <div className={styles.hand} data-zone="hand" onPointerDown={blurActiveField}>
-            {/* Red box flash: "you don't hold that tile" (a keyboard miss). Keyed by the
-                nonce so a repeated miss replays the animation; pointer-events:none so it
-                never blocks tile drags. */}
+            {/* "You don't hold that tile": keyed by the nonce so a repeated
+                miss replays the flash; pointer-events: none so it never blocks
+                a tile drag. */}
             {errFlash && <div key={errNonce} className={styles.handError} aria-hidden />}
-            {displayedHand.split('').map((letter, i) => (
-              <div
-                key={i}
-                data-hand-tile
-                className={
-                  styles.handTile +
-                  (drag && drag.source.kind === 'hand' && drag.source.index === i
-                    ? ' ' + styles.lifted
-                    : '')
-                }
-                onPointerDown={(e) => onHandPointerDown(i, letter, e)}
-              >
-                {letter}
-              </div>
-            ))}
-            {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
+            {displayedHand.split('').map((letter, i) => {
+              const isLifting =
+                drag !== null && drag.source.kind === 'hand' && drag.source.index === i
+              return (
+                <div
+                  key={i}
+                  data-hand-tile
+                  className={cls(styles.handTile, isLifting && styles.lifted)}
+                  onPointerDown={(e) => editor.onHandPointerDown(i, letter, e)}
+                >
+                  {letter}
+                </div>
+              )
+            })}
+            {displayedHand.length === 0 && (
+              <span className={styles.handEmpty}>all tiles placed!</span>
+            )}
           </div>
         </div>
       </div>

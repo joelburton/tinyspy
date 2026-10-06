@@ -28,7 +28,6 @@ export function InfoCol({
   editor,
   actions,
   endingMessage,
-  hasDump,
 }: {
   gd: GGameData
   // My board as I edit it, with the hand derived from it and the actions on
@@ -38,8 +37,6 @@ export function InfoCol({
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
   endingMessage: TerminalMessage | null
-  // Dumping is wired, so the hand card shows its dump zone.
-  hasDump: boolean
 }) {
   const sld = gd.stateLineData
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
@@ -83,25 +80,14 @@ export function InfoCol({
         <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      <HandCard
-        displayedHand={editor.displayedHand}
-        drag={editor.drag}
-        dumpHot={editor.dumpHot}
-        errFlash={editor.errFlash}
-        errNonce={editor.errNonce}
-        onHandPointerDown={editor.onHandPointerDown}
-        actShuffle={editor.actShuffle}
-        hasDump={hasDump}
-        isBoardInteractive={isBoardInteractive}
-        bunchCount={gd.nBunchTiles}
-        bagCount={gd.nBagTiles}
-      />
+      <HandCard editor={editor} isBoardInteractive={isBoardInteractive} />
 
       {/* The bottom action row: natural-width buttons side by side. While
           playing: [Concede / Stop game] [Check words] [Peel], Peel the primary
           move on the right. Check words sits LEFT of Peel: it is the question
-          you ask before committing to the move on its right. At the end, or
-          out of the race, the row is the ending's line and the exits. */}
+          you ask before the move on its right. Each action says whether it
+          draws; at the end, or out of the race, the row is the ending's line
+          and the exits. */}
       <div className={cls(shared.infoActions, !isBoardInteractive && shared.terminalActions)}>
         {gd.ended ? (
           <InfoActionsRow message={actionRowMessage}>
@@ -123,12 +109,8 @@ export function InfoCol({
             <ActionButton action={actions.actConcede} show="icon" />
           </>
         )}
-        {isBoardInteractive && (
-          <ActionButton action={editor.actCheckBoard} show="icon" />
-        )}
-        {isBoardInteractive && (
-          <ActionButton action={editor.actPeel} show="both" />
-        )}
+        <ActionButton action={editor.actCheckBoard} show="icon" />
+        <ActionButton action={editor.actPeel} show="both" />
       </div>
     </div>
   )
