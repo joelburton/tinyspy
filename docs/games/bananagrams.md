@@ -197,6 +197,14 @@ it into `game_data`, each key in its place.
 | `game_data` | `nBunchTiles` and `nBagTiles`, the two piles' counts (their order never leaves the server). `team: null`. `events`, every row `{id, userId, kind, tile, nDrawn, at}`. On each player: `tiles`, `nTiles`, `nUnplacedTiles`, and `board: {letters}` |
 | `summary_data` | `nBunchTiles` — the club card's "12 tiles in the bunch" |
 
+**Every player carries the facts** (`GFacts`: `tiles`, `nTiles`,
+`nUnplacedTiles`, `board`, `nBunchTiles`, `nBagTiles`) twice — spread on,
+their side's; under `own`, their own
+([plans/team-facts.md](../../plans/team-facts.md)) — and since bananagrams is
+compete only, the two are the same. The piles are one for every racer, so the
+wire sends them once at the top and `useGame` puts them on every player; `gd`
+has no piles or `team` of its own, and the state line reads `gd.me`.
+
 **The seat rule** (`makeGameData`): a rival's `tiles` and `board` are null
 until the game ends. Their counts stay, so the strip can show how close each
 one is; once the game has ended every board shows, for the printout.

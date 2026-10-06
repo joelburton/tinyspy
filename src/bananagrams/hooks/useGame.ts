@@ -7,10 +7,10 @@ import type {
 import { makeSetupRows } from '../lib/setupRows'
 import type {
   GEvent,
+  GFacts,
   GGameData,
   GGameDataRaw,
   GPlayer,
-  GStateLineData,
 } from '../types'
 
 /**
@@ -23,9 +23,25 @@ import type {
  * is. At the end every board shows, for the printout.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
-  const players: GPlayer[] = raw.players.map((p) => (
-    raw.ended || p.id === myId ? p : { ...p, tiles: null, board: null }
-  ))
+  // The piles and `team` (always null: compete only) go onto the players; `gd`
+  // has none of them.
+  const { nBunchTiles, nBagTiles, team, turns, ending, ...rest } = raw
+
+  // Each player carries the facts twice (plans/team-facts.md): spread on, the
+  // side's; under `own`, their own — the same, since a racer's side is
+  // themselves. The piles are one for every racer.
+  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const maySee = raw.ended || p.id === myId
+    const own: GFacts = {
+      tiles: maySee ? p.tiles : null,
+      nTiles: p.nTiles,
+      nUnplacedTiles: p.nUnplacedTiles,
+      board: maySee ? p.board : null,
+      nBunchTiles,
+      nBagTiles,
+    }
+    return { ...p, ...(team ?? own), own }
+  })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Links that cannot miss get a bare lookup; an ending's `by` is null for a
@@ -45,14 +61,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // The gate has checked that I am seated, and my own letters are never
   // withheld.
   const me = playersById[myId]! as GGameData['me']
-  // What the state line shows: my tiles against the two piles.
-  const stateLineData: GStateLineData = {
-    nTiles: me.nTiles,
-    nBunchTiles: raw.nBunchTiles,
-    nBagTiles: raw.nBagTiles,
-  }
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
@@ -69,7 +78,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players,
     playersById,
     me,
-    stateLineData,
   }
 }
 

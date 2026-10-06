@@ -69,8 +69,8 @@ export function EditingBoard({
     onPeel,
     onCheckBoard,
     onDump,
-    nBunchTiles: gd.nBunchTiles,
-    nBagTiles: gd.nBagTiles,
+    nBunchTiles: gd.me.nBunchTiles,
+    nBagTiles: gd.me.nBagTiles,
     reportBoardRef,
   })
 

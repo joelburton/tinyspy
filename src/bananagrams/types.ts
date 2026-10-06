@@ -19,7 +19,7 @@
  * tile is an instance the builder writes).
  */
 
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -86,7 +86,8 @@ export type GSetup = SetupOf<GSetupValues>
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
-  // The draw pile's count. Its order never leaves the server.
+  // The two piles, one for every racer: sent once, here, and put on every
+  // player by `useGame`. The draw pile's order never leaves the server.
   nBunchTiles: number
   // The out-of-play reserve's count.
   nBagTiles: number
@@ -98,13 +99,35 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * What the state line shows — "Tiles: You 14 · Bunch 60 · Bag 3". Decided once,
- * in `makeGameData`, so the line draws it and picks nothing.
+ * bananagrams' facts (plans/team-facts.md): the letters a racer holds, their
+ * board, and the two piles every racer draws from. A player carries them twice
+ * — spread on, their side's; under `own`, their own — and since bananagrams is
+ * compete only, a side is always one player, so the two are the same. The
+ * piles are one for every racer.
  */
-export type GStateLineData = {
+export type GFacts = {
+  // Every letter they hold, hand and board together, as one lowercase string;
+  // null for a rival mid-race.
+  tiles: string | null
   nTiles: number
+  // The tiles not in their board's main block: the strip's number. A tile
+  // pushed off to the side is no more placed than one in the hand.
+  nUnplacedTiles: number
+  // Null for a rival mid-race.
+  board: GBoard | null
+  // The draw pile's count.
   nBunchTiles: number
+  // The out-of-play reserve's count.
   nBagTiles: number
+}
+
+/** The facts a player's own blob carries; the piles are sent once at the
+ *  top, for every racer. */
+export type GFactsRaw = {
+  tiles: string
+  nTiles: number
+  nUnplacedTiles: number
+  board: GBoard
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -126,15 +149,7 @@ export type GEventRaw = {
 
 /** A player as bananagrams' game_data shows them: the common player, with the
  *  letters they hold, the two counts, and their board as last saved. */
-export type GPlayerRaw = PlayerRaw & {
-  // Every letter they hold, hand and board together, as one lowercase string.
-  tiles: string
-  nTiles: number
-  // The tiles not in their board's main block: the strip's number. A tile
-  // pushed off to the side is no more placed than one in the hand.
-  nUnplacedTiles: number
-  board: GBoard
-}
+export type GPlayerRaw = PlayerRaw & GFactsRaw
 
 /**
  * A board as the server holds it: the 25×25 grid as one 625-character string,
@@ -161,9 +176,6 @@ export type GBoard = {
  *   title
  *   setup
  *   setupRows
- *   nBunchTiles                       # the live draw pile's count; its order never leaves the server
- *   nBagTiles                         # the out-of-play reserve's count
- *   team: null                        # compete only
  *   turns: null                       # no turn order
  *   ending: {reason, detail, by, winner}   # null while playing; by and winner are players
  *   ended
@@ -172,7 +184,6 @@ export type GBoard = {
  *   players: [player, …]
  *   playersById
  *   me                                # same object as playersById[auth.user.id]
- *   stateLineData: {nTiles, nBunchTiles, nBagTiles}   # "Tiles: You 14 · Bunch 60 · Bag 3"
  *
  * player:
  *   the common player
@@ -180,6 +191,10 @@ export type GBoard = {
  *   nTiles                            # length(tiles); every seat, every time
  *   nUnplacedTiles                    # tiles not in their board's main block: the strip's number; every seat, every time
  *   board: {letters}                  # the 625-character grid as last saved, "." empty; mine is read once at mount; a rival's null mid-race
+ *   nBunchTiles                       # the live draw pile's count, the same on every player
+ *   nBagTiles                         # the out-of-play reserve's count, the same on every player
+ *   own: {tiles, nTiles, nUnplacedTiles, board, nBunchTiles, nBagTiles}
+ *                                     # their own: compete only, so the same as the side's
  *
  * event:
  *   id
@@ -194,10 +209,10 @@ export type GBoard = {
  * **`gd`, the game data** — everything the play surface knows about THIS
  * game, in one object. It is the `game_data` blob the game's builder wrote
  * (`GGameDataRaw`), with its links turned into players, a rival's letters
- * withheld mid-race, the setup rows built and the state line decided.
+ * withheld mid-race, the piles put on every player, and the setup rows built.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'nBunchTiles' | 'nBagTiles' | 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -216,14 +231,16 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // My entry in `playersById`: the same object. My own letters are always
   // mine to see.
   me: GPlayer & { tiles: string; board: GBoard }
-  stateLineData: GStateLineData
 }
 
-/** A player as `gd` holds them: the blob's, with a rival's `tiles` and `board`
- *  null while the race is on. Their counts stay. */
-export type GPlayer = Omit<GPlayerRaw, 'tiles' | 'board'> & {
-  tiles: string | null
-  board: GBoard | null
+/**
+ * A player as `gd` holds them: the common player with bananagrams' facts twice
+ * — spread on, their side's; under `own`, their own (plans/team-facts.md). A
+ * rival's `tiles` and `board` are null while the race is on; their counts
+ * stay.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** One row of the log, as `gd` holds it: the blob's row, with its player. */

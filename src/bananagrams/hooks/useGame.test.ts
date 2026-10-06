@@ -42,7 +42,7 @@ describe('bananagrams makeGameData — the links become players', () => {
   it('a race has no turns and no team', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.turns).toBeNull()
-    expect(gd.team).toBeNull()
+    expect(gd).not.toHaveProperty('team')
   })
 
   it('names who went out and the winner as players', () => {
@@ -88,12 +88,16 @@ describe('bananagrams makeGameData — the links become players', () => {
     expect(gd.setupRows.map((r) => r.key)).toContain('bunch_size')
   })
 
-  it('decides the state line: my tiles against the two piles', () => {
+  it('puts the two piles on every player, and their facts under `own` too', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({ players: TWO, nBunchTiles: 60, nBagTiles: 3 }),
       'u1',
     )
-    expect(gd.stateLineData).toEqual({ nTiles: ZTest_TILES.length, nBunchTiles: 60, nBagTiles: 3 })
+    expect([gd.me.nTiles, gd.me.nBunchTiles, gd.me.nBagTiles]).toEqual([ZTest_TILES.length, 60, 3])
+    expect([gd.playersById.u2!.nBunchTiles, gd.playersById.u2!.nBagTiles]).toEqual([60, 3])
+    expect(gd.me.own).toMatchObject({ nTiles: ZTest_TILES.length, nBunchTiles: 60, nBagTiles: 3 })
+    expect(gd.me.own.board).toBe(gd.me.board)
+    expect(gd).not.toHaveProperty('nBunchTiles')
   })
 })
 

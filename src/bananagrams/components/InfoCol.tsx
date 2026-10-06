@@ -46,7 +46,7 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <p className={shared.infoState}>
-          <StateLine data={gd.stateLineData} />
+          <StateLine facts={gd.me} />
         </p>
 
         {/* Opponents — bananagrams keeps its own vertical, closest-to-done
