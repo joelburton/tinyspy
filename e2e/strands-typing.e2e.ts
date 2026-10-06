@@ -31,7 +31,8 @@ import { boardReady } from './helpers/ready'
  */
 
 const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-tile="${r},${c}"]`)
-/** The traced word, as the WordEntryInput renders it. */
+/** The traced word, as the WordEntryInput holds it: lowercase, the data's case
+ *  (CSS draws the capitals). */
 const entry = (page: Page) => page.getByTestId('entry-value')
 /** Cells ringed red because a typed letter matched more than one of them. */
 const rings = (page: Page) => page.locator('circle[class*="ringAmbiguous"]')
@@ -63,23 +64,23 @@ test.describe('strands typed input', () => {
     // Anchor on C[2,4] — a word's first letter is a click, since the same letter
     // is scattered all over the board.
     await cell(page, [2, 4]).click()
-    await expect(entry(page)).toHaveText('C')
+    await expect(entry(page)).toHaveText('c')
 
     // 'h' — the only H among [2,4]'s eight neighbors is [2,5]. Types straight in.
     await page.keyboard.press('h')
-    await expect(entry(page)).toHaveText('CH')
+    await expect(entry(page)).toHaveText('ch')
 
     // 'a' — TWO A's neighbor [2,5]: [1,5] and [3,5]. So nothing is appended,
     // both ring red, and no pill appears (the rings are the message; a pill here
     // would cover the very word being built).
     await page.keyboard.press('a')
     await expect(rings(page)).toHaveCount(2)
-    await expect(entry(page)).toHaveText('CH')
+    await expect(entry(page)).toHaveText('ch')
 
     // Clicking one resolves it — and the rings go at once rather than sitting
     // there pointing at a choice already made.
     await cell(page, [3, 5]).click()
-    await expect(entry(page)).toHaveText('CHA')
+    await expect(entry(page)).toHaveText('cha')
     await expect(rings(page)).toHaveCount(0)
 
     await ctx.close()
@@ -112,11 +113,11 @@ test.describe('strands typed input', () => {
 
     await cell(page, [2, 4]).click()
     await page.keyboard.press('h')
-    await expect(entry(page)).toHaveText('CH')
+    await expect(entry(page)).toHaveText('ch')
 
     // ⌫ button — the pointer twin of Backspace.
     await del.click()
-    await expect(entry(page)).toHaveText('C')
+    await expect(entry(page)).toHaveText('c')
 
     // Submit button — the pointer twin of Enter, and the only way to submit on a
     // phone that doesn't mean re-clicking the last letter. Two cells is under

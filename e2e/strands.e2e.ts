@@ -125,16 +125,18 @@ test.describe('strands play loop', () => {
     // prove nothing here — the board draws PATHS and never prints a word, so a
     // fully leaked solution looks identical in the DOM. (Learned by planting
     // exactly that leak and watching a body-text assertion sail through it.)
-    const solutionsSeen: unknown[] = []
+    // The page reads the game's blobs off `common.games`; the puzzle words ride
+    // in `game_data.puzzle.puzzleWords`.
+    const puzzleWordsSeen: unknown[] = []
     page.on('response', (res) => {
-      if (!res.url().includes('games_state')) return
+      if (!res.url().includes('game_data')) return
       void res
         .json()
         .then((body) => {
           for (const row of Array.isArray(body) ? body : [body]) {
-            if (row && typeof row === 'object' && 'solution' in row) {
-              solutionsSeen.push((row as { solution: unknown }).solution)
-            }
+            const puzzle = (row as { game_data?: { puzzle?: { puzzleWords?: unknown } } } | null)
+              ?.game_data?.puzzle
+            if (puzzle && 'puzzleWords' in puzzle) puzzleWordsSeen.push(puzzle.puzzleWords)
           }
         })
         .catch(() => {})
@@ -144,12 +146,12 @@ test.describe('strands play loop', () => {
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(`“${game.title}”`).first()).toBeVisible()
 
-    // THE SHIELD: every games_state row delivered so far carried a null
-    // solution. The column grant is pinned server-side by rls_test; this is the
-    // client-side half, and it catches a `_solution_for` that stopped honoring
-    // the is_terminal gate — which no SQL-shape test would notice.
-    expect(solutionsSeen.length).toBeGreaterThan(0)
-    expect(solutionsSeen.every((s) => s === null)).toBe(true)
+    // THE SHIELD: every blob delivered so far carried no puzzle words. The
+    // column grant is pinned server-side by rls_test and the builder by
+    // game_data_test; this is the client-side half — what actually crossed the
+    // wire.
+    expect(puzzleWordsSeen.length).toBeGreaterThan(0)
+    expect(puzzleWordsSeen.every((w) => w === null)).toBe(true)
 
     // And nothing on the board is wearing the missed-word styling yet.
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
@@ -161,7 +163,7 @@ test.describe('strands play loop', () => {
     if (await confirmStopGame.isVisible().catch(() => false)) await confirmStopGame.click()
     await expect(page.getByText(/Game ended/)).toBeVisible({ timeout: 10000 })
     await expect
-      .poll(() => solutionsSeen.some((s) => s !== null), { timeout: 10000 })
+      .poll(() => puzzleWordsSeen.some((w) => w !== null), { timeout: 10000 })
       .toBe(true)
 
     // …and NOTHING is drawn with it. This is the whole point of the local

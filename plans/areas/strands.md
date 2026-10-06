@@ -278,6 +278,18 @@ so the column calls it rather than the board, and hands the actions a
 `moveCursorTo` that only an action's run calls. BoardCol went from ~370 lines
 to under 200.
 
+## The checks and the e2e
+
+Step 15 (2026-10-05, Joel: "commit and run e2e"): `tsc -b`, the strands
+vitests, lint, the guards and every strands pgTAP file green after the last
+edit. The strands e2e specs, `solved-reveal` and `puzzle-pickers`' strands
+cases pass; three needed the conversion's follow-through — `strands-typing`
+reads the entry in the data's lowercase (as letterboxed's specs do), and the
+shield case watches `game_data.puzzle.puzzleWords` crossing the wire where it
+watched `games_state`. `puzzle-pickers`' crosswords case fails on crosswords'
+own unconverted helpers, the sweep plans/seat-view.md → When every game has
+converted owes.
+
 ## What the InfoCol pass changed that a player can see
 
 - **Back-to-club is in the row while I am out of a race**; it was missing.
