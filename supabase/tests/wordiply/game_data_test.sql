@@ -1,15 +1,17 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: wordiply's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: wordiply's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `wordiply._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/wordiply.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/wordiply.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh coop game's game_data, as a whole: the common part, the puzzle
---      as built, a team with nothing used, no log, and every player fresh
---      with an empty board; both fresh summaries
+--   1. A fresh coop game's static_game_data and game_data, as a whole: the
+--      common parts, the puzzle as built in the static blob, a team with
+--      nothing used, no log, and every player fresh with an empty board; both
+--      fresh summaries
 --   2. Mid-game coop: the log carries a reject beside the accepted word, each
 --      player's own count, the team's, one board on every seat, and no score
 --      before the end
@@ -18,8 +20,8 @@
 --   4. The endings: the scores arrive, the team's and each player's own; the
 --      winner's length score on the summary; shell_data rewritten beside them
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every wordiply game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every wordiply game, its static
+--      blob included, without re-dating it
 --
 -- The board is setup.psql's: base 'ar', max_word_len 7.
 -- ============================================================
@@ -29,7 +31,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(29);
+select plan(30);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -56,6 +58,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: wordiply's keys sit beside it.
@@ -99,7 +103,7 @@ $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
 select is(
-  pg_temp.game_data(pg_temp.coop()),
+  pg_temp.static_game_data(pg_temp.coop()),
   jsonb_build_object(
     'id',       pg_temp.coop(),
     'gametype', 'wordiply_coop',
@@ -109,23 +113,28 @@ select is(
     'coop',     true,
     'compete',  false,
     'oneBoard', true,
-    'title',    'AR',
     'setup',    pg_temp.wordiply_setup(),
-    'turns',    null,
-    'ending',   null,
-    'ended',    false,
-    'outcome',  null,
     'puzzle',   jsonb_build_object(
                   'base',         'ar',
                   'maxWordLen',   7,
                   'longestWords', pg_temp.wordiply_board() -> 'longest_words',
-                  'legalWords',   pg_temp.wordiply_board() -> 'legal_words'),
+                  'legalWords',   pg_temp.wordiply_board() -> 'legal_words')),
+  'the whole static_game_data of a fresh coop game: the common part, and the puzzle as built'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()),
+  jsonb_build_object(
+    'title',    'AR',
+    'turns',    null,
+    'ending',   null,
+    'ended',    false,
+    'outcome',  null,
     'team',     '{"nGuessesUsed": 0, "lengthScore": null, "nLetters": null, "longestWordLen": null}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, the puzzle as built, a team with nothing used, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, a team with nothing used, no log, fresh players with empty boards'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
@@ -305,12 +314,16 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(wordiply._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every wordiply game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );

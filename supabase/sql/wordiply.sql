@@ -18,7 +18,8 @@
 -- What the page reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to wordiply (docs/games/wordiply.md has the rest):
 --   - Every word must contain the base and be longer than it. Five accepted
@@ -294,10 +295,17 @@ drop function if exists wordiply._write_statuses(uuid, boolean);
 -- wordiply's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
---   game_data, wordiply's part:
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- wordiply's puzzle is all of it: the builder never withholds a key of it.
+--
+--   static_game_data, wordiply's part:
 --     puzzle: {base, maxWordLen, longestWords, legalWords}
 --                                          frozen at create; the page waits for the
 --                                          end to show the longest
+--
+--   game_data, wordiply's part:
 --     team: {nGuessesUsed, lengthScore, nLetters, longestWordLen}
 --                                          the team's words, summed; null in compete,
 --                                          where there is no team (plans/team-facts.md);
@@ -449,8 +457,8 @@ $$;
 
 revoke execute on function wordiply._make_json_players(uuid) from public;
 
--- The whole game_data blob: the common part, with wordiply's puzzle, team, log
--- and players on top.
+-- The whole game_data blob: the common part, with wordiply's team, log and
+-- players on top. The puzzle is static (`_make_json_static_game_data`).
 create or replace function wordiply._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -458,15 +466,28 @@ stable
 set search_path = wordiply, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'puzzle',  wordiply._make_json_puzzle(g),
            'team',    wordiply._make_json_team(p_game_id),
            'events',  wordiply._make_json_events(p_game_id),
-           'players', wordiply._make_json_players(p_game_id))
+           'players', wordiply._make_json_players(p_game_id));
+$$;
+
+revoke execute on function wordiply._make_json_game_data(uuid) from public;
+
+-- The whole static_game_data blob: the common part, with the puzzle on top.
+-- Nothing in it changes after create_game.
+create or replace function wordiply._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = wordiply, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', wordiply._make_json_puzzle(g))
     from wordiply.games g
    where g.game_id = p_game_id;
 $$;
 
-revoke execute on function wordiply._make_json_game_data(uuid) from public;
+revoke execute on function wordiply._make_json_static_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one.
 create or replace function wordiply._make_json_summary_data(
@@ -534,12 +555,32 @@ $$;
 revoke execute on function wordiply._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- wordiply._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function wordiply._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = wordiply, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = wordiply._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function wordiply._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- wordiply._rebuild_data_cols_for_all — every wordiply game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every wordiply game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every wordiply game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function wordiply._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -553,6 +594,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('wordiply_coop', 'wordiply_compete')
   loop
+    perform wordiply._write_static_game_data(v_game_id);
     perform wordiply._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -711,6 +753,7 @@ begin
   insert into wordiply.games (game_id, base, max_word_len, longest_words, legal_words)
   values (new_id, b_base, b_max_word_len, p_board->'longest_words', p_board->'legal_words');
 
+  perform wordiply._write_static_game_data(new_id);
   perform wordiply._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The edge function
