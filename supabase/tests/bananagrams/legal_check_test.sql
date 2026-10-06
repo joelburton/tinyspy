@@ -57,21 +57,21 @@ language sql as $$ select repeat('.', 625) $$;
 
 -- A legal word, checking words → nothing blocks.
 select is(
-  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), 6, 6, true),
+  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'), 6, 6, true),
   '{}'::int[],
   'a legal connected word blocks nothing (words checked)'
 );
 
 -- A connected non-word with the word check OFF → legal (geography is fine).
 select is(
-  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), 6, 6, false),
+  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), 6, 6, false),
   '{}'::int[],
   'a connected non-word is fine when words are NOT checked'
 );
 
 -- The same non-word WITH the word check on → its tiles flag.
 select is(
-  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), 6, 6, true),
+  bananagrams._win_blockers(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), 6, 6, true),
   '{0,1,2}'::int[],
   'a non-word flags its tiles when words ARE checked'
 );
@@ -80,7 +80,7 @@ select is(
 -- enforced. CAT at row 0 (the main mass) + DOG at row 5 (floating).
 select is(
   bananagrams._win_blockers(
-    pg_temp.mg_h(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), 5, 0, 'DOG'), 6, 6, false),
+    pg_temp.mg_h(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'), 5, 0, 'dog'), 6, 6, false),
   '{125,126,127}'::int[],
   'disconnected tiles always flag, even without the word check'
 );
@@ -89,8 +89,8 @@ select is(
 -- C-O-T) → connected, both real → nothing blocks.
 select is(
   bananagrams._win_blockers(
-    pg_temp.mg_place(pg_temp.mg_place(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'),
-                                      1, 0, 'O'), 2, 0, 'T'),
+    pg_temp.mg_place(pg_temp.mg_place(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'),
+                                      1, 0, 'o'), 2, 0, 't'),
     6, 6, true),
   '{}'::int[],
   'crossing legal words (CAT / COT) block nothing'
@@ -98,7 +98,7 @@ select is(
 
 -- A lone tile is never a word, and is trivially connected → legal.
 select is(
-  bananagrams._win_blockers(pg_temp.mg_place(pg_temp.empty_board(), 12, 12, 'Q'), 6, 6, true),
+  bananagrams._win_blockers(pg_temp.mg_place(pg_temp.empty_board(), 12, 12, 'q'), 6, 6, true),
   '{}'::int[],
   'a single lone tile is legal'
 );
@@ -115,7 +115,7 @@ select is(
 -- "ABET" down through the shared A (cells 1,26,51,76; ABET is band 4 — a 3+
 -- word). Each word is judged against the band for ITS length, independently.
 create temp table xword on commit drop as
-select pg_temp.mg_v(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'ZA'), 0, 1, 'ABET') as b;
+select pg_temp.mg_v(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'za'), 0, 1, 'abet') as b;
 
 -- dict_2 too low for ZA (band 5) but dict_3plus fine for ABET → only ZA flags.
 select is(
@@ -148,7 +148,7 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), tiles = 'CAT'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'), tiles = 'cat'
  where game_id = (select id from ga);
 update bananagrams.games set bunch = '' where game_id = (select id from ga);
 
@@ -171,7 +171,7 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), tiles = 'xqj'
  where game_id = (select id from gb);
 update bananagrams.games set bunch = '' where game_id = (select id from gb);
 
@@ -197,7 +197,7 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), tiles = 'xqj'
  where game_id = (select id from gc);
 update bananagrams.games set bunch = '' where game_id = (select id from gc);
 
@@ -221,8 +221,8 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), 5, 0, 'DOG'),
-       tiles = 'CATDOG'
+   set board = pg_temp.mg_h(pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'), 5, 0, 'dog'),
+       tiles = 'catdog'
  where game_id = (select id from gd);
 update bananagrams.games set bunch = '' where game_id = (select id from gd);
 
@@ -253,9 +253,9 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), tiles = 'xqj'
  where game_id = (select id from ge);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from ge);
+update bananagrams.games set bunch = 'abcdefghij' where game_id = (select id from ge);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
@@ -279,9 +279,9 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), tiles = 'CAT'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat'), tiles = 'cat'
  where game_id = (select id from gf);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from gf);
+update bananagrams.games set bunch = 'abcdefghij' where game_id = (select id from gf);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pf on commit drop as select bananagrams.peel((select id from gf)) as res;
@@ -298,9 +298,9 @@ select (bananagrams.create_game('=ada',
 reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj'), tiles = 'xqj'
  where game_id = (select id from gg);
-update bananagrams.games set bunch = 'ABCDEFGHIJ' where game_id = (select id from gg);
+update bananagrams.games set bunch = 'abcdefghij' where game_id = (select id from gg);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pg on commit drop as select bananagrams.peel((select id from gg)) as res;
@@ -333,7 +333,7 @@ select set_config('request.jwt.claims', '', true);
 
 -- A real word, connected → clean, even though word_check is 'off'.
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT')
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat')
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -345,7 +345,7 @@ select set_config('request.jwt.claims', '', true);
 
 -- A non-word → flagged, in a game whose peel would have let it through.
 update bananagrams.player_boards
-   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ')
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'xqj')
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(

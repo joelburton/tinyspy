@@ -1,26 +1,36 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: bananagrams.save_player_board(target_game, board)
+-- Test: bananagrams.save_player_board(p_game_id, p_board)
 -- ============================================================
 -- The snapshot endpoint. Only the BOARD is sent — `tiles` (what the
 -- player holds) is server-owned and untouched here. Covers:
---   1. Writes the caller's OWN board
---   2. Recomputes progress: placed = filled cells, unplaced_count = length(tiles)
---      minus the board's largest block, so a stray tile is still unplaced
---   3. Length guard: board must be exactly 625 chars
+--   1. Writes the caller's OWN board, and the blob carries it as saved
+--   2. The blob's nUnplacedTiles = length(tiles) minus the board's largest
+--      block, so a stray tile is still unplaced
+--   3. Shape guard: 625 cells, each a lowercase letter or empty
 --   4. Non-player callers rejected
---   5. Ended games: a late snapshot is a harmless no-op
+--   5. Ended games: a late snapshot is a harmless no-op; so is a conceder's
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(10);
+select plan(11);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
+
+-- ada's board and count as the page blob carries them.
+create function pg_temp.ada_board(gid uuid) returns text language sql as $$
+  select p->'board'->>'letters' from common.games, jsonb_array_elements(game_data->'players') p
+   where id = gid and p->>'id' = 'ada11111-1111-1111-1111-111111111111'
+$$;
+create function pg_temp.ada_unplaced(gid uuid) returns int language sql as $$
+  select (p->>'nUnplacedTiles')::int from common.games, jsonb_array_elements(game_data->'players') p
+   where id = gid and p->>'id' = 'ada11111-1111-1111-1111-111111111111'
+$$;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -34,12 +44,13 @@ select (bananagrams.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid]
 )->'data'->>'id')::uuid as id;
 
--- ─── ada snapshots a board with 2 tiles placed (A, B) ───
--- She holds 21 tiles; placing 2 leaves 19 in hand.
+-- ─── ada snapshots a board with 2 tiles placed (a, b) ───
+-- She holds 21 tiles; placing 2 leaves 19 in hand. The board is stored as
+-- handed: nothing checks that a and b are among her tiles.
 select pg_temp.envelope_is(
   bananagrams.save_player_board(
     (select id from mg_game),
-    'AB' || repeat('.', 25 * 25 - 2)),
+    'ab' || repeat('.', 25 * 25 - 2)),
   '{"type":"ok","data":{"result":"saved"}}'::jsonb,
   'a live snapshot answers saved'
 );
@@ -51,49 +62,46 @@ select is(
   (select left(board, 2) from bananagrams.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'AB',
+  'ab',
   'save_player_board writes the caller''s board'
 );
-
 select is(
-  (select placed from bananagrams.progress
-    where game_id = (select id from mg_game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  2,
-  'progress.placed recomputed from the filled board cells'
+  left(pg_temp.ada_board((select id from mg_game)), 2),
+  'ab',
+  'the blob carries the board as saved'
 );
-
 select is(
-  (select unplaced_count from bananagrams.progress
-    where game_id = (select id from mg_game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.ada_unplaced((select id from mg_game)),
   19,
-  'progress.unplaced_count = held tiles (21) − the main block (2)'
+  'nUnplacedTiles = held tiles (21) − the main block (2)'
 );
 
 -- ─── A tile off on its own is not placed ───
--- A and B with a gap between them: two blocks of 1, so the main block is 1.
+-- a and b with a gap between them: two blocks of 1, so the main block is 1.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.save_player_board((select id from mg_game), 'A.B' || repeat('.', 25 * 25 - 3));
+select bananagrams.save_player_board((select id from mg_game), 'a.b' || repeat('.', 25 * 25 - 3));
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select placed || '/' || unplaced_count from bananagrams.progress
-    where game_id = (select id from mg_game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  '2/20',
+  pg_temp.ada_unplaced((select id from mg_game)),
+  20,
   'two separate tiles: both on the board, but only one in the main block'
 );
 
--- ─── Length guard ───
+-- ─── Shape guard ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- A FAULT: the FE builds the 625-char grid itself, so no player can hand over
--- another size.
+-- A FAULT: the FE builds the 625-char grid itself from lowercase tiles, so no
+-- player can hand over another shape.
 select pg_temp.envelope_is(
-  bananagrams.save_player_board((select id from mg_game), 'AB'),
+  bananagrams.save_player_board((select id from mg_game), 'ab'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN350"}'::jsonb,
   'a board that is not 625 chars is rejected'
+);
+select pg_temp.envelope_is(
+  bananagrams.save_player_board((select id from mg_game), 'AB' || repeat('.', 25 * 25 - 2)),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN350"}'::jsonb,
+  'a board with a capital in it is rejected'
 );
 
 -- ─── Non-player rejected ───
@@ -112,7 +120,7 @@ select bananagrams.stop_game((select id from mg_game));
 -- one, and used to be the same answer.
 select pg_temp.envelope_is(
   bananagrams.save_player_board(
-    (select id from mg_game), repeat('C', 5) || repeat('.', 25 * 25 - 5)),
+    (select id from mg_game), repeat('c', 5) || repeat('.', 25 * 25 - 5)),
   '{"type":"ok","data":{"result":"game-over"}}'::jsonb,
   'snapshotting an ended game answers game-over'
 );
@@ -120,11 +128,9 @@ select pg_temp.envelope_is(
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select placed from bananagrams.progress
-    where game_id = (select id from mg_game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  2,
-  'a snapshot after the end is a no-op (progress unchanged from the last live save)'
+  left(pg_temp.ada_board((select id from mg_game)), 3),
+  'a.b',
+  'a snapshot after the end is a no-op (the blob keeps the last live save)'
 );
 
 -- ─── Conceded caller: snapshot is a no-op too ───
@@ -143,7 +149,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select bananagrams.concede((select id from live_game));
 select pg_temp.envelope_is(
   bananagrams.save_player_board(
-    (select id from live_game), repeat('D', 3) || repeat('.', 25 * 25 - 3)),
+    (select id from live_game), repeat('d', 3) || repeat('.', 25 * 25 - 3)),
   '{"type":"ok","data":{"result":"conceded"}}'::jsonb,
   'a conceded player''s snapshot answers conceded'
 );

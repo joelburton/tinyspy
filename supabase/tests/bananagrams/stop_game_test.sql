@@ -97,6 +97,7 @@ select is(
   'conceded/lost', 'the earlier conceder is still conceded, and lost');
 
 -- ─── (4) Non-player rejected ─────────────────────────────────
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select (bananagrams.create_game(
   (select handle from club),

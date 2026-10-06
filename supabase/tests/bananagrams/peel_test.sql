@@ -6,7 +6,7 @@
 -- The v2 draw/endgame. Covers:
 --   1. Empty hand required — peeling with tiles in hand is rejected
 --   2. Continue path: enough bunch → EVERY player draws 1, the bunch
---      advances, progress + the club line's bunch_tiles_count update
+--      advances, the blob's counts and the summary's nBunchTiles update
 --   3. Non-players rejected
 --   4. Win path: bunch can't refill the table → the peeler goes out and wins
 --      (reached_goal/'complete', ranked 1, solved)
@@ -24,6 +24,21 @@ select plan(21);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
+
+-- A player's tiles and unplaced count, read where the page reads them: the
+-- `tiles` column is out of the grant.
+create function pg_temp.tiles_of(gid uuid, uid uuid) returns text language sql as $$
+  select p->>'tiles' from common.games, jsonb_array_elements(game_data->'players') p
+   where id = gid and (p->>'id')::uuid = uid
+$$;
+create function pg_temp.unplaced_of(gid uuid, uid uuid) returns int language sql as $$
+  select (p->>'nUnplacedTiles')::int from common.games, jsonb_array_elements(game_data->'players') p
+   where id = gid and (p->>'id')::uuid = uid
+$$;
+-- A board with every tile the player holds on it, so the hand is empty.
+create function pg_temp.whole_hand(gid uuid, uid uuid) returns text language sql as $$
+  select rpad(pg_temp.tiles_of(gid, uid), 25 * 25, '.')
+$$;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -50,10 +65,7 @@ select pg_temp.envelope_is(
 -- ada places all 21 of her REAL tiles (board = her tiles + padding), then peels.
 select bananagrams.save_player_board(
   (select id from g1),
-  (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from bananagrams.player_boards
-    where game_id = (select id from g1)
-      and user_id = 'ada11111-1111-1111-1111-111111111111')
+  pg_temp.whole_hand((select id from g1), 'ada11111-1111-1111-1111-111111111111')
 );
 select pg_temp.envelope_is(
   bananagrams.peel((select id from g1)),
@@ -84,23 +96,19 @@ select is(
   'the bunch advanced by players × 1 (102 → 100)'
 );
 select is(
-  (select unplaced_count from bananagrams.progress
-    where game_id = (select id from g1)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  pg_temp.unplaced_of((select id from g1), 'ada11111-1111-1111-1111-111111111111'),
   1,
-  'peeler unplaced_count = the freshly drawn tile (placed 21, holds 22)'
+  'the peeler''s nUnplacedTiles = the freshly drawn tile (placed 21, holds 22)'
 );
 select is(
-  (select unplaced_count from bananagrams.progress
-    where game_id = (select id from g1)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  pg_temp.unplaced_of((select id from g1), 'bea22222-2222-2222-2222-222222222222'),
   22,
-  'bea unplaced_count grew by the draw (21 → 22)'
+  'bea''s nUnplacedTiles grew by the draw (21 → 22)'
 );
 select is(
-  (select (clubpage_info->>'bunch_tiles_count')::int from common.games where id = (select id from g1)),
+  (select (summary_data->>'nBunchTiles')::int from common.games where id = (select id from g1)),
   100,
-  'the club line''s bunch_tiles_count tracks the bunch'
+  'the summary''s nBunchTiles tracks the bunch'
 );
 
 -- (3) Non-player cannot peel — `common._require_game_player`'s shared PN253.
@@ -123,10 +131,7 @@ select (bananagrams.create_game(
 -- ada places all 15 tiles (empty hand).
 select bananagrams.save_player_board(
   (select id from g2),
-  (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from bananagrams.player_boards
-    where game_id = (select id from g2)
-      and user_id = 'ada11111-1111-1111-1111-111111111111')
+  pg_temp.whole_hand((select id from g2), 'ada11111-1111-1111-1111-111111111111')
 );
 
 -- Empty the bunch so the next peel can't refill → going out wins.
@@ -210,10 +215,7 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select bananagrams.save_player_board(
   (select id from g3),
-  (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from bananagrams.player_boards
-    where game_id = (select id from g3)
-      and user_id = 'ada11111-1111-1111-1111-111111111111')
+  pg_temp.whole_hand((select id from g3), 'ada11111-1111-1111-1111-111111111111')
 );
 select pg_temp.envelope_is(
   bananagrams.peel((select id from g3)),

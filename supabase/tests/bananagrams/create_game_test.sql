@@ -12,8 +12,9 @@
 --   4. Happy path: writes the 'bananagrams' gametype, the
 --      bananagrams.games row, persists the immutable `bunch_at_setup`, deals
 --      a hand_size `tiles` to each player (board empty), materializes
---      the bunch (`bunch` = undealt remainder), seeds progress, and copies
---      the word-check options from setup (defaults off / 4 / 4 / false)
+--      the bunch (`bunch` = undealt remainder), and copies the word-check
+--      options from setup (defaults off / 4 / 4 / false); every letter
+--      lowercase
 --   5. A smaller bunch deals + leaves a smaller bunch
 --   6. Solo (1-player) is allowed
 -- ============================================================
@@ -22,7 +23,7 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(33);
+select plan(32);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -247,8 +248,8 @@ select (bananagrams.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid]
 )->'data'->>'id')::uuid as id;
 
--- Reset to superuser to read across the owner-only RLS on
--- player_boards for the assertions below.
+-- Reset to superuser to read the columns the grant keeps from a player
+-- (`tiles`, `board`, the piles) for the assertions below.
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -301,21 +302,13 @@ select is(
   'ada starts with an empty 625-cell board'
 );
 
-select is(
-  (select unplaced_count from bananagrams.progress
-    where game_id = (select id from mg_game)
-      and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  21,
-  'progress.unplaced_count seeds to the hand size'
-);
-
 -- Both players are dealt distinct slices of the shuffled bunch: 2 × 21 = 42
--- tiles total, all uppercase.
+-- tiles total, all lowercase.
 select is(
   (select string_agg(pb.tiles, '') from bananagrams.player_boards pb
-    where pb.game_id = (select id from mg_game)) ~ '^[A-Z]{42}$',
+    where pb.game_id = (select id from mg_game)) ~ '^[a-z]{42}$',
   true,
-  'both hands together are 42 uppercase tiles dealt from the bunch'
+  'both hands together are 42 lowercase tiles dealt from the bunch'
 );
 
 -- The bunch holds everything not dealt: the 144-tile bunch − 42 dealt = 102.
@@ -333,9 +326,9 @@ select is(
   'bunch_at_setup (immutable record) holds the full chosen bunch size'
 );
 select is(
-  (select bunch_at_setup ~ '^[A-Z]{144}$' from bananagrams.games where game_id = (select id from mg_game)),
+  (select bunch_at_setup ~ '^[a-z]{144}$' from bananagrams.games where game_id = (select id from mg_game)),
   true,
-  'bunch_at_setup is 144 uppercase tiles'
+  'bunch_at_setup is 144 lowercase tiles'
 );
 -- A full (144) bunch leaves nothing over → the bag is empty.
 select is(

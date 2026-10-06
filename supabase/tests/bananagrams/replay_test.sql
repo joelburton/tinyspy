@@ -12,7 +12,7 @@
 -- are the ones that make it a genuine RESET rather than an alias:
 --
 --   1. the SAME game row (no new id) and the SAME hands come back;
---   2. every board is blank and progress is zeroed;
+--   2. every board is blank and every tile unplaced again;
 --   3. the bunch is the deal's undealt remainder, and the bag is the full
 --      144-tile distribution minus the deal — exact even after dumps have
 --      shuffled tiles between the two;
@@ -50,13 +50,14 @@ select user_id, tiles from bananagrams.player_boards where game_id = (select id 
 -- ─── Dirty the game: place tiles, take a peel ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- Park a letter on ada's board (the FE owns the board string; the RPC persists
--- whatever it's handed).
+-- whatever it's handed). Her tiles come off the page blob, as the page's do.
 select bananagrams.save_player_board(
   (select id from g1),
   overlay(repeat('.', 625) placing
-    (select left(tiles, 1) from bananagrams.player_boards
-      where game_id = (select id from g1)
-        and user_id = 'ada11111-1111-1111-1111-111111111111') from 1));
+    (select left(p->>'tiles', 1)
+       from common.games, jsonb_array_elements(game_data->'players') p
+      where id = (select id from g1)
+        and p->>'id' = 'ada11111-1111-1111-1111-111111111111') from 1));
 reset role;
 
 select isnt(
@@ -80,10 +81,11 @@ select is(
     where game_id = (select id from g1) and board = repeat('.', 625)),
   2, 'restart → every board is blank again');
 select is(
-  (select count(*)::int from bananagrams.progress
-    where game_id = (select id from g1)
-      and unplaced_count = 21 and placed = 0),
-  2, 'restart → progress is back to the opening deal');
+  (select count(*)::int
+     from common.games, jsonb_array_elements(game_data->'players') p
+    where id = (select id from g1)
+      and (p->>'nUnplacedTiles')::int = 21 and p->'board'->>'letters' = repeat('.', 625)),
+  2, 'restart → the blob shows every tile unplaced and every board blank');
 
 -- The SAME hands — this is a restart, not a reshuffle.
 select is(
@@ -100,8 +102,8 @@ select is(
   (select length(bag) from bananagrams.games where game_id = (select id from g1)),
   0, 'restart → the out-of-play bag is the 144 minus the deal (empty here)');
 select is(
-  (select (clubpage_info->>'bunch_tiles_count')::int from common.games where id = (select id from g1)),
-  102, 'restart → the club line''s bunch count matches');
+  (select (summary_data->>'nBunchTiles')::int from common.games where id = (select id from g1)),
+  102, 'restart → the summary''s bunch count matches');
 
 -- Conservation: nothing was invented or lost.
 select is(

@@ -79,13 +79,15 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 update bananagrams.games set bunch = '' where game_id = (select id from g1);
 
+-- Her tiles come off the page blob, where the page reads them: a player's
+-- `tiles` column is out of the grant.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select bananagrams.save_player_board(
   (select id from g1),
-  (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from bananagrams.player_boards
-    where game_id = (select id from g1)
-      and user_id = 'bea22222-2222-2222-2222-222222222222')
+  (select rpad(p->>'tiles', 25 * 25, '.')
+     from common.games, jsonb_array_elements(game_data->'players') p
+    where id = (select id from g1)
+      and p->>'id' = 'bea22222-2222-2222-2222-222222222222')
 );
 select bananagrams.peel((select id from g1));
 
