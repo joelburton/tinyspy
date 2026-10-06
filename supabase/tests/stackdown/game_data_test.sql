@@ -1,14 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: stackdown's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: stackdown's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `stackdown._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/stackdown.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/stackdown.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh game: the stack as 30 tiles by tile number, the six words to
---      clear, no solution; coop's team at nothing and no team in compete; each
+--   1. A fresh game: the stack as 30 tiles by tile number and the six words to
+--      clear in static_game_data, no solution in game_data's puzzle; coop's
+--      team at nothing and no team in compete; each
 --      player fresh, with the whole stack as their board; both fresh summaries
 --   2. Mid-game coop: a word, a refused word, a hint and a spoiler in the log —
 --      the hint's text under `clue`, a word's tiles as ids in pick order; the
@@ -18,8 +20,8 @@
 --   4. The endings: the solution arrives, a coop clear stamps every teammate,
 --      a race's winner, shell_data rewritten
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every stackdown game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every stackdown game, its static
+--      blob included, without re-dating it
 --
 -- The board is setup.psql's: EAGLE, TABLE, PLANS, APPLE, JUICE, LEMON, cleared
 -- in that order by `pg_temp.sd_seq(1..6)`.
@@ -30,7 +32,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(24);
+select plan(25);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -57,6 +59,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: stackdown's keys sit beside it.
@@ -82,16 +86,21 @@ create function pg_temp.on_board(player jsonb, tile text) returns boolean langua
 -- ─── (1) A fresh game ───
 select is(
   (select jsonb_build_object(
-     'nTiles',   jsonb_array_length(gd -> 'puzzle' -> 'tiles'),
-     'first',    gd -> 'puzzle' -> 'tiles' -> 0,
-     'last',     gd -> 'puzzle' -> 'tiles' -> 29,
-     'nReqd',    gd -> 'puzzle' -> 'nReqdWords',
-     'solution', gd -> 'puzzle' -> 'solution')
-     from (select pg_temp.game_data(pg_temp.coop()) gd) x),
+     'nTiles', jsonb_array_length(sgd -> 'puzzle' -> 'tiles'),
+     'first',  sgd -> 'puzzle' -> 'tiles' -> 0,
+     'last',   sgd -> 'puzzle' -> 'tiles' -> 29,
+     'nReqd',  sgd -> 'puzzle' -> 'nReqdWords',
+     'keys',   (select jsonb_agg(k order by k) from jsonb_object_keys(sgd -> 'puzzle') k))
+     from (select pg_temp.static_game_data(pg_temp.coop()) sgd) x),
   '{"nTiles": 30, "first": {"id": "0", "letter": "E", "x": 2, "y": 0, "z": 0},
     "last": {"id": "29", "letter": "O", "x": 6, "y": 8, "z": 0},
-    "nReqd": 6, "solution": null}'::jsonb,
-  'the puzzle: the stack as 30 tiles by tile number, six words to clear, no solution mid-game'
+    "nReqd": 6, "keys": ["nReqdWords", "tiles"]}'::jsonb,
+  'the static puzzle: the stack as 30 tiles by tile number, six words to clear'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
+  '{"solution": null}'::jsonb,
+  'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
@@ -262,12 +271,16 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(stackdown._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every stackdown game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );

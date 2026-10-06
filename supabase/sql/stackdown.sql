@@ -19,7 +19,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to stackdown (docs/games/stackdown.md has the rest):
 --   - Boards come from a pre-generated library, one per difficulty band, and
@@ -174,13 +175,18 @@ drop function if exists stackdown._write_statuses(uuid, boolean);
 -- stackdown's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
---   game_data, stackdown's part:
---     puzzle: {tiles, nReqdWords, solution}
---                                          the stack, frozen at create: all 30
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, stackdown's part:
+--     puzzle: {tiles, nReqdWords}          the stack, frozen at create: all 30
 --                                          tiles, each {id, letter, x, y, z}, its
 --                                          id the tile number as text; the words
---                                          to clear; the six words, null until
---                                          the game ends
+--                                          to clear
+--
+--   game_data, stackdown's part:
+--     puzzle: {solution}                   the six words, null until the game ends
 --     team: {nFoundWords, nHintsUsed, nSpoilersUsed}
 --                                          the players' own counts, summed; null in
 --                                          compete (plans/team-facts.md)
@@ -240,8 +246,9 @@ $$;
 
 revoke execute on function stackdown._cleared_tile_ids(uuid, uuid) from public;
 
--- The stack, the words to clear, and the six words once the game has ended
--- (the column grant keeps them from any client read).
+-- The puzzle's part of game_data: the six words once the game has ended (the
+-- column grant keeps them from any client read). The stack is static
+-- (`_make_json_static_game_data`).
 create or replace function stackdown._make_json_puzzle(sg stackdown.games, p_ended boolean)
 returns jsonb
 language sql
@@ -249,9 +256,7 @@ immutable
 set search_path = stackdown, common, public, extensions
 as $$
   select jsonb_build_object(
-    'tiles',      stackdown._make_json_tiles(sg.tiles, '{}'),
-    'nReqdWords', cardinality(sg.solution),
-    'solution',   case when p_ended then to_jsonb(sg.solution) end);
+    'solution', case when p_ended then to_jsonb(sg.solution) end);
 $$;
 
 revoke execute on function stackdown._make_json_puzzle(stackdown.games, boolean) from public;
@@ -356,6 +361,24 @@ $$;
 
 revoke execute on function stackdown._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the stack and the
+-- number of words to clear on top. Nothing in it changes after create_game.
+create or replace function stackdown._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = stackdown, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', jsonb_build_object(
+             'tiles',      stackdown._make_json_tiles(sg.tiles, '{}'),
+             'nReqdWords', cardinality(sg.solution)))
+    from stackdown.games sg
+   where sg.game_id = p_game_id;
+$$;
+
+revoke execute on function stackdown._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: the numbers a list of games shows for this one.
 create or replace function stackdown._make_json_summary_data(
   p_game_id uuid,
@@ -419,12 +442,32 @@ $$;
 revoke execute on function stackdown._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- stackdown._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function stackdown._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = stackdown._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function stackdown._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- stackdown._rebuild_data_cols_for_all — every stackdown game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every stackdown game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every stackdown game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function stackdown._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -438,6 +481,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('stackdown_coop', 'stackdown_compete')
   loop
+    perform stackdown._write_static_game_data(v_game_id);
     perform stackdown._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -518,6 +562,7 @@ begin
   insert into stackdown.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
+  perform stackdown._write_static_game_data(new_id);
   perform stackdown._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
