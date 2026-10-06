@@ -1,14 +1,16 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: letterboxed's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: letterboxed's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `letterboxed._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/letterboxed.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/letterboxed.sql → The page blobs). This
+-- file pins what the page gets:
 --
 --   1. A fresh game: the box as tiles by letter, the word list and the few a
---      hint may not offer, par, no solution; coop's team at nothing and no
+--      hint may not offer, par, in static_game_data; no solution in
+--      game_data's puzzle; coop's team at nothing and no
 --      team in compete; each player fresh, a racer with their two counts and
 --      a coop player without; both fresh summaries
 --   2. Mid-game coop: a word, a hint and a spoiler in the log; the team's
@@ -19,8 +21,8 @@
 --      stamps the team, the winner's numbers on the summary — a solve's and
 --      a timeout's — and shell_data rewritten
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every letterboxed game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every letterboxed game, its static
+--      blob included, without re-dating it
 --
 -- The board is setup.psql's: 'abcdefghijkl', a cap of five words. Its words
 -- are synthetic, so only `qat`, among the filler, is in the dictionary.
@@ -31,7 +33,7 @@ set search_path = letterboxed, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(27);
+select plan(28);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -58,6 +60,8 @@ create function pg_temp.game(game_name text) returns uuid language sql as
   $$ select id from g where name = game_name $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: letterboxed's keys sit beside it.
@@ -81,17 +85,21 @@ create function pg_temp.counts(game uuid) returns jsonb language sql as
 -- ─── (1) A fresh game ───
 select is(
   (select jsonb_build_object(
-     'nTiles',   jsonb_array_length(gd -> 'puzzle' -> 'tiles'),
-     'first',    gd -> 'puzzle' -> 'tiles' -> 0,
-     'fourth',   gd -> 'puzzle' -> 'tiles' -> 3,
-     'last',     gd -> 'puzzle' -> 'tiles' -> 11,
-     'par',      gd -> 'puzzle' -> 'nParWords',
-     'solution', gd -> 'puzzle' -> 'solution')
-     from (select pg_temp.game_data(pg_temp.game('coop')) gd) x),
+     'nTiles', jsonb_array_length(sgd -> 'puzzle' -> 'tiles'),
+     'first',  sgd -> 'puzzle' -> 'tiles' -> 0,
+     'fourth', sgd -> 'puzzle' -> 'tiles' -> 3,
+     'last',   sgd -> 'puzzle' -> 'tiles' -> 11,
+     'par',    sgd -> 'puzzle' -> 'nParWords')
+     from (select pg_temp.static_game_data(pg_temp.game('coop')) sgd) x),
   '{"nTiles": 12, "first": {"id": "a", "letter": "a", "side": 0},
     "fourth": {"id": "d", "letter": "d", "side": 1}, "last": {"id": "l", "letter": "l", "side": 3},
-    "par": 2, "solution": null}'::jsonb,
-  'the puzzle: the box as twelve tiles in side order, each its letter; par; no solution mid-game'
+    "par": 2}'::jsonb,
+  'the static puzzle: the box as twelve tiles in side order, each its letter; par'
+);
+select is(
+  pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle',
+  '{"solution": null}'::jsonb,
+  'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
   (select jsonb_build_object(
@@ -99,7 +107,7 @@ select is(
      'nUncleanWords', jsonb_array_length(p -> 'uncleanWords'),
      'adgUnclean',    p -> 'uncleanWords' ? 'adg',
      'qatUnclean',    p -> 'uncleanWords' ? 'qat')
-     from (select pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle' p) x),
+     from (select pg_temp.static_game_data(pg_temp.game('coop')) -> 'puzzle' p) x),
   '{"nWords": 207, "nUncleanWords": 206, "adgUnclean": true, "qatUnclean": false}'::jsonb,
   'the words: every word the board accepts, and beside them the ones a hint may not offer — all but qat, the one the dictionary holds clean'
 );
@@ -287,12 +295,16 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(letterboxed._rebuild_data_cols_for_all() >= 3, true, '_rebuild_data_cols_for_all rewrites every letterboxed game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   3,
   '… every blob is back'
 );

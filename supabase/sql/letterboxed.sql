@@ -25,7 +25,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to letterboxed (docs/games/letterboxed.md has the rest):
 --   - A player's state is a single CHAIN of words (in coop every player's row
@@ -345,14 +346,20 @@ drop function if exists letterboxed._write_statuses(uuid, boolean);
 -- letterboxed's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
---   game_data, letterboxed's part:
---     puzzle: {tiles, words, uncleanWords, nParWords, solution}
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, letterboxed's part:
+--     puzzle: {tiles, words, uncleanWords, nParWords}
 --                                          the board, frozen at create; a tile is
 --                                          {id, letter, side}, its id the letter;
 --                                          `words` every word the board accepts,
 --                                          `uncleanWords` the few of them a hint may
---                                          not offer; `solution` null until the game
---                                          ends
+--                                          not offer
+--
+--   game_data, letterboxed's part:
+--     puzzle: {solution}                   the seeded pair, null until the game ends
 --     team: {nWordsUsed, nCoveredLetters}  the shared chain's; null in compete
 --                                          (plans/team-facts.md)
 --     events: [{id, userId, kind, word, nCoveredLetters, tookTurn, at}, …]
@@ -430,8 +437,8 @@ $$;
 
 revoke execute on function letterboxed._make_json_unclean_words(jsonb) from public;
 
--- The board: its tiles, its words, its par, and the seeded pair once the game
--- has ended.
+-- The puzzle's part of game_data: the seeded pair once the game has ended. The
+-- board is static (`_make_json_static_game_data`).
 create or replace function letterboxed._make_json_puzzle(lg letterboxed.games, p_ended boolean)
 returns jsonb
 language sql
@@ -439,11 +446,7 @@ stable
 set search_path = letterboxed, common, public, extensions
 as $$
   select jsonb_build_object(
-    'tiles',        letterboxed._make_json_tiles(lg.sides),
-    'words',        lg.words,
-    'uncleanWords', letterboxed._make_json_unclean_words(lg.words),
-    'nParWords',    letterboxed._n_par_words(),
-    'solution',     case when p_ended then to_jsonb(lg.solution) end);
+    'solution', case when p_ended then to_jsonb(lg.solution) end);
 $$;
 
 revoke execute on function letterboxed._make_json_puzzle(letterboxed.games, boolean) from public;
@@ -545,6 +548,27 @@ $$;
 
 revoke execute on function letterboxed._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the board on top —
+-- its tiles, its words, the ones a hint may not offer, and its par. Nothing in
+-- it changes after create_game.
+create or replace function letterboxed._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = letterboxed, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', jsonb_build_object(
+             'tiles',        letterboxed._make_json_tiles(lg.sides),
+             'words',        lg.words,
+             'uncleanWords', letterboxed._make_json_unclean_words(lg.words),
+             'nParWords',    letterboxed._n_par_words()))
+    from letterboxed.games lg
+   where lg.game_id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: the numbers a list of games shows for this one. The
 -- winner is the one `ending.winner` names (common._make_json_ending), so a
 -- timeout's tied winners read the same racer in both.
@@ -625,12 +649,32 @@ $$;
 revoke execute on function letterboxed._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- letterboxed._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function letterboxed._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = letterboxed._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function letterboxed._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- letterboxed._rebuild_data_cols_for_all — every letterboxed game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every letterboxed game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every letterboxed
+-- game without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function letterboxed._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -644,6 +688,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('letterboxed_coop', 'letterboxed_compete')
   loop
+    perform letterboxed._write_static_game_data(v_game_id);
     perform letterboxed._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -903,6 +948,7 @@ begin
   insert into letterboxed.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
 
+  perform letterboxed._write_static_game_data(new_id);
   perform letterboxed._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a

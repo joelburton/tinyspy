@@ -190,14 +190,19 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
 
 /**
  * The props `<GamePage>` hands letterboxed's `PlayArea`, from the game's facts:
- * the `game_data` blob, and shell_data's roster read off it, viewed by `auth`
- * (`u1` unless said otherwise).
+ * the `game_data` and `static_game_data` blobs, and shell_data's roster read
+ * off them, viewed by `auth` (`u1` unless said otherwise).
  */
 export function ZTest_makeLetterboxedCtx(
   facts: ZTest_GameDataFacts = {},
-  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData' | 'staticGameData'> = {},
 ): PlayAreaLoaderProps {
   const raw = ZTest_makeGameDataRaw(facts)
+  // The two blobs the page hands down, split as the builders write them: what
+  // create fixed, the board included, in the static one; the rest, the seeded
+  // pair included, in game_data.
+  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle, ...changing } = raw
+  const { solution, ...board } = puzzle
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -207,7 +212,8 @@ export function ZTest_makeLetterboxedCtx(
     players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    gameData: raw,
+    gameData: { ...changing, puzzle: { solution } },
+    staticGameData: { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle: board },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })
