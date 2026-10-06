@@ -15,7 +15,7 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import type { Cell, GridSnapshot } from '../lib/types'
+import type { GPuzzleCell, GGridSnapshot } from '../types'
 import type { Rect } from './layout'
 import { cellSize } from './layout'
 import { FONT_SANS, NUMBER_SIZE } from './fonts'
@@ -32,7 +32,7 @@ const MARK_HYPHEN_FRACTION = 0.3 // hyphen dash length, as a fraction of the cel
  * Grid is square: `rect.w` is the bounding side length; the puzzle's
  * width drives the cell size.
  */
-export function drawGrid(doc: jsPDF, snapshot: GridSnapshot, rect: Rect): void {
+export function drawGrid(doc: jsPDF, snapshot: GGridSnapshot, rect: Rect): void {
   const cells = snapshot.cells
   const rows = cells.length
   const cols = rows > 0 ? cells[0]!.length : 0
@@ -53,7 +53,7 @@ export function drawGrid(doc: jsPDF, snapshot: GridSnapshot, rect: Rect): void {
   }
 }
 
-function drawCell(doc: jsPDF, cell: Cell, x: number, y: number, size: number): void {
+function drawCell(doc: jsPDF, cell: GPuzzleCell, x: number, y: number, size: number): void {
   if (cell.kind === 'block') {
     if (cell.hidden) return // transparent void cell — paint nothing
     doc.setFillColor(...BLACK)

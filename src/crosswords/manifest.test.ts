@@ -74,10 +74,10 @@ describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()
     // The board rides as the separate inline arg…
-    expect(args.board).toEqual(UPLOAD_BOARD)
+    expect(args.p_board).toEqual(UPLOAD_BOARD)
     // …and is stripped from the setup create_game persists (status + default).
-    expect(args.setup).not.toHaveProperty('board')
-    expect(args.setup).not.toHaveProperty('filename')
+    expect(args.p_setup).not.toHaveProperty('board')
+    expect(args.p_setup).not.toHaveProperty('filename')
   })
 
   it('a library start with a stale board (post tab-switch) still strips it', async () => {
@@ -95,10 +95,10 @@ describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()
     // Not an upload, so no inline board arg is sent…
-    expect(args.board).toBeUndefined()
+    expect(args.p_board).toBeUndefined()
     // …and the stale board never reaches the persisted setup.
-    expect(args.setup).not.toHaveProperty('board')
-    expect(args.setup).not.toHaveProperty('filename')
-    expect(args.setup).toMatchObject({ source: 'library', puzzle_id: 'pz-1' })
+    expect(args.p_setup).not.toHaveProperty('board')
+    expect(args.p_setup).not.toHaveProperty('filename')
+    expect(args.p_setup).toMatchObject({ source: 'library', puzzle_id: 'pz-1' })
   })
 })

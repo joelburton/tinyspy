@@ -4,22 +4,20 @@ import type { MouseEvent, ReactNode } from 'react'
 import { actionSurface } from '@/common/actions/actionSurface'
 import { nameWithKey } from '@/common/actions/nameWithKey'
 import type { Action } from '@/common/actions/useBindAction'
-import type { Scope } from '../lib/types'
+import type { GScopeActions } from '../reactTypes'
+import type { GScope } from '../types'
 import { cls } from '@/common/utils/cls'
 import styles from './Controls.module.css'
-
-/** The three scopes of one assistance family, each its own action. */
-export type ScopeActions = Record<Scope, Action>
 
 type Props = {
   /** Is the pen or the pencil selected? The pair below is two destinations for
    *  one toggle, and this is which one you are already at. */
   pencil: boolean
   actPencil: Action
-  check: ScopeActions
+  check: GScopeActions
   /** Reveal is coop-only, and says so itself: in a race all three hide and the
    *  group goes with them. */
-  reveal: ScopeActions
+  reveal: GScopeActions
   /** Any remaining action buttons (Stop / Concede) — rendered icon-only in their
    *  own rule-separated group at the end of the bar, so the destructive action
    *  can't be misread as another check/reveal square. */
@@ -139,9 +137,9 @@ function Rule() {
 
 
 /** The one-character glyph on the square; the group label supplies the verb. */
-const SCOPE_GLYPH: Record<Scope, string> = { letter: 'L', word: 'W', puzzle: 'G' }
+const SCOPE_GLYPH: Record<GScope, string> = { letter: 'L', word: 'W', puzzle: 'G' }
 
-function ScopeButtons({ actions }: { actions: ScopeActions }) {
+function ScopeButtons({ actions }: { actions: GScopeActions }) {
   return SCOPES.map((scope) => {
     const surface = actionSurface(actions[scope])
     if (surface.hidden) return null

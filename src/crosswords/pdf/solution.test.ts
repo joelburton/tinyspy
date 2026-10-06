@@ -2,7 +2,7 @@
 
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import type { Cell, PuzzleState } from '../lib/types'
+import type { GPuzzleCell, GPuzzleState } from '../types'
 import type { Solution } from './solution'
 
 // Same jsPDF capture harness as generator.test.ts: each method records
@@ -45,8 +45,8 @@ vi.mock('jspdf', () => ({
 
 /** 2×2 all-open puzzle; one given + one pencil so we can prove the answer
  *  grid overrides both. Blank fills — the answer key comes from `solution`. */
-function makePuzzle(): PuzzleState {
-  const cells: Cell[][] = [
+function makePuzzle(): GPuzzleState {
+  const cells: GPuzzleCell[][] = [
     [
       { kind: 'cell', number: 1, fill: 'X', given: true },
       { kind: 'cell', number: 2, fill: 'Z', pencil: true },

@@ -32,10 +32,8 @@ import {
   initialCursor,
   jumpClue,
   wordCells,
-  type Cursor,
 } from '../lib/cursor'
-import type { CellPos } from '../lib/cursor'
-import { type Cell, type Direction, type MarkSide, type PuzzleState, type PuzzleTemplate, type Scope } from '../lib/types'
+import { type GCellPos, type GCursor, type GExplainState, type GRebusPostCommit, type GPuzzleCell, type GDirection, type GMarkSide, type GPuzzleState, type GPuzzleTemplate, type GScope } from '../types'
 import { nextMarkState } from '../lib/marks'
 import { printCrosswordsPdf, printCrosswordsSolutionPdf } from '../pdf/printCrosswordsPdf'
 import type { CellsMap } from '../hooks/useCells'
@@ -45,17 +43,17 @@ import { useCells } from '../hooks/useCells'
 import { cellKey } from '../lib/cellKey'
 import { usePeerCursors } from '../hooks/usePeerCursors'
 import { useGridKeyboard } from '../hooks/useGridKeyboard'
-import { Grid, type RebusPostCommit } from './Grid'
+import { Grid } from './Grid'
 import { CrosswordsNumberJumpBlockingModal } from './CrosswordsNumberJumpBlockingModal'
 import { CrosswordsNoteCompanion } from './CrosswordsNoteCompanion'
-import { CrosswordsExplainCompanion, type ExplainState } from './CrosswordsExplainCompanion'
+import { CrosswordsExplainCompanion } from './CrosswordsExplainCompanion'
 import { enumerationFor } from '../lib/enumeration'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { readRows, runRpc } from '@/common/supabase/dbResult'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
-import { Controls, type ScopeActions } from './Controls'
+import { Controls, type GScopeActions } from './Controls'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -146,7 +144,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const collapseRebus = rebusPref === 'on'
   // The AI clue-explanation dialog: null = closed. `explainLabel` is the clue
   // it was opened for (e.g. "12A"), captured at click time.
-  const [explain, setExplain] = useState<ExplainState | null>(null)
+  const [explain, setExplain] = useState<GExplainState | null>(null)
   const [explainLabel, setExplainLabel] = useState('clue')
   // The read-only zoom-peek (Shift+Space): the cell + a snapshot of its fill.
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
@@ -214,7 +212,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   const shownSolution = solutionShown ? solution : null
 
   const grid = game?.meta.cells ?? null
-  const [cursor, setCursor] = useState<Cursor | null>(null)
+  const [cursor, setCursor] = useState<GCursor | null>(null)
   // Seed the cursor the first render the grid is available (React's
   // "derive state during render" pattern — guarded so it runs once; a
   // no-op setState to the same null value bails out).
@@ -267,7 +265,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // cell's right/bottom edge, then persist via set_mark. Display-only, so no
   // cursor move + no solve — just the write (with the same error surfacing).
   const handleMark = useCallback(
-    async (row: number, col: number, side: MarkSide) => {
+    async (row: number, col: number, side: GMarkSide) => {
       const cur = cells.get(cellKey(row, col))
       const current = side === 'right' ? cur?.markRight : cur?.markBottom
       const res = await setMark(row, col, side, nextMarkState(current ?? undefined))
@@ -330,7 +328,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   })
 
   const handleRebusCommit = useCallback(
-    (value: string, post: RebusPostCommit) => {
+    (value: string, post: GRebusPostCommit) => {
       if (!rebus || !grid) return
       void handleSetCell(rebus.row, rebus.col, value || null, pencil)
       // Enter advances one cell; Tab / Shift+Tab jumps to the next / previous
@@ -362,7 +360,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   )
 
   const onClueClick = useCallback(
-    (number: number, direction: Direction) => {
+    (number: number, direction: GDirection) => {
       if (!grid) return
       const pos = findCellByNumber(grid, number)
       if (pos) setCursor({ row: pos.row, col: pos.col, dir: direction })
@@ -389,7 +387,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // "Print / Save as PDF" menu item. The grid is snapshotted at click-time via a
   // ref, so the menu item is set once (not rebuilt on every keystroke). The
   // PDF is a verbatim port of crossplay's — puzzle only, no answer key.
-  const printStateRef = useRef<PuzzleState | null>(null)
+  const printStateRef = useRef<GPuzzleState | null>(null)
   useEffect(() => {
     printStateRef.current = game
       ? { meta: game.meta, snapshot: { version: 0, cells: buildPrintCells(game.meta, cells) } }
@@ -417,7 +415,7 @@ export function PlayArea(ctx: PlayAreaLoaderProps) {
   // item (read at click time via a ref, so the menu isn't rebuilt per keystroke).
   const explainRef = useRef<{
     label: string
-    cells: CellPos[]
+    cells: GCellPos[]
     clueText: string
     enumeration: string
   } | null>(null)
@@ -546,11 +544,11 @@ type Explained =
 
   // Resolve a check/reveal scope to the target coordinates the RPCs want.
   const scopeCells = useCallback(
-    (scope: Scope): CellPos[] => {
+    (scope: GScope): GCellPos[] => {
       if (!grid || !cursor) return []
       if (scope === 'letter') return [{ row: cursor.row, col: cursor.col }]
       if (scope === 'word') return wordCells(grid, cursor.row, cursor.col, cursor.dir)
-      const out: CellPos[] = []
+      const out: GCellPos[] = []
       for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid[r]!.length; c++) {
           if (grid[r]![c]!.kind === 'cell') out.push({ row: r, col: c })
@@ -562,7 +560,7 @@ type Explained =
   )
 
   const handleCheck = useCallback(
-    async (scope: Scope) => {
+    async (scope: GScope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
       // Mobile: Check is tapped from inside the full-width info sheet, which
@@ -609,7 +607,7 @@ type Explained =
   // at once, and the terminal Reveal/Hide toggle cannot take it back — the
   // letters ARE the players' fill now.
   const handleReveal = useCallback(
-    async (scope: Scope) => {
+    async (scope: GScope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
       // See handleCheck: close the covering sheet so the revealed cells (and any
@@ -693,8 +691,8 @@ type Explained =
     describe: revealState,
     run: () => handleReveal('puzzle'),
   })
-  const check: ScopeActions = { letter: actCheckLetter, word: actCheckWord, puzzle: actCheckPuzzle }
-  const reveal: ScopeActions = { letter: actRevealLetter, word: actRevealWord, puzzle: actRevealPuzzle }
+  const check: GScopeActions = { letter: actCheckLetter, word: actCheckWord, puzzle: actCheckPuzzle }
+  const reveal: GScopeActions = { letter: actRevealLetter, word: actRevealWord, puzzle: actRevealPuzzle }
 
   // The setter's note, and the AI explainer that needs one. The explainer is for
   // cryptics and a note is the proxy, which is how crossplay gates it too.
@@ -1065,9 +1063,9 @@ type Explained =
 
 /** Merge the immutable template + live fills into the `Cell[][]` the PDF
  *  printer draws (given letters + current player fills; pencil flag kept). */
-function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
+function buildPrintCells(meta: GPuzzleTemplate, cells: CellsMap): GPuzzleCell[][] {
   return meta.cells.map((row, r) =>
-    row.map((t, c): Cell => {
+    row.map((t, c): GPuzzleCell => {
       if (t.kind === 'block') return t
       const given = t.given === true
       const live = given ? undefined : cells.get(cellKey(r, c))

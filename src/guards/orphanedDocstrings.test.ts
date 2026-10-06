@@ -52,8 +52,6 @@ const KNOWN: string[] = [
   'src/crosswords/components/PlayArea.tsx › CheckAnswer',
   'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',
   'src/crosswords/components/pickers/LibraryPickerBlockingModal.tsx › LibraryAnswer',
-  'src/crosswords/lib/setup.ts › PuzzleChoice',
-  'src/crosswords/manifest.ts › coopLabel',
   // → e2e
   'e2e/gallery/index.ts › renderViewer',
   // → src/guards

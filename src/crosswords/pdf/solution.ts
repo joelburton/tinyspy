@@ -17,7 +17,7 @@
  */
 
 import { jsPDF } from 'jspdf'
-import type { Cell, GridSnapshot, PuzzleState } from '../lib/types'
+import type { GPuzzleCell, GGridSnapshot, GPuzzleState } from '../types'
 import { computeLayout, continuationRegions, type Rect } from './layout'
 import { drawTitle } from './title'
 import { drawGrid } from './grid'
@@ -30,7 +30,7 @@ export type Solution = (string[] | null)[][]
 
 const PARA_GAP = 6
 
-export async function generateSolutionPdf(state: PuzzleState, solution: Solution): Promise<Blob> {
+export async function generateSolutionPdf(state: GPuzzleState, solution: Solution): Promise<Blob> {
   const { meta } = state
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' })
 
@@ -47,11 +47,11 @@ export async function generateSolutionPdf(state: PuzzleState, solution: Solution
  *  solution. `given` and `pencil` are stripped — on a uniformly-filled
  *  answer grid the per-given underline is noisy, and any pencil guesses the
  *  player made shouldn't override the canonical answer's styling. */
-function buildSolvedSnapshot(snapshot: GridSnapshot, solution: Solution): GridSnapshot {
-  const cells: Cell[][] = []
+function buildSolvedSnapshot(snapshot: GGridSnapshot, solution: Solution): GGridSnapshot {
+  const cells: GPuzzleCell[][] = []
   for (let r = 0; r < snapshot.cells.length; r++) {
     const src = snapshot.cells[r]!
-    const row: Cell[] = []
+    const row: GPuzzleCell[] = []
     for (let c = 0; c < src.length; c++) {
       const cell = src[c]!
       if (cell.kind === 'block') {

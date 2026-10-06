@@ -41,7 +41,7 @@ const RECORDS = (f: string) => f.startsWith('plans/areas/') || f === 'plans/app-
 const NOT_OURS: Record<string, string> = {
   'README.md → supabase/tap/supabase': 'a Homebrew tap, in `brew install`',
   'src/common/game-page/todo.md → common/game-page/PlayArea.tsx': 'says the file does NOT exist',
-  'src/crosswords/lib/types.ts → packages/shared/src/index.ts': "crossplay's repo, the port's source",
+  'src/crosswords/types.ts → packages/shared/src/index.ts': "crossplay's repo, the port's source",
   'src/crosswords/pdf/solution.ts → print/solution.ts': "crossplay's repo, the port's source",
   'src/guards/cssClasses.test.ts → ./X.module.css': 'an example shape, not a file',
   'src/guards/cssClasses.test.ts → ./PlayArea.module.css': "each game's own, in its components folder",

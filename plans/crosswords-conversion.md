@@ -1,6 +1,6 @@
 # crosswords on the page blobs — the conversion plan
 
-**Status: ANSWERED 2026-10-06; steps 1–5 done (the SQL), step 6 next.** This is the seat-view
+**Status: ANSWERED 2026-10-06; steps 1–7 done, step 8 (the fixture) next.** This is the seat-view
 conversion for crosswords, the last game to convert and one of the games
 [plans/seat-view.md](seat-view.md) names a problem child. This file holds the
 inventory (step 1), the proposed tables and blobs, the sketch (step 2), and
@@ -212,7 +212,6 @@ The names are proposals; the choices in them are the questions below.
 ```
 gd:
   the common part
-  setupRows
   puzzle:                    # the template as the parsers write it, frozen at create
     id                       # the source's id; the download's filename
     title
@@ -337,13 +336,15 @@ What the sketch settles, and why:
    writer, a rival's board present in the blob, the solution null until the
    end, the summary; the migration's conversion run against seeded rows; the
    other files on the new names.
-6. **`types.ts`** — a game-level `types.ts` beside `lib/types.ts`'s template
-   types: `GGameDataRaw` / `GGameData`, `GPlayerRaw` / `GPlayer`,
-   `GBoardRaw` / `GBoard`, `GCell`, the setup pair under `G` names, and the
-   exported types now in hooks and components (`CellState`, `CellsMap`,
-   `SetCellAnswer`, `SetMarkAnswer`, `PeerCursor`, `CrosswordsGame`, …) moved
-   in or unexported; the folder joins `CONVERTED_GAMES`. Where `lib/types.ts`
-   goes (the parsers and the CLI import it) is settled in this step.
+6. **`types.ts`** — one `types.ts` for the game, the template types merged in
+   from the old `lib/` module under `G` names (Joel, 2026-10-06: the puzzle's
+   cell is `GPuzzleCell` and a seat's is `GCell`; the stored template is
+   `GPuzzleTemplate` and `gd.puzzle` is `GPuzzle`, the template plus the
+   solution; `MAX_REBUS_LEN` and `SCOPE_LABEL` go to `lib/grid.ts`):
+   `GGameDataRaw` / `GGameData`, `GPlayerRaw` / `GPlayer`, `GBoardRaw` /
+   `GBoard`, `GCell`, the setup pair under `G` names, and the exported types
+   in hooks and components moved in or unexported; the folder joins
+   `CONVERTED_GAMES`.
 7. **`useGame`** — `makeGameData`, the seat rule, the club card.
 8. **The fixture** — the raw blob from facts, under `ZTest_` names.
 9. – 13. **The component passes** — PlayArea, Grid and its pieces, the leaves,

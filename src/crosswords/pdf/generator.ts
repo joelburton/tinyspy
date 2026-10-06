@@ -6,13 +6,13 @@
  */
 
 import { jsPDF } from 'jspdf'
-import type { PuzzleState } from '../lib/types'
+import type { GPuzzleState } from '../types'
 import { computeLayout } from './layout'
 import { drawTitle } from './title'
 import { drawGrid } from './grid'
 import { buildItems, drawPlacements, measureItems, paginate } from './clues'
 
-export async function generateCrosswordPdf(state: PuzzleState): Promise<Blob> {
+export async function generateCrosswordPdf(state: GPuzzleState): Promise<Blob> {
   const { meta, snapshot } = state
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' })
 

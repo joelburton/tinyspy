@@ -23,26 +23,16 @@
  * the source format.
  */
 
-import {
-  MAX_REBUS_LEN,
-  type Cell,
-  type Clue,
-  type GridSnapshot,
-  type PuzzleMeta,
-  type PuzzleState,
-} from '../types'
+import type {
+  GPuzzleCell,
+  GClue,
+  GGridSnapshot,
+  GParseResult,
+  GPuzzleMeta,
+  GPuzzleState,
+} from '../../types'
+import { MAX_REBUS_LEN } from '../grid'
 import { stripClueEmphasis } from '../clueRuns'
-
-export { MAX_REBUS_LEN }
-
-export type ParseResult = {
-  state: PuzzleState
-  /** Per cell: null for a block, otherwise an array of accepted answers.
-   *  Length 1 for normal cells; length > 1 for Schrödinger cells
-   *  (multiple valid answers). Check accepts any element; reveal writes
-   *  element 0 (the canonical answer). */
-  solution: (string[] | null)[][]
-}
 
 /** Thrown for both malformed ipuz JSON and ipuz features we don't yet
  *  support. Callers should treat it as a 400-class error and surface
@@ -128,7 +118,7 @@ function checkCellObjectKeys(obj: Record<string, unknown>, where: string): void 
 /** Decode one ipuz clue entry. Accepts `[number, "text"]` and the
  *  longhand `{number, clue}` form. Rejects multi-cell clues (number as
  *  array) and anything else. */
-function parseClue(entry: unknown, where: string): Clue {
+function parseClue(entry: unknown, where: string): GClue {
   if (Array.isArray(entry)) {
     if (entry.length < 2) fail(`${where}: malformed clue tuple`)
     const [num, text] = entry
@@ -155,7 +145,7 @@ function parseClue(entry: unknown, where: string): Clue {
   fail(`${where}: unsupported clue entry shape`)
 }
 
-function parseClueList(arr: unknown, where: string): Clue[] {
+function parseClueList(arr: unknown, where: string): GClue[] {
   if (arr === undefined) return []
   if (!Array.isArray(arr)) fail(`${where}: expected an array`)
   return arr.map((entry, i) => parseClue(entry, `${where}[${i}]`))
@@ -225,7 +215,7 @@ function parseSolutionCell(
  * @param id  Puzzle id used in `meta.id`.
  * @param buffer  Raw file bytes (UTF-8 JSON; BOM tolerated).
  */
-export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
+export function parseIpuzBuffer(id: string, buffer: Uint8Array): GParseResult {
   // TextDecoder works in both Node and the browser (a Node Buffer is a
   // Uint8Array, so the CLI path decodes fine too).
   let text = new TextDecoder('utf-8').decode(buffer)
@@ -267,7 +257,7 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     fail(`solution grid must have ${height} rows (we don't yet support solver-only ipuz files)`)
   }
 
-  const cells: Cell[][] = []
+  const cells: GPuzzleCell[][] = []
   const solution: (string[] | null)[][] = []
   for (let r = 0; r < height; r++) {
     const puzRow = puzzleGrid[r]
@@ -278,7 +268,7 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     if (!Array.isArray(solRow) || solRow.length !== width) {
       fail(`solution row ${r} must have ${width} cells`)
     }
-    const cellRow: Cell[] = []
+    const cellRow: GPuzzleCell[] = []
     const solOut: (string[] | null)[] = []
     for (let c = 0; c < width; c++) {
       const where = `puzzle[${r}][${c}]`
@@ -389,7 +379,7 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
   const acrossClues = parseClueList(pickClues(cluesRaw, 'Across'), 'clues.Across')
   const downClues = parseClueList(pickClues(cluesRaw, 'Down'), 'clues.Down')
 
-  const meta: PuzzleMeta = {
+  const meta: GPuzzleMeta = {
     id,
     title: typeof data.title === 'string' ? data.title : '',
     author: typeof data.author === 'string' ? data.author : '',
@@ -400,7 +390,7 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     clues: { across: acrossClues, down: downClues },
   }
 
-  const snapshot: GridSnapshot = { version: 0, cells }
+  const snapshot: GGridSnapshot = { version: 0, cells }
   return { state: { meta, snapshot }, solution }
 }
 
@@ -419,7 +409,7 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
  * Ported verbatim from crossplay's `writeIpuz`; backs the "Download as .ipuz"
  * menu item. `solution` is the (server-side) answer grid — letters or null.
  */
-export function writeIpuz(state: PuzzleState, solution: (string[] | null)[][]): string {
+export function writeIpuz(state: GPuzzleState, solution: (string[] | null)[][]): string {
   const { meta, snapshot } = state
 
   // Decorations (circle / shading) and givens need the object form so they

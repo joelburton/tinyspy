@@ -18,43 +18,14 @@
  * through here directly.
  */
 
-import type { Cell, Clue, PuzzleMeta, PuzzleTemplate } from './types.ts'
+import type {
+  GClue,
+  GNytPuzzleResponse,
+  GPuzzleCell,
+  GPuzzleMeta,
+  GPuzzleTemplate,
+} from '../types.ts'
 import { htmlToText } from './clueHtml.ts'
-
-// ── NYT v6 response shape (only the fields the converter reads) ──────────
-export type NytCell = {
-  type?: number
-  answer?: string
-  label?: string
-  moreAnswers?: { valid?: string[] }
-}
-export type NytClue = {
-  /** string | array | { plain?, formatted? }. `formatted` is the one carrying
-   *  markup and is present only on clues that need it — see clueText. */
-  text?: unknown
-  direction?: string
-  label?: string
-}
-export type NytBody = {
-  dimensions: { width: number; height: number }
-  cells: NytCell[]
-  clues: NytClue[]
-  /** Present when the puzzle ships a raster overlay (circles-on-shaded and/or
-   *  word-break bars the per-cell `type` field can't express). `beforeStart`
-   *  is a 1-based index into the response's `assets` array. */
-  overlays?: { beforeStart?: number }
-}
-export type NytPuzzleResponse = {
-  body?: NytBody[]
-  /** Raster assets (overlay PNGs); indexed 1-based by `body.overlays`. */
-  assets?: { uri?: string }[]
-  title?: string
-  publicationDate?: string
-  constructors?: string[]
-  editor?: string
-  copyright?: string
-  notes?: { text?: string }[]
-}
 
 /** Thrown when the v6 JSON is structurally unusable (missing body, cell-count
  *  mismatch). The fetch layer maps this to a legible error. */
@@ -77,8 +48,8 @@ const NYT_INVISIBLE = 4
  * `solution` is the parallel answer grid (null for blocks, else the accepted
  * answers, Schrödinger alternates included). Never emits `given` cells.
  */
-export function convertNytPuzzle(resp: NytPuzzleResponse): {
-  meta: PuzzleTemplate
+export function convertNytPuzzle(resp: GNytPuzzleResponse): {
+  meta: GPuzzleTemplate
   solution: (string[] | null)[][]
 } {
   const body = resp.body?.[0]
@@ -93,10 +64,10 @@ export function convertNytPuzzle(resp: NytPuzzleResponse): {
     throw new NytConvertError(`cell count ${flat?.length} != ${width}×${height}`)
   }
 
-  const cells: Cell[][] = []
+  const cells: GPuzzleCell[][] = []
   const solution: (string[] | null)[][] = []
   for (let r = 0; r < height; r++) {
-    const cellRow: Cell[] = []
+    const cellRow: GPuzzleCell[] = []
     const solRow: (string[] | null)[] = []
     for (let c = 0; c < width; c++) {
       const nc = flat[r * width + c]!
@@ -126,12 +97,12 @@ export function convertNytPuzzle(resp: NytPuzzleResponse): {
     solution.push(solRow)
   }
 
-  const across: Clue[] = []
-  const down: Clue[] = []
+  const across: GClue[] = []
+  const down: GClue[] = []
   for (const cl of body.clues ?? []) {
     const num = cl.label ? Number(cl.label) : NaN
     if (!Number.isInteger(num) || num <= 0) continue
-    const entry: Clue = { number: num, text: clueText(cl.text) }
+    const entry: GClue = { number: num, text: clueText(cl.text) }
     const dir = (cl.direction ?? '').toLowerCase()
     if (dir === 'across') across.push(entry)
     else if (dir === 'down') down.push(entry)
@@ -139,7 +110,7 @@ export function convertNytPuzzle(resp: NytPuzzleResponse): {
   across.sort((a, b) => a.number - b.number)
   down.sort((a, b) => a.number - b.number)
 
-  const meta: PuzzleMeta = {
+  const meta: GPuzzleMeta = {
     id: resp.publicationDate ?? 'nyt',
     title: nytTitle(resp),
     author: nytAuthor(resp),
@@ -154,7 +125,7 @@ export function convertNytPuzzle(resp: NytPuzzleResponse): {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-function nytTitle(resp: NytPuzzleResponse): string {
+function nytTitle(resp: GNytPuzzleResponse): string {
   const base = resp.title && resp.title.length > 0 ? resp.title : 'Untitled'
   const date = resp.publicationDate
   if (!date) return `NYT: ${base}`
@@ -165,13 +136,13 @@ function nytTitle(resp: NytPuzzleResponse): string {
   return `NYT ${day} ${stamp}: ${base}`
 }
 
-function nytAuthor(resp: NytPuzzleResponse): string {
+function nytAuthor(resp: GNytPuzzleResponse): string {
   const makers = (resp.constructors ?? []).filter((s) => typeof s === 'string')
   const base = makers.join(', ')
   return resp.editor ? (base ? `${base} / ${resp.editor}` : resp.editor) : base
 }
 
-function nytNote(resp: NytPuzzleResponse): string {
+function nytNote(resp: GNytPuzzleResponse): string {
   return (resp.notes ?? [])
     .map((n) => n.text)
     .filter((t): t is string => typeof t === 'string')

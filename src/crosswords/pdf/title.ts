@@ -7,7 +7,7 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import type { PuzzleMeta } from '../lib/types'
+import type { GPuzzleMeta } from '../types'
 import type { Rect } from './layout'
 import { BYLINE_SIZE, FONT_SERIF, TITLE_SIZE } from './fonts'
 
@@ -17,7 +17,7 @@ import { BYLINE_SIZE, FONT_SERIF, TITLE_SIZE } from './fonts'
  * small font so they fit beside the title without inflating the
  * block height.
  */
-export function drawTitle(doc: jsPDF, meta: PuzzleMeta, rect: Rect): void {
+export function drawTitle(doc: jsPDF, meta: GPuzzleMeta, rect: Rect): void {
   const leftX = rect.x
   const rightX = rect.x + rect.w
 

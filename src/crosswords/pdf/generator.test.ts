@@ -2,7 +2,7 @@
 
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import type { Cell, PuzzleState } from '../lib/types'
+import type { GPuzzleCell, GPuzzleState } from '../types'
 
 // Capture every jsPDF call made by the generator. Each method records
 // itself and returns `this`, so chained-style calls work.
@@ -42,12 +42,12 @@ vi.mock('jspdf', () => ({
   },
 }))
 
-function cell(number: number | null, fill: string | null = null): Cell {
+function cell(number: number | null, fill: string | null = null): GPuzzleCell {
   return { kind: 'cell', number, fill }
 }
 
-function makePuzzle(): PuzzleState {
-  const cells: Cell[][] = [
+function makePuzzle(): GPuzzleState {
+  const cells: GPuzzleCell[][] = [
     [cell(1), cell(2), cell(3)],
     [cell(4), cell(null), cell(null)],
     [cell(5), cell(null), cell(null)],
@@ -77,8 +77,8 @@ function makePuzzle(): PuzzleState {
   }
 }
 
-function makePencilPuzzle(): PuzzleState {
-  const cells: Cell[][] = [
+function makePencilPuzzle(): GPuzzleState {
+  const cells: GPuzzleCell[][] = [
     [
       { kind: 'cell', number: 1, fill: 'P', pencil: true },
       { kind: 'cell', number: 2, fill: 'B' },

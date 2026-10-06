@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
-import type { Cell } from './types'
+import type { GPuzzleCell } from '../types'
 import { applyOverlayMarkings, detectOverlayMarkings } from './nytOverlay'
 
 /**
@@ -50,7 +50,7 @@ describe('detectOverlayMarkings: bars', () => {
 
 describe('applyOverlayMarkings', () => {
   it('unions detected circles onto an existing cell grid (never onto a block)', () => {
-    const cells: Cell[][] = [
+    const cells: GPuzzleCell[][] = [
       [
         { kind: 'cell', number: null, fill: null, shaded: true },
         { kind: 'block' },
@@ -68,7 +68,7 @@ describe('applyOverlayMarkings', () => {
   })
 
   it("sets markRight/markBottom 'break' on the named cells (never onto a block)", () => {
-    const cells: Cell[][] = [
+    const cells: GPuzzleCell[][] = [
       [
         { kind: 'cell', number: null, fill: null },
         { kind: 'cell', number: null, fill: null },

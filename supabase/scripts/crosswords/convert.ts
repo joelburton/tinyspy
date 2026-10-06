@@ -11,7 +11,7 @@
  */
 
 import { basename, extname } from 'node:path'
-import type { PuzzleTemplate } from '../../../src/crosswords/lib/types'
+import type { GPuzzleTemplate } from '../../../src/crosswords/types'
 import { detectFormat, parsePuzzleBuffer } from '../../../src/crosswords/lib/parse/format'
 import { puzzleContentHash } from './contentHash'
 
@@ -20,7 +20,7 @@ export type ConvertedPuzzle = {
    *  library id. */
   id: string
   /** The immutable template destined for the `meta` jsonb column. */
-  template: PuzzleTemplate
+  template: GPuzzleTemplate
   /** The answer grid destined for the shielded `solution` jsonb column.
    *  Per cell: null for a block, else an array of accepted answers
    *  (length > 1 = Schrödinger). */
@@ -49,6 +49,6 @@ export function convertPuzzleFile(path: string, buffer: Buffer): ConvertedPuzzle
   const format = detectFormat(path, buffer)
   const { state, solution } = parsePuzzleBuffer(id, buffer, format)
   const contentHash = puzzleContentHash(state, solution)
-  const template: PuzzleTemplate = { ...state.meta, cells: state.snapshot.cells }
+  const template: GPuzzleTemplate = { ...state.meta, cells: state.snapshot.cells }
   return { id, template, solution, contentHash }
 }

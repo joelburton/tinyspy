@@ -2,58 +2,56 @@
 
 import { describe, expect, it } from 'vitest'
 import { enumerationFor } from './enumeration'
-import { type CellState, type CellsMap } from '../hooks/useCells'
 import { cellKey } from './cellKey'
-import type { CellPos } from './cursor'
+import type { GBoard, GCell, GCellPos } from '../types'
 
-function cell(patch: Partial<CellState> = {}): CellState {
-  return { fill: null, pencil: false, revealed: false, wrong: false, markRight: null, markBottom: null, version: 0, ...patch }
+/** A board holding just the given cells, each with the facts it is given. */
+function board(...cells: [row: number, col: number, patch: Partial<GCell>][]): GBoard {
+  const list: GCell[] = cells.map(([row, col, patch]) => ({
+    id: cellKey(row, col), row, col,
+    fill: null, pencil: false, wrong: false, revealed: false,
+    markRight: null, markBottom: null, writer: null,
+    ...patch,
+  }))
+  return { cells: list, cellsById: Object.fromEntries(list.map((c) => [c.id, c])) }
 }
 // A horizontal word of `n` cells at row 0.
-const word = (n: number): CellPos[] => Array.from({ length: n }, (_, i) => ({ row: 0, col: i }))
+const word = (n: number): GCellPos[] => Array.from({ length: n }, (_, i) => ({ row: 0, col: i }))
 
 describe('enumerationFor', () => {
   it('no marks → just the word length', () => {
-    expect(enumerationFor(word(7), new Map(), 'across')).toBe('(7)')
+    expect(enumerationFor(word(7), board(), 'across')).toBe('(7)')
   })
 
   it('a break mark splits with a comma', () => {
-    const cells: CellsMap = new Map([[cellKey(0, 3), cell({ markRight: 'break' })]])
-    expect(enumerationFor(word(7), cells, 'across')).toBe('(4,3)')
+    expect(enumerationFor(word(7), board([0, 3, { markRight: 'break' }]), 'across')).toBe('(4,3)')
   })
 
   it('a hyphen mark splits with a hyphen', () => {
-    const cells: CellsMap = new Map([[cellKey(0, 2), cell({ markRight: 'hyphen' })]])
-    expect(enumerationFor(word(5), cells, 'across')).toBe('(3-2)')
+    expect(enumerationFor(word(5), board([0, 2, { markRight: 'hyphen' }]), 'across')).toBe('(3-2)')
   })
 
   it('ignores a mark on the last cell (nothing follows it)', () => {
-    const cells: CellsMap = new Map([[cellKey(0, 6), cell({ markRight: 'break' })]])
-    expect(enumerationFor(word(7), cells, 'across')).toBe('(7)')
+    expect(enumerationFor(word(7), board([0, 6, { markRight: 'break' }]), 'across')).toBe('(7)')
   })
 
   it('reads markBottom for a down word', () => {
-    const down: CellPos[] = Array.from({ length: 4 }, (_, i) => ({ row: i, col: 0 }))
-    const cells: CellsMap = new Map([[cellKey(1, 0), cell({ markBottom: 'break' })]])
-    expect(enumerationFor(down, cells, 'down')).toBe('(2,2)')
+    const down: GCellPos[] = Array.from({ length: 4 }, (_, i) => ({ row: i, col: 0 }))
+    expect(enumerationFor(down, board([1, 0, { markBottom: 'break' }]), 'down')).toBe('(2,2)')
   })
 
   it('mixes break + hyphen in one word (exercises the separator index)', () => {
     // 7 cells: a break after cell 1, a hyphen after cell 4 → (2,3-2). The
     // separators array must line up with segments 1 and 2 respectively — the
     // likeliest off-by-one in the join loop.
-    const cells: CellsMap = new Map([
-      [cellKey(0, 1), cell({ markRight: 'break' })],
-      [cellKey(0, 4), cell({ markRight: 'hyphen' })],
-    ])
-    expect(enumerationFor(word(7), cells, 'across')).toBe('(2,3-2)')
+    const marked = board([0, 1, { markRight: 'break' }], [0, 4, { markRight: 'hyphen' }])
+    expect(enumerationFor(word(7), marked, 'across')).toBe('(2,3-2)')
   })
 
-  it('counts a given cell (absent from the cells map) toward the length', () => {
-    // Cell (0,3) is a given → no entry in the map → its mark reads undefined
+  it('counts a given cell (absent from the board) toward the length', () => {
+    // Cell (0,3) is a given → no cell on the board → its mark reads undefined
     // (no spurious split), but it still adds 1 to the running segment length.
     // Only the real break at (0,1) splits: (2,3).
-    const cells: CellsMap = new Map([[cellKey(0, 1), cell({ markRight: 'break' })]])
-    expect(enumerationFor(word(5), cells, 'across')).toBe('(2,3)')
+    expect(enumerationFor(word(5), board([0, 1, { markRight: 'break' }]), 'across')).toBe('(2,3)')
   })
 })

@@ -46,7 +46,7 @@ describe('the NYT picker', () => {
   })
 
   it('picks a weekday by its Postgres dow, and sends no date with it', async () => {
-    // The number goes straight to next_nyt_date_for_club(seen_by, dow), so
+    // The number goes straight to next_nyt_date_for_club(p_seen_by, p_dow), so
     // Sunday must be 0 — not the seventh row's index.
     const user = userEvent.setup()
     draw()

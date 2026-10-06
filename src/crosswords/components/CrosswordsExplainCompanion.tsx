@@ -2,18 +2,12 @@
 
 import { Fragment, type ReactNode } from 'react'
 import { Companion } from '@/common/floating-panels/Companion'
+import type { GExplainState } from '../types'
 import styles from './CrosswordsExplainCompanion.module.css'
-
-/** The dialog's state — mirrors crossplay's ExplainPopover states, minus the
- *  scratchpad (native thinking is never returned to the client). */
-export type ExplainState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; explanation: string }
-  | { kind: 'error'; message: string }
 
 type Props = {
   clueLabel: string
-  state: ExplainState
+  state: GExplainState
   onClose: () => void
 }
 

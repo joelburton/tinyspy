@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { MAX_REBUS_LEN } from '../lib/types'
+import { MAX_REBUS_LEN } from '../lib/grid'
 import {
   BORDER_BOTTOM,
   BORDER_LEFT,
@@ -9,7 +9,7 @@ import {
   BORDER_TOP,
   computeBorderMask,
 } from '../lib/cursor'
-import type { Cell as CellT, PuzzleTemplate } from '../lib/types'
+import type { GPuzzleCell as CellT, GPuzzleTemplate, GRebusPostCommit } from '../types'
 import { type CellsMap } from '../hooks/useCells'
 import { cellKey } from '../lib/cellKey'
 import { cls } from '@/common/utils/cls'
@@ -52,12 +52,8 @@ function overlayStyle(row: number, col: number, gridWidth: number): CSSPropertie
   return { top: `${row}em`, left: `${left}em`, width: `${REBUS_WIDTH_EM}em`, height: '1em' }
 }
 
-/** What to do with the cursor after a rebus commit — Enter advances one cell,
- *  Tab / Shift+Tab jumps to the next / previous clue (mirrors Tab elsewhere). */
-export type RebusPostCommit = 'advance' | 'jumpNext' | 'jumpPrev'
-
 type Props = {
-  meta: PuzzleTemplate
+  meta: GPuzzleTemplate
   cells: CellsMap
   cursorRow: number
   cursorCol: number
@@ -66,7 +62,7 @@ type Props = {
   onCellClick: (row: number, col: number) => void
   /** The rebus overlay target (Shift+Enter), or null. */
   rebus: { row: number; col: number; initial: string } | null
-  onRebusCommit: (value: string, post: RebusPostCommit) => void
+  onRebusCommit: (value: string, post: GRebusPostCommit) => void
   onRebusCancel: () => void
   /** The read-only zoom-peek (Shift+Space): the cell + its fill, or null.
    *  Mutually exclusive with `rebus` (typing wins over peeking). */
@@ -196,7 +192,7 @@ function RebusInput({
   initial, onCommit, onCancel,
 }: {
   initial: string
-  onCommit: (value: string, post: RebusPostCommit) => void
+  onCommit: (value: string, post: GRebusPostCommit) => void
   onCancel: () => void
 }) {
   const [value, setValue] = useState(initial)

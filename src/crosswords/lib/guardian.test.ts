@@ -1,18 +1,19 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { convertGuardianPuzzle, GuardianConvertError, type GuardianData, type GuardianEntry } from './guardian'
+import { convertGuardianPuzzle, GuardianConvertError } from './guardian'
+import type { GGuardianData, GGuardianEntry } from '../types'
 
 /** Assemble a minimal Guardian `data` object from a list of entries. */
 function makeData(opts: {
   rows?: number
   cols?: number
-  entries?: GuardianEntry[]
+  entries?: GGuardianEntry[]
   name?: string
   creator?: { name?: string } | null
   solutionAvailable?: boolean
   id?: string
-}): GuardianData {
+}): GGuardianData {
   return {
     id: opts.id ?? 'crosswords/quick/1',
     name: opts.name,
@@ -25,10 +26,10 @@ function makeData(opts: {
   }
 }
 
-const across = (number: number, x: number, y: number, solution: string, clue = 'c'): GuardianEntry => ({
+const across = (number: number, x: number, y: number, solution: string, clue = 'c'): GGuardianEntry => ({
   number, direction: 'across', position: { x, y }, length: solution.length, solution, clue,
 })
-const down = (number: number, x: number, y: number, solution: string, clue = 'c'): GuardianEntry => ({
+const down = (number: number, x: number, y: number, solution: string, clue = 'c'): GGuardianEntry => ({
   number, direction: 'down', position: { x, y }, length: solution.length, solution, clue,
 })
 

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import type { Cell } from './types'
+import type { GPuzzleCell } from '../types'
 import {
   activeClueNumber,
   advanceAfterFill,
@@ -22,13 +22,13 @@ import {
  *  assigned exactly the way the parsers do (a cell starts a word if its
  *  left/up neighbor is a block/edge and its right/down neighbor is
  *  open), so the fixtures read like real grids. */
-function grid(rows: string[]): Cell[][] {
+function grid(rows: string[]): GPuzzleCell[][] {
   let n = 0
   const raw = rows.map((row) => Array.from(row))
   const isBlock = (r: number, c: number) =>
     r < 0 || c < 0 || r >= raw.length || c >= raw[0]!.length || raw[r]![c] === '#'
   return raw.map((row, r) =>
-    row.map((ch, c): Cell => {
+    row.map((ch, c): GPuzzleCell => {
       if (ch === '#') return { kind: 'block' }
       const startsAcross = isBlock(r, c - 1) && !isBlock(r, c + 1)
       const startsDown = isBlock(r - 1, c) && !isBlock(r + 1, c)

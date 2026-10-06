@@ -604,7 +604,7 @@ opt-in so non-game menus keep standard Esc-restores-focus a11y.)
   `GuardianConvertError` throw, `nytOverlay` — the overlay-PNG circle/bar
   detector pinned against real NYT fixtures, byte-for-byte with crossplay's,
   `clueRuns` — the PDF clue-text italic-run parse/wrap arithmetic under a fake
-  text measure), `hooks/useCells.test.ts` + `hooks/useGridKeyboard.test.ts`,
+  text measure), `hooks/useGridKeyboard.test.ts`,
   `pdf/*.test.ts`, and the parser + content-hash tests next to the CLI
   (`supabase/scripts/crosswords/`).
 - e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal

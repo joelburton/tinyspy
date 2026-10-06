@@ -16,13 +16,13 @@
  * PDF can drive it with jsPDF text metrics while a test drives it with a fake.
  */
 
-export type ClueSeg = { text: string; italic: boolean }
+import type { GClueSeg } from '../types'
 
 /** Split a clue string into styled runs; each `<em>…</em>` span becomes an
  *  italic run (tags stripped). Everything else — including literal underscores
  *  (NYT fill-in blanks) and stray `<`/`>` — stays roman. */
-export function parseClueRuns(text: string): ClueSeg[] {
-  const segs: ClueSeg[] = []
+export function parseClueRuns(text: string): GClueSeg[] {
+  const segs: GClueSeg[] = []
   for (const part of text.split(/(<em>.*?<\/em>)/i)) {
     if (part === '') continue
     const m = /^<em>(.*)<\/em>$/i.exec(part)
@@ -43,9 +43,9 @@ export function stripClueEmphasis(text: string): string {
  *  falls *inside* a word — e.g. italic "Heigh-Ho" immediately followed by
  *  roman "?" with no space — keeps both segs in one word, so a per-style PDF
  *  draw never orphans a fragment across a line break. */
-function toWords(segs: ClueSeg[]): ClueSeg[][] {
-  const words: ClueSeg[][] = []
-  let cur: ClueSeg[] = []
+function toWords(segs: GClueSeg[]): GClueSeg[][] {
+  const words: GClueSeg[][] = []
+  let cur: GClueSeg[] = []
   const flush = () => {
     if (cur.length) {
       words.push(cur)
@@ -72,16 +72,16 @@ function toWords(segs: ClueSeg[]): ClueSeg[][] {
  * content.
  */
 export function wrapClueRuns(
-  segs: ClueSeg[],
+  segs: GClueSeg[],
   width: number,
   measure: (text: string, italic: boolean) => number,
-): ClueSeg[][] {
+): GClueSeg[][] {
   const words = toWords(segs)
   const spaceW = measure(' ', false)
-  const wordWidth = (w: ClueSeg[]) => w.reduce((a, s) => a + measure(s.text, s.italic), 0)
+  const wordWidth = (w: GClueSeg[]) => w.reduce((a, s) => a + measure(s.text, s.italic), 0)
 
-  const lines: ClueSeg[][] = []
-  let line: ClueSeg[] = []
+  const lines: GClueSeg[][] = []
+  let line: GClueSeg[] = []
   let lineW = 0
   for (const word of words) {
     const ww = wordWidth(word)

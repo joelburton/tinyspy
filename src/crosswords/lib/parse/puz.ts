@@ -20,15 +20,16 @@
  */
 
 import Puz from 'puzjs'
-import { IpuzUnsupportedError, MAX_REBUS_LEN, type ParseResult } from './ipuz'
-import type { Cell, Clue, GridSnapshot, PuzzleMeta } from '../types'
+import { IpuzUnsupportedError } from './ipuz'
+import { MAX_REBUS_LEN } from '../grid'
+import type { GPuzzleCell, GClue, GGridSnapshot, GParseResult, GPuzzleMeta } from '../../types'
 
 /**
  * @param id  The puzzle id used in `meta.id`.
  * @param buffer  Raw `.puz` bytes as a `Uint8Array` (a Node `Buffer` from the
  *                CLI is one; the browser upload passes one from `File`).
  */
-export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
+export function parsePuzBuffer(id: string, buffer: Uint8Array): GParseResult {
   const decoded = Puz.decode(new Uint8Array(buffer))
   const rawGrid = decoded.grid
   const height = rawGrid.length
@@ -76,8 +77,8 @@ export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     Array.from({ length: width }, () => null as number | null),
   )
 
-  const acrossClues: Clue[] = []
-  const downClues: Clue[] = []
+  const acrossClues: GClue[] = []
+  const downClues: GClue[] = []
   let n = 0
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
@@ -99,8 +100,8 @@ export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     }
   }
 
-  const cells: Cell[][] = rawGrid.map((row, r) =>
-    row.map((cell, c): Cell => {
+  const cells: GPuzzleCell[][] = rawGrid.map((row, r) =>
+    row.map((cell, c): GPuzzleCell => {
       if (cell === '.') return { kind: 'block' }
       const idx = r * width + c
       const circled = circledSet.has(idx)
@@ -115,7 +116,7 @@ export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     }),
   )
 
-  const meta: PuzzleMeta = {
+  const meta: GPuzzleMeta = {
     id,
     title: decoded.meta.title ?? '',
     author: decoded.meta.author ?? '',
@@ -126,7 +127,7 @@ export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
     clues: { across: acrossClues, down: downClues },
   }
 
-  const snapshot: GridSnapshot = { version: 0, cells }
+  const snapshot: GGridSnapshot = { version: 0, cells }
 
   return { state: { meta, snapshot }, solution }
 }

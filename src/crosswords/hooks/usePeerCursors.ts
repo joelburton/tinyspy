@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
-import type { Cursor } from '../lib/cursor'
+import type { GCursor } from '../types'
 
-export type PeerCursor = { row: number; col: number; color: string }
+type PeerCursor = { row: number; col: number; color: string }
 
 type CursorMsg = { userId: string; row: number; col: number; color: string }
 type FillMsg = { userId: string; row: number; col: number; color: string }
@@ -24,7 +24,7 @@ const RECENT_FILL_MS = 5000
  *  same). Compounds the plan's Realtime-quota watch-item. */
 const CURSOR_THROTTLE_MS = 80
 
-export type PeerCursorsApi = {
+type PeerCursorsApi = {
   /** peer userId → their cursor cell + color; the caller draws a frame. */
   peers: Map<string, PeerCursor>
   /** `${row}:${col}` → color: a teammate JUST filled this cell — flash it. */
@@ -58,7 +58,7 @@ export type PeerCursorsApi = {
 export function usePeerCursors(
   gameId: string,
   enabled: boolean,
-  cursor: Cursor | null,
+  cursor: GCursor | null,
   myId: string,
   myColor: string,
   /** Called when a teammate broadcasts "open the note" (crossplay's showNotes).

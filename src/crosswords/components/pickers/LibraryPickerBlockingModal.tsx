@@ -20,7 +20,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 type PuzzleStatus = 'solved' | 'playing' | 'lost' | 'unplayed'
 
 /** A library puzzle as the picker sees it — id + the non-spoiler meta. */
-export type LibraryPuzzle = {
+type LibraryPuzzle = {
   id: string
   title: string
   author: string
@@ -85,7 +85,7 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
     let active = true
     void (async () => {
       const res = await runRpc<LibraryAnswer>(
-        db.rpc('library_for_club', { target_club: clubHandle }),
+        db.rpc('library_for_club', { p_club_handle: clubHandle }),
       )
       // The cancel guard first, before the branch: a modal closed mid-flight
       // cancels its own request, and `runRpc` hands that back as a not-ok like

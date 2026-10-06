@@ -27,7 +27,7 @@ import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import type { CrosswordsGame } from '../hooks/useGame'
 import type { CellsMap, CellState } from '../hooks/useCells'
-import type { PuzzleTemplate } from '../lib/types'
+import type { GPuzzleTemplate } from '../types'
 import { PlayArea } from './PlayArea'
 
 // Only `runEdgeFn` is stubbed — the AI explainer's transport. `runRpc` stays
@@ -77,7 +77,7 @@ vi.mock('../db', () => ({
 
 /** A minimal 2×2 all-open template — answers C A / T S, one across + one down
  *  clue each. Enough for the Grid + cursor + keyboard to mount for real. */
-function template(): PuzzleTemplate {
+function template(): GPuzzleTemplate {
   const cell = (number: number | null) => ({ kind: 'cell' as const, number, fill: null })
   return {
     id: 'toy', title: 'Toy', author: 'T', copyright: '', note: '',

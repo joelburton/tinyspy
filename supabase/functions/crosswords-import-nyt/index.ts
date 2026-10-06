@@ -55,12 +55,12 @@ import { crash, fault, formValidation, serviceError } from '../_shared/envelope.
 import { callerClient } from '../_shared/startGame.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 import type { Json } from '../../../src/types/db.ts'
-import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
+import { convertNytPuzzle } from '../../../src/crosswords/lib/nyt.ts'
 import {
   applyOverlayMarkings,
   detectOverlayMarkings,
-  type OverlayMarkings,
 } from '../../../src/crosswords/lib/nytOverlay.ts'
+import type { GNytPuzzleResponse, GOverlayMarkings } from '../../../src/crosswords/types.ts'
 
 // ── NYT fetch (Deno-native; the pure conversion lives in the shared lib) ──
 class NytAuthError extends Error {}
@@ -124,7 +124,7 @@ async function nytGetJson(url: string, cookie: string): Promise<unknown> {
   }
 }
 
-async function fetchNytPuzzleForDate(cookie: string, date: string): Promise<NytPuzzleResponse> {
+async function fetchNytPuzzleForDate(cookie: string, date: string): Promise<GNytPuzzleResponse> {
   const listUrl =
     'https://www.nytimes.com/svc/crosswords/v3/puzzles.json' +
     `?publish_type=daily&sort_order=asc&sort_by=print_date&date_start=${date}&date_end=${date}`
@@ -136,10 +136,10 @@ async function fetchNytPuzzleForDate(cookie: string, date: string): Promise<NytP
   return (await nytGetJson(
     `https://www.nytimes.com/svc/crosswords/v6/puzzle/${entry.puzzle_id}.json`,
     cookie,
-  )) as NytPuzzleResponse
+  )) as GNytPuzzleResponse
 }
 
-const EMPTY_MARKINGS: OverlayMarkings = {
+const EMPTY_MARKINGS: GOverlayMarkings = {
   circles: new Set(),
   barsRight: new Set(),
   barsBottom: new Set(),
@@ -153,7 +153,7 @@ async function fetchOverlayMarkings(
   cookie: string,
   width: number,
   height: number,
-): Promise<OverlayMarkings> {
+): Promise<GOverlayMarkings> {
   let resp: Response
   try {
     resp = await fetch(uri, {

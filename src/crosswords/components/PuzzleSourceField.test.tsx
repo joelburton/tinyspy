@@ -22,7 +22,7 @@ import { PuzzleSourceField } from './PuzzleSourceField'
 import { summarize } from '../lib/puzzleSummary'
 import { errorUnder } from '@/common/fields/errorUnder'
 import { expectFieldContract } from '@/common/fields/fieldContract'
-import type { PuzzleChoice } from '../lib/setup'
+import type { GPuzzleChoice } from '../types'
 import button from '@/common/buttons/StandardButton.module.css'
 
 // jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor
@@ -32,9 +32,9 @@ Element.prototype.scrollIntoView = vi.fn()
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
 
-const BASE: PuzzleChoice = { source: 'library' }
+const BASE: GPuzzleChoice = { source: 'library' }
 
-function draw(value: Partial<PuzzleChoice> = {}, error?: string) {
+function draw(value: Partial<GPuzzleChoice> = {}, error?: string) {
   const onChange = vi.fn()
   const view = render(
     <PuzzleSourceField
@@ -73,7 +73,7 @@ describe('the puzzle caption', () => {
   // `summarize` directly: the caption is a pure function of the setup plus the
   // resolved date, and testing it here says what each source READS AS without
   // standing up four pickers to produce the values.
-  const say = (values: Partial<PuzzleChoice>, resolved?: string | null, title?: string) =>
+  const say = (values: Partial<GPuzzleChoice>, resolved?: string | null, title?: string) =>
     summarize({ ...BASE, ...values }, resolved, title ?? null)
 
   it('asks for a choice before one is made', () => {
@@ -264,7 +264,7 @@ describe('the field', () => {
     expect(mockRpc).not.toHaveBeenCalled()
 
     draw({ source: 'nyt', weekday: 1 })
-    expect(mockRpc).toHaveBeenCalledWith('next_nyt_date_for_club', { seen_by: ['self'], dow: 1 })
+    expect(mockRpc).toHaveBeenCalledWith('next_nyt_date_for_club', { p_seen_by: ['self'], p_dow: 1 })
   })
 
   it('does not ask when an explicit date has already answered it', () => {

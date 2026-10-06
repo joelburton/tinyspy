@@ -19,30 +19,14 @@
  * so the bars are cosmetic). Recorded in docs/games/crosswords.md.
  */
 
-import type { Cell, Clue, PuzzleMeta, PuzzleTemplate } from './types.ts'
+import type {
+  GClue,
+  GGuardianData,
+  GPuzzleCell,
+  GPuzzleMeta,
+  GPuzzleTemplate,
+} from '../types.ts'
 import { htmlToText } from './clueHtml.ts'
-
-// ── Guardian response shape (only the fields the converter reads) ──────────
-export type GuardianEntry = {
-  number?: number
-  clue?: string
-  direction?: string // 'across' | 'down'
-  length?: number
-  position?: { x?: number; y?: number } // 0-indexed grid coords
-  solution?: string // uppercase answer; absent until published
-}
-export type GuardianData = {
-  id?: string // slug, e.g. "crosswords/quick/17529"
-  name?: string // "Quick crossword No 17,529"
-  date?: number // epoch ms
-  creator?: { name?: string } | null
-  crosswordType?: string // "quick" | "cryptic" | …
-  dimensions?: { rows?: number; cols?: number }
-  entries?: GuardianEntry[]
-  /** The Guardian's own "the answers are published" flag. False for a Prize /
-   *  Weekend puzzle before its reveal date. */
-  solutionAvailable?: boolean
-}
 
 /** Thrown when the Guardian JSON is structurally unusable or the solution
  *  hasn't been published yet. The fetch layer maps this to a legible error. */
@@ -65,8 +49,8 @@ export class GuardianConvertError extends Error {
  * back a playable game (our check/reveal/terminal flow needs the answer key),
  * so it throws rather than seeding an unsolvable board.
  */
-export function convertGuardianPuzzle(data: GuardianData): {
-  meta: PuzzleTemplate
+export function convertGuardianPuzzle(data: GGuardianData): {
+  meta: GPuzzleTemplate
   solution: (string[] | null)[][]
 } {
   const width = Number(data.dimensions?.cols)
@@ -88,15 +72,15 @@ export function convertGuardianPuzzle(data: GuardianData): {
   // are placed at each entry's START cell — an across + a down entry that
   // begin at the same cell share one number (Guardian gives them the same
   // value, so the second write is idempotent).
-  const cells: Cell[][] = Array.from({ length: height }, () =>
-    Array.from({ length: width }, (): Cell => ({ kind: 'block' })),
+  const cells: GPuzzleCell[][] = Array.from({ length: height }, () =>
+    Array.from({ length: width }, (): GPuzzleCell => ({ kind: 'block' })),
   )
   const solution: (string[] | null)[][] = Array.from({ length: height }, () =>
     Array.from({ length: width }, (): string[] | null => null),
   )
 
-  const across: Clue[] = []
-  const down: Clue[] = []
+  const across: GClue[] = []
+  const down: GClue[] = []
 
   for (const e of entries) {
     const dir = (e.direction ?? '').toLowerCase()
@@ -142,14 +126,14 @@ export function convertGuardianPuzzle(data: GuardianData): {
       solution[y]![x] = [letter]
     }
 
-    const clue: Clue = { number: num ?? 0, text: htmlToText(e.clue ?? '') }
+    const clue: GClue = { number: num ?? 0, text: htmlToText(e.clue ?? '') }
     ;(dir === 'across' ? across : down).push(clue)
   }
 
   across.sort((a, b) => a.number - b.number)
   down.sort((a, b) => a.number - b.number)
 
-  const meta: PuzzleMeta = {
+  const meta: GPuzzleMeta = {
     id: data.id || 'guardian',
     title: data.name || 'Guardian crossword',
     author: data.creator?.name ?? '',

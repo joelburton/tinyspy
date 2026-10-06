@@ -44,7 +44,8 @@ import { crash, fault, serviceError } from '../_shared/envelope.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import { runRpc } from '../_shared/dbResult.ts'
 import type { Json } from '../../../src/types/db.ts'
-import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
+import { convertGuardianPuzzle, GuardianConvertError } from '../../../src/crosswords/lib/guardian.ts'
+import type { GGuardianData } from '../../../src/crosswords/types.ts'
 
 class GuardianFetchError extends Error {}
 
@@ -93,14 +94,14 @@ function decodeEntities(s: string): string {
 }
 
 /** Pull the CrosswordComponent island's `data` object out of a solver page. */
-function extractGuardianData(html: string): GuardianData {
+function extractGuardianData(html: string): GGuardianData {
   // The opening <gu-island …> tag has no literal '>' inside (attribute values
   // are entity-escaped), so match up to the first '>'.
   const tag = html.match(/<gu-island\b[^>]*name="CrosswordComponent"[^>]*>/)?.[0]
   if (!tag) throw new GuardianFetchError('Could not find the crossword on the page.')
   const propsEsc = tag.match(/props="([^"]*)"/)?.[1]
   if (!propsEsc) throw new GuardianFetchError('Could not read the crossword data.')
-  let parsed: { data?: GuardianData }
+  let parsed: { data?: GGuardianData }
   try {
     parsed = JSON.parse(decodeEntities(propsEsc))
   } catch {
@@ -110,7 +111,7 @@ function extractGuardianData(html: string): GuardianData {
   return parsed.data
 }
 
-async function fetchLatestGuardian(series: string): Promise<GuardianData> {
+async function fetchLatestGuardian(series: string): Promise<GGuardianData> {
   const landing = `https://www.theguardian.com/crosswords/series/${series}`
   const listHtml = await fetchText(landing)
   // The first /crosswords/<series>/<id> link on the index is its latest. Anchor

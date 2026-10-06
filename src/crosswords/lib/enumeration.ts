@@ -1,9 +1,7 @@
 // cs-unmet
 
-import { type CellsMap } from '../hooks/useCells'
 import { cellKey } from './cellKey'
-import type { CellPos } from './cursor'
-import type { Direction } from './types'
+import type { GBoard, GCellPos, GDirection } from '../types'
 
 /**
  * The clue enumeration — `(7)`, `(4,3)`, `(3-2)` — derived from the cryptic
@@ -12,19 +10,20 @@ import type { Direction } from './types'
  * segment with a comma; a `hyphen` mark closes it with a hyphen; no marks →
  * just the word length. The mark on the LAST cell's trailing edge is ignored.
  *
- * @param word  the word's cells, in reading order (from `cursor.wordCells`).
- * @param dir   `across` reads `markRight`; `down` reads `markBottom`.
+ * @param word   the word's cells, in reading order (from `cursor.wordCells`).
+ * @param board  the seat's grid, whose cells carry the marks.
+ * @param dir    `across` reads `markRight`; `down` reads `markBottom`.
  */
-export function enumerationFor(word: CellPos[], cells: CellsMap, dir: Direction): string {
+export function enumerationFor(word: GCellPos[], board: GBoard, dir: GDirection): string {
   const segments: number[] = []
   const separators: string[] = [] // separator preceding segment i (for i ≥ 1)
   let len = 0
   word.forEach((p, i) => {
     len += 1
     if (i < word.length - 1) {
-      // Given cells aren't in the cells map (no marks — option A), so their
-      // mark reads as undefined, exactly as intended.
-      const st = cells.get(cellKey(p.row, p.col))
+      // A given cell has no place on the board, so no marks: its lookup
+      // misses and its mark reads as undefined, exactly as intended.
+      const st = board.cellsById[cellKey(p.row, p.col)]
       const mark = dir === 'across' ? st?.markRight : st?.markBottom
       if (mark === 'break' || mark === 'hyphen') {
         segments.push(len)

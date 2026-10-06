@@ -22,29 +22,11 @@
  * `.ts` import specifiers (like `nyt.ts`) so this resolves under Deno too.
  */
 
-import type { Cell } from './types.ts'
+import type { GOverlayMarkings, GPuzzleCell } from '../types.ts'
 
 /** The minimal decoded-image shape the detector needs: RGBA bytes in
  *  row-major order (`data[(y*width + x)*4 + {0..3}]` = R,G,B,A). */
-export type DecodedPng = { width: number; height: number; data: Uint8Array }
-
-/** Decoded markings from a NYT overlay PNG.
- *
- *  - `circles`: cells with a theme-marker circle drawn on them (most common
- *    use of the overlay channel — circles-on-shaded cells the per-cell `type`
- *    field can't represent).
- *  - `barsRight` / `barsBottom`: cells with a thick author-drawn line on their
- *    right / bottom edge. NYT uses these in some themed puzzles as a *visual*
- *    separator that doesn't actually break a word (the JSON's `clues` arrays
- *    span across them). Maps directly onto our `markRight` / `markBottom`
- *    "break" marks.
- *
- *  All three sets use `"row,col"` string keys. */
-export type OverlayMarkings = {
-  circles: Set<string>
-  barsRight: Set<string>
-  barsBottom: Set<string>
-}
+type DecodedPng = { width: number; height: number; data: Uint8Array }
 
 /** Decode the raster overlay PNG's markings.
  *
@@ -64,7 +46,7 @@ export function detectOverlayMarkings(
   png: DecodedPng,
   width: number,
   height: number,
-): OverlayMarkings {
+): GOverlayMarkings {
   // 33-px cells + 3-px border → viewBox span of 6+33*N.
   const viewBoxW = 6 + 33 * width
   const scale = png.width / viewBoxW
@@ -168,7 +150,7 @@ export function detectOverlayMarkings(
  *    accept that a player could later clear an author-set bar by pressing
  *    `|` / `_`; the alternative (a separate immutable field) didn't seem worth
  *    a Cell-type change for the handful of NYT puzzles that ship bars. */
-export function applyOverlayMarkings(cells: Cell[][], m: OverlayMarkings): void {
+export function applyOverlayMarkings(cells: GPuzzleCell[][], m: GOverlayMarkings): void {
   for (const key of m.circles) {
     const [r, c] = key.split(',').map(Number) as [number, number]
     const cell = cells[r]?.[c]

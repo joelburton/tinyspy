@@ -3,7 +3,7 @@
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
-import type { CrosswordsValues, PuzzleChoice } from '../lib/setup'
+import type { GSetupValues, GPuzzleChoice } from '../types'
 import { PuzzleSourceField } from './PuzzleSourceField'
 import styles from './SetupForm.module.css'
 
@@ -24,18 +24,18 @@ import styles from './SetupForm.module.css'
  */
 /** The keys `PuzzleChoice` carries, so applying a new one writes every one of
  *  them — including the absences, which is the half that matters. */
-const PUZZLE_KEYS: Array<keyof PuzzleChoice> = [
+const PUZZLE_KEYS: Array<keyof GPuzzleChoice> = [
   'source', 'puzzle_id', 'date', 'weekday', 'series', 'board', 'filename',
 ]
 
 export function SetupForm({
   clubHandle, members, myId, numberOfPlayers, values, set: setValue, errors,
 }: SetupBodyProps) {
-  const s = values as CrosswordsValues
-  const set = setValue as SetupSetter<CrosswordsValues>
+  const s = values as GSetupValues
+  const set = setValue as SetupSetter<GSetupValues>
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
-  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
+  const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   return (
     <div className={styles.setup}>
@@ -69,7 +69,7 @@ export function SetupForm({
         // WHOSE history the NYT weekday walk skips over. It lives up here
         // because the field cannot know it — the player picker is a sibling,
         // and unchecking someone brings a puzzle back.
-        seenBy={players.map((p) => p.user_id)}
+        seenBy={players.map((p) => p.id)}
         clubHandle={clubHandle}
         error={errors.source}
       />

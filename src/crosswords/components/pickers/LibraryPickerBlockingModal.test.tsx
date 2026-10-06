@@ -57,7 +57,7 @@ describe('the library picker', () => {
   it('lists the club’s library, asked for by club', async () => {
     draw()
     await waitFor(() => expect(screen.getByText(/Bee Season/)).toBeInTheDocument())
-    expect(mockRpc).toHaveBeenCalledWith('library_for_club', { target_club: 'moths' })
+    expect(mockRpc).toHaveBeenCalledWith('library_for_club', { p_club_handle: 'moths' })
   })
 
   it('picks the puzzle you click, and hands back the whole row', async () => {

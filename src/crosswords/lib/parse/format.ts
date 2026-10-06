@@ -7,9 +7,10 @@
  */
 
 import { parsePuzBuffer } from './puz'
-import { parseIpuzBuffer, type ParseResult } from './ipuz'
+import { parseIpuzBuffer } from './ipuz'
+import type { GParseResult } from '../../types'
 
-export type PuzzleFormat = 'puz' | 'ipuz'
+type PuzzleFormat = 'puz' | 'ipuz'
 
 /** Pick a parser. Extension wins; otherwise sniff for a leading `{`
  *  (BOM-tolerant) and treat as ipuz, else fall back to .puz. */
@@ -29,6 +30,6 @@ export function detectFormat(filename: string | undefined, buffer: Uint8Array): 
 
 /** Dispatch to the right parser. Both throw `IpuzUnsupportedError` on
  *  unsupported features; the caller decides how to surface that. */
-export function parsePuzzleBuffer(id: string, buffer: Uint8Array, format: PuzzleFormat): ParseResult {
+export function parsePuzzleBuffer(id: string, buffer: Uint8Array, format: PuzzleFormat): GParseResult {
   return format === 'ipuz' ? parseIpuzBuffer(id, buffer) : parsePuzBuffer(id, buffer)
 }

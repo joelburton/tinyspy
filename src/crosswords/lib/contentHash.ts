@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { Cell, Clue } from './types.ts'
+import type { GPuzzleCell, GClue } from '../types.ts'
 
 /**
  * The stable dedup payload for a puzzle — the solving content only: the
@@ -17,12 +17,12 @@ import type { Cell, Clue } from './types.ts'
  * import specifiers resolve under Deno too) in case a future consumer needs it.
  */
 export function contentHashPayload(
-  cells: Cell[][],
-  clues: { across: Clue[]; down: Clue[] },
+  cells: GPuzzleCell[][],
+  clues: { across: GClue[]; down: GClue[] },
   solution: (string[] | null)[][],
 ): string {
   const givens = cells.map((row) => row.map((c) => (c.kind === 'cell' ? !!c.given : false)))
-  const normClues = (cs: Clue[]) =>
+  const normClues = (cs: GClue[]) =>
     cs.map((c) => [c.number, c.text.trim().normalize('NFC')] as const)
   return JSON.stringify({
     solution,

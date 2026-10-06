@@ -1,88 +1,7 @@
 // cs-unmet
 
-import type { TimerMode } from '@/common/manifest/types'
-import type { SetupOf } from '@/common/setup-form/types'
-// Type-only so `setup.ts` (eagerly loaded via the manifest) doesn't pull the
-// parser + puzjs into the main bundle — those load lazily with the SetupForm.
-import type { ImportedBoard } from './importFile'
+import type { GSetup } from '../types'
 
-/**
- * The setup blob the dialog collects and `crosswords.create_game` /
- * `crosswords-import-nyt` / `crosswords-import-guardian` validate. `mode` is
- * NOT here — it's a top-level manifest/RPC arg (the sibling-pair split).
- * `timer` is the shared `<SetupTimerSection>`'s value, like every other game's setup;
- * a countdown expiring routes to `crosswords.submit_timeout`.
- *
- * Four ways to source the puzzle:
- *   - `source: 'library'` → `puzzle_id` names a `crosswords.puzzles` row;
- *     start goes straight to the `create_game` RPC.
- *   - `source: 'nyt'` → `date` (YYYY-MM-DD) is fetched + imported by the
- *     `crosswords-import-nyt` edge function, which then creates the game.
- *   - `source: 'guardian'` → `series` (quick / cryptic / …) picks the outlet;
- *     the `crosswords-import-guardian` edge function fetches TODAY's puzzle in
- *     that series and creates the game. Public (no auth).
- *   - `source: 'upload'` → the FE parses an uploaded `.puz`/`.ipuz` into
- *     `board` ({meta, solution}) client-side and passes it to `create_game`'s
- *     inline `board` arg (self-contained game, no `puzzles` row — like NYT).
- */
-export type CrosswordsValues = {
-  timer: TimerMode
-  /** WHERE THE PUZZLE COMES FROM, and absent until someone says. A fresh form
-   *  names no source, and backing out of a picker puts it back here — see
-   *  `PuzzleSourceField`, whose button row draws the named one as the primary
-   *  button and so must have nothing to draw when nothing is chosen. */
-  source?: 'library' | 'nyt' | 'guardian' | 'upload'
-  /** Library path. */
-  puzzle_id?: string
-  /** NYT path: the OVERRIDE — a specific date (YYYY-MM-DD). Wins over
-   *  `weekday` when set, and filters nothing: a date this club has already
-   *  played starts a second game on it rather than being refused. Stripped
-   *  from the club's saved default (an instance, not a preference). */
-  date?: string
-  /** NYT path: which weekday to play, 0..6 with Sunday = 0 (Postgres `dow`,
-   *  JS `getUTCDay`). The normal path — an NYT crossword's day IS its
-   *  difficulty, so this is a standing club choice and DOES persist as the
-   *  saved default. The server turns it into a concrete date at Start
-   *  (`crosswords.next_nyt_date_for_club`): the most recent puzzle of that
-   *  weekday none of the players has done. */
-  weekday?: number
-  /** Guardian path: the series slug (see GUARDIAN_SERIES). */
-  series?: string
-  /** Upload path: the parsed board. FE-only — `startGameInClub` passes it as
-   *  the `board` arg and STRIPS it from the `setup` blob create_game persists,
-   *  so the solution never lands in the (unshielded) status / saved-default. */
-  board?: ImportedBoard
-  /** Upload path: the source filename, for display in the form. */
-  filename?: string
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
-  player_user_ids: Set<string>
-}
-
-
-/** What is SENT and STORED — every value the form collects except the players
- *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `PlayArea` reads back. */
-/**
- * WHICH PUZZLE — every key the four pickers write, and nothing else.
- *
- * One value rather than seven loose keys, because a picker settles all of them
- * at once: choosing NYT is also "no library id, no uploaded board". Handing the
- * form a complete value makes that a property of the type — whatever the new
- * choice does not name is absent — instead of a rule the caller has to keep.
- *
- * It matters most for `board`: an uploaded solution grid left behind by a
- * source you switched away from would ride into `setup` and leak the answers.
- * That has three guards now (this, the manifest's strip, and create_game's);
- * this is the one that makes it structural.
- */
-export type PuzzleChoice = Pick<
-  CrosswordsValues,
-  'source' | 'puzzle_id' | 'date' | 'weekday' | 'series' | 'board' | 'filename'
->
-
-export type CrosswordsSetup = SetupOf<CrosswordsValues>
 /**
  * Default setup: no timer, and NO SOURCE — a club that has never played names
  * none, so the form's button row draws none of the four as chosen and its
@@ -95,7 +14,7 @@ export type CrosswordsSetup = SetupOf<CrosswordsValues>
  * source button is chosen, the caption still says "choose one", and Start is
  * still blocked.
  */
-export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
+export const CROSSWORDS_DEFAULTS: GSetup = {
   timer: { kind: 'none' },
   // Monday — the easiest NYT day, and the natural place for a club that has
   // never picked to start. Seeds the NYT picker if they go there; overwritten

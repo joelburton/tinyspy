@@ -1,13 +1,14 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { convertNytPuzzle, NytConvertError, type NytCell, type NytPuzzleResponse } from './nyt'
+import { convertNytPuzzle, NytConvertError } from './nyt'
+import type { GNytCell, GNytPuzzleResponse } from '../types'
 
 /** Assemble a minimal v6-shaped response (ported from crossplay's `makeResp`). */
 function makeResp(opts: {
   width?: number
   height?: number
-  cells?: NytCell[]
+  cells?: GNytCell[]
   clueList?: { text?: unknown; direction?: string; label?: string }[]
   title?: string
   publicationDate?: string
@@ -15,7 +16,7 @@ function makeResp(opts: {
   editor?: string
   copyright?: string
   notes?: { text?: string }[]
-}): NytPuzzleResponse {
+}): GNytPuzzleResponse {
   const width = opts.width ?? 2
   const height = opts.height ?? 1
   const cells = opts.cells ?? Array.from({ length: width * height }, (_, i) => ({
@@ -221,7 +222,7 @@ describe('convertNytPuzzle — meta', () => {
 
 describe('convertNytPuzzle — rejections', () => {
   it('throws on a missing body', () => {
-    expect(() => convertNytPuzzle({} as NytPuzzleResponse)).toThrow(NytConvertError)
+    expect(() => convertNytPuzzle({} as GNytPuzzleResponse)).toThrow(NytConvertError)
   })
   it('throws on a cell-count mismatch', () => {
     expect(() =>

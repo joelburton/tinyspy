@@ -7,7 +7,10 @@ import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
 import { verdict, statusLine, wonBy } from '@/common/manifest/summary'
-import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
+import type { Member } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
+import { CROSSWORDS_DEFAULTS } from './lib/setup'
+import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -47,7 +50,7 @@ const setupFormLoader = lazy(() =>
  */
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
-    const s = setup as CrosswordsSetup
+    const s = setup as GSetup
     // NYT (by date) and Guardian (today's, by series) both fetch server-side and
     // create the game from the imported puzzle.
     if (s.source === 'nyt' || s.source === 'guardian') {
@@ -65,18 +68,18 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     // docs/games/crosswords.md → Puzzle sourcing and the server backstop in
     // create_game (`setup - 'board' - 'filename'`).
     const board = s.source === 'upload' ? s.board : undefined
-    const setupToStore: CrosswordsSetup = { ...s }
+    const setupToStore: GSetup = { ...s }
     delete setupToStore.board
     delete setupToStore.filename
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     // Same widened type as the import paths above, for the same reason.
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
-        target_club: clubHandle,
-        setup: setupToStore,
-        player_user_ids: playerUserIds,
-        mode,
-        ...(board ? { board } : {}),
+        p_club_handle: clubHandle,
+        p_setup: setupToStore,
+        p_player_user_ids: playerUserIds,
+        p_mode: mode,
+        ...(board ? { p_board: board } : {}),
       }),
     )
   }
@@ -98,7 +101,7 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
 const puzzle = (message: string): FormErrors => ({ source: message })
 
 const validate = (setup: unknown): FormErrors => {
-  const s = setup as CrosswordsSetup
+  const s = setup as GSetup
   // No source at all: a fresh form, or a picker someone backed out of. Same
   // words as an unanswered library, because it is the same state to the player
   // — no puzzle in hand.
@@ -115,48 +118,53 @@ const validate = (setup: unknown): FormErrors => {
   return s.puzzle_id ? {} : puzzle('Pick a puzzle to start.')
 }
 
-type StatusBlob = Record<string, unknown>
-
-/** Coop club-page label: the puzzle title, plus the terminal outcome. */
 /**
- * crosswords coop. No progress readout and no puzzle name: the name is the
- * game's TITLE, one line above on the same card, and a per-cell fill % would
- * mean a `common.games` status write on every keystroke.
+ * The coop club line. While the grid is being solved it says how much of it is
+ * filled; no puzzle name, which is the game's TITLE, one line above on the same
+ * card. The clock beating an unfinished grid is coop's one loss.
  */
-function coopLabel(row: { play_state: string; status: StatusBlob | null }): string {
-  switch (row.play_state) {
-    case 'playing':
-      return verdict('Playing')
+function makeCoopLabel(summary: GSummaryData): string {
+  if (summary.ending === null) {
+    // Coop always has its team count.
+    const percent = Math.round((summary.team!.nFilledCells / summary.nCells) * 100)
+    return statusLine(verdict('Playing'), `${percent}% filled`)
+  }
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
     case 'won':
       return verdict('Won')
-    // The clock beating an unfinished grid is a real loss (submit_timeout).
     case 'lost':
       return verdict('Lost', 'out of time')
-    case 'ended':
+    // A Stop.
+    case 'neutral':
       return verdict('Ended')
     default:
-      return row.play_state
+      return outcome
   }
 }
 
-/** Compete club-page label: rank-only, no per-player progress in the listing. */
-function competeLabel(row: { play_state: string; status: StatusBlob | null }): string {
-  const s = row.status ?? {}
-  switch (row.play_state) {
-    case 'playing':
-      return verdict('Playing')
-    case 'won_compete':
-      return wonBy(s.winner_username as string | undefined)
-    // Two collective losses share this state — the clock, and a racer's own
-    // quit ending the table once the last one goes (common.concede).
-    case 'lost_compete':
-      return (s.reason as string) === 'conceded'
+/**
+ * The compete club line: no per-racer progress, and the race's one winner is
+ * the common `ending.winner`. The two no-winner losses, the clock and the last
+ * racer conceding, are told apart by the ending's reason.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+  if (summary.ending === null) return verdict('Playing')
+  // Written with the ending.
+  const outcome = summary.outcome!
+  switch (outcome) {
+    case 'won':
+      return wonBy(memberById(members, summary.ending.winner!)?.username)
+    case 'lost':
+      return summary.ending.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
         : statusLine(verdict('Lost', 'out of time'), 'no winner')
-    case 'ended':
+    // A Stop.
+    case 'neutral':
       return verdict('Ended')
     default:
-      return row.play_state
+      return outcome
   }
 }
 
@@ -185,7 +193,7 @@ export const crosswordsCoopGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('coop'),
-  summaryFor: coopLabel,
+  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
   submitTimeout,
   // Coop has a whole-table "stop now" (a neutral mutual give-up).
   stopGame,
@@ -213,7 +221,7 @@ export const crosswordsCompeteGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('compete'),
-  summaryFor: competeLabel,
+  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
   submitTimeout,
   // Compete has BOTH, as every race does: `concede` is one racer dropping out
   // (a loss on their record), Stop is the whole table agreeing to stop with no

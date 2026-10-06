@@ -8,59 +8,13 @@ import {
   moveCursor,
   retreatForBackspace,
   wordCells,
-  type ArrowKey,
-  type Cursor,
 } from '../lib/cursor'
-import type { Cell, MarkSide } from '../lib/types'
-
-/** The live play state the grid's keys act on. PlayArea passes it fresh every
- *  render — there is no ref, because an action is asked what it does at the
- *  moment the key is pressed. */
-export type GridKeysOptions = {
-  /** May the board be worked at all? False while the game is paused or this
-   *  player has conceded mid-race — every key below goes disabled, which also
-   *  leaves the keystroke for whoever else wants it. */
-  enabled: boolean
-  /** The board responds to me (the page's `isBoardInteractive`). When false
-   *  but `enabled` (terminal), the board is still navigable: the movement keys
-   *  work so the solver can walk the revealed grid, while anything that would
-   *  WRITE (letters, ⌫, rebus, edge marks) is disabled. */
-  isBoardInteractive: boolean
-  // One of crosswords' OWN overlays has the keyboard — the rebus box or the
-  // number-jump popup. Both are focused inputs that `stopPropagation()` their
-  // keydowns before the dispatcher sees anything, so this gate is
-  // belt-and-braces: it also describes every grid key disabled, so nothing
-  // advertises a key the overlay is holding.
-  suspended: boolean
-  /** Null until the puzzle loads; every key is disabled until then. */
-  grid: Cell[][] | null
-  cursor: Cursor | null
-  pencil: boolean
-  setCursor: (c: Cursor) => void
-  /** Current fill at a cell (null if empty); ⌫'s two-step needs it. */
-  fillAt: (row: number, col: number) => string | null
-  isGiven: (row: number, col: number) => boolean
-  setCell: (row: number, col: number, fill: string | null, pencil: boolean) => void
-  /** Open the rebus (multi-char) overlay over a cell. */
-  onRebus: (row: number, col: number) => void
-  /** Open the jump-to-clue-number popup. */
-  onNumberJump: () => void
-  /** Show a read-only zoom-peek of the current cell's fill. */
-  onPeek: (row: number, col: number) => void
-  /** Is a peek up right now? While it is, ANY key puts it away (`act-drop-peek`
-   *  below) — so it can't linger over a cursor that has moved on. */
-  peeking: boolean
-  /** Put the peek away. */
-  clearPeek: () => void
-  /** Cycle the cryptic edge mark on one side of a cell. The consumer reads the
-   *  current mark and advances it. */
-  onMark: (row: number, col: number, side: MarkSide) => void
-}
+import type { GArrowKey, GCursor, GGridKeysOptions, GPuzzleCell } from '../types'
 
 /** What the caller gets back: the rebus action, which is also a menu row. The
  *  rest are keys with no control of their own — nothing on screen "is" the
  *  left arrow. */
-export type GridKeys = {
+type GridKeys = {
   actRebus: Action
 }
 
@@ -101,7 +55,7 @@ export function useGridKeyboard({
   peeking,
   clearPeek,
   onMark,
-}: GridKeysOptions): GridKeys {
+}: GGridKeysOptions): GridKeys {
   const ready = grid !== null && cursor !== null && enabled && !suspended
   /** Walking the grid: alive at terminal too, since reading back a solved
    *  puzzle is part of the post-game. */
@@ -111,7 +65,7 @@ export function useGridKeyboard({
 
   /** Every body below is written against a loaded board. */
   const onBoard =
-    (fn: (grid: Cell[][], cursor: Cursor, key: string) => void) =>
+    (fn: (grid: GPuzzleCell[][], cursor: GCursor, key: string) => void) =>
     (key?: string) => {
       if (!grid || !cursor) return
       fn(grid, cursor, key ?? '')
@@ -127,12 +81,12 @@ export function useGridKeyboard({
 
   useBindAction('act-move-cursor', {
     describe: nav,
-    run: onBoard((g, c, key) => setCursor(moveCursor(g, c, key as ArrowKey))),
+    run: onBoard((g, c, key) => setCursor(moveCursor(g, c, key as GArrowKey))),
   })
 
   useBindAction('act-jump-word-edge', {
     describe: nav,
-    run: onBoard((g, c, key) => setCursor(jumpWordEdge(g, c, key as ArrowKey))),
+    run: onBoard((g, c, key) => setCursor(jumpWordEdge(g, c, key as GArrowKey))),
   })
 
   // Space steps on with the same word-edge stop a filled letter takes.

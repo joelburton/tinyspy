@@ -5,13 +5,13 @@ import { BlockingModal } from '@/common/floating-panels/BlockingModal'
 import { CancelButton } from '@/common/buttons/CancelButton'
 import { cls } from '@/common/utils/cls'
 import { importCrosswordFile } from '../../lib/importFile'
-import type { ImportedBoard } from '../../lib/importFile'
+import type { GImportedBoard } from '../../types'
 import styles from './pickers.module.css'
 import '../../theme.css'
 
 type Props = {
   /** Chosen — the parsed board and the file it came from. */
-  onPick: (chosen: { board: ImportedBoard; filename: string }) => void
+  onPick: (chosen: { board: GImportedBoard; filename: string }) => void
   onClose: () => void
 }
 

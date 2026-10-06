@@ -13,8 +13,8 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import type { Clue } from '../lib/types'
-import { type ClueSeg, parseClueRuns, wrapClueRuns } from '../lib/clueRuns'
+import type { GClue, GClueSeg } from '../types'
+import { parseClueRuns, wrapClueRuns } from '../lib/clueRuns'
 import type { Rect } from './layout'
 import { continuationRegions } from './layout'
 import {
@@ -33,8 +33,8 @@ export type Item =
   | { kind: 'clue'; number: number; text: string }
 
 export type ClueItems = {
-  across: Clue[]
-  down: Clue[]
+  across: GClue[]
+  down: GClue[]
 }
 
 /** Build the flat flow of items in reading order. */
@@ -60,7 +60,7 @@ export type LaidOutItem = {
   lines: string[]
   /** Clue only: each wrapped line as styled runs (`<em>…</em>` → italic), drawn
    *  segment-by-segment so `<i>`/`<em>` clue markup prints as real italics. */
-  styled?: ClueSeg[][]
+  styled?: GClueSeg[][]
   /** Total vertical space the item takes including bottom margin. */
   height: number
 }

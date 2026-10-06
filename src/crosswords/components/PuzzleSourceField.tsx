@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Field } from '@/common/fields/Field'
 import type { AllFieldProps } from '@/common/fields/fieldProps'
 import { db } from '../db'
-import type { PuzzleChoice } from '../lib/setup'
+import type { GPuzzleChoice } from '../types'
 import { LibraryPickerBlockingModal } from './pickers/LibraryPickerBlockingModal'
 import { NytPickerBlockingModal } from './pickers/NytPickerBlockingModal'
 import { DEFAULT_WEEKDAY } from '../lib/nytDays'
@@ -20,12 +20,12 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 /** Which picker is open, or none. */
 type OpenPicker = 'library' | 'nyt' | 'guardian' | 'upload' | null
 
-type Props = AllFieldProps<PuzzleChoice> & {
+type Props = AllFieldProps<GPuzzleChoice> & {
   /** The whole choice, replaced — not one key at a time. A picker settles every
    *  key at once (choosing NYT clears the library's id and the upload's board),
    *  so handing back a complete value is what makes "nothing from the source
    *  you left survives" a property of the type rather than of the caller's care. */
-  onChange: (next: PuzzleChoice) => void
+  onChange: (next: GPuzzleChoice) => void
   /** Whose history the NYT weekday walk skips over — the checked players. It
    *  cannot come from `value`: the player picker is a sibling field. */
   seenBy: string[]
@@ -69,7 +69,7 @@ export function PuzzleSourceField({
   const [libraryTitle, setLibraryTitle] = useState<string | null>(null)
 
   // WHICH DATE a weekday resolves to. Asked HERE rather than in the picker,
-  // because the answer depends on `seen_by` — the player set — which lives in
+  // because the answer depends on `p_seen_by` — the player set — which lives in
   // the setup form and can change after the picker closes. Unchecking someone
   // brings a puzzle back, and a date resolved once inside a modal you have
   // already shut would be quietly wrong.
@@ -89,8 +89,8 @@ export function PuzzleSourceField({
     let active = true
     void (async () => {
       const res = await runRpc<NextDateAnswer>(db.rpc('next_nyt_date_for_club', {
-        seen_by: seenKey ? seenKey.split(',') : [],
-        dow: weekday,
+        p_seen_by: seenKey ? seenKey.split(',') : [],
+        p_dow: weekday,
       }))
       // The cancel guard first: this refires on every weekday or roster change,
       // so an in-flight request is routinely abandoned, and `runRpc` reports an
@@ -254,7 +254,7 @@ export function PuzzleSourceField({
    * Replacing the value instead of patching keys makes it complete rather than
    * merely careful.
    */
-  function choose(next: PuzzleChoice) {
+  function choose(next: GPuzzleChoice) {
     if (next.source !== 'library') setLibraryTitle(null)
     onChange(next)
   }

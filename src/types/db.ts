@@ -971,40 +971,15 @@ isOneToOne: false
           }
         },"crosswords": {
           Tables: {
-            "cells": {
+            "games": {
                   Row: {
-                    "col": number,"fill": string | null,"game_id": string,"id": string,"mark_bottom": string | null,"mark_right": string | null,"owner_id": string | null,"pencil": boolean,"revealed": boolean,"row": number,"version": number,"wrong": boolean
+                    "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date": string | null,"puzzle_id": string | null,"revision": number,"solution": NonNullable<Json>
                   }
                   Insert: {
-                    "col": number,"fill"?: string | null,"game_id": string,"id"?: string,"mark_bottom"?: string | null,"mark_right"?: string | null,"owner_id"?: string | null,"pencil"?: boolean,"revealed"?: boolean,"row": number,"version"?: number,"wrong"?: boolean
+                    "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"revision"?: number,"solution": NonNullable<Json>
                   }
                   Update: {
-                    "col"?: number,"fill"?: string | null,"game_id"?: string,"id"?: string,"mark_bottom"?: string | null,"mark_right"?: string | null,"owner_id"?: string | null,"pencil"?: boolean,"revealed"?: boolean,"row"?: number,"version"?: number,"wrong"?: boolean
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "cells_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "cells_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
-    }
-                  ]
-                },"games": {
-                  Row: {
-                    "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date": string | null,"puzzle_id": string | null,"solution": NonNullable<Json>
-                  }
-                  Insert: {
-                    "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"solution": NonNullable<Json>
-                  }
-                  Update: {
-                    "game_id"?: string,"puzzle_content"?: NonNullable<Json>,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"solution"?: NonNullable<Json>
+                    "game_id"?: string,"puzzle_content"?: NonNullable<Json>,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"revision"?: number,"solution"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -1013,6 +988,25 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "puzzles"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"grids": {
+                  Row: {
+                    "cells": NonNullable<Json>,"game_id": string,"id": number,"owner_id": string | null
+                  }
+                  Insert: {
+                    "cells"?: NonNullable<Json>,"game_id": string,"id"?: never,"owner_id"?: string | null
+                  }
+                  Update: {
+                    "cells"?: NonNullable<Json>,"game_id"?: string,"id"?: never,"owner_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "grids_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
     }
                   ]
                 },"puzzles": {
@@ -1031,30 +1025,58 @@ isOneToOne: false
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "game_id": string | null,"puzzle_content": Json | null,"puzzle_id": string | null,"solution": Json | null
-                  }
-                  Insert: {
-                           "game_id"?: string | null,"puzzle_content"?: Json | null,"puzzle_id"?: string | null,"solution"?: never
-                         }
-                        Update: {
-                           "game_id"?: string | null,"puzzle_content"?: Json | null,"puzzle_id"?: string | null,"solution"?: never
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "games_puzzle_id_fkey"
-      columns: ["puzzle_id"]
-isOneToOne: false
-      referencedRelation: "puzzles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
-            "_is_solved":
+            "_cell_key":
+{ Args: { "p_col": number,"p_row": number }; Returns: string
+                           },
+"_fillable_cells":
+{ Args: { "p_puzzle_content": Json }; Returns: {
+              "col": number,"key": string,"row": number
+            }[]
+                           },
+"_is_fillable":
+{ Args: { "p_col": number,"p_puzzle_content": Json,"p_row": number }; Returns: boolean
+                           },
+"_is_solved":
 { Args: { "p_game_id": string,"p_owner_id": string }; Returns: boolean
+                           },
+"_lock_game":
+{ Args: { "p_game_id": string }; Returns: {
+              "game_id": string,
+"puzzle_content": NonNullable<Json>,
+"puzzle_date": string | null,
+"puzzle_id": string | null,
+"revision": number,
+"solution": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "games"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"_make_json_board":
+{ Args: { "p_cells": Json,"p_puzzle_content": Json,"p_writer_ids": (string)[] }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "g": Database["crosswords"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_starting_cells":
+{ Args: { "p_puzzle_content": Json }; Returns: Json
                            },
 "_matches":
 { Args: { "p_fill": string,"p_sols": Json }; Returns: boolean
@@ -1062,14 +1084,20 @@ isOneToOne: false
 "_maybe_finish":
 { Args: { "p_caller": string,"p_game_id": string,"p_owner_id": string }; Returns: boolean
                            },
+"_merge_cell":
+{ Args: { "p_cells": Json,"p_changes": Json,"p_key": string }; Returns: Json
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_require_cell_write":
 { Args: { "p_game_id": string }; Returns: string
                            },
-"_solution_for":
-{ Args: { "p_game_id": string }; Returns: Json
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+"_writer_ids":
+{ Args: { "p_game_id": string }; Returns: (string)[]
                            },
 "check_cells":
 { Args: { "p_cells": Json,"p_game_id": string }; Returns: Json

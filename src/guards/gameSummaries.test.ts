@@ -22,8 +22,6 @@ import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
  * (most games echo an "else" branch for states they never see).
  */
 
-const W = { winner_username: 'alice' }
-
 /** A label row: the state, the status blob its label reads, and how to name the case. */
 type Case = [state: string, status: Record<string, unknown>, note: string]
 /** Cases are split by MODE because a coop manifest never sees `won_compete` and a compete
@@ -283,17 +281,21 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nBagTiles: 30, winnerIds: null, winnerScore: null }, 'Stop'],
     ],
   },
+  // crosswords._make_json_summary_data: `team` holds coop's filled-cell count and is null in
+  // compete, where each racer fills their own grid; `nCells` is the cells a player fills. The
+  // clock is coop's one loss; a race ends on the first correct grid.
   crosswords: {
-    playing: { title: 'Sun 2026-07-04' },
-    shared: [['ended', { reason: 'manual' }, 'manual end']],
+    live: { nCells: 180, team: { nFilledCells: 108 } },
     coop: [
-      ['won', {}, 'solved'],
-      ['lost', { reason: 'timeout' }, 'timeout'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { nCells: 180, team: { nFilledCells: 180 } }, 'solved'],
+      [{ outcome: 'lost', reason: 'timeout' }, { nCells: 180, team: { nFilledCells: 108 } }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { nCells: 180, team: { nFilledCells: 108 } }, 'Stop'],
     ],
     compete: [
-      ['won_compete', W, 'first to finish'],
-      ['lost_compete', { reason: 'timeout' }, 'timeout'],
-      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { nCells: 180, team: null }, 'first to finish'],
+      [{ outcome: 'lost', reason: 'timeout' }, { nCells: 180, team: null }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { nCells: 180, team: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { nCells: 180, team: null }, 'Stop'],
     ],
   },
   // setgame._make_json_summary_data: `team` holds coop's counts and is null in compete; nothing

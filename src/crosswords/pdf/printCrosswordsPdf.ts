@@ -14,7 +14,7 @@
 
 import { generateCrosswordPdf } from './generator'
 import { generateSolutionPdf, type Solution } from './solution'
-import type { PuzzleState } from '../lib/types'
+import type { GPuzzleState } from '../types'
 
 /** Save `blob` to disk as `${filename}.pdf`. */
 function downloadPdf(blob: Blob, filename: string): void {
@@ -32,7 +32,7 @@ function downloadPdf(blob: Blob, filename: string): void {
  * Generate the puzzle PDF for `state` and trigger a browser download
  * of it as `${filename}.pdf`.
  */
-export async function printCrosswordsPdf(state: PuzzleState, filename: string): Promise<void> {
+export async function printCrosswordsPdf(state: GPuzzleState, filename: string): Promise<void> {
   downloadPdf(await generateCrosswordPdf(state), filename)
 }
 
@@ -41,7 +41,7 @@ export async function printCrosswordsPdf(state: PuzzleState, filename: string): 
  * `${filename}.pdf`.
  */
 export async function printCrosswordsSolutionPdf(
-  state: PuzzleState,
+  state: GPuzzleState,
   solution: Solution,
   filename: string,
 ): Promise<void> {

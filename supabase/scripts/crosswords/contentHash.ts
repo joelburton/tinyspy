@@ -9,11 +9,11 @@
  */
 
 import { createHash } from 'node:crypto'
-import type { PuzzleState } from '../../../src/crosswords/lib/types'
+import type { GPuzzleState } from '../../../src/crosswords/types'
 import { contentHashPayload } from '../../../src/crosswords/lib/contentHash'
 
 export function puzzleContentHash(
-  state: PuzzleState,
+  state: GPuzzleState,
   solution: (string[] | null)[][],
 ): string {
   const payload = contentHashPayload(state.snapshot.cells, state.meta.clues, solution)

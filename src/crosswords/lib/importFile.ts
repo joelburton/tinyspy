@@ -1,15 +1,7 @@
 // cs-unmet
 
 import { detectFormat, parsePuzzleBuffer } from './parse/format'
-import type { PuzzleTemplate } from './types'
-
-/** The inline board `crosswords.create_game`'s `board` arg wants — the same
- *  `{meta, solution}` shape the NYT edge function produces, but parsed
- *  entirely client-side from an uploaded file. */
-export type ImportedBoard = {
-  meta: PuzzleTemplate
-  solution: (string[] | null)[][]
-}
+import type { GImportedBoard } from '../types'
 
 /** Lowercase, runs of non-alphanumerics → `-`, trim; empty → "puzzle".
  *  Mirrors `convert.ts` slugify so an uploaded file gets the same `meta.id`. */
@@ -28,7 +20,7 @@ function slugify(name: string): string {
  * Throws `IpuzUnsupportedError` (or a `SyntaxError` from bad JSON) on anything
  * outside the supported subset; the caller surfaces the message.
  */
-export async function importCrosswordFile(file: File): Promise<ImportedBoard> {
+export async function importCrosswordFile(file: File): Promise<GImportedBoard> {
   const bytes = new Uint8Array(await file.arrayBuffer())
   const id = slugify(file.name.replace(/\.[^.]*$/, ''))
   const format = detectFormat(file.name, bytes)

@@ -17,8 +17,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
-import type { Cell } from '../lib/types'
-import { useGridKeyboard, type GridKeysOptions } from './useGridKeyboard'
+import type { GGridKeysOptions, GPuzzleCell } from '../types'
+import { useGridKeyboard } from './useGridKeyboard'
 
 // The two cursor helpers whose CALL is the assertion — which one a chord
 // reaches, and with what delta — wrapped so the real math still runs.
@@ -31,13 +31,13 @@ vi.mock('../lib/cursor', async (orig) => {
 })
 
 /** ASCII → Cell[][] (same builder as cursor.test.ts): `#` block, `.` open, A–Z filled. */
-function grid(rows: string[]): Cell[][] {
+function grid(rows: string[]): GPuzzleCell[][] {
   let n = 0
   const raw = rows.map((row) => Array.from(row))
   const isBlock = (r: number, c: number) =>
     r < 0 || c < 0 || r >= raw.length || c >= raw[0]!.length || raw[r]![c] === '#'
   return raw.map((row, r) =>
-    row.map((ch, c): Cell => {
+    row.map((ch, c): GPuzzleCell => {
       if (ch === '#') return { kind: 'block' }
       const startsAcross = isBlock(r, c - 1) && !isBlock(r, c + 1)
       const startsDown = isBlock(r - 1, c) && !isBlock(r + 1, c)
@@ -54,7 +54,7 @@ async function press(init: KeyboardEventInit) {
   })
 }
 
-function setup(over: Partial<GridKeysOptions> = {}) {
+function setup(over: Partial<GGridKeysOptions> = {}) {
   const spies = {
     setCursor: vi.fn(),
     fillAt: vi.fn(() => null as string | null),

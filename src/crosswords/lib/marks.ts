@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { MarkType } from './types'
+import type { GMarkType } from '../types'
 
 /**
  * Cycle a cryptic edge mark through `none → break → hyphen → none`.
@@ -9,7 +9,7 @@ import type { MarkType } from './types'
  * keyboard handler calls this to decide the new mark, then persists it
  * via the `set_mark` RPC.
  */
-export function nextMarkState(current: MarkType | undefined): MarkType | null {
+export function nextMarkState(current: GMarkType | undefined): GMarkType | null {
   if (current === undefined) return 'break'
   if (current === 'break') return 'hyphen'
   return null

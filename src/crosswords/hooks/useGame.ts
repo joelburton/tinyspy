@@ -1,74 +1,133 @@
 // cs-unmet
 
-import { useEffect, useState } from 'react'
-import { readRows } from '@/common/supabase/dbResult'
-import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import { db } from '../db'
-import type { PuzzleTemplate } from '../lib/types'
+import { useMemo } from 'react'
+import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { cellKey } from '../lib/cellKey'
+import type {
+  GBoard,
+  GBoardRaw,
+  GCell,
+  GGameData,
+  GGameDataRaw,
+  GPlayer,
+  GPuzzleTemplate,
+} from '../types'
 
-export type CrosswordsGame = {
-  mode: 'coop' | 'compete'
-  puzzleId: string | null
-  /** The immutable template: PuzzleMeta + the initial grid cells. */
-  meta: PuzzleTemplate
+/**
+ * Unpack one grid: a `GCell` for every open, non-given cell of the puzzle, in
+ * reading order, reading its fill, flags and writer off the packed arrays at
+ * the cell's index (types.ts → `GBoardRaw`). A lowercase fill is a letter in
+ * pencil; the cell holds it uppercase and says `pencil`. `writersInOrder` is
+ * the players in their order in the blob, for the writer digits.
+ */
+export function makeBoard(
+  raw: GBoardRaw,
+  puzzle: GPuzzleTemplate,
+  writersInOrder: GPlayer[],
+): GBoard {
+  const wrong = new Set(raw.wrong)
+  const revealed = new Set(raw.revealed)
+  const breaksRight = new Set(raw.breaksRight)
+  const hyphensRight = new Set(raw.hyphensRight)
+  const breaksBottom = new Set(raw.breaksBottom)
+  const hyphensBottom = new Set(raw.hyphensBottom)
+
+  const cells: GCell[] = []
+  puzzle.cells.forEach((row, r) => row.forEach((pc, c) => {
+    if (pc.kind !== 'cell' || pc.given) return
+    const i = r * puzzle.width + c
+    const packed = raw.fills[i]!
+    // A digit names the writer's 1-based place; 0 is nobody.
+    const writerPlace = raw.writers === null ? 0 : Number(raw.writers[i])
+    cells.push({
+      id: cellKey(r, c),
+      row: r,
+      col: c,
+      fill: packed === '' ? null : packed.toUpperCase(),
+      pencil: packed !== '' && packed !== packed.toUpperCase(),
+      wrong: wrong.has(i),
+      revealed: revealed.has(i),
+      markRight: breaksRight.has(i) ? 'break' : hyphensRight.has(i) ? 'hyphen' : null,
+      markBottom: breaksBottom.has(i) ? 'break' : hyphensBottom.has(i) ? 'hyphen' : null,
+      writer: writerPlace === 0 ? null : writersInOrder[writerPlace - 1]!,
+    })
+  }))
+  return { cells, cellsById: Object.fromEntries(cells.map((cell) => [cell.id, cell])) }
 }
 
 /**
- * Loads the immutable crosswords game header ONCE. The template (grid +
- * clues) and mode never change, so — like boggle — this is a plain
- * one-shot fetch, not a realtime subscription. The live cell fills flow
- * through `useCells`; the game's play_state / status / players flow through
- * `useCommonGame` (via the PlayArea's ctx). The `solution` column is
- * shielded and never fetched here.
+ * Build `gd` from the blob and who I am. Pure, so a test hands it a blob and
+ * reads what the surface would.
+ *
+ * Coop's one grid, which the blob writes once on the team, is put on every
+ * seat: the same `GBoard` object on each, so a component asks a player for
+ * their board in either mode.
+ *
+ * The seat rule: a rival's grid is null while the race is on — the blob
+ * carries every racer's, and this is where a seat stops seeing the others'.
+ * At the end every grid shows.
  */
-export function useGame(gameId: string): {
-  game: CrosswordsGame | null
-  loading: boolean
-  /** Set when the read FAILED, which is not the same as the game being absent.
-   *  The surface renders this instead of "Game not found." */
-  failure: NotOkEnvelope | null
-} {
-  const [game, setGame] = useState<CrosswordsGame | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
+export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  // The players first, their boards after: a cell's writer is one of these
+  // same objects, so it is the player `playersById` holds.
+  const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null }))
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  useEffect(() => {
-    let active = true
-    void (async () => {
-      // No `.single()`: it treats zero rows as an ERROR, so a game this club
-      // cannot see arrived looking exactly like a broken connection. `readRows`
-      // hands back rows, and `id` is the PK, so this is 0 or 1 of them.
-      const res = await readRows(
-        db.from('games').select('mode, puzzle_id, meta').eq('id', gameId),
-      )
-      if (!active) return
+  const teamBoard = raw.team === null ? null : makeBoard(raw.team.board, raw.puzzle, players)
+  raw.players.forEach((p, i) => {
+    const seen = raw.ended || p.id === myId
+    players[i]!.board = teamBoard ?? (seen && p.board !== null ? makeBoard(p.board, raw.puzzle, players) : null)
+  })
 
-      // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, plus a line naming which read it was.
-      if (res.type === 'not-ok') {
-        setFailure(res)
-        setLoading(false)
-        return
-      }
-      // ZERO ROWS is the caller's to read: no game with that id, or one this
-      // club cannot see.
-      const data = res.data[0]
-      if (!data) {
-        setLoading(false)
-        return
-      }
-      setGame({
-        mode: data.mode as 'coop' | 'compete',
-        puzzleId: (data.puzzle_id as string | null) ?? null,
-        meta: data.meta as unknown as PuzzleTemplate,
-      })
-      setLoading(false)
-    })()
-    return () => {
-      active = false
-    }
-  }, [gameId])
+  // Links that cannot miss get a bare lookup; an ending's `by` is null for a
+  // timeout.
+  const playerOf = (id: string | null) => (
+    id === null
+      ? null
+      : playersById[id]!)
 
-  return { game, loading, failure }
+  // The gate has checked that I am seated, and my own grid is never withheld.
+  const me = playersById[myId]! as GGameData['me']
+
+  const { turns, ending, ...rest } = raw
+  return {
+    ...rest,
+    team: null,
+    turns: turns === null ? null : { holder: playersById[turns.holder]! },
+    ending: ending === null
+      ? null
+      : {
+        reason: ending.reason,
+        detail: ending.detail,
+        by: playerOf(ending.by),
+        winner: playerOf(ending.winner),
+      },
+    players,
+    playersById,
+    me,
+  }
+}
+
+/**
+ * Per-gametype data hook for crosswords: `gd`, built from the `game_data` blob
+ * the page was handed and who I am. No reads and no subscription: the page
+ * re-reads the blob on every move, and this is a pure function of it
+ * (plans/seat-view.md → The page is written, not assembled).
+ *
+ * A game whose builder has not written a blob yet cannot be drawn; the throw
+ * lands in `PlayAreaErrorBoundary`'s card.
+ *
+ * The cross-cutting machinery (presence, manual-pause, timer) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
+ */
+export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
+  const raw = ctx.gameData as GGameDataRaw | null
+  if (raw === null) {
+    throw new Error(
+      `no game_data; run crosswords._rebuild_data_cols_for_all()`)
+  }
+  const myId = ctx.auth.user.id
+  // Rebuilt when the page hands down a new blob, and not on every render.
+  const gd = useMemo(() => makeGameData(raw, myId), [raw, myId])
+  return { gd }
 }
