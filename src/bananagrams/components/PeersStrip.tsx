@@ -18,6 +18,13 @@ type Props = {
  * bottom, shown as "out".
  */
 export function PeersStrip({ players, myId }: Props) {
+  // A rival who conceded reads "out" and the winner "done!"; everyone else
+  // shows their tiles left.
+  function getScoreOrOut(player: GPlayer) {
+    return player.conceded ? 'out' : player.solved ? 'done!' : player.nUnplacedTiles
+  }
+
+
   // Conceded players are out of the race → sort them last regardless of count;
   // among the racers, closest to done first.
   const rank = (p: GPlayer) => (p.conceded ? 1e9 : 0) + p.nUnplacedTiles
@@ -35,7 +42,7 @@ export function PeersStrip({ players, myId }: Props) {
           <Dot color={p.color} className={styles.dot} />
           <span className={styles.name}>{p.username}</span>
           <span className={styles.count} data-count>
-            {p.conceded ? 'out' : p.solved ? 'done!' : p.nUnplacedTiles}
+            {getScoreOrOut(p)}
           </span>
         </div>
       ))}

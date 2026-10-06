@@ -23,12 +23,12 @@ import styles from './HandCard.module.css'
  */
 export function HandCard({
   editor,
-  isBoardInteractive,
+  showDumpZone,
 }: {
   editor: GBoardEditor
-  // The board responds to me: the dump zone shows only then. Shuffle stays,
-  // since reordering your own hand is not acting on the game.
-  isBoardInteractive: boolean
+  // Shuffle shows regardless, since reordering your own hand is not acting
+  // on the game.
+  showDumpZone: boolean
 }) {
   const { displayedHand, drag, dumpHot, canDump, errFlash, errNonce } = editor
 
@@ -39,7 +39,7 @@ export function HandCard({
         {/* Drop a tile here, from the hand OR the board, to swap it for
             DUMP_COUNT. Brightens while a tile is dragged, greens when one
             hovers it, and says so when the piles cannot cover the draw. */}
-        {isBoardInteractive && (
+        {showDumpZone && (
           <div
             data-zone="dump"
             className={cls(

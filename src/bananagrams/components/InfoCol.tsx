@@ -7,11 +7,11 @@ import {
   type InfoActionsMessage,
 } from '@/common/info-sheet/InfoActionsRow'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import { cls } from '@/common/utils/cls'
 import type { GActions, GBoardEditor } from '../reactTypes'
 import type { GGameData } from '../types'
 import { HandCard } from './HandCard'
 import { PeersStrip } from './PeersStrip'
+import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
 
 /**
@@ -38,31 +38,15 @@ export function InfoCol({
   // while the others race on — or null while I play.
   endingMessage: TerminalMessage | null
 }) {
-  const sld = gd.stateLineData
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // The board responds to me: not once the game is over or I am out of it.
-  const isBoardInteractive = gd.me.stillPlaying
-
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* State — the shared bunch (the race resource everyone watches) and
-            how many tiles I hold; the bag count shows when the game isn't on a
-            full bunch (a reduced bunch or dump-to-bag sets tiles aside). */}
         <p className={shared.infoState}>
-          <b>Tiles: </b>
-          You: <strong>{sld.nTiles}</strong>
-          {' · '}
-          Bunch: <strong>{sld.nBunchTiles}</strong>
-          {sld.nBagTiles > 0 && (
-            <>
-              {' · '}
-              Bag: <strong>{sld.nBagTiles}</strong>
-            </>
-          )}
+          <StateLine data={gd.stateLineData} />
         </p>
 
         {/* Opponents — bananagrams keeps its own vertical, closest-to-done
@@ -70,8 +54,9 @@ export function InfoCol({
             express). Renders nothing in solo. */}
         <PeersStrip players={gd.players} myId={gd.me.id} />
 
-        {/* Help — only while I can still act. */}
-        {isBoardInteractive && (
+        {/* Only on my move: once I am out or the game is over the board is
+            inert, and the prompt would misdirect. */}
+        {gd.me.onTurn && (
           <p className={shared.infoHelp}>
             Drag tiles or click a cell and type. Peel when your hand is empty.
           </p>
@@ -80,38 +65,29 @@ export function InfoCol({
         <SetupDisclosure rows={gd.setupRows} />
       </div>
 
-      <HandCard editor={editor} isBoardInteractive={isBoardInteractive} />
+      <HandCard editor={editor} showDumpZone={gd.me.stillPlaying} />
 
-      {/* The bottom action row: natural-width buttons side by side. While
-          playing: [Concede / Stop game] [Check words] [Peel], Peel the primary
-          move on the right. Check words sits LEFT of Peel: it is the question
-          you ask before the move on its right. Each action says whether it
-          draws; at the end, or out of the race, the row is the ending's line
-          and the exits. */}
-      <div className={cls(shared.infoActions, !isBoardInteractive && shared.terminalActions)}>
-        {gd.ended ? (
-          <InfoActionsRow message={actionRowMessage}>
-            <ActionButton action={actions.actNewGame} show="icon" />
-            <ActionButton action={actions.actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : !isBoardInteractive ? (
-          <InfoActionsRow message={actionRowMessage}>
-            {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and Stop comes out in its place. */}
-            <ActionButton action={actions.actConcede} show="icon" />
-            <ActionButton action={actions.actStopGame} show="icon" />
-          </InfoActionsRow>
-        ) : (
-          // Both exits are placed, but only Concede draws while I am racing:
-          // its question offers stopping the table as the second answer.
-          <>
-            <ActionButton action={actions.actStopGame} show="icon" />
-            <ActionButton action={actions.actConcede} show="icon" />
-          </>
-        )}
+      {/* One row, one order, every action listed once. Each action answers
+          whether it shows. Check words sits left of Peel: it is the question
+          you ask before the move on its right. */}
+      <InfoActionsRow message={actionRowMessage}>
         <ActionButton action={editor.actCheckBoard} show="icon" />
         <ActionButton action={editor.actPeel} show="both" />
-      </div>
+        {/* Right of the bar is about the END of the game rather than
+            playing it; the bar hides itself when nothing is left of it. */}
+        <span className={shared.actionsDivider} />
+        <ActionButton action={actions.actRestart} show="icon" />
+        <ActionButton action={actions.actNewGame} show="icon" />
+        <ActionButton action={actions.actConcede} show="icon" />
+        <ActionButton action={actions.actStopGame} show="icon" />
+        {/* Filled once the game has ended: the weight is the placement's
+            choice, not the action's (docs/ui.md → What a `<button>` is). */}
+        <ActionButton
+          action={actions.actBackToClub}
+          show="icon"
+          weight={gd.ended ? 'primary' : 'secondary'}
+        />
+      </InfoActionsRow>
     </div>
   )
 }
