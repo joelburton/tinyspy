@@ -35,7 +35,8 @@ export function livePicks(
  * and the caller submits it.
  */
 export function toggleTile(pickedTileIds: readonly string[], tile: GTile): string[] {
-  if (pickedTileIds.includes(tile.id)) return pickedTileIds.filter((id) => id !== tile.id)
+  if (pickedTileIds.includes(tile.id))
+    return pickedTileIds.filter((id) => id !== tile.id)
   if (pickedTileIds.length >= CLAIM_SIZE) return [...pickedTileIds]
   return [...pickedTileIds, tile.id]
 }

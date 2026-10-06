@@ -156,6 +156,18 @@ Joel, 2026-10-05: `submit_set` answers `{result: 'claimed'}` — its unread
 "racer" waits for N25's sweep; the comments' "terminal" and "clock" are step
 14's.
 
+## Prose and comments (step 14)
+
+docs/games/setgame.md: the tile and its digits (§1), the page blobs in place of
+the statuses and `games_state` (§3), the claim's marks (§5), contention, the
+component tree and the answers (§7), the RPCs (§8) and the tests (§10); the
+"how it used to work" passages went. seat-view's done line and
+component-readability's "What setgame added". The todo: stale names fixed, the
+two green rings noted on the hint-ring item, the deck's order under Won't do.
+The comment pass over every file: "card" → "tile" outside player copy and
+real-world cards, "terminal" → the end, "clock" → timer, the dead `cards-gone`
+key, the history passages, and `//` on members.
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,

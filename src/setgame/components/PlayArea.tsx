@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -41,7 +43,9 @@ export function PlayAreaLoader(ctx: PlayAreaLoaderProps) {
   )
 }
 
-type PlayAreaProps = Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu' | 'globalFeedbackSlot'> & {
+type PlayAreaProps =
+  Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu' | 'globalFeedbackSlot'>
+  & {
   gd: GGameData
 }
 
@@ -66,7 +70,12 @@ type PlayAreaProps = Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu' | 'gl
  * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it.
  */
-function PlayArea({ gd, goToFollowUpGame, menu, globalFeedbackSlot }: PlayAreaProps) {
+function PlayArea({
+  gd,
+  goToFollowUpGame,
+  menu,
+  globalFeedbackSlot,
+}: PlayAreaProps) {
   // ─── Page hooks ────────────────────────────────────────
 
   // The board is worked by clicks and letter keys, so Tab has nowhere to go
@@ -105,7 +114,8 @@ function PlayArea({ gd, goToFollowUpGame, menu, globalFeedbackSlot }: PlayAreaPr
   const isMyMove = gd.turns !== null && gd.me.onTurn
   useEffect(function showYourTurnPrompt() {
     if (!isMyMove) return
-    const id = localFeedbackSlot.show(FeedbackMessage.prompt('Waiting for your move'))
+    const id = localFeedbackSlot.show(FeedbackMessage.prompt(
+      'Waiting for your move'))
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isMyMove])
 

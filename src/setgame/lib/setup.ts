@@ -58,9 +58,9 @@ export const DEFAULT_SETGAME_SETUP_COOP: GSetup = {
 /**
  * Initial setup for the compete manifest — the same deck and timer choices.
  *
- * Worth a note that a timer is NOT defaulted on, even though compete's clock is
+ * Worth a note that a timer is NOT defaulted on, even though compete's timer is
  * the one adjudication this game has that coop's doesn't: a race here already
- * ends on its own when the deck runs dry, so the clock is for people who want a
+ * ends on its own when the deck runs dry, so the timer is for people who want a
  * short game, not a structural need.
  */
 export const DEFAULT_SETGAME_SETUP_COMPETE: GSetup = {

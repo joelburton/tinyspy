@@ -13,8 +13,15 @@ import type { GGameData, GHistoryView } from '../types'
  * played it; the snapshot is the row's own `boardAfter` (`lib/history.ts`).
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
-  const { historyId, historyN, showHistory, exitHistory } = useHistoryViewer<number>()
-  const snapshot = historyId === null ? null : makeHistorySnapshot(gd.events, historyId, historyN)
+  const {
+    historyId,
+    historyN,
+    showHistory,
+    exitHistory,
+  } = useHistoryViewer<number>()
+  const snapshot = historyId === null ? null : makeHistorySnapshot(gd.events,
+    historyId,
+    historyN)
 
   return {
     isViewing: snapshot !== null,

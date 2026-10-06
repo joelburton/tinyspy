@@ -61,11 +61,11 @@ describe('useClaimMarks', () => {
     expect(result.current.newTileIds.size).toBe(0)
   })
 
-  it('marks nothing for a change no claim made — a Restart deals the deck again', () => {
+  it('marks nothing for a change no claim made', () => {
     const { result, rerender } = renderHook((p: Props) => useClaimMarks(p), {
       initialProps: { liveTiles: REFILLED, lastClaim: CLAIM, quiet: false } as Props,
     })
-    // The Restart deletes the log, so the newest claim is gone.
+    // The log lost its newest claim: the table changed, and no claim did it.
     rerender({ liveTiles: TWELVE, lastClaim: null, quiet: false })
     expect(ids(result.current.tiles)).toEqual(ids(TWELVE))
     expect(result.current.foundTileIds.size).toBe(0)

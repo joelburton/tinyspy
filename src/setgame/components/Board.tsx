@@ -65,7 +65,11 @@ export function Board({
   lastClaim: { id: number; tiles: GTile[] } | null
   onPick: (tile: GTile) => void
 }) {
-  const claimMarks = useClaimMarks({ liveTiles: tiles, lastClaim, quiet: isViewingHistory })
+  const claimMarks = useClaimMarks({
+    liveTiles: tiles,
+    lastClaim,
+    quiet: isViewingHistory,
+  })
   const shownTiles = claimMarks.tiles
   const liveTileIds = new Set(tiles.map((t) => t.id))
 
@@ -86,10 +90,12 @@ export function Board({
 
   return (
     <div
-      className={cls(shared.boardSeal, styles.board, marks.isWaitingForTurn && !canPick && styles.waiting)}
+      className={cls(shared.boardSeal,
+        styles.board,
+        marks.isWaitingForTurn && !canPick && styles.waiting)}
       style={{ '--cols': widest } as React.CSSProperties}
     >
-      <TileDefs />
+      <TileDefs/>
       {shownTiles.map((tile, slot) => (
         <div key={slot} className={styles.cell}>
           <Tile
@@ -104,7 +110,8 @@ export function Board({
             // A claim's tiles on their way, and a held tile the live table no
             // longer has, are spent: a click could only build a claim the
             // server has already decided.
-            isDisabled={!canPick || marks.inFlightTileIds.has(tile.id) || !liveTileIds.has(tile.id)}
+            isDisabled={!canPick || marks.inFlightTileIds.has(tile.id) ||
+              !liveTileIds.has(tile.id)}
             onClick={() => onPick(tile)}
           />
           {/* The letter is the tile's keyboard address, and it is bound to the

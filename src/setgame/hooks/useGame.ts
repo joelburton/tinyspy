@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GGameData, GGameDataRaw, GStateLineData } from '../types'
 
@@ -34,8 +36,16 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // What the state line shows: the team's where the game has a team, else my
   // own (plans/team-facts.md). A race has no hints.
   const stateLineData: GStateLineData = raw.team === null
-    ? { nSetsFound: me.nSetsFound, nTilesInDeck: raw.nTilesInDeck, nHintsUsed: null }
-    : { nSetsFound: raw.team.nSetsFound, nTilesInDeck: raw.nTilesInDeck, nHintsUsed: raw.team.nHintsUsed }
+    ? {
+      nSetsFound: me.nSetsFound,
+      nTilesInDeck: raw.nTilesInDeck,
+      nHintsUsed: null,
+    }
+    : {
+      nSetsFound: raw.team.nSetsFound,
+      nTilesInDeck: raw.nTilesInDeck,
+      nHintsUsed: raw.team.nHintsUsed,
+    }
 
   const { turns, ending, ...rest } = raw
   return {
@@ -78,7 +88,7 @@ export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   const raw = ctx.gameData as GGameDataRaw | null
   if (raw === null) {
     throw new Error(
-      `setgame: game ${ctx.cg.id} has no game_data; run setgame._rebuild_data_cols_for_all()`)
+      `no game_data; run setgame._rebuild_data_cols_for_all()`)
   }
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.

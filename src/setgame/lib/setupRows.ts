@@ -1,7 +1,11 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
+import {
+  makeCoopRows,
+  makeRosterRow,
+  makeTimerRow,
+} from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
 import { paletteOf } from './setup'
@@ -21,7 +25,9 @@ export function makeSetupRows(
     {
       key: 'deck',
       label: 'Deck',
-      value: setup.deck === 'junior' ? 'Junior (27 cards, all solid)' : 'Full (81 cards)',
+      value: setup.deck === 'junior'
+        ? 'Junior (27 cards, all solid)'
+        : 'Full (81 cards)',
     },
     {
       key: 'palette',

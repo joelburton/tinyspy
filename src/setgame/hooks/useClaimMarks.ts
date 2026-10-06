@@ -2,7 +2,10 @@
 
 import { useMark } from '@/common/board-marks/useMark'
 import { useChangeCause } from '@/common/board-marks/useChangeCause'
-import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import {
+  ATTENTION_FLASH_MS,
+  WORD_ANSWER_MS,
+} from '@/common/board-marks/feedbackTiming'
 import type { GTile } from '../types'
 
 /** No tiles — the resting value of both marks. */
@@ -29,7 +32,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * the claimer from seeing their replacements early — a real edge in compete.
  *
  * Only a CLAIM causes either: the cause is read off the log
- * (`useChangeCause`, the newest claim's id), so a fresh deal or a Restart is
+ * (`useChangeCause`, the newest claim's id), so a table no claim changed is
  * simply shown. Quiet while a past turn is open — a claim landing behind the
  * viewer is not news on a table they are not looking at.
  *
@@ -52,17 +55,28 @@ export function useClaimMarks({
   foundTileIds: ReadonlySet<string>
   newTileIds: ReadonlySet<string>
 } {
-  const [held, holdFoundSet] = useMark<{ before: GTile[]; foundTileIds: ReadonlySet<string> }>(WORD_ANSWER_MS)
-  const [dealt, flashDealt] = useMark<{ tileIds: ReadonlySet<string> }>(ATTENTION_FLASH_MS)
+  const [held, holdFoundSet] = useMark<{
+    before: GTile[];
+    foundTileIds: ReadonlySet<string>
+  }>(WORD_ANSWER_MS)
+  const [dealt, flashDealt] = useMark<{ tileIds: ReadonlySet<string> }>(
+    ATTENTION_FLASH_MS)
 
-  const cause = useChangeCause(liveTiles, liveTiles.map((t) => t.id).join(','), lastClaim?.id ?? 0, true)
+  const cause = useChangeCause(liveTiles,
+    liveTiles.map((t) => t.id).join(','),
+    lastClaim?.id ?? 0,
+    true)
   if (cause?.byMove && !quiet && lastClaim !== null) {
     const beforeIds = new Set(cause.before.map((t) => t.id))
-    const newTileIds = new Set(liveTiles.filter((t) => !beforeIds.has(t.id)).map((t) => t.id))
+    const newTileIds = new Set(liveTiles.filter((t) => !beforeIds.has(t.id)).map(
+      (t) => t.id))
     // Raised during render, so the held table lands in the same commit as the
     // change it holds back.
     holdFoundSet(
-      { before: cause.before, foundTileIds: new Set(lastClaim.tiles.map((t) => t.id)) },
+      {
+        before: cause.before,
+        foundTileIds: new Set(lastClaim.tiles.map((t) => t.id)),
+      },
       { onEnd: () => flashDealt({ tileIds: newTileIds }) },
     )
   }

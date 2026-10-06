@@ -3,7 +3,9 @@
 import { cls } from '@/common/utils/cls'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import {
+  useDismissLocalFeedbackOnKey,
+} from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -89,10 +91,10 @@ export function BoardCol({
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <StateLine data={gd.stateLineData} withTilesInDeck={false} />
+          <StateLine data={gd.stateLineData} withTilesInDeck={false}/>
           {/* On the bar in compete too, disabled and saying why — the same
               action the info column places. */}
-          <ActionButton action={actions.actHint} show="icon" />
+          <ActionButton action={actions.actHint} show="icon"/>
         </div>
       </MobileStatusBar>
 
@@ -101,9 +103,15 @@ export function BoardCol({
         marks={{
           // My picks and the hint's ring are the live table's; a past turn's
           // table rings that turn's own tiles instead.
-          pickedTileIds: historyView.isViewing ? NO_TILES : new Set(picks.tileIds),
-          ringTileIds: new Set((historyView.isViewing ? historyView.litTiles : hint.ringTiles).map((t) => t.id)),
-          inFlightTileIds: historyView.isViewing ? NO_TILES : submission.inFlightTileIds,
+          pickedTileIds: historyView.isViewing
+            ? NO_TILES
+            : new Set(picks.tileIds),
+          ringTileIds: new Set((historyView.isViewing
+            ? historyView.litTiles
+            : hint.ringTiles).map((t) => t.id)),
+          inFlightTileIds: historyView.isViewing
+            ? NO_TILES
+            : submission.inFlightTileIds,
           isWaitingForTurn: gd.me.waitingForTurn,
         }}
         canPick={actions.canPick}
@@ -114,9 +122,11 @@ export function BoardCol({
       {/* `bannerHost` only WHILE VIEWING — the banner is `position: absolute;
           inset: 0` and needs a positioning context; conditional so a `position`
           this row doesn't otherwise want isn't sitting on it during play. */}
-      <div className={cls(styles.pillSlot, historyView.isViewing && history.historyBannerHost)}>
-        {historyView.isViewing && <HistoryBanner label={historyView.label} onExit={historyView.exit} />}
-        <FeedbackPill slot={localFeedbackSlot} />
+      <div className={cls(styles.pillSlot,
+        historyView.isViewing && history.historyBannerHost)}>
+        {historyView.isViewing && <HistoryBanner label={historyView.label}
+                                                 onExit={historyView.exit}/>}
+        <FeedbackPill slot={localFeedbackSlot}/>
       </div>
     </div>
   )

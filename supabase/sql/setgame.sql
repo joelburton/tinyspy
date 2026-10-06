@@ -642,7 +642,7 @@ drop function if exists setgame._finish(uuid, text);
 -- setgame has no per-player finish line: the deck running dry ends the game
 -- for everyone at once. So there is one ending path, reached either by the
 -- last claim (`p_reason_detail` 'cleared', ended by `p_ended_by_user_id`) or
--- by the clock ('timeout'). Rankings (docs/win-lose.md):
+-- by the timer ('timeout'). Rankings (docs/win-lose.md):
 --
 --   coop, cleared     reached_goal: the team, every player ranked 1. Clearing
 --                     means no sets left to find, NOT using every tile —
@@ -1037,7 +1037,7 @@ drop function if exists setgame.submit_timeout(uuid);
 -- game (_finish, 'timeout'), the rest find it ended and answer the game-over
 -- race. Coop: the deck wasn't cleared in time — a loss. Compete: the leaders
 -- at the whistle win, since the count of sets taken IS the complete result at
--- every instant; the clock is simply how the session stops. Ended by whoever
+-- every instant; the timer is simply how the session stops. Ended by whoever
 -- held the turn (turn-by-turn coop), else nobody.
 create or replace function setgame.submit_timeout(p_game_id uuid)
 returns jsonb

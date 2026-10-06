@@ -14,9 +14,9 @@
  * COLORBLIND-SAFE is Okabe-Ito's blue / orange / magenta. The traditional trio
  * is close to the worst possible one for red-green color vision deficiency
  * (~8% of men): a deutan reads red as olive and green as khaki, and purple as
- * blue. That matters more here than in almost any other game, because TWO CARDS
+ * blue. That matters more here than in almost any other game, because TWO TILES
  * CAN DIFFER ONLY BY COLOR — the other three attributes are identical on them,
- * so shape and shading cannot rescue a pair you can't separate.
+ * so shape and fill cannot rescue a pair you can't separate.
  *
  * Magenta rather than purple is the load-bearing choice in that trio: purple is
  * the obvious "stay close to the original" third and is exactly the one that

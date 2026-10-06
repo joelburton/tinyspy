@@ -566,6 +566,19 @@ next open (todo.md → Someday).
   the move envelopes carry no outcome; every RPC call sends `p_` names. The
   words got their names: puzzle word, theme word, spangram, hint word
   (docs/games/strands.md → Naming the words).
+- **setgame — done 2026-10-05**, its own way: one table shared in both modes,
+  so `board: {tiles}` is top-level on `gd`, not on a seat, and there is no seat
+  rule and no `puzzle` (nothing shows the deck's order). A tile is `{id}`, its
+  four attributes as digits 1..3 (`"3121"`), and "tile" is the word in all code
+  — the migration converts every stored tile, renames `events.cards` →
+  `tiles` and the counts to `n_sets_found` / `n_hints_used`
+  (20261005000006). `team: {nSetsFound, nHintsUsed}`; the summary adds
+  `nTableSetsFound` in both modes, `perfectClear`, and `winnerIds` — a list,
+  since ties are ordinary. The statuses and `games_state` went (no convenience
+  RLS to take over). The move is BoardCol's (`usePickedTiles`,
+  `useSubmitClaim`, `useSpendHint`, `useBoardColActions`); a claim's marks
+  are the shared ones (`useClaimMarks`); one action row; the move envelopes
+  carry no outcome; every RPC call sends `p_` names.
 - **boggle — done 2026-10-04**, the bee games' way without their shared
   folder: `boggle._make_json_found_counts` writes the six counts for the team
   and each player, and `_rebuild_data_cols` the puzzle (tiles `{id, letters}`,

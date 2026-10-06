@@ -40,7 +40,8 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTU'
 if (LETTERS.length < ROWS * MAX_COLS) {
   // A build-time sanity check: if the ceiling ever moves, the board would
   // silently render blank labels on its last tiles.
-  throw new Error(`setgame: a ${ROWS}x${MAX_COLS} grid needs ${ROWS * MAX_COLS} letters`)
+  throw new Error(
+    `setgame: a ${ROWS}x${MAX_COLS} grid needs ${ROWS * MAX_COLS} letters`)
 }
 
 /**

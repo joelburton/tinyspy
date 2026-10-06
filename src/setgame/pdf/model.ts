@@ -26,16 +26,16 @@ export type PrintTurn = {
  * the game back in order.
  *
  * The per-player totals print in BOTH modes, unlike the screen, which holds
- * coop's breakdown back until the terminal. Nothing is live here — you print a
+ * coop's breakdown back until the end. Nothing is live here — you print a
  * game to look at it afterwards — so the reason for holding it back (not
  * turning a cooperative game into a running scoreboard) doesn't apply.
  */
 export type SetgamePrintModel = PrintHeader & {
-  /** Per-player totals, most sets first. */
+  // Per-player totals, most sets first.
   scores: { name: string; sets: number; hints: number }[]
-  /** The log, oldest first. */
+  // The log, oldest first.
   turns: PrintTurn[]
-  /** Which pigments to draw the tiles in — the game's own setup choice. */
+  // Which pigments to draw the tiles in — the game's own setup choice.
   palette: GPalette
 }
 

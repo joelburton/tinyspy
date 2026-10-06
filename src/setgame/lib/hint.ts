@@ -54,7 +54,9 @@ export function nextHint(board: readonly GTile[], showing: readonly GTile[]): GT
     for (const other of board) {
       if (other.id === live[0].id) continue
       const completer = byId.get(third(live[0], other).id)
-      if (completer !== undefined && completer.id !== live[0].id && completer.id !== other.id) {
+      if (completer !== undefined &&
+        completer.id !== live[0].id &&
+        completer.id !== other.id) {
         return [live[0], other]
       }
     }

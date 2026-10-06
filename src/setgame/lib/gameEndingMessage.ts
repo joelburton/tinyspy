@@ -58,11 +58,20 @@ export function buildGameEndingMessage({
     if (mode === 'coop') {
       if (gameOutcome === 'won') {
         return nTilesLeft === 0
-          ? { pillText: `Won: the whole deck, ${sets}`, infoColText: 'A perfect clear!' }
-          : { pillText: `Won: all sets found, ${sets}`, infoColText: 'All sets found' }
+          ? {
+            pillText: `Won: the whole deck, ${sets}`,
+            infoColText: 'A perfect clear!',
+          }
+          : {
+            pillText: `Won: all sets found, ${sets}`,
+            infoColText: 'All sets found',
+          }
       }
       if (gameOutcome === 'lost') {
-        return { pillText: `Lost: out of time, ${sets}`, infoColText: `${sets} found` }
+        return {
+          pillText: `Lost: out of time, ${sets}`,
+          infoColText: `${sets} found`,
+        }
       }
       // A Stop: no verdict, just what the table got.
       return { pillText: `Ended: ${sets}`, infoColText: `${sets} found` }
@@ -73,12 +82,21 @@ export function buildGameEndingMessage({
       const names = winnerNames.join(' & ')
       if (playerOutcome === 'won') {
         return isShared
-          ? { pillText: `Won: tied on ${nWinnerSets}`, infoColText: 'You tied for the win!' }
+          ? {
+            pillText: `Won: tied on ${nWinnerSets}`,
+            infoColText: 'You tied for the win!',
+          }
           : { pillText: `Won: ${nWinnerSets} sets`, infoColText: 'You won!' }
       }
       return isShared
-        ? { pillText: `${names} tied on ${nWinnerSets}`, infoColText: `${names} tied` }
-        : { pillText: `${names} won with ${nWinnerSets}`, infoColText: `${names} won` }
+        ? {
+          pillText: `${names} tied on ${nWinnerSets}`,
+          infoColText: `${names} tied`,
+        }
+        : {
+          pillText: `${names} won with ${nWinnerSets}`,
+          infoColText: `${names} won`,
+        }
     }
     if (gameOutcome === 'lost') {
       return reason === 'conceded'

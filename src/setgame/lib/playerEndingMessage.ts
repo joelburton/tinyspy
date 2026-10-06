@@ -1,6 +1,9 @@
 // cs-unmet
 
-import type { EndOutcome, PlayerEndedReason } from '@/common/terminal/gameEnding'
+import type {
+  EndOutcome,
+  PlayerEndedReason,
+} from '@/common/terminal/gameEnding'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 
 /**
@@ -25,7 +28,11 @@ export function buildPlayerEndingMessage({
   outcome: EndOutcome
 }): TerminalMessage {
   if (reason === 'conceded') {
-    return { pillText: 'Conceded — race continues', infoColText: 'You conceded', outcome }
+    return {
+      pillText: 'Conceded — race continues',
+      infoColText: 'You conceded',
+      outcome,
+    }
   }
   throw new Error(`BUG: setgame has no words for a player who ended ${reason}`)
 }

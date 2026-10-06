@@ -2,7 +2,9 @@
 
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
-import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import {
+  SetupCoopStyleSection,
+} from '@/common/setup-form/SetupCoopStyleSection'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
@@ -51,8 +53,10 @@ export function SetupForm({
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
+        onChange={({ coopStyle, firstTurnUserId }) => {
+          set('coop_style', coopStyle)
+          set('first_turn_user_id', firstTurnUserId)
+        }
         }
       />
 
@@ -72,7 +76,9 @@ export function SetupForm({
       </SetupSection>
 
       <SetupSection
-        label={paletteOf(s) === 'colorblind' ? 'Colors: Colorblind-safe' : 'Colors: Traditional'}
+        label={paletteOf(s) === 'colorblind'
+          ? 'Colors: Colorblind-safe'
+          : 'Colors: Traditional'}
       >
         <RadioRow<GPalette>
           help="Traditional is Set's own red, green and purple. The colorblind-safe set swaps in blue, orange and magenta, which stay apart for red-green color blindness — worth knowing that two cards can differ ONLY by color here, so shape and shading can't rescue a pair you can't tell apart. It's one choice for the whole table."

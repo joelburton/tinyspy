@@ -34,7 +34,11 @@ export function useBoardColActions({
   gd: GGameData
   // My move, on the live table.
   isInteractive: boolean
-  picks: { tileIds: readonly string[]; set: (tileIds: readonly string[]) => void; clear: () => void }
+  picks: {
+    tileIds: readonly string[];
+    set: (tileIds: readonly string[]) => void;
+    clear: () => void
+  }
   // A claim's three tiles on their way: they take no pick.
   inFlightTileIds: ReadonlySet<string>
   submitClaim: (tiles: readonly GTile[]) => Promise<void>
@@ -61,7 +65,8 @@ export function useBoardColActions({
     }
     picks.clear()
     // Every pick is on the table: `picks.tileIds` is the live picks.
-    const [a, b, c] = next.map((id) => gd.board.tilesById[id]!) as [GTile, GTile, GTile]
+    const [a, b, c] = next.map((id) =>
+      gd.board.tilesById[id]!) as [GTile, GTile, GTile]
     if (isSet(a, b, c)) {
       void submitClaim([a, b, c])
     } else {

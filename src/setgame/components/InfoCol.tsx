@@ -2,7 +2,10 @@
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useAction } from '@/common/actions/actionsStore'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -52,7 +55,12 @@ export function InfoCol({
    *  ended. */
   function getSetsOrOut(player: GPlayer) {
     if (gd.ended) {
-      const verdict = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
+      const verdict =
+        player.outcome === 'won'
+          ? 'Won'
+          : player.conceded
+            ? 'Conceded'
+            : 'Lost'
       return `${verdict} · ${player.nSetsFound}`
     }
     if (player.ending !== null) return 'out'
@@ -63,10 +71,10 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
         <div className={shared.infoState}>
-          <StateLine data={gd.stateLineData} withTilesInDeck />
+          <StateLine data={gd.stateLineData} withTilesInDeck/>
         </div>
 
-        <LastSet claim={gd.events.findLast((e) => e.kind === 'claim') ?? null} />
+        <LastSet claim={gd.events.findLast((e) => e.kind === 'claim') ?? null}/>
 
         {gd.compete && (
           <OpponentStrip
@@ -94,16 +102,16 @@ export function InfoCol({
           {/* Hint — on the row in compete too, disabled and saying why: hiding
               it would leave a player hunting for a button they know this game
               has. */}
-          {actHint !== null && <ActionButton action={actHint} show="icon" />}
+          {actHint !== null && <ActionButton action={actHint} show="icon"/>}
           {/* Both exits are placed; each hides itself in the mode that isn't
               its own, and out of the race Stop takes Concede's place. */}
-          <ActionButton action={actions.actConcede} show="icon" />
-          <ActionButton action={actions.actStopGame} show="icon" />
+          <ActionButton action={actions.actConcede} show="icon"/>
+          <ActionButton action={actions.actStopGame} show="icon"/>
           {/* Right of the bar is about the END of the game rather than
               playing it; the bar hides itself when nothing is left of it. */}
-          <span className={shared.actionsDivider} />
-          <ActionButton action={actions.actRestart} show="icon" />
-          <ActionButton action={actions.actNewGame} show="icon" />
+          <span className={shared.actionsDivider}/>
+          <ActionButton action={actions.actRestart} show="icon"/>
+          <ActionButton action={actions.actNewGame} show="icon"/>
           {/* Filled once the game has ended: the weight is the placement's
               choice, not the action's (docs/ui.md → What a `<button>` is). */}
           <ActionButton
@@ -114,7 +122,7 @@ export function InfoCol({
         </InfoActionsRow>
 
         {/* Setup — LAST before the log, behind a disclosure. */}
-        <SetupDisclosure rows={gd.setupRows} />
+        <SetupDisclosure rows={gd.setupRows}/>
       </div>
 
       {/* The log scrolls inside its own box, so a growing log never moves

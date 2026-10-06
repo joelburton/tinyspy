@@ -82,7 +82,7 @@
  * This is the one place setgame dims tiles, and it is a deliberate exception to
  * the rule two comments away (a disabled tile keeps its colors, because color is
  * one of its four attributes and a dimmed red reads as a different tile). Two
- * things make it safe here where it isn't at a terminal: the fade is on the
+ * things make it safe here where it isn't at an ending: the fade is on the
  * BOARD, so every tile moves together and no tile can be misread against an
  * undimmed neighbor — and it is a state you are meant to be waiting through,
  * not one you are meant to be reading. Off-turn the board is inert anyway
@@ -110,7 +110,7 @@
  * unambiguous at a glance while your eye is somewhere else entirely.
  *
  * Deliberately NOT dimmed when the board is disabled either. The board is
- * disabled at every terminal, which is exactly when people sit and study it —
+ * disabled at every ending, which is exactly when people sit and study it —
  * the same reason a disabled tile keeps its colors (see Tile.module.css). */
 /* The glyph sits near the TOP of its strip, not centered in it: `line-height` is
  * the glyph's own line box and the rest of `--letter-row` falls below, which is

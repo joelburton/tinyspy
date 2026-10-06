@@ -1,9 +1,16 @@
 // cs-fixed-outcome-fix
 
 import type { Member } from '@/common/members/member'
-import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
+import {
+  EventLog,
+  EventLogActor,
+  EventLogOutcomeBar,
+  EventLogNumber,
+} from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
-import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
+import {
+  useEventLogPlayerPicker,
+} from '@/common/event-log/useEventLogPlayerPicker'
 import { eventToOutcome } from '../lib/answer'
 import type { GEvent, GHistoryView } from '../types'
 import { Tile } from './Tile'
@@ -25,7 +32,7 @@ import styles from './GameEventLog.module.css'
  * The heading tallies whatever the filter is showing — `Found: 7 · Hints: 3`
  * for everyone, the same two numbers scoped when you pick a player. That is the
  * shared `<WordList>`'s own behavior ("filters become a reading tool"), and it
- * is what replaced a per-player breakdown at the terminal: a breakdown is
+ * is what stands in for a per-player breakdown at the end: a breakdown is
  * PUSHED at the table whether or not anyone wanted the comparison, where a
  * filter is pulled by the person who went looking for it. Coop should not end
  * on a scoreboard nobody asked for.
@@ -65,7 +72,9 @@ export function GameEventLog({
 
   return (
     <EventLog
-      heading={mode === 'coop' ? `Found: ${found} · Hints: ${hints}` : `Found: ${found}`}
+      heading={mode === 'coop'
+        ? `Found: ${found} · Hints: ${hints}`
+        : `Found: ${found}`}
       picker={eventLogPicker}
       shown={shown}
     >
@@ -77,21 +86,22 @@ export function GameEventLog({
             {/* The bar's word is `lib/answer.ts`'s — the log names none of its
                 own, so it cannot disagree with the pill or a teammate's line
                 about the same turn. */}
-            <EventLogOutcomeBar outcome={eventToOutcome(event)} />
+            <EventLogOutcomeBar outcome={eventToOutcome(event)}/>
             <EventLogNumber
               n={i + 1}
               isOpenInHistory={historyView.viewedEventId === event.id}
               onShowHistory={() => historyView.show(event.id, i + 1)}
             />
             <td className={styles.tiles}>
-              {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}
+              {event.kind === 'hint' &&
+                  <span className={styles.hintTag}>Hint:</span>}
               <span className={styles.mini}>
                 {event.tiles.map((tile) => (
-                  <Tile key={tile.id} tile={tile} readOnly />
+                  <Tile key={tile.id} tile={tile} readOnly/>
                 ))}
               </span>
             </td>
-            <EventLogActor actor={event.by} />
+            <EventLogActor actor={event.by}/>
           </tr>
         )
       })}

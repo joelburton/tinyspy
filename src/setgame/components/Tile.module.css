@@ -58,7 +58,7 @@
   /* Override the global disabled fade (`--chrome-disabled-opacity`). A tile's
    * COLORS are one of its four attributes, so dimming them doesn't read as
    * "you can't press this", it reads as a different tile. The board is
-   * disabled at every terminal, which is exactly when people are studying it. */
+   * disabled at every ending, which is exactly when people are studying it. */
   opacity: 1;
 }
 

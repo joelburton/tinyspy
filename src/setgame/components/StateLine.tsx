@@ -29,8 +29,14 @@ export function StateLine({
 }) {
   const items = [
     { label: 'Found', value: data.nSetsFound },
-    ...(withTilesInDeck ? [{ label: 'Deck remaining', value: data.nTilesInDeck }] : []),
-    ...(data.nHintsUsed === null ? [] : [{ label: 'Hints', value: data.nHintsUsed }]),
+    ...(withTilesInDeck ? [{
+      label: 'Deck remaining',
+      value: data.nTilesInDeck,
+    }] : []),
+    ...(data.nHintsUsed === null ? [] : [{
+      label: 'Hints',
+      value: data.nHintsUsed,
+    }]),
   ]
   return (
     <div className={styles.counts}>

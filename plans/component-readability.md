@@ -480,6 +480,23 @@ settled, beyond the games above:
   back to live; their `isDisabled` is not the column's `canPick`, and the code
   says so.
 
+## What setgame added
+
+setgame converted alone (2026-10-05) and settled:
+
+- **A board that is the game's, not a seat's, sits on `gd`.** One contended
+  table in both modes is `gd.board`, not a copy on every player; a seat's
+  `board` stays the rule where seats differ.
+- **An action placed on two surfaces is bound once.** Hint picks tiles, so the
+  board column binds it; the info column shows the same action through
+  `useAction('act-hint')` rather than having it handed across.
+- **An action id says how it finds its target** where two gestures pick the
+  same thing: `act-toggle-tile` is the cursor's Space, `act-pick-by-letter` the
+  letter under a slot, `pickClicked` the mouse (Joel, 2026-10-05).
+- **A board that substitutes in place holds what left before showing what
+  came** (`useClaimMarks`): the shared marks at their shared lengths, the hold
+  the same for everyone, and only pieces new to the board flash.
+
 ## Owed, not done at psychicnum
 
 - The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /

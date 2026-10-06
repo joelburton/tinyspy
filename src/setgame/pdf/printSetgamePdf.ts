@@ -65,11 +65,10 @@ const HATCH_PITCH = 3
  * the SAME path the board draws (`SHAPE_PATHS.squiggle` in lib/shapes.ts,
  * whose absolute SVG cubics live in `SYMBOL_BOX`).
  *
- * Converted rather than re-drawn, and that matters: the first version was a
- * print-only approximation, and it came out a thin ribbon with no interior — so
- * solid, hatched and open were indistinguishable on it, which is three of the
- * game's nine shadings gone. Sharing the geometry means the paper squiggle
- * cannot drift from the screen one again.
+ * Converted rather than re-drawn: a print-only approximation comes out a thin
+ * ribbon with no interior, on which solid, hatched and open are
+ * indistinguishable — three of the game's nine looks gone. Sharing the
+ * geometry means the paper squiggle cannot drift from the screen one.
  */
 const SQUIGGLE: number[][] = [
   [0, -14, 12, -20, 22, -16],

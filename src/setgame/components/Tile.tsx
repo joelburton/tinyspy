@@ -1,7 +1,13 @@
 // cs-unmet
 
 import { decode } from '../lib/tiles'
-import { SHAPE_PATHS, SYMBOL_BOX, SYMBOL_LAYOUT, SYMBOL_STROKE, TILE_BOX } from '../lib/shapes'
+import {
+  SHAPE_PATHS,
+  SYMBOL_BOX,
+  SYMBOL_LAYOUT,
+  SYMBOL_STROKE,
+  TILE_BOX,
+} from '../lib/shapes'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './Tile.module.css'
@@ -62,7 +68,12 @@ export function Tile({
 }) {
   const { count, color, fill, shape } = decode(tile)
   const hue = `var(--setgame-${color})`
-  const paint = fill === 'solid' ? hue : fill === 'striped' ? `url(#setgame-stripe-${color})` : 'none'
+  const paint =
+    fill === 'solid'
+      ? hue
+      : fill === 'striped'
+        ? `url(#setgame-stripe-${color})`
+        : 'none'
 
   // The symbols sit in a centered row. Computing the offsets here (rather than
   // with flexbox inside the SVG, which does not exist) keeps the whole face one
@@ -106,7 +117,7 @@ export function Tile({
           stroke={hue}
           strokeWidth={SYMBOL_STROKE}
         >
-          <path d={SHAPE_PATHS[shape]} />
+          <path d={SHAPE_PATHS[shape]}/>
         </g>
       ))}
     </svg>
