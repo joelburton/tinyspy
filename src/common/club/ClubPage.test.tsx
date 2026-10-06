@@ -4,7 +4,7 @@
  * WHAT THE PAGE DECIDES, GIVEN A CLUB AND ITS GAMES.
  *
  * The load is `<ClubPageLoader>`'s and has its own file; the games read and its
- * subscription are `useClubGames`' and have theirs. What is left here is the
+ * room are `useClubGames`' and have theirs. What is left here is the
  * page's own judgment: which rows a filter leaves, that each filter reaches
  * only its own list, what a failed games read makes the empty state say, and
  * what a delete answer puts on screen.

@@ -30,7 +30,6 @@
 --     re-add fails this test and has to justify itself).
 --
 -- Where the subscriptions live:
---   common.games             useClubGames (the club page's list)
 --   common.game_players      useGameInvitations
 --   common.game_scratchpads  useScratchpad
 --   common.messages          useClubChat
@@ -39,6 +38,10 @@
 -- Deliberately NOT subscribed, therefore NOT published (their absence
 -- from the list is itself the assertion):
 --   common.clubs, common.profiles   no live subscriber
+--   common.games                     the game page and the club page each
+--                                    hear a change through a `changed`
+--                                    Broadcast from a trigger on it, not a
+--                                    row change (src/common/realtime/doc.md)
 --   every game's own tables          a game page reads the blobs on
 --                                    common.games and hears a move through
 --                                    the `changed` Broadcast, not a row change
@@ -68,8 +71,7 @@ select set_eq(
   $$
     values
       -- app shell (common)
-      ('common'::text, 'games'::text),
-      ('common', 'game_players'),
+      ('common'::text, 'game_players'::text),
       ('common', 'game_scratchpads'),
       ('common', 'messages'),
       ('common', 'clubs_members')

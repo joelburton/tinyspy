@@ -205,9 +205,10 @@ around it, one of two ways:
 
 The frontend hears about writes through Realtime: `postgres_changes` (CDC) for
 table changes, Broadcast and Presence for peer-to-peer state that is never
-stored. The game page is the exception to CDC: a trigger on `common.games`,
-`common._nudge_game_page`, sends its room one `changed` Broadcast per
-transaction, and the page re-reads. The other data hooks are
+stored. The game page and the club page are the exception to CDC: triggers on
+`common.games`, `common._nudge_game_page` and `common._nudge_club_page`, send
+each page's room one `changed` Broadcast per transaction, and the page
+re-reads. The other data hooks are
 refetch-on-any-event through `useRealtimeRefetch`; the hook shapes, the nudge,
 the channel names, the reconnect story and the deaf window are
 [src/common/realtime/doc.md](../src/common/realtime/doc.md)'s. Finding a channel
@@ -219,8 +220,9 @@ is a search for `supabase.channel(` and `channelPrefix`.
 `supabase_realtime` publication.** The Realtime server rejects the channel's
 *entire* subscription if any one bound table is unpublished — live updates die
 for every table on that channel, with no error. Only `common`'s subscribed
-tables are published — `games`, `game_players`, `game_scratchpads`, `messages`,
-`clubs_members`; no game's own table is, since no client subscribes to one.
+tables are published — `game_players`, `game_scratchpads`, `messages`,
+`clubs_members`; neither `common.games` nor any game's own table is, since no
+client subscribes to one.
 `tests/common/realtime_publication_test.sql` checks both directions: what is
 subscribed is published, and what is deliberately left out stays out. Nothing
 is published without a subscriber — a published table nobody reads is
@@ -232,10 +234,8 @@ updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating));
 check the publication first, since it's the cheap check.
 
 **DELETE events are unreliable under a filter**, because a DELETE carries only
-the row's replica identity. Two consequences, each commented where it lives:
-`common.games` is `REPLICA IDENTITY FULL` so the club list hears a deleted game,
-and a `replay_board` that deletes child rows also touches its `games` row, so
-the UPDATE wakes clients to refetch.
+the row's replica identity. A `replay_board` that deletes child rows also
+touches its `games` row, so the UPDATE wakes clients to refetch.
 
 ## Server conventions
 

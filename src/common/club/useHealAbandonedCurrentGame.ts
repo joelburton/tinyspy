@@ -25,8 +25,8 @@ const GRACE_MS = 2500
  * timer. It fires once per game id, so a clear still on its way back through
  * the games list's re-read is not sent twice.
  *
- * Nothing is refetched here: the flag's UPDATE reaches `useClubGames`' own
- * subscription, which re-reads and drops the current game.
+ * Nothing is refetched here: the flag's UPDATE nudges `useClubGames`' room,
+ * which re-reads and drops the current game.
  *
  * **A failure is logged, not shown.** Nobody asked for the heal, so there is
  * nobody to tell, and the only not-ok the RPC gives is a fault (PN011 / PN012,

@@ -49,13 +49,13 @@ error and no symptom other than a page that stops changing, which is also why
 the console trail is always on for everyone rather than behind a debug flag —
 when a friend hits it, the evidence is already in their console.
 
-The game page is the exception: it watches no table. A move can write the game's
-row several times, and every row change would arrive as a message carrying the
-whole row twice, old and new, only to be thrown away for a re-read. So the row
-itself announces the move instead: a trigger sends the page's room one small
-Broadcast, `changed`, per transaction, and the page re-reads. That message comes
-from the database and has no attach step, so the page reads on the join and on
-each nudge, and that is all.
+The game page and the club page are the exception: they watch no table. A move
+can write the game's row several times, and every row change would arrive as a
+message carrying the whole row twice, old and new, only to be thrown away for a
+re-read. So the row itself announces the move instead: a trigger sends each
+page's room one small Broadcast, `changed`, per transaction, and the page
+re-reads. That message comes from the database and has no attach step, so the
+page reads on the join and on each nudge, and that is all.
 
 Presence in this folder is the **club orbit**: who is around, which game they
 are looking at, and whether someone is in the middle of setting one up. It
@@ -87,12 +87,16 @@ and re-reads the rows.
   generation counter drops a slow load that a newer one has overtaken. A game's
   `useGame` watches nothing: it is a pure function of the `game_data` the game
   page re-reads on its room's `changed` nudge (common/game-page/doc.md).
-- **The game page hears a move as a Broadcast from the database.**
-  `common._nudge_game_page`, a trigger on `common.games`, sends
+- **The game page and the club page hear a move as a Broadcast from the
+  database.** `common._nudge_game_page`, a trigger on `common.games`, sends
   `realtime.send('{}', 'changed', 'game:<id>', false)` after an update that
-  changes `updated_at` and after a delete. `updated_at` is stamped with `now()`,
-  the transaction's start time, so only a transaction's first write changes it:
-  one nudge per move, however many times the move writes the row. The send is
+  changes `updated_at` and after a delete; `common._nudge_club_page` sends the
+  same to `club-games:<handle>` after those and after an insert, which is a new
+  game's first write. Neither room's name can take a suffix, so `useClubGames`
+  waits out a previous leave as the game page does (`channelTeardown.ts`).
+  `updated_at` is stamped with `now()`, the transaction's start time, so only a
+  transaction's first write changes it:
+  one nudge per move per row, however many times the move writes it. The send is
   an insert into `realtime.messages`, delivered at the commit and never for a
   rollback; it catches its own errors as a `WARNING`, so a failed send never
   fails the move and the page is stale until its next re-read. The topic is

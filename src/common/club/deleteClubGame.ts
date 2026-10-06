@@ -17,7 +17,7 @@ type DeleteAnswer = { result: 'deleted' }
  * (`sendSuspendBeforeDelete`); any other game has nobody in it.
  *
  * Both answers are toasts (club/doc.md says why). The list is not refreshed
- * here: `useClubGames` sees the DELETE and re-reads.
+ * here: the delete nudges `useClubGames`, which re-reads.
  *
  * **It rejects on every answer but `deleted`.** `ClubGameDeleteButton` leaves
  * "Deleting…" only when this rejects, so a not-ok or an unreadable answer

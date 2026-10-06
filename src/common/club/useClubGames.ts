@@ -1,11 +1,11 @@
 // cs-blessed-club-page
 
 import { useEffect, useState } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
 import { supabase } from '../supabase/supabase'
-import { channelDedupSuffix } from '../realtime/channelDedup'
-import { onPostgresAttached } from '../realtime/postgresAttached'
+import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { manifestFor } from '@/gametypes'
 import { reportUnknownGametypes } from '../manifest/unknownGametype'
 import type { GameManifest } from '../manifest/gameManifest'
@@ -75,8 +75,8 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
 }
 
 /**
- * A club's games, kept fresh: one read of `common.games` plus a Realtime
- * subscription that re-reads on every change to a row of this club's.
+ * A club's games, kept fresh: one read of `common.games`, and another on
+ * every `changed` Broadcast `common._nudge_club_page` sends the club's room.
  *
  * Returns the list in last-played order; the current game (the
  * `is_current_view` row), both as the listed game and as its id; and whether
@@ -87,7 +87,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
  * **It shows its own failure**, into the slot the caller hands it, because
  * nothing retries this read. It re-runs only when another `common.games` row
  * changes, and the commonest failure is the refetch after your OWN delete —
- * where that DELETE was the event, so no second one is coming.
+ * where that delete was the nudge, so no second one is coming.
  *
  * Takes the club's handle, its members — which each row's `summaryFor` names a
  * user id from — and the page's global feedback slot; all three are stable, so
@@ -105,17 +105,16 @@ export function useClubGames(
   // page the player is being told to reload.
   const [hasReadFailed, setHasReadFailed] = useState(false)
 
-  // Load games for this club + the current-view game id.
-  // Re-runs whenever realtime tells us a games row for this club
-  // changed (new game inserted, a move or an ending ran the game's
-  // status builder, set_current_view / unset_current_view flipped the
-  // is_current_view pointer, etc.). Also fires on initial mount.
-  useEffect(function subscribeToClubGames() {
+  // Load games for this club + the current-view game id: on mount, on every
+  // join of the club's room, and on every `changed` nudge — a new game, a move
+  // or an ending, a set_current_view / unset_current_view pointer flip, a
+  // delete.
+  useEffect(function joinClubGamesRoom() {
     let mounted = true
     // Monotonic generation for out-of-order protection: loadGames fires on
-    // initial + on-SUBSCRIBED + every common.games event, and these overlapping
-    // loads can resolve out of order. Commit only the newest, so a slow initial
-    // load can't clobber a fresher event-load's listing. Same fix as
+    // mount + on-SUBSCRIBED + every nudge, and these overlapping loads can
+    // resolve out of order. Commit only the newest, so a slow initial load
+    // can't clobber a fresher nudge-load's listing. Same fix as
     // useRealtimeRefetch / useCommonGame.
     let generation = 0
 
@@ -148,8 +147,8 @@ export function useClubGames(
       //
       // What it must not be is silent. Nothing retries this read: it re-runs
       // only when another common.games row changes, and the commonest failure
-      // is the refetch that follows your OWN delete — where that DELETE was the
-      // event, so no second one is coming and the game sits in the list looking
+      // is the refetch that follows your OWN delete — where that delete was the
+      // nudge, so no second one is coming and the game sits in the list looking
       // undeleted. So the modal is escalated by a message that outlives
       // dismissing it, and the honest instruction is to reload.
       if (res.type === 'not-ok') {
@@ -177,46 +176,45 @@ export function useClubGames(
       reportUnknownGametypes(unknownGametypes)
     }
 
-    loadGames()
-
-    // Subscribe to common.games changes for this club purely to keep the
-    // games list fresh: a new-game start, a set/unset_current_view pointer
-    // flip, create_game's auto-vacate of the prior current game, a move
-    // or an ending — all surface here and trigger a list reload.
+    // The club's room, which hears its games change. It navigates NOBODY. Being
+    // added to a game pops a join invitation globally (`useGameInvitations`,
+    // mounted in App.tsx), so a player joins on their own terms wherever they
+    // are; a member here just sees the new game appear and gets the invite. The
+    // game waits, paused, until they join.
     //
-    // It navigates NOBODY. Being added to a game pops a join invitation
-    // globally (`useGameInvitations`, mounted in App.tsx), so a player joins on
-    // their own terms wherever they are; a member here just sees the new game
-    // appear and gets the invite. The game waits, paused, until they join.
-    const channel = supabase
-      .channel(`club-games:${clubHandle}:${channelDedupSuffix()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'common',
-          table: 'games',
-          // A DELETE matches this only because common.games is REPLICA
-          // IDENTITY FULL (see its migration).
-          filter: `club_handle=eq.${clubHandle}`,
-        },
-        () => loadGames(),
-      )
-    // Deaf-window closer: reload once the postgres_changes attach is
-    // confirmed — SUBSCRIBED below is only the join ack, and an event
-    // committed before the attach is dropped. See postgresAttached.ts.
-    onPostgresAttached(channel, () => loadGames())
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') loadGames()
-    })
+    // The name is the topic the trigger sends to, so it takes no suffix, and a
+    // quick remount waits out the previous mount's leave (channelTeardown.ts).
+    const room = `club-games:${clubHandle}`
+    let canceled = false
+    let ch: RealtimeChannel | null = null
+
+    function joinRoom() {
+      // The effect may have torn down while the join waited.
+      if (canceled) return
+      ch = supabase
+        .channel(room)
+        .on('broadcast', { event: 'changed' }, () => loadGames())
+        // On every join, reconnects included: a nudge sent while the socket was
+        // down is not replayed.
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') loadGames()
+        })
+    }
+
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(joinRoom)
+    else joinRoom()
+
+    loadGames()
 
     return () => {
       mounted = false
-      supabase.removeChannel(channel)
+      canceled = true
+      if (ch) void releaseChannel(ch)
     }
     // `globalFeedbackSlot` is created once and keeps its identity across
     // renders (`useFeedbackSlot`), and `members` is fixed for the page's life
-    // (`ClubPageLoader`), so listing them re-subscribes nothing.
+    // (`ClubPageLoader`), so listing them rejoins nothing.
   }, [clubHandle, members, globalFeedbackSlot])
 
   const currentGame = games.find((g) => g.isCurrent) ?? null

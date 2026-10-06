@@ -11,12 +11,12 @@
  * The second is the failure, and it is the reason this hook shows its own.
  * Nothing retries the read: it re-runs only when another `common.games` row
  * changes, and the commonest failure is the refetch after your own delete,
- * where that DELETE was the event. So a failure keeps the list it already has
+ * where that delete was the nudge. So a failure keeps the list it already has
  * AND says so, into the slot the caller hands it.
  *
- * Realtime is stubbed to a channel that never fires. The subscription's own
- * contract — the deaf-window closer, the SUBSCRIBED refetch, the teardown —
- * belongs to the e2es; what is here is what an ANSWER becomes.
+ * Realtime is stubbed to a channel that never fires on its own. The room's own
+ * contract — the SUBSCRIBED refetch, the teardown — belongs to the e2es; what
+ * is here is what an ANSWER becomes.
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
@@ -45,8 +45,8 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
   return {
     mockReadRows: vi.fn(),
     mockReportUnknown: vi.fn(),
-    // The `postgres_changes` handler the hook registers, so a test can fire the
-    // event that actually drives a refetch.
+    // The `changed` handler the hook registers, so a test can fire the nudge
+    // that actually drives a refetch.
     realtime: { onChange: null as (() => void) | null },
     REGISTRY: [WORDLE, SYRUP, NAMER],
     SYRUP,
@@ -60,7 +60,7 @@ vi.mock('../supabase/db', () => {
 
 vi.mock('../supabase/supabase', () => {
   // `.channel().on(...).subscribe(...)` — every link returns the channel. The
-  // `on` keeps the handler so a test can fire a games change; `subscribe`'s
+  // `on` keeps the handler so a test can fire a nudge; `subscribe`'s
   // callback is never invoked, so the SUBSCRIBED reload does not fire here.
   const channel: Record<string, unknown> = {}
   channel.on = (_event: string, _config: unknown, cb: () => void) => {
@@ -68,6 +68,7 @@ vi.mock('../supabase/supabase', () => {
     return channel
   }
   channel.subscribe = () => channel
+  channel.topic = 'realtime:club-games:trio'
   return { supabase: { channel: () => channel, removeChannel: vi.fn() } }
 })
 
@@ -76,7 +77,6 @@ vi.mock('../supabase/dbResult', async (importOriginal) => ({
   readRows: mockReadRows,
 }))
 
-vi.mock('../realtime/postgresAttached', () => ({ onPostgresAttached: () => {} }))
 // The registry AND its lookup, from one list: `manifestFor` reads the registry,
 // so a mock supplying only the list would let the two disagree.
 vi.mock('@/gametypes', () => ({
@@ -294,7 +294,7 @@ describe('useClubGames — a failed read', () => {
     const { result } = renderHook(() => useClubGames('trio', MEMBERS, showed.slot))
     await waitFor(() => expect(result.current.games).toHaveLength(1))
 
-    // A games change arrives and its refetch fails. Writing `[]` here would
+    // A nudge arrives and its refetch fails. Writing `[]` here would
     // replace a stale list with "this club has no games", which is a worse
     // answer than a stale one.
     mockReadRows.mockResolvedValue(theReadFailed())
