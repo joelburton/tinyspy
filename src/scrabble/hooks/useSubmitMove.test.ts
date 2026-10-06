@@ -59,6 +59,6 @@ describe('useSubmitMove — the claim on my rack', () => {
     await act(async () => { played = await view.result.current.sendWord(PLACEMENTS, play, SLOTS) })
     expect(played).toBe(false)
     expect(view.result.current.takeMyMove()).toBeNull()
-    expect(view.result.current.refusedCells.size).toBe(3)
+    expect(view.result.current.refusedCellIds).toEqual(new Set(['6,7', '7,7', '8,7']))
   })
 })

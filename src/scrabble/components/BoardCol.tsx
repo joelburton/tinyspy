@@ -9,7 +9,7 @@ import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
-import { BLANK, cellIndex, readCellXY } from '../lib/board'
+import { BLANK, makeCellId } from '../lib/board'
 import { useRackOrder } from '../hooks/useRackOrder'
 import { useStagedTiles } from '../hooks/useStagedTiles'
 import { useSubmitMove } from '../hooks/useSubmitMove'
@@ -28,8 +28,8 @@ import styles from './BoardCol.module.css'
 
 /** No cells and no staged tiles — the marks a read-only board wears for the
  *  live move. */
-const NO_CELLS: ReadonlySet<number> = new Set()
-const NO_TENTATIVES: ReadonlyMap<number, GTentative> = new Map()
+const NO_CELLS: ReadonlySet<string> = new Set()
+const NO_TENTATIVES: ReadonlyMap<string, GTentative> = new Map()
 
 /**
  * scrabble's board column: the 15×15 board, and beneath it the rack and the
@@ -144,13 +144,18 @@ export function BoardCol({
   const peerMove = historyView.peerMove
   const peerTentatives = useMemo(() => (peerMove === null
     ? NO_TENTATIVES
-    : new Map(peerMove.placements.map((p) => [cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank }]))),
+    : new Map(peerMove.placements.map((p) => [makeCellId(p.x, p.y), { letter: p.letter, blank: p.blank }]))),
   [peerMove])
-  const tentatives = historyView.isViewing ? peerTentatives : staged.tentatives
-  const litCells = new Set(historyView.litCellIds.map((id) => {
-    const { x, y } = readCellXY(id)
-    return cellIndex(x, y)
-  }))
+  const boardMarks = {
+    stagedTiles: historyView.isViewing ? peerTentatives : staged.tentatives,
+    justPlayedCellIds: historyView.isViewing ? NO_CELLS : submission.playedCellIds,
+    refusedCellIds: historyView.isViewing ? NO_CELLS : submission.refusedCellIds,
+    historyLitCellIds: new Set(historyView.litCellIds),
+    liftedCellId: pointer.drag?.source.kind === 'board' ? makeCellId(pointer.drag.source.x, pointer.drag.source.y) : null,
+    dropCellId: pointer.drag === null || historyView.isViewing || pointer.hover === null
+      ? null
+      : makeCellId(pointer.hover.x, pointer.hover.y),
+  }
 
   return (
     <>
@@ -162,15 +167,9 @@ export function BoardCol({
         </MobileStatusBar>
         <Board
           cells={boardCells}
-          tentative={tentatives}
+          marks={boardMarks}
           cursor={cursor}
-          hover={historyView.isViewing ? null : pointer.hover}
-          greenCells={historyView.isViewing ? NO_CELLS : submission.playedCells}
-          redCells={historyView.isViewing ? NO_CELLS : submission.refusedCells}
-          dragSource={pointer.drag?.source.kind === 'board' ? { x: pointer.drag.source.x, y: pointer.drag.source.y } : null}
-          dragging={pointer.drag !== null}
           isViewingHistory={historyView.isViewing}
-          historyLitCells={litCells}
           onCellPointerDown={pointer.onCellPointerDown}
         />
 
@@ -194,10 +193,10 @@ export function BoardCol({
             <div className={styles.rackWrap}>
               <Rack
                 tiles={rackOrder.tiles}
-                used={staged.usedSlots}
-                picked={staged.pickedSlots}
-                flashIds={rackOrder.drawnSlots}
-                active={isInteractive}
+                usedSlots={staged.usedSlots}
+                pickedSlots={staged.pickedSlots}
+                drawnSlots={rackOrder.drawnSlots}
+                isInteractive={isInteractive}
                 onPointerDown={pointer.onRackPointerDown}
               />
               {/* Shuffle floats over the rack's corner: it reorders the rack,

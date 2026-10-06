@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { BLANK, cellIndex } from '../lib/board'
+import { BLANK, cellIndex, makeCellId } from '../lib/board'
 import type { GCell, GHistoryView, GPlacement, GStagedTile, GTentative } from '../types'
 
 /**
@@ -39,8 +39,8 @@ export function useStagedTiles({
   tiles: GStagedTile[]
   // The rack slots staged on the board.
   usedSlots: ReadonlySet<number>
-  // The staged tiles by flat cell index, as the board draws them.
-  tentatives: ReadonlyMap<number, GTentative>
+  // The staged tiles by cell id, as the board draws them.
+  tentatives: ReadonlyMap<string, GTentative>
   // Where a blank is waiting for its letter.
   blankAt: { x: number; y: number; rackIdx: number } | null
   // The rack slots picked for a swap.
@@ -174,7 +174,7 @@ export function useStagedTiles({
 
   const usedSlots = useMemo(() => new Set(tiles.map((t) => t.rackIdx)), [tiles])
   const tentatives = useMemo(
-    () => new Map(tiles.map((t) => [cellIndex(t.x, t.y), { letter: t.letter, blank: t.blank }])),
+    () => new Map(tiles.map((t) => [makeCellId(t.x, t.y), { letter: t.letter, blank: t.blank }])),
     [tiles],
   )
 

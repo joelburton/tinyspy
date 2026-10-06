@@ -1,58 +1,62 @@
 // cs-unmet
 
-import { cls } from '@/common/utils/cls'
-import { BLANK, LETTER_VALUES } from '../lib/board'
+import { BLANK } from '../lib/board'
+import { Tile } from './Tile'
 import styles from './Rack.module.css'
 
-/** One rack slot. `rackIdx` is its stable index in the acting rack;
- *  `used` slots are already staged on the board. */
-type RackTile = { glyph: string; rackIdx: number }
-
 /**
- * The player's tile rack. Press-and-drag a tile onto the board to place it
- * (PlayArea runs the shared gesture); a plain tap picks or un-picks the tile
- * for Exchange. Staged tiles show grayed; tiles picked for exchange
- * highlight. The container carries `data-zone="rack"` so a board tile
- * dragged back here is recalled.
+ * The rack I play from, in my own display order. Press-and-drag a tile onto
+ * the board to stage it (the board column runs the shared gesture); a plain
+ * tap picks it for a swap, or puts it back.
+ *
+ * The tray carries `data-zone="rack"`, so a staged tile dragged back over it
+ * is taken back, and each slot `data-rack-tile`, so a tile dropped along it
+ * lands between the right two.
  */
 export function Rack({
   tiles,
-  used,
-  picked,
-  flashIds,
-  active,
+  usedSlots,
+  pickedSlots,
+  drawnSlots,
+  isInteractive,
   onPointerDown,
 }: {
-  tiles: RackTile[]
-  used: ReadonlySet<number>
-  picked: ReadonlySet<number>
-  /** Rack slots to outline yellow for a beat (freshly-drawn tiles). */
-  flashIds: ReadonlySet<number>
-  active: boolean
+  // The rack's tiles in display order, each with its slot.
+  tiles: { glyph: string; rackIdx: number }[]
+  // The slots staged on the board already.
+  usedSlots: ReadonlySet<number>
+  // The slots picked for a swap.
+  pickedSlots: ReadonlySet<number>
+  // The slots just drawn, flashing.
+  drawnSlots: ReadonlySet<number>
+  // May I lay tiles out right now.
+  isInteractive: boolean
   onPointerDown: (rackIdx: number, glyph: string, e: React.PointerEvent) => void
 }) {
   return (
     <div className={styles.rack} data-zone="rack">
       {tiles.map(({ glyph, rackIdx }) => {
-        const isUsed = used.has(rackIdx)
+        const isUsed = usedSlots.has(rackIdx)
         const isBlank = glyph === BLANK
         return (
           <div
             key={rackIdx}
             data-rack-tile
+            className={styles.slot}
             onPointerDown={(e) => {
-              if (active && !isUsed) onPointerDown(rackIdx, glyph, e)
+              if (isInteractive && !isUsed) onPointerDown(rackIdx, glyph, e)
             }}
-            className={cls(
-              styles.tile,
-              isBlank && styles.blank,
-              isUsed && styles.used,
-              picked.has(rackIdx) && styles.picked,
-              flashIds.has(rackIdx) && styles.flashNew,
-            )}
           >
-            <span className={styles.letter}>{isBlank ? '?' : glyph}</span>
-            {!isBlank && <span className={styles.value}>{LETTER_VALUES[glyph] ?? 0}</span>}
+            <Tile
+              letter={isBlank ? null : glyph}
+              blank={isBlank}
+              where="rack"
+              marks={{
+                isUsed,
+                isPicked: pickedSlots.has(rackIdx),
+                isDrawn: drawnSlots.has(rackIdx),
+              }}
+            />
           </div>
         )
       })}

@@ -14,7 +14,7 @@ import type { evaluatePlay } from '../lib/play'
 import type { GCell, GGameData, GMoveSlots, GPlacement } from '../types'
 
 /** No cells — a mark between flashes. */
-const NO_CELLS: ReadonlySet<number> = new Set()
+const NO_CELLS: ReadonlySet<string> = new Set()
 
 /**
  * What the three move RPCs answer. `stale` is not here: a board that moved
@@ -60,10 +60,10 @@ export function useSubmitMove({
 }): {
   // The live board with my just-played tiles held on it.
   liveCells: GCell[]
-  // The cells of the word just played, ringed green.
-  playedCells: ReadonlySet<number>
-  // The new cells of a refused word, ringed red.
-  refusedCells: ReadonlySet<number>
+  // The cells of the word just played, ringed green, by id.
+  playedCellIds: ReadonlySet<string>
+  // The new cells of a refused word, ringed red, by id.
+  refusedCellIds: ReadonlySet<string>
   // Send a legal word; true when it was played.
   sendWord: (placements: GPlacement[], play: LegalPlay, slots: GMoveSlots) => Promise<boolean>
   // Swap these slots' tiles; true when it went through.
@@ -75,8 +75,8 @@ export function useSubmitMove({
   clearHeldTiles: () => void
 } {
   const [heldPlacements, setHeldPlacements] = useState<GPlacement[]>([])
-  const [playedMark, flashPlayed] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
-  const [refusedMark, flashRefused] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
+  const [playedMark, flashPlayed] = useMark<{ cellIds: ReadonlySet<string> }>(WORD_ANSWER_MS)
+  const [refusedMark, flashRefused] = useMark<{ cellIds: ReadonlySet<string> }>(WORD_ANSWER_MS)
   const myMoveRef = useRef<{ slots: GMoveSlots; nDrawn: number } | null>(null)
 
   const liveCells = useMemo(() => {
@@ -116,7 +116,7 @@ export function useSubmitMove({
     } else if (res.type === 'ok' && res.data.result === 'accepted') {
       myMoveRef.current = { slots, nDrawn: res.data.drawn.length }
       setHeldPlacements(placements)
-      flashPlayed({ cells: new Set(placements.map((p) => cellIndex(p.x, p.y))) })
+      flashPlayed({ cellIds: new Set(placements.map((p) => makeCellId(p.x, p.y))) })
       const { outcome, text } = answerMessage({ answerType: 'word', words, score: play.score, bingo: play.bingo })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       return true
@@ -128,12 +128,12 @@ export function useSubmitMove({
       const { outcome, text } = answerMessage({ answerType: 'invalid', badWords })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       const isBad = new Set(badWords)
-      const cells = new Set<number>()
+      const cellIds = new Set<string>()
       for (const w of play.words) {
         if (!isBad.has(w.word)) continue
-        for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
+        for (const c of w.cells) if (c.isNew) cellIds.add(makeCellId(c.x, c.y))
       }
-      flashRefused({ cells })
+      flashRefused({ cellIds })
       return false
     } else {
       unclaim()
@@ -192,8 +192,8 @@ export function useSubmitMove({
 
   return {
     liveCells,
-    playedCells: playedMark === null ? NO_CELLS : playedMark.value.cells,
-    refusedCells: refusedMark === null ? NO_CELLS : refusedMark.value.cells,
+    playedCellIds: playedMark === null ? NO_CELLS : playedMark.value.cellIds,
+    refusedCellIds: refusedMark === null ? NO_CELLS : refusedMark.value.cellIds,
     sendWord,
     sendSwap,
     sendPass,

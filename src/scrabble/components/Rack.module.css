@@ -18,59 +18,10 @@
   min-height: calc(var(--rack-tile-size) + 2 * 8px);
 }
 
-/* @@ */ .tile {
+/* One slot: a tile's size and place in the tray; the tile fills it (Tile.tsx). */
+/* @@ */ .slot {
   position: relative;
   flex: 0 0 auto;
   width: var(--rack-tile-size);
   height: var(--rack-tile-size);
-  /* Same container-query trick as the board tile, so the glyph layout below
-     matches it exactly at this (smaller) size. */
-  container-type: size;
-  border-radius: 3px;
-  border: 1px solid var(--scrabble-tile-edge);
-  background: var(--scrabble-tile-bg);
-  color: var(--scrabble-tile-ink);
-  cursor: grab;
-  box-shadow: var(--scrabble-rack-shadow);
-  touch-action: manipulation;
-}
-/* An unplaced blank shows a faint "?" where its letter will go (it has no
-   letter until it's placed and declared) — see Rack.tsx. */
-/* @@ */ .tile.blank .letter {
-  opacity: 0.4;
-}
-/* A hand tile that's currently placed on the board — shown in the darker
-   "disabled" warm shade so it reads as "in use / on the board", not faded out. */
-/* @@ */ .tile.used {
-  background: var(--tile-spent-fill-color);
-  border-color: var(--tile-spent-edge-color);
-  cursor: default;
-}
-/* @@ */ .tile.picked {
-  background: var(--scrabble-tile-picked);
-  transform: translateY(-4px);
-}
-/* A freshly-drawn tile: yellow outline for ~1s. */
-/* @@ */ .tile.flashNew {
-  outline: 3px solid var(--scrabble-rack-flash-new-outline-color);
-  outline-offset: 1px;
-}
-
-/* MUST stay in sync with Board.module.css's .letter / .value. */
-/* @@ */ .letter {
-  position: absolute;
-  top: 14%;
-  /* Centered (glyph midpoint), nudged a hair left — see Board.module.css. */
-  left: 44%;
-  transform: translateX(-50%);
-  font-size: 58cqmin;
-  font-weight: 700;
-  line-height: 1;
-}
-/* @@ */ .value {
-  position: absolute;
-  right: 8%;
-  bottom: 4%;
-  font-size: 36cqmin;
-  font-weight: 600;
 }

@@ -1,0 +1,139 @@
+/* cs-unmet */
+
+/* One tile, on the board or in the rack: it fills its holder — a board cell or
+ * a rack slot — and `container-type: size` lets the letter and value scale to a
+ * fixed FRACTION of it, so a board tile and a rack tile look the same at any
+ * size. */
+/* @@ */ .tile {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+  box-sizing: border-box;
+  container-type: size;
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  border: 1px solid var(--scrabble-tile-edge);
+  cursor: grab;
+}
+
+/* Where it sits: sunk into the board's grid, or standing in the rack. */
+/* @@ */ .board {
+  box-shadow: var(--scrabble-cell-inner-shadow);
+}
+/* @@ */ .rack {
+  box-shadow: var(--scrabble-rack-shadow);
+  touch-action: manipulation;
+}
+
+/* ─── On the board ─── */
+
+/* @@ */ .tile.locked {
+  cursor: default;
+}
+/* Placed-but-not-committed (this-turn) tiles get the attention overlay (a warm-
+   yellow tint over the normal tile) so the player sees exactly what they're laying
+   down before they commit the word. */
+/* @@ */ .tile.staged {
+  background: var(--scrabble-tile-attention);
+}
+/* A placed blank shows its declared letter normally, marked as a blank by a
+   thin ring around the glyph (like circling a wildcard) rather than a tinted
+   face. The ring is sized in `em` off the letter's font-size, so it scales
+   with the tile and stays centered on the glyph. */
+/* @@ */ .tile.blank .letter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.25em;
+  height: 1.25em;
+  transform: translate(-50%, -50%);
+  border: 0.07em solid currentColor;
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* @@ */ .tile.lifted {
+  opacity: 0.3;
+}
+/* A just-accepted word: green outline for ~1s. The SAME success green the
+   persistent `.historyLit` outline below uses — the flash is the transient
+   version of that signal, not a second green. */
+/* @@ */ .tile.justPlayed {
+  outline: 3px solid var(--outcomes-won-ink-color);
+  outline-offset: -3px;
+  z-index: 2;
+}
+/* Turn-viewer: the tiles THIS turn placed — the attention overlay (so they read
+   as "this turn's play", matching a just-placed tile) PLUS a persistent
+   success-green outline (the good words of this turn). */
+/* @@ */ .tile.historyLit {
+  background: var(--scrabble-tile-attention);
+  outline: 3px solid var(--outcomes-won-ink-color);
+  outline-offset: -3px;
+  z-index: 2;
+}
+/* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s — the
+   app-wide failure red, the counterpart to `.justPlayed`'s green above. */
+/* @@ */ .tile.refused {
+  outline: 3px solid var(--outcomes-lost-ink-color);
+  outline-offset: -3px;
+  z-index: 2;
+}
+/* A drag over a cell a tile already holds: the drop-refused ring goes on the
+   TILE, since it is opaque and its own stacking context and would paint over a
+   ring on the cell (Cell.module.css's `.dropOk` is the empty-cell half). */
+/* @@ */ .tile.dropBlocked {
+  outline: 3px solid var(--outcomes-lost-ink-color);
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+/* ─── In the rack ─── */
+
+/* An unplaced blank shows a faint "?" where its letter will go (it has no
+   letter until it's placed and declared). */
+/* @@ */ .tile.undecided .letter {
+  opacity: 0.4;
+}
+/* A hand tile that's currently placed on the board — shown in the darker
+   "disabled" warm shade so it reads as "in use / on the board", not faded out. */
+/* @@ */ .tile.used {
+  background: var(--tile-spent-fill-color);
+  border-color: var(--tile-spent-edge-color);
+  cursor: default;
+}
+/* @@ */ .tile.picked {
+  background: var(--scrabble-tile-picked);
+  transform: translateY(-4px);
+}
+/* A freshly-drawn tile: yellow outline for ~1s. */
+/* @@ */ .tile.drawn {
+  outline: 3px solid var(--scrabble-rack-flash-new-outline-color);
+  outline-offset: 1px;
+}
+
+/* ─── The glyph ─── */
+
+/* @@ */ .letter {
+  position: absolute;
+  top: 14%;
+  /* Horizontally centered (anchored at the glyph's middle), nudged a hair
+     left of center — so a narrow letter like "I" still looks centered rather
+     than jammed against the left edge. */
+  left: 44%;
+  transform: translateX(-50%);
+  font-size: 58cqmin;
+  font-weight: 700;
+  line-height: 1;
+  /* The letter is the data's lowercase; a tile shows its capital. */
+  text-transform: uppercase;
+}
+/* @@ */ .value {
+  position: absolute;
+  right: 8%;
+  bottom: 4%;
+  font-size: 36cqmin;
+  font-weight: 600;
+}
