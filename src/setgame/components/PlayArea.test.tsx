@@ -100,7 +100,7 @@ describe('setgame PlayArea — the letters are the input', () => {
   })
 
   it('the third letter of a set claims it, with the tiles as numbers', async () => {
-    rpc.mockResolvedValue(okEnvelope({ result: 'claimed', terminal: false }))
+    rpc.mockResolvedValue(okEnvelope({ result: 'claimed' }))
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
     await type('a')
     await type('h')

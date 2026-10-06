@@ -745,7 +745,6 @@ declare
   head_holes   int[] := '{}';
   tail_tiles   smallint[] := '{}';
   k            int;
-  out_terminal boolean := false;
 begin
   -- The row first, before the membership gate: a friend deleting the game
   -- takes every membership with it (docs/envelopes.md → a missing game row
@@ -869,7 +868,6 @@ begin
   -- no set is refilled while tiles remain, and a spent deck is only the end
   -- once the leftovers hold nothing.
   if new_pos >= deck_size and setgame._find_set(new_board) is null then
-    out_terminal := true;
     perform setgame._finish(p_game_id, 'cleared', caller_id);
   else
     -- Turn-order: an accepted, non-final coop claim hands the turn on (no-op
@@ -882,7 +880,7 @@ begin
   -- No message: a claim that lands shows itself, in the tiles leaving the
   -- board.
   return common._ok_envelope(
-    jsonb_build_object('result', 'claimed', 'terminal', out_terminal));
+    jsonb_build_object('result', 'claimed'));
 
 exception when others then
   get stacked diagnostics

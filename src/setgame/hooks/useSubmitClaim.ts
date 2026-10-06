@@ -9,10 +9,10 @@ import { db } from '../db'
 import type { GGameData, GTile } from '../types'
 
 /** What `setgame.submit_set` puts in `data`. One `ok` answer, named anyway — a
- *  branch matching merely by being `ok` would draw a second one as this. Its
- *  `terminal` is the claim that ended the game, which nothing here reads: the
- *  ending reaches the page in the next blob, like everyone else's. */
-type ClaimAnswer = { result: 'claimed'; terminal: boolean }
+ *  branch matching merely by being `ok` would draw a second one as this. A
+ *  claim that ends the game says nothing more: the ending reaches the page in
+ *  the next blob, like everyone else's. */
+type ClaimAnswer = { result: 'claimed' }
 
 /**
  * A claim's trip to `submit_set`, and the tiles it is carrying.

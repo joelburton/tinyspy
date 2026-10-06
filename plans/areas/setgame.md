@@ -149,6 +149,13 @@ the dead `.breakdown` rules went (the cssClasses allowlist is empty).
 verified by planting). Three todo items closed: the action row's branches,
 `act-new-game` before load, and the doubled `LeaderRow`.
 
+## The naming pass (step 13)
+
+Joel, 2026-10-05: `submit_set` answers `{result: 'claimed'}` — its unread
+`terminal` went; `record_hint` and `useSpendHint` keep their names. "race" /
+"racer" waits for N25's sweep; the comments' "terminal" and "clock" are step
+14's.
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,
