@@ -27,7 +27,7 @@
 --
 -- Deliberately NOT here:
 --   spellingbee · boggle · wordwheel   `found_words` is a SET, not a log
---   bananagrams · crosswords           no log at all
+--   crosswords                         no log at all
 --
 -- The companion guard is realtime_publication_test.sql, which names every
 -- log table by schema and name: between them, a table cannot be renamed
@@ -55,7 +55,8 @@ insert into roster values
   ('strands',     'events',      true),
   ('letterboxed', 'events',      true),
   ('setgame',     'events',      true),
-  ('codenamesduet', 'events',    true);
+  ('codenamesduet', 'events',    true),
+  ('bananagrams', 'events',      true);
 
 -- 1. The six columns, with the right types. Bidirectional: a game that
 --    grows the skeleton without flipping its roster row shows up as an

@@ -41,8 +41,12 @@
 --   common.clubs, common.profiles   no live subscriber
 --   crosswords.games                 useGame is a one-shot fetch; status
 --                                    flows through common.games instead
---   bananagrams has no game-schema `games` table — its live surface is
---   progress + player_boards; the game header flows through common.games.
+--   bananagrams.games, .events       the page reads the blobs on common.games;
+--                                    player_boards is still listed from before
+--                                    the conversion, with no subscriber, until
+--                                    the sweep after the last game
+--                                    (plans/seat-view.md → When every game has
+--                                    converted)
 
 begin;
 
@@ -88,8 +92,7 @@ select set_eq(
       -- spellingbee (makeBeeGame)
       ('spellingbee', 'games'),
       ('spellingbee', 'found_words'),
-      -- bananagrams (no game-schema games table)
-      ('bananagrams', 'progress'),
+      -- bananagrams (listed, unsubscribed; see above)
       ('bananagrams', 'player_boards'),
       -- waffle
       ('waffle', 'games'),
