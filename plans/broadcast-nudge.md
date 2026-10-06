@@ -1,7 +1,8 @@
 # Broadcast nudge — the game page re-reads on one "changed" message per move
 
-**Status: being built.** Steps 1–3 (the verification, the trigger and its
-pgTAP test) are done. The game page only; the club page
+**Status: being built.** Steps 1–5 are done: the verification, the trigger
+and its pgTAP test, the page on the nudge, and its tests, the rewritten
+deaf-window e2e included. The game page only; the club page
 comes after, under its own plan.
 
 ## The problem

@@ -41,7 +41,6 @@ import { navigate } from '../routing/router'
 import { clubPath } from '../routing/routes'
 import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
-import { onPostgresAttached } from '../realtime/postgresAttached'
 import { readRows, runRpc } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { rtLog } from '../realtime/realtimeDiag'
@@ -94,7 +93,7 @@ export function useCommonGame(
   timer: { mode: TimerMode; displaySeconds: number; expired: boolean }
   // Shelve the game and send every peer, this tab included, to the club page.
   sendSuspend: () => void
-  // Counts the channel's joins and attach confirmations; see
+  // Counts the channel's joins, reconnects included; see
   // `PlayAreaLoaderProps.resubscribeCount`.
   resubscribeCount: number
   // True until the first read settles, however it settles.
@@ -134,7 +133,7 @@ export function useCommonGame(
 
     // `cause` is diagnostics-only, as useRealtimeRefetch's: it pairs each read
     // in the console with what provoked it.
-    async function load(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
+    async function load(cause: 'mount' | 'subscribed' | 'event') {
       // Already dead on arrival: the cleanup releases the channel without
       // awaiting it, so an event can still call this just after unmount.
       if (!mounted) return
@@ -165,19 +164,11 @@ export function useCommonGame(
       if (canceled) return
       const ch = supabase.channel(room)
 
-      // Every move rewrites the row's blobs, so this is how the page — and the
-      // game, through the game_data it is handed — hears of every move and the
-      // end.
-      ch.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'common',
-          table: 'games',
-          filter: `id=eq.${gameId}`,
-        },
-        () => load('event'),
-      )
+      // The row changed: a move, the end, a delete. One `changed` per
+      // transaction, sent by `common._nudge_game_page`, so this is how the
+      // page — and the game, through the game_data it is handed — hears of
+      // every move.
+      ch.on('broadcast', { event: 'changed' }, () => load('event'))
 
       // A peer's manual pause; see `useManualPause`.
       ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
@@ -191,12 +182,6 @@ export function useCommonGame(
         navigate(clubPath(handle))
       })
 
-      // Re-read once the change feed is really attached: a write landing
-      // between the join and the attach is otherwise lost (postgresAttached.ts).
-      onPostgresAttached(ch, function reloadOnAttach() {
-        void load('attached')
-        setResubscribeCount((n) => n + 1)
-      })
 
       // Presence: who is connected. Mirrored to a ref for the cleanup, which
       // reads it at unmount to decide whether I am the last viewer.

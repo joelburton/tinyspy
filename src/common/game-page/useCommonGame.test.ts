@@ -5,7 +5,7 @@
  *
  * useCommonGame is the linchpin of the GamePage layer — it owns the shared
  * Realtime room for one game across all peers (presence, manual-pause
- * broadcast, suspend broadcast, postgres-changes on the row), the read of the
+ * broadcast, suspend broadcast, the `changed` nudge), the read of the
  * two page blobs and the timer, and the unified `paused` flag every consumer
  * reads.
  *
@@ -35,9 +35,8 @@
  * ----------------
  * Same shape as useClubChat.test.ts / useAuthSession.test.ts: vi.hoisted spies
  * stand in for the Supabase channel, the schema-scoped DB client, and the
- * router's navigate. The channel's `.on()` calls for `postgres_changes`,
- * `broadcast`, and `presence` all flow through one capture so tests can fire
- * specific event types by name.
+ * router's navigate. The channel's `.on()` calls flow through one capture so
+ * tests can fire specific event types by name.
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
@@ -90,9 +89,9 @@ import { useCommonGame } from './useCommonGame'
 
 // ---- Per-test channel state ----
 
-/** Handlers keyed by event-tag — postgres_changes' filter table,
- *  broadcast events' `event` field, or `presence:sync`. The hook
- *  registers each via `.on()`; tests fire by name. */
+/** Handlers keyed by event-tag — `broadcast:<event>`, `presence:<event>`,
+ *  or the bare kind for any other. The hook registers each via `.on()`;
+ *  tests fire by name. */
 const handlers: Record<string, AnyHandler> = {}
 const trackSpy = vi.fn()
 const untrackSpy = vi.fn()
@@ -112,15 +111,12 @@ function buildChannel() {
       filterOrEvent: Record<string, string>,
       handler: AnyHandler,
     ) {
-      if (kind === 'postgres_changes') {
-        handlers['postgres_changes'] = handler
-      } else if (kind === 'broadcast') {
+      if (kind === 'broadcast') {
         handlers[`broadcast:${filterOrEvent.event}`] = handler
       } else if (kind === 'presence') {
         handlers[`presence:${filterOrEvent.event}`] = handler
-      } else if (kind === 'system') {
-        // The deaf-window closer's binding (postgresAttached.ts).
-        handlers['system'] = handler
+      } else {
+        handlers[kind] = handler
       }
       return this
     }),
@@ -416,8 +412,8 @@ describe('useCommonGame — paused unification', () => {
   })
 
   it('paused short-circuits to false once the game ends', async () => {
-    // First load returns a game in play; then a postgres-changes event fires
-    // and shell_data comes back ended.
+    // First load returns a game in play; then the room hears `changed` and
+    // shell_data comes back ended.
     let firstCall = true
     mockSchemaFrom.mockImplementation((table: string) => {
       if (table === 'games') {
@@ -442,12 +438,12 @@ describe('useCommonGame — paused unification', () => {
     act(() => result.current.pause.sendManualPause())
     expect(result.current.pause.paused).toBe(true)
 
-    // The game ends server-side; postgres-changes refetches and loads the
-    // ended shell_data. Paused should now be false even though manuallyPausedBy is
+    // The game ends server-side; the nudge re-reads and loads the ended
+    // shell_data. Paused should now be false even though manuallyPausedBy is
     // still set — the ended short-circuit takes priority so PauseBoundary
     // remounts PlayArea to render the ending.
     await act(async () => {
-      await handlers['postgres_changes']?.()
+      await handlers['broadcast:changed']?.()
     })
 
     await waitFor(() => expect(result.current.cg?.ended).toBe(true))
@@ -523,44 +519,24 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 })
 
-describe('useCommonGame — deaf-window closer', () => {
-  // The postgres_changes attach confirmation must re-run load(): SUBSCRIBED
-  // is only the join ack, and a common.games write landing before the WAL
-  // poller carries the subscription is dropped — the attach-time re-read is
-  // what closes that window (postgresAttached.ts; pinned end-to-end by
-  // e2e/realtime-deaf-window.e2e.ts).
-  it('re-loads when the postgres_changes attach is confirmed', async () => {
+describe('useCommonGame — the changed nudge', () => {
+  // `common._nudge_game_page` sends the room one `changed` per transaction
+  // that writes the row (plans/broadcast-nudge.md); the page re-reads on it.
+  it('re-reads the game when the room hears changed', async () => {
     await load()
 
     const gamesReads = () =>
       mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length
     const before = gamesReads()
     act(() => {
-      handlers['system']?.({ status: 'ok', extension: 'postgres_changes' })
+      handlers['broadcast:changed']?.({ payload: {} })
     })
     await waitFor(() => expect(gamesReads()).toBe(before + 1))
   })
 
-  it('counts the attach in resubscribeCount, so a game reloads its own rows too', async () => {
-    const result = await load()
-
-    const before = result.current.resubscribeCount
-    act(() => {
-      handlers['system']?.({ status: 'ok', extension: 'postgres_changes' })
-    })
-    expect(result.current.resubscribeCount).toBe(before + 1)
-  })
-
-  it('ignores system payloads that are not the attach ok', async () => {
+  it('subscribes to no row changes: the nudge is the only news of a move', async () => {
     await load()
 
-    const gamesReads = () =>
-      mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length
-    const before = gamesReads()
-    act(() => {
-      handlers['system']?.({ status: 'error', extension: 'postgres_changes' })
-      handlers['system']?.({ status: 'ok', extension: 'presence' })
-    })
-    expect(gamesReads()).toBe(before)
+    expect(handlers['postgres_changes']).toBeUndefined()
   })
 })

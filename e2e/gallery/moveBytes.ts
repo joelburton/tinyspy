@@ -211,6 +211,16 @@ async function record(page: Page): Promise<Recording> {
     const { opcode, payloadData } = e.response
     const bytes = opcode === 2 ? Buffer.from(payloadData, 'base64').byteLength : Buffer.byteLength(payloadData)
     let kind = 'binary'
+    if (opcode === 2) {
+      // realtime-js's binary user broadcast (its serializer.js): byte 0 is the
+      // kind, 4; bytes 1 and 2 the topic's and the event's lengths; the topic
+      // starts at byte 5 and the event follows it.
+      const buf = Buffer.from(payloadData, 'base64')
+      if (buf[0] === 4) {
+        const event = buf.subarray(5 + buf[1], 5 + buf[1] + buf[2]).toString()
+        kind = `broadcast:${event}`
+      }
+    }
     if (opcode === 1) {
       // realtime-js speaks either the object or the array shape of a Phoenix message.
       const msg = JSON.parse(payloadData)
@@ -344,21 +354,22 @@ function printTable(results: Result[]): void {
     const loads = r.pages.flatMap((p) => p.loads)
     const frames = r.pages.flatMap((p) => p.frames)
     const sum = (xs: { bytes: number }[]) => xs.reduce((n, x) => n + x.bytes, 0)
-    // A postgres_changes frame's kind is its `schema.table`.
-    const cdc = frames.filter((f) => f.kind.includes('.'))
-    const moverWrites = r.pages.find((p) => p.mover)?.frames.filter((f) => f.kind === 'common.games').length
+    // The frames that tell a page its game changed: a postgres_changes frame
+    // (its kind is its `schema.table`) or the `changed` nudge.
+    const isNews = (f: Frame) => f.kind.includes('.') || f.kind === 'broadcast:changed'
+    const moverMessages = r.pages.find((p) => p.mover)?.frames.filter(isNews).length
     return [
       r.gametype,
       r.move,
-      String(moverWrites ?? '?'),
+      String(moverMessages ?? '?'),
       String(loads.length),
-      String(sum(cdc)),
+      String(sum(frames.filter(isNews))),
       String(sum(loads)),
       String(loads.reduce((n, l) => n + l.gzBytes, 0)),
       String(sum(loads) + sum(frames) + r.answerBytes),
     ]
   })
-  const head = ['gametype', 'move', 'writes', 'loads', 'CDC bytes', 'refetch bytes', 'refetch gz', 'total bytes']
+  const head = ['gametype', 'move', 'messages', 'loads', 'message bytes', 'refetch bytes', 'refetch gz', 'total bytes']
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)))
   const line = (cells: string[]) =>
     cells.map((c, i) => (i < 2 ? c.padEnd(widths[i]) : c.padStart(widths[i]))).join('  ')

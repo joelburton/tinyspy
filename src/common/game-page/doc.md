@@ -41,8 +41,9 @@ the name and presence sets stop merging: either nobody believes they are last
 and the pointer sticks, or everybody does and it thrashes. A game's own
 `useGame` hook opens no channel and, once the game is on the page blobs, makes
 no read: every move writes the room's `common.games` row through the game's
-status builder, the page re-reads the blobs, and `useGame` is a pure function
-of the one it is handed. (A game not yet on the blobs still reloads its own
+status builder, the row's trigger sends the room one `changed` Broadcast per
+transaction (`common._nudge_game_page`), the page re-reads the blobs, and
+`useGame` is a pure function of the one it is handed. (A game not yet on the blobs still reloads its own
 rows through `useRefetchOnGameUpdate` when that row's `updated_at` moves; one
 not yet converted by plans/common-tables.md step 5 still opens a per-tab
 channel for them.)
