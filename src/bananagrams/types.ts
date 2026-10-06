@@ -270,7 +270,7 @@ export type GCheckResult =
  * a game does it).
  *
  * `peel`, `dump` and `went_out` are the log's rows; `peel_peer` is a rival's
- * peel, which dealt me a tile too. `illegal` is a peel the board check turned
+ * peel, which dealt me a tile too. `peel_invalid` is a peel the board check turned
  * away: `peel` writes no row for it. The three `check_` answers are what
  * **Check words** found. A not-ok is the server's sentence, not an answer.
  */
@@ -279,7 +279,7 @@ export type GAnswer =
   | { answerType: 'peel_peer' }
   | { answerType: 'dump'; tile: string }
   | { answerType: 'went_out' }
-  | { answerType: 'illegal' }
+  | { answerType: 'peel_invalid' }
   | { answerType: 'check_clean' }
   | { answerType: 'check_empty' }
   | { answerType: 'check_invalid'; nTiles: number }

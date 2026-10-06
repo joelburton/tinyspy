@@ -17,8 +17,8 @@ import { drawInTracks, type Track } from '@/common/pdf/columns'
  * third of a page its tiles shrink past reading. Two is the compromise that
  * keeps a realistic two-player game side by side on one sheet.
  *
- * Peers' boards only exist at terminal — `player_boards` is owner-only while
- * the race is on — so during play this prints a single column, the caller's.
+ * A rival's board is null until the game has ended, so during play this
+ * prints a single column, the caller's.
  */
 
 /** One printed column: whose board, the board, and its words. */

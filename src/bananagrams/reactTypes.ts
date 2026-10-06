@@ -52,9 +52,9 @@ export type GBoardEditorInput = {
   // or typing) and disables peel, check and dump.
   isBoardInteractive: boolean
   // Peel: draws a tile for everyone, or wins if the bunch can't refill the
-  // table. Resolves to `{ illegalCells }` when a winning peel was BLOCKED by
+  // table. Resolves to `{ invalidCells }` when a winning peel was BLOCKED by
   // the legal-board check (those cells get painted red); `null` otherwise.
-  onPeel: () => Promise<{ illegalCells: number[] } | null>
+  onPeel: () => Promise<{ invalidCells: number[] } | null>
   // Report a Check-words outcome so the coordinator can show it.
   onCheckResult: (r: GCheckResult) => void
   // Dump a tile: swap it for DUMP_COUNT from the bunch.

@@ -142,7 +142,7 @@ describe('peel', () => {
   })
 
   it('saves the board first, peels once every held tile is placed, and paints back the blocked cells', async () => {
-    const onPeel = vi.fn(() => Promise.resolve({ illegalCells: [CENTER] }))
+    const onPeel = vi.fn(() => Promise.resolve({ invalidCells: [CENTER] }))
     const { result } = render({ tiles: 'a', initialBoard: withCenter('a'), onPeel }) // hand empty
     await pressPeel()
     expect(mockRpc).toHaveBeenCalledWith('save_player_board', expect.anything())

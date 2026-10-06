@@ -804,11 +804,10 @@ drop function if exists bananagrams.peel(uuid);
 -- the FE to paint red. A CONTINUING peel is not checked — you're not winning
 -- yet — EXCEPT under 'strict', where the same check runs on every peel.
 --
--- Three ok answers, and `illegal` is one of them ON PURPOSE: a board that isn't
+-- Three ok answers, and `invalid` is one of them ON PURPOSE: a board that isn't
 -- ready is a state of play, not a rejection — the game stays in progress and the
 -- player fixes the red cells and peels again.
---   { result: 'dealt' | 'won' | 'illegal', invalid_cells: int[] }
--- `invalid_cells` is present on all three (empty on the two that succeeded).
+--   { result: 'dealt' } | { result: 'won' } | { result: 'invalid', invalid_cells: int[] }
 create or replace function bananagrams.peel(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -884,7 +883,7 @@ begin
     v_blockers := bananagrams._win_blockers(v_board, g.dict_2, g.dict_3plus, g.word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
       return common._ok_envelope(jsonb_build_object(
-        'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
+        'result', 'invalid', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
 
     update common.game_players
@@ -903,8 +902,7 @@ begin
     values (p_game_id, caller_id, 'went_out', 0);
 
     perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
-    return common._ok_envelope(jsonb_build_object(
-      'result', 'won', 'invalid_cells', '[]'::jsonb));
+    return common._ok_envelope(jsonb_build_object('result', 'won'));
   end if;
 
   -- ─── Strict: a CONTINUING peel is checked too ───
@@ -912,7 +910,7 @@ begin
     v_blockers := bananagrams._win_blockers(v_board, g.dict_2, g.dict_3plus, true);
     if array_length(v_blockers, 1) > 0 then
       return common._ok_envelope(jsonb_build_object(
-        'result', 'illegal', 'invalid_cells', to_jsonb(v_blockers)));
+        'result', 'invalid', 'invalid_cells', to_jsonb(v_blockers)));
     end if;
   end if;
 
@@ -939,8 +937,7 @@ begin
   values (p_game_id, caller_id, 'peel', 1);
 
   perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
-  return common._ok_envelope(jsonb_build_object(
-    'result', 'dealt', 'invalid_cells', '[]'::jsonb));
+  return common._ok_envelope(jsonb_build_object('result', 'dealt'));
 
 exception when others then
   get stacked diagnostics
@@ -979,8 +976,8 @@ drop function if exists bananagrams.check_board(uuid);
 -- THREE answers, because the surface says three different things. An empty
 -- board has no blockers, so "clean" and "empty" are one shape unless they are
 -- named — and congratulating someone who has not put a tile down is the bug
--- that naming prevents. Each carries the blockers and the filled-cell count:
---   { result: 'invalid' | 'empty' | 'clean', invalid_cells: int[], placed: int }
+-- that naming prevents. Only `invalid` carries the blockers:
+--   { result: 'invalid', invalid_cells: int[] } | { result: 'empty' } | { result: 'clean' }
 create or replace function bananagrams.check_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1017,20 +1014,12 @@ begin
 
   if array_length(v_blockers, 1) > 0 then
     return common._ok_envelope(jsonb_build_object(
-      'result', 'invalid',
-      'invalid_cells', to_jsonb(v_blockers),
-      'placed', length(replace(v_board, '.', ''))));
+      'result', 'invalid', 'invalid_cells', to_jsonb(v_blockers)));
   end if;
   if length(replace(v_board, '.', '')) = 0 then
-    return common._ok_envelope(jsonb_build_object(
-      'result', 'empty',
-      'invalid_cells', to_jsonb(v_blockers),
-      'placed', 0));
+    return common._ok_envelope(jsonb_build_object('result', 'empty'));
   end if;
-  return common._ok_envelope(jsonb_build_object(
-    'result', 'clean',
-    'invalid_cells', to_jsonb(v_blockers),
-    'placed', length(replace(v_board, '.', ''))));
+  return common._ok_envelope(jsonb_build_object('result', 'clean'));
 
 exception when others then
   get stacked diagnostics

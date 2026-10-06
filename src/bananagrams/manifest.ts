@@ -34,10 +34,11 @@ import logoUrl from './logo.svg?url'
 const BRAND = 'MonkeyGrams'
 
 /**
- * The club line. The bunch is the race's clock — it is what everyone is
- * drawing down — so the live line counts it. A race's one winner is the common
- * `ending.winner`; the two no-winner losses, a countdown's end and everyone
- * conceding, are told apart by the ending's reason.
+ * The club line. While the game is on it counts the tiles left in the bunch,
+ * which every peel draws down, so it says how near the race is to its end. A
+ * race's one winner is the common `ending.winner`; the two no-winner losses,
+ * the timer running out and everyone conceding, are told apart by the ending's
+ * reason.
  */
 function makeLabel(summary: GSummaryData, members: readonly Member[]): string {
   if (summary.ending === null) {

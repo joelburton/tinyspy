@@ -44,9 +44,9 @@ export function PlayerBoard({
   // board so the board never reflows.
   localFeedbackSlot: FeedbackSlot
   // Peel: draws a tile for everyone, or wins if the bunch can't refill the
-  // table. Resolves to `{ illegalCells }` when a winning peel was BLOCKED
+  // table. Resolves to `{ invalidCells }` when a winning peel was BLOCKED
   // (those cells paint red); `null` otherwise.
-  onPeel: () => Promise<{ illegalCells: number[] } | null>
+  onPeel: () => Promise<{ invalidCells: number[] } | null>
   // Report a Check-words outcome up, so the coordinator can show it.
   onCheckResult: (r: GCheckResult) => void
   // Dump a tile: swap it for DUMP_COUNT from the bunch.

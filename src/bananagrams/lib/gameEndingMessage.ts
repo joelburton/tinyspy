@@ -16,7 +16,7 @@ import {
  * database wrote it (`common.game_players.outcome`), never worked out here.
  *
  * A race has one way to be won — a player goes out — and two ways to be lost
- * by everyone: the clock, and every player conceding. A Stop is the shared
+ * by everyone: the timer, and every player conceding. A Stop is the shared
  * neutral ending.
  *
  * Call it only when the game HAS ended; it has no answer for a live one.

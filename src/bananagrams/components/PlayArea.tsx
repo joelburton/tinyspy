@@ -61,13 +61,13 @@ type PlayAreaProps = Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'> & {
   gd: GGameData
 }
 
-/** What `bananagrams.peel` puts in `data`. `illegal` is an ok answer on
+/** What `bananagrams.peel` puts in `data`. `invalid` is an ok answer on
  *  purpose: a board that isn't win-legal is a state of play — the game keeps
  *  going and the player fixes the cells and peels again. */
 type PeelResult =
-  | { result: 'dealt'; invalid_cells: number[] }
-  | { result: 'won'; invalid_cells: number[] }
-  | { result: 'illegal'; invalid_cells: number[] }
+  | { result: 'dealt' }
+  | { result: 'won' }
+  | { result: 'invalid'; invalid_cells: number[] }
   | null
 
 /** What `bananagrams.dump` puts in `data`. One answer: the swap either happens
@@ -119,7 +119,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
   // player sees. Each is a `useCallback` because the editor holds it in its
   // own callbacks' dependencies.
 
-  const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
+  const peel = useCallback(async (): Promise<{ invalidCells: number[] } | null> => {
     const res = await runRpc<PeelResult>(db.rpc('peel', { p_game_id: gd.id }))
     if (res.type === 'not-ok') {
       // The races (the game ended, a second tab conceded) and the faults, in
@@ -127,12 +127,12 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
       // faults.
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return null
-    } else if (res.type === 'ok' && res.data?.result === 'illegal') {
+    } else if (res.type === 'ok' && res.data?.result === 'invalid') {
       // The board isn't win-legal, so the game stays in progress and the RPC
       // hands back the offending cells for the editor to paint red.
-      const { outcome, text } = answerMessage({ answerType: 'illegal' })
+      const { outcome, text } = answerMessage({ answerType: 'peel_invalid' })
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-      return { illegalCells: res.data.invalid_cells }
+      return { invalidCells: res.data.invalid_cells }
     } else if (res.type === 'ok' && (res.data?.result === 'dealt' || res.data?.result === 'won')) {
       // Nothing to say here: the next blob carries the draw's row, or the
       // ending, and the slot's hooks react to those.

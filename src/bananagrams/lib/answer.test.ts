@@ -22,7 +22,7 @@ describe('answerMessage', () => {
   })
 
   it('a blocked peel is the move going wrong', () => {
-    expect(answerMessage({ answerType: 'illegal' }).outcome).toBe('lost')
+    expect(answerMessage({ answerType: 'peel_invalid' }).outcome).toBe('lost')
   })
 
   it('a check reads its red cells', () => {

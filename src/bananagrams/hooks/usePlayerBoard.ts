@@ -50,9 +50,9 @@ const HAND_ERROR_MS = 180
  *  check says three things — and `empty` is its own, since a board with
  *  nothing on it has no blockers and would otherwise read as clean. */
 type CheckedBoard =
-  | { result: 'invalid'; invalid_cells: number[]; placed: number }
-  | { result: 'empty'; invalid_cells: number[]; placed: number }
-  | { result: 'clean'; invalid_cells: number[]; placed: number }
+  | { result: 'invalid'; invalid_cells: number[] }
+  | { result: 'empty' }
+  | { result: 'clean' }
   | null
 
 export function usePlayerBoard({
@@ -162,8 +162,8 @@ export function usePlayerBoard({
     if (!isBoardInteractive || deriveHand(tilesRef.current, boardRef.current).length !== 0) return
     await save()
     const outcome = await onPeel()
-    if (outcome && outcome.illegalCells.length > 0) {
-      setInvalid({ board: boardRef.current, cells: new Set(outcome.illegalCells) })
+    if (outcome && outcome.invalidCells.length > 0) {
+      setInvalid({ board: boardRef.current, cells: new Set(outcome.invalidCells) })
     }
   }
 

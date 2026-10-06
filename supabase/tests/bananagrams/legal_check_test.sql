@@ -154,7 +154,8 @@ update bananagrams.games set bunch = '' where game_id = (select id from ga);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pa on commit drop as select bananagrams.peel((select id from ga)) as res;
-select is((select res->'data'->>'result' from pa), 'won', 'word_check win + legal board → peel wins');
+select is((select res->'data' from pa), '{"result": "won"}'::jsonb,
+  'word_check win + legal board → peel wins, and answers its result alone');
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
@@ -177,7 +178,7 @@ update bananagrams.games set bunch = '' where game_id = (select id from gb);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pb on commit drop as select bananagrams.peel((select id from gb)) as res;
-select is((select res->'data'->>'result' from pb), 'illegal',
+select is((select res->'data'->>'result' from pb), 'invalid',
   'word_check win + a non-word → peel is blocked');
 select is((select res->'data'->'invalid_cells' from pb), '[0,1,2]'::jsonb,
   'the blocked peel returns the offending cells');
@@ -228,7 +229,7 @@ update bananagrams.games set bunch = '' where game_id = (select id from gd);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pd on commit drop as select bananagrams.peel((select id from gd)) as res;
-select is((select res->'data'->>'result' from pd), 'illegal',
+select is((select res->'data'->>'result' from pd), 'invalid',
   'word_check off but DISCONNECTED → peel still blocked (geography is always checked)');
 select is((select res->'data'->'invalid_cells' from pd), '[125,126,127]'::jsonb,
   'the blocked disconnected peel returns the floating tiles');
@@ -259,7 +260,7 @@ update bananagrams.games set bunch = 'abcdefghij' where game_id = (select id fro
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
-select is((select res->'data'->>'result' from pe), 'illegal',
+select is((select res->'data'->>'result' from pe), 'invalid',
   'strict + a non-word on a CONTINUING peel → blocked (not just at win)');
 select is((select res->'data'->'invalid_cells' from pe), '[0,1,2]'::jsonb,
   'the blocked strict peel returns the offending cells');
@@ -285,8 +286,8 @@ update bananagrams.games set bunch = 'abcdefghij' where game_id = (select id fro
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pf on commit drop as select bananagrams.peel((select id from gf)) as res;
-select is((select res->'data'->>'result' from pf), 'dealt',
-  'strict + a valid board on a continuing peel → deals normally');
+select is((select res->'data' from pf), '{"result": "dealt"}'::jsonb,
+  'strict + a valid board on a continuing peel → deals normally, and answers its result alone');
 
 -- ── Game G: word_check 'win' + continuing peel + NON-WORD → DEALS (not checked) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -324,10 +325,10 @@ select set_config('request.jwt.claims', '', true);
 update bananagrams.player_boards set board = pg_temp.empty_board()
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select pg_temp.envelope_is(
-  bananagrams.check_board((select id from gh)),
-  '{"type": "ok", "data": {"result": "empty"}}'::jsonb,
-  'check_board: an empty board answers empty, not clean');
+select is(
+  (bananagrams.check_board((select id from gh)))->'data',
+  '{"result": "empty"}'::jsonb,
+  'check_board: an empty board answers empty, not clean, and nothing else');
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -336,10 +337,10 @@ update bananagrams.player_boards
    set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'cat')
  where game_id = (select id from gh);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select pg_temp.envelope_is(
-  bananagrams.check_board((select id from gh)),
-  '{"type": "ok", "data": {"result": "clean"}}'::jsonb,
-  'check_board: a legal board comes back clean, even with word_check off');
+select is(
+  (bananagrams.check_board((select id from gh)))->'data',
+  '{"result": "clean"}'::jsonb,
+  'check_board: a legal board comes back clean, even with word_check off, and nothing else');
 reset role;
 select set_config('request.jwt.claims', '', true);
 

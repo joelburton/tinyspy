@@ -32,7 +32,7 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
       return { outcome: 'neutral', text: `Dumped ${answer.tile.toUpperCase()}` }
     case 'went_out':
       return { outcome: 'neutral', text: '' }
-    case 'illegal':
+    case 'peel_invalid':
       return {
         outcome: 'lost',
         text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
