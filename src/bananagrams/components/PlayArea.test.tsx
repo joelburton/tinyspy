@@ -1,55 +1,34 @@
 // cs-unmet
 
 /**
- * Render smoke tests for bananagrams' PlayArea: does the v3 play surface mount
- * and render without throwing — in solo play, compete play, at terminal, and in
- * the locally-terminal "you conceded" state?
+ * Render tests for bananagrams' PlayArea: does the surface mount from the blob
+ * — in solo play, a race, at the end, and out of the race after conceding —
+ * and do its commands reach the server through the dispatcher?
  *
- * Why this exists: the v1→v3 conversion moved the whole layout onto the shared
- * scaffold and added the concede/locally-terminal branch — a class of bug a
- * one-line `render()` catches instantly (a stale prop reference ships a blank
- * page, which `tsc` on the root config would miss; see memory
- * project_typecheck_use_tsc_b). These are deliberately shallow: game logic lives
- * in pgTAP (the RPCs) and `lib/board.test.ts`; here we only prove the tree mounts.
- *
- * `useGame` / `useProgress` (realtime + supabase) and `db` are mocked, and jsdom
- * gets a `ResizeObserver` stub (PlayerBoard observes the arena to compute the
- * min zoom). Everything else — the arena, hand, dump, peel, info column, modal —
- * renders for real.
+ * `db` is mocked, and jsdom gets a `ResizeObserver` stub (the board editor
+ * observes the arena to compute the min zoom). Everything else — the arena, the
+ * hand, the dump zone, Peel, the info column — renders for real from
+ * `ZTest_makeBananagramsCtx`'s blob.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { whereIStand } from '@/common/game-page/whereIStand'
-import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { ZTest_gp } from '@/common/members/gamePlayer.fixture'
-import { ZTest_actionFixture } from '@/common/actions/action.fixture'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
-import type { ProgressRow } from '../hooks/useGame'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import {
+  ZTest_CONCEDED,
+  ZTest_makeBananagramsCtx,
+  type ZTest_GameDataFacts,
+} from '../lib/gameData.fixture'
+import { PlayAreaLoader } from './PlayArea'
 
-type GameHook = { initialBoard: string | null; tiles: string; loading: boolean }
-
-// Mutable holders the mocked hooks return each render — set per test.
-const h = vi.hoisted(() => ({
-  game: null as unknown as GameHook,
-  progress: [] as ProgressRow[],
-}))
-vi.mock('../hooks/useGame', () => ({
-  useGame: () => h.game,
-  useProgress: () => h.progress,
-  // Peers' boards feed the PRINTOUT's per-player columns, nothing on screen —
-  // so a smoke test never needs rows, only the export to exist.
-  usePeerBoards: () => [],
-}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }) } }))
 
-// jsdom has no ResizeObserver; PlayerBoard constructs one to size the zoom.
+// jsdom has no ResizeObserver; the board editor constructs one to size the zoom.
 class RO {
   observe() {}
   unobserve() {}
@@ -57,67 +36,14 @@ class RO {
 }
 vi.stubGlobal('ResizeObserver', RO)
 
-const EMPTY_BOARD = '.'.repeat(25 * 25)
+const ME = { id: 'u1', username: 'me', color: 'red' }
+const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
 
-/** A loaded game hook: an empty board + a hand of held tiles. */
-function loaded(tiles = 'ABCDEFG'): GameHook {
-  return { initialBoard: EMPTY_BOARD, tiles, loading: false }
-}
-
-function progressRow(over: Partial<ProgressRow> & { user_id: string }): ProgressRow {
-  return { unplaced: 0, placed: 0, solved: false, ...over }
-}
-
-const SETUP = {
-  hand_size: 21,
-  bunch_size: 144,
-  word_check: 'off',
-  dict_2: 4,
-  dict_3plus: 4,
-  dump_to_bag: false,
-  timer: { kind: 'none' },
-}
-
-/** A play surface's context. Where I stand is DERIVED from the fixture — the
- *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
- *  the page derives it (`whereIStand`), so a test sets up the facts and never
- *  hand-writes an answer the page could not give. */
-function makeCtx(over: Partial<PlayAreaLoaderProps> = {}): PlayAreaLoaderProps {
-  const facts = {
-    authSession: { user: { id: 'u1' } } as unknown as PlayAreaLoaderProps['authSession'],
-    players: [ZTest_gp('u1', 'me', 'red')],
-    isTerminal: false,
-    isTurnBased: false,
-    turnHolderId: null,
-    ...over,
-  }
-  return {
-    gameId: 'g1',
-    brand: 'MonkeyGrams',
-    title: 'Test game',
-    playState: 'playing',
-    timer: { displaySeconds: 0, expired: false },
-    setup: SETUP,
-    status: { bunch_remaining: 100, bag_remaining: 0 },
-    globalFeedbackSlot: createFeedbackSlot('global'),
-    clubHandle: 'testclub',
-    goToFollowUpGame: vi.fn(),
-    menu: {
-      setGameSections: vi.fn(),
-      actHelp: ZTest_actionFixture('act-help'),
-      actChat: ZTest_actionFixture('act-open-chat'),
-      actBackToClub: ZTest_actionFixture('act-back-to-club'),
-    },
-    ...facts,
-    ...whereIStand({
-      players: facts.players,
-      myId: facts.authSession.user.id,
-      isGameEnded: facts.isTerminal,
-      isTurnBased: facts.isTurnBased,
-      turnHolderId: facts.turnHolderId,
-      draftsOffTurn: false,
-    }),
-  }
+/** The game won by me going out. */
+const WON_BY_ME: Pick<ZTest_GameDataFacts, 'ending' | 'outcome' | 'players'> = {
+  players: [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'lost' }],
+  ending: { reason: 'reached_goal', detail: 'complete', by: 'u1', winner: 'u1' },
+  outcome: 'won',
 }
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
@@ -140,12 +66,11 @@ function menuItems(ctx: PlayAreaLoaderProps) {
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
-/** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
- *  Only the tests whose subject is a keystroke need it — a bare `render` binds
- *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+/** The surface under the app-root key dispatcher, which App.tsx mounts for
+ *  real. Only the tests whose subject is a keystroke need it. */
+function WithKeys(props: PlayAreaLoaderProps) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke at the page, the way a player types with nothing focused.
@@ -160,59 +85,62 @@ const press = (init: KeyboardEventInit) =>
 const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe('button').state
 
 beforeEach(() => {
-  h.game = loaded()
-  h.progress = [progressRow({ user_id: 'u1', unplaced: 7 })]
   rpc.mockReset()
   rpc.mockResolvedValue({ data: null, error: null })
 })
 
-describe('bananagrams PlayArea — render smoke', () => {
-  it('renders the arena + hand + Concede in a solo game', () => {
-    render(<PlayArea {...makeCtx()} />)
+describe('bananagrams PlayArea — render', () => {
+  it('renders the arena, the hand and Concede in a solo game', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx()} />)
     expect(screen.getByText('Hand')).toBeInTheDocument()
-    // Peel button always reads "Peel"; disabled while the hand isn't empty.
+    // Peel always reads "Peel"; disabled while the hand isn't empty.
     expect(screen.getByRole('button', { name: 'Peel' })).toBeDisabled()
     expect(screen.getByRole('button', { name: /concede/i })).toBeInTheDocument()
   })
 
-  it('renders the opponent strip in a compete game', () => {
-    const two = [
-      ZTest_gp('u1', 'me', 'red'),
-      ZTest_gp('u2', 'moth', 'blue'),
-    ]
-    h.progress = [
-      progressRow({ user_id: 'u1', unplaced: 7 }),
-      progressRow({ user_id: 'u2', unplaced: 3 }),
-    ]
-    render(<PlayArea {...makeCtx({ players: two })} />)
+  it('renders the rivals strip in a race, with each rival\'s unplaced count', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
+      players: [ME, { ...MOTH, tiles: 'abc' }],
+    })} />)
     expect(screen.getByText('moth')).toBeInTheDocument()
+    expect(document.querySelector('[data-peer="u2"] [data-count]')?.textContent).toBe('3')
   })
 
-  it('renders the terminal win state (verdict + outcome line)', () => {
-    render(
-      <PlayArea
-        {...makeCtx({ isTerminal: true, playState: 'won', status: { winner_username: 'me' } })}
-      />,
-    )
-    // The short info-column outcome line + the fuller verdict in the below-board
-    // pill. No modal carries the verdict — a WIN pops the celebration instead
-    // (useCelebration fires on the false→true flip, not on mount, so a test that
-    // renders straight into the terminal state sees no dialog).
+  it('shows the state line off the blob', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({ nBunchTiles: 60, nBagTiles: 3 })} />)
+    expect(screen.getByText('Tiles:').parentElement?.textContent).toBe('Tiles: You: 15 · Bunch: 60 · Bag: 3')
+  })
+
+  it('renders the ending I won: the outcome line and the verdict pill', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx(WON_BY_ME)} />)
+    // No modal carries the verdict — a WIN pops the celebration instead, and
+    // `useCelebration` fires on the flip, not on mount.
     expect(screen.getByText('You won!')).toBeInTheDocument()
     expect(screen.getAllByText(/Bananas! You went out first/).length).toBeGreaterThan(0)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('renders the locally-terminal "you conceded" state (frozen, others racing)', () => {
-    // Concede now lives on the common roster (ctx.players), not progress.
-    h.progress = [progressRow({ user_id: 'u1' })]
-    render(<PlayArea {...makeCtx({ players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true })] })} />)
-    // The action row is the shared <InfoActionsRow> "You conceded" (the same
-    // label every other game uses) — no Peel and no Concede, since the conceder
-    // is frozen out and the row is the terminal look.
+  it('renders out of the race after conceding: frozen, the others racing', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
+      players: [{ ...ME, ...ZTest_CONCEDED }, MOTH],
+    })} />)
     expect(screen.getAllByText(/you conceded/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Peel' })).not.toBeInTheDocument()
+  })
+
+  it('the setup disclosure shows the shared rows, the same ones the PDF prints', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
+      setup: {
+        hand_size: 21, bunch_size: 144, word_check: 'strict', dict_2: 4, dict_3plus: 4,
+        dump_to_bag: true, timer: { kind: 'none' },
+      },
+    })} />)
+    const setupOptions = screen.getByText('Setup options').parentElement as HTMLElement
+    expect(setupOptions.textContent).toContain('Players: me')
+    expect(setupOptions.textContent).toContain('Dumped tiles: to the bag (out of play)')
+    expect(setupOptions.textContent).toContain('Word check: Every peel')
+    expect(setupOptions.textContent).toContain('Timer: none')
   })
 })
 
@@ -221,41 +149,24 @@ describe('bananagrams PlayArea — render smoke', () => {
  * confirmation host mounted where a question is expected. A question asked
  * with no host is answered no, so the host is what lets these prove a question
  * was asked rather than skipped.
- *
- * bananagrams is the one race that can ALSO stop the whole table, so its
- * Concede asks the two-answer question and Stop hides behind it until a
- * conceder's Concede is spent.
  */
-describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
-  const two = [ZTest_gp('u1', 'me', 'red'), ZTest_gp('u2', 'moth', 'blue')]
+describe('bananagrams PlayArea — the commands', () => {
+  const RACE = { players: [ME, MOTH] }
 
-  it('the setup disclosure shows the shared rows, the same ones the PDF prints', () => {
-    // Rendered from `makeSetupRows`, not a hand-kept list — so the screen and the
-    // paper cannot disagree on which way `dump_to_bag` goes.
-    render(<PlayArea {...makeCtx({ setup: { ...SETUP, dump_to_bag: true, word_check: 'strict' } })} />)
-    const setupOptions = screen.getByText('Setup options').parentElement as HTMLElement
-    expect(setupOptions.textContent).toContain('Players: me')
-    expect(setupOptions.textContent).toContain('Dumped tiles: to the bag (out of play)')
-    expect(setupOptions.textContent).toContain('Word check: Every peel')
-    expect(setupOptions.textContent).toContain('Timer: none')
-  })
-
-  it('+ at terminal deals the next game with no question', async () => {
+  it('+ at the end deals the next game with no question, with the p_ names', async () => {
     rpc.mockImplementation((name: string) =>
       name === 'create_game'
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
         : Promise.resolve({ data: null, error: null }),
     )
-    const ctx = makeCtx({ isTerminal: true, playState: 'won', status: { winner_username: 'me' } })
+    const ctx = ZTest_makeBananagramsCtx(WON_BY_ME)
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
-    // No <ConfirmationHost/> is mounted, so a question would have been answered
-    // "no" — the RPC firing proves none was asked.
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
-        target_club: 'testclub',
-        setup: ctx.setup,
-        player_user_ids: ['u1'],
+        p_club_handle: 'testclub',
+        p_setup: expect.objectContaining({ hand_size: 15 }),
+        p_player_user_ids: ['u1', 'u2'],
       }),
     )
     await waitFor(() => expect(ctx.goToFollowUpGame).toHaveBeenCalledWith('next-game-id'))
@@ -265,7 +176,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     const user = userEvent.setup()
     render(
       <>
-        <WithKeys {...makeCtx()} />
+        <WithKeys {...ZTest_makeBananagramsCtx()} />
         <ConfirmationHost />
       </>,
     )
@@ -279,40 +190,37 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
   it('⌥⌫ asks the two-answer question; "Stop for all" calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
-    h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
     render(
       <>
-        <WithKeys {...makeCtx({ players: two })} />
+        <WithKeys {...ZTest_makeBananagramsCtx(RACE)} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Stop for all' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('concede', expect.anything())
   })
 
   it('⌥⌫ then "Concede" calls concede, not stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
-    h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
     render(
       <>
-        <WithKeys {...makeCtx({ players: two })} />
+        <WithKeys {...ZTest_makeBananagramsCtx(RACE)} />
         <ConfirmationHost />
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   it('Stop game hides behind Concede while racing, and comes out once I have conceded', () => {
-    h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
-    const { rerender } = render(<PlayArea {...makeCtx({ players: two })} />)
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeBananagramsCtx(RACE)} />)
     expect(stateOf('act-stop-game')).toBe('hidden')
     expect(stateOf('act-concede')).toBe('active')
     // The button follows the action: only Concede draws.
@@ -320,25 +228,22 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(document.querySelector('button[data-action="act-concede"]')).not.toBeNull()
 
     // My Concede is spent, so it goes; stopping the table is still open to me.
-    h.progress = [progressRow({ user_id: 'u1' }), progressRow({ user_id: 'u2', unplaced: 3 })]
-    rerender(<PlayArea {...makeCtx({
-      players: [ZTest_gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]],
+    rerender(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
+      players: [{ ...ME, ...ZTest_CONCEDED }, MOTH],
     })} />)
     expect(stateOf('act-stop-game')).toBe('active')
     expect(stateOf('act-concede')).toBe('hidden')
-    // …and the button follows the action: the "You conceded" row draws Stop,
-    // the one flag.
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
   })
 
-  it('Restart mid-game asks, and goes straight through at terminal', async () => {
+  it('Restart mid-game asks, and goes straight through at the end', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'replayed' }))
-    const live = makeCtx()
+    const live = ZTest_makeBananagramsCtx()
     const { unmount } = render(
       <>
-        <PlayArea {...live} />
+        <PlayAreaLoader {...live} />
         <ConfirmationHost />
       </>,
     )
@@ -348,11 +253,18 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
     unmount()
 
-    // No host this time: the RPC firing proves no question was asked. Restart
-    // is a menu row only in bananagrams — the terminal row carries no twin.
-    const done = makeCtx({ isTerminal: true, playState: 'won', status: { winner_username: 'me' } })
-    render(<PlayArea {...done} />)
+    // No host this time: the RPC firing proves no question was asked.
+    const done = ZTest_makeBananagramsCtx(WON_BY_ME)
+    render(<PlayAreaLoader {...done} />)
     act(() => menuItems(done).get('act-restart')!.run())
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' }))
+  })
+
+  it('the menu lists Restart and New game before Print', () => {
+    const ctx = ZTest_makeBananagramsCtx()
+    render(<PlayAreaLoader {...ctx} />)
+    const ids = [...menuItems(ctx).keys()]
+    expect(ids.indexOf('act-restart')).toBeLessThan(ids.indexOf('act-print-board'))
+    expect(ids.indexOf('act-new-game')).toBeLessThan(ids.indexOf('act-print-board'))
   })
 })

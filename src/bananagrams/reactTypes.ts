@@ -13,6 +13,31 @@ import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import type { DragState } from '@/shared/grid-and-drag/useDragGesture'
 import type { GCell, GCheckResult, GDragSource } from './types'
 
+/**
+ * Every command the info column places, bound once: the action row places
+ * them, the menu lists them, and their keys fire them — all reading the same
+ * action, so the surfaces cannot drift. Peel, Check words, Shuffle and the
+ * zoom-to-fit are the board editor's, bound in `usePlayerBoard`.
+ */
+export type GActions = {
+  // Each key is spelled as its action's id (`act-restart` → `actRestart`), so
+  // a grep for either finds every trace of the action
+  // (src/guards/actionIds.test.ts).
+  //
+  // Deal this game again: every board emptied, the same hands back.
+  actRestart: Action
+  // A fresh game, with this game's setup and players.
+  actNewGame: Action
+  // Drop out of the race while the others play on.
+  actConcede: Action
+  // The whole table stops, with no result.
+  actStopGame: Action
+  // Print every board, a column per player.
+  actPrintBoard: Action
+  // Leave for the club — the shell's own action, off `menu`.
+  actBackToClub: Action
+}
+
 /** What the board editor needs from PlayArea, the outer coordinator. */
 export type GBoardEditorInput = {
   gameId: string

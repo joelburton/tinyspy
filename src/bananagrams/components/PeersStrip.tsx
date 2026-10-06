@@ -1,54 +1,44 @@
 // cs-unmet
 
-import type { GamePlayer } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
-import type { ProgressRow } from '../hooks/useGame'
+import type { GPlayer } from '../types'
 import styles from './PeersStrip.module.css'
 
 type Props = {
-  players: GamePlayer[]
-  progress: ProgressRow[]
+  players: GPlayer[]
   myId: string
 }
 
 /**
- * The race signal: each opponent's remaining (unplaced) tile count, ticking
- * toward zero. This is the *only* thing a player sees about a peer — never the
- * board itself. Counts come from `bananagrams.progress` (club-readable),
- * updated live as each peer snapshots their board; the `conceded` drop-out flag
- * comes off the shared `common.game_players` roster (ctx.players → GamePlayer).
+ * The race signal: each rival's unplaced tile count, ticking toward zero. This
+ * is the only thing a player sees of a rival mid-race — never the board itself.
  *
- * Renders nothing in a solo game (no peers). Active peers are sorted by
- * tiles-left ascending (closest to finishing at the top); conceded peers (who
- * have dropped out of the race) sink to the bottom, shown as "out".
+ * Renders nothing in a solo game (no rivals). Racers are sorted by tiles left
+ * ascending (closest to finishing at the top); conceded rivals sink to the
+ * bottom, shown as "out".
  */
-export function PeersStrip({ players, progress, myId }: Props) {
-  const byUser = new Map(progress.map((p) => [p.user_id, p]))
+export function PeersStrip({ players, myId }: Props) {
   // Conceded players are out of the race → sort them last regardless of count;
-  // among active players, closest-to-done first.
-  const rank = (p: GamePlayer) =>
-    (p.conceded ? 1e9 : 0) + (byUser.get(p.user_id)?.unplaced ?? Infinity)
-  const peers = players
-    .filter((p) => p.user_id !== myId)
+  // among the racers, closest to done first.
+  const rank = (p: GPlayer) => (p.conceded ? 1e9 : 0) + p.nUnplacedTiles
+  const rivals = players
+    .filter((p) => p.id !== myId)
     .sort((a, b) => rank(a) - rank(b))
 
-  if (peers.length === 0) return null
+  if (rivals.length === 0) return null
 
   return (
     <div className={styles.peers}>
       <div className={styles.heading}>Tiles left</div>
-      {peers.map((p) => {
-        const pr = byUser.get(p.user_id)
-        return (
-          <div key={p.user_id} className={styles.peer} data-peer={p.user_id}>
-            <Dot color={p.color} className={styles.dot} />
-            <span className={styles.name}>{p.username}</span>
-            <span className={styles.count} data-count>
-              {p.conceded ? 'out' : pr?.solved ? 'done!' : (pr?.unplaced ?? '—')}
-            </span>
-          </div>
-        )
-      })}
+      {rivals.map((p) => (
+        <div key={p.id} className={styles.peer} data-peer={p.id}>
+          <Dot color={p.color} className={styles.dot} />
+          <span className={styles.name}>{p.username}</span>
+          <span className={styles.count} data-count>
+            {p.conceded ? 'out' : p.solved ? 'done!' : p.nUnplacedTiles}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

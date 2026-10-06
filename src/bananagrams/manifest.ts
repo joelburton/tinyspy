@@ -85,7 +85,7 @@ export const bananagramsGame: GameManifest = {
   scratchpad: 'none',
 
   PlayArea: lazy(() =>
-    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+    import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
   ),
 
   setupForm: {

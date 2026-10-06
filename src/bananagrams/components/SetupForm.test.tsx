@@ -24,10 +24,10 @@ import { DEFAULT_BANANAGRAMS_SETUP } from '../lib/setup'
 import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
-const MEMBERS = [
-  { user_id: 'self', username: 'joel', color: 'red' },
-  { user_id: 'moth', username: 'moth', color: 'blue' },
-] as Member[]
+const MEMBERS: Member[] = [
+  { id: 'self', username: 'joel', color: 'red' },
+  { id: 'moth', username: 'moth', color: 'blue' },
+]
 
 function draw({ values = {}, errors = {} as FormErrors } = {}) {
   const set = vi.fn()
@@ -41,7 +41,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
       numberOfPlayers={[1, 8]}
       values={{
         ...DEFAULT_BANANAGRAMS_SETUP,
-        player_user_ids: new Set(MEMBERS.map((m) => m.user_id)),
+        player_user_ids: new Set(MEMBERS.map((m) => m.id)),
         ...values,
       }}
       set={set}

@@ -265,6 +265,26 @@ export type GCheckResult =
   | { kind: 'error'; message: string }
 
 /**
+ * Every answer bananagrams gives — the whole roster of what this game tells
+ * anybody. `lib/answer.ts` says what each one reads as (docs/outcomes.md → How
+ * a game does it).
+ *
+ * `peel`, `dump` and `went_out` are the log's rows; `peel_peer` is a rival's
+ * peel, which dealt me a tile too. `illegal` is a peel the board check turned
+ * away: `peel` writes no row for it. The three `check_` answers are what
+ * **Check words** found. A not-ok is the server's sentence, not an answer.
+ */
+export type GAnswer =
+  | { answerType: 'peel' }
+  | { answerType: 'peel_peer' }
+  | { answerType: 'dump'; tile: string }
+  | { answerType: 'went_out' }
+  | { answerType: 'illegal' }
+  | { answerType: 'check_clean' }
+  | { answerType: 'check_empty' }
+  | { answerType: 'check_invalid'; nTiles: number }
+
+/**
  * `common.games.summary_data`, as `bananagrams._rebuild_data_cols` writes it
  * (supabase/sql/bananagrams.sql): the common part, and the bunch's count beside
  * it. Every key is always present. The summary (`manifest.ts`'s `summaryFor`)
