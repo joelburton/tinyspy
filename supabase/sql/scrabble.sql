@@ -244,6 +244,12 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 -- (supabase/sql/common.sql → The page blobs' common parts); this is
 -- scrabble's part. Every key is always present, null when it has no value.
 --
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- scrabble's is the common part alone: it has no puzzle, and its board is the
+-- game in play.
+--
 --   game_data, scrabble's part:
 --     version                              the move counter every move sends back
 --     nBagTiles                            the bag's order never leaves the server
@@ -488,12 +494,32 @@ $$;
 revoke execute on function scrabble._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- scrabble._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change. scrabble adds nothing to the common part.
+create or replace function scrabble._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = common._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function scrabble._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- scrabble._rebuild_data_cols_for_all — every scrabble game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every scrabble game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every scrabble game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function scrabble._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -507,6 +533,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('scrabble_coop', 'scrabble_compete')
   loop
+    perform scrabble._write_static_game_data(v_game_id);
     perform scrabble._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -852,6 +879,7 @@ begin
     end if;
   end if;
 
+  perform scrabble._write_static_game_data(new_id);
   perform scrabble._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing a

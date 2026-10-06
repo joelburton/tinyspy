@@ -1,15 +1,17 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: scrabble's page blobs — game_data and summary_data
+-- Test: scrabble's page blobs — static_game_data, game_data and summary_data
 -- ============================================================
 -- `scrabble._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/scrabble.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/scrabble.sql → The page blobs). This file
+-- pins what the page gets:
 --
 --   1. A fresh game: an empty board string, the bag counted and never
 --      listed, coop's team with its rack and compete's players with theirs,
---      every score at nothing, a bot's level; a fresh summary
+--      every score at nothing, a bot's level; a fresh summary; the static
+--      blob the common part alone
 --   2. Mid-game coop: a blank played as C lands as a capital in the board
 --      string and the placement; the log row; each player's own score and
 --      the team's sum
@@ -18,8 +20,8 @@
 --   4. The endings: a race's winners and their score, with the leftovers and
 --      the going-out bonus in the log; a coop Stop's team score
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every scrabble game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every scrabble game, its static
+--      blob included, without re-dating it
 --
 -- The deal is random, so racks and bags are set by hand wherever a value
 -- depends on them.
@@ -30,7 +32,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(26);
+select plan(27);
 
 -- One player's scrabble keys off game_data, as "score/nRackTiles/rack".
 create function pg_temp.sc_player(gid uuid, uid uuid) returns text
@@ -80,6 +82,10 @@ select ok(
   (select not (game_data ? 'bag') and not (game_data ? 'puzzle')
      from common.games where id = (select id from g where mode = 'coop')),
   'the bag''s order is not in the blob, and there is no puzzle');
+select is(
+  (select static_game_data from common.games where id = (select id from g where mode = 'coop')),
+  common._make_json_static_game_data((select id from g where mode = 'coop')),
+  'static_game_data is the common part alone: scrabble adds nothing to it');
 select is(
   (select jsonb_build_object('score', game_data->'team'->'score',
                              'nRackTiles', game_data->'team'->'nRackTiles',
@@ -222,14 +228,16 @@ select is(
 -- ─── (6) _rebuild_data_cols_for_all ───
 create temp table dated on commit drop as
 select status_changed_at from common.games where id = (select id from g where mode = 'coop');
-update common.games set game_data = '{}'::jsonb where id = (select id from g where mode = 'coop');
+update common.games set game_data = '{}'::jsonb, static_game_data = null
+ where id = (select id from g where mode = 'coop');
 select is(scrabble._rebuild_data_cols_for_all() >= 2, true,
   '_rebuild_data_cols_for_all rewrites every scrabble game');
 select is(
-  (select jsonb_build_object('rebuilt', game_data ? 'board', 'dated', status_changed_at)
+  (select jsonb_build_object('rebuilt', game_data ? 'board', 'static', static_game_data ? 'setup',
+                             'dated', status_changed_at)
      from common.games where id = (select id from g where mode = 'coop')),
-  jsonb_build_object('rebuilt', true, 'dated', (select status_changed_at from dated)),
-  'the blob is back, and the game is not re-dated');
+  jsonb_build_object('rebuilt', true, 'static', true, 'dated', (select status_changed_at from dated)),
+  'both blobs are back, and the game is not re-dated');
 
 select * from finish();
 rollback;
