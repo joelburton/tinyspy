@@ -81,7 +81,12 @@ drop function if exists boggle._write_statuses(uuid, boolean);
 -- boggle's facts on top; the pieces below build each part, so
 -- `select game_data from common.games` shows the page what it gets.
 --
---   game_data, boggle's part:
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+-- boggle's puzzle is all of it: nothing in it waits for the game's end.
+--
+--   static_game_data, boggle's part:
 --     puzzle: {tiles, boardSideSize,              frozen at create_game: the board's tiles in
 --              minWordLength, words,              row order — a tile is {id, letters}, its id
 --              nReqdWords, reqdWordsScore,        its cell's index as text, its letters null
@@ -89,6 +94,8 @@ drop function if exists boggle._write_statuses(uuid, boolean);
 --                                                 ({word, points, bonus}; a bonus word is
 --                                                 legal but not required), and each list's
 --                                                 count and score
+--
+--   game_data, boggle's part:
 --     team: {the six counts}                      what the team shares, over every row; null
 --                                                 in compete (plans/team-facts.md)
 --     foundWords: [{userId, word, points,         every found word, in the order found, with
@@ -242,8 +249,8 @@ $$;
 
 revoke execute on function boggle._make_json_players(uuid) from public;
 
--- The whole game_data blob: the common part, with boggle's puzzle, team, log
--- and players on top.
+-- The whole game_data blob: the common part, with boggle's team, log and
+-- players on top. The puzzle is static (`_make_json_static_game_data`).
 create or replace function boggle._make_json_game_data(p_game_id uuid)
 returns jsonb
 language sql
@@ -251,15 +258,28 @@ stable
 set search_path = boggle, common, public, extensions
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'puzzle',     boggle._make_json_puzzle(g),
            'team',       boggle._make_json_team(p_game_id),
            'foundWords', boggle._make_json_found_words(p_game_id),
-           'players',    boggle._make_json_players(p_game_id))
+           'players',    boggle._make_json_players(p_game_id));
+$$;
+
+revoke execute on function boggle._make_json_game_data(uuid) from public;
+
+-- The whole static_game_data blob: the common part, with the puzzle on top.
+-- Nothing in it changes after create_game.
+create or replace function boggle._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = boggle, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', boggle._make_json_puzzle(g))
     from boggle.games g
    where g.game_id = p_game_id;
 $$;
 
-revoke execute on function boggle._make_json_game_data(uuid) from public;
+revoke execute on function boggle._make_json_static_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one. A
 -- conceder's banked score never counts toward the top score.
@@ -332,12 +352,32 @@ $$;
 revoke execute on function boggle._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- boggle._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function boggle._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = boggle, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = boggle._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function boggle._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- boggle._rebuild_data_cols_for_all — every boggle game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every boggle game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every boggle game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function boggle._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -351,6 +391,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('boggle_coop', 'boggle_compete')
   loop
+    perform boggle._write_static_game_data(v_game_id);
     perform boggle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -542,6 +583,7 @@ begin
     b_required_count, b_required_score, s_win_percent
   );
 
+  perform boggle._write_static_game_data(new_id);
   perform boggle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. REQUIRED, not

@@ -1,15 +1,17 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: boggle's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: boggle's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `boggle._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/boggle.sql → The page blobs).
--- This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/boggle.sql → The page blobs). This file
+-- pins what the page gets:
 --
---   1. A fresh game: the puzzle as create_game froze it — its tiles in row
---      order, a two-letter tile's letters and a blank's null, both word lists
---      flagged and totaled — no team progress, nothing found, every player
+--   1. A fresh game: the puzzle as create_game froze it, in the static blob —
+--      its tiles in row order, a two-letter tile's letters and a blank's null,
+--      both word lists flagged and totaled — and none in game_data; no team
+--      progress, nothing found, every player
 --      fresh; compete has no team, and its summary carries the target
 --   2. Mid-game coop: the found words in the order found, each player's six
 --      counts over their own finds, the team's over every row
@@ -19,8 +21,8 @@
 --      the top score leaves a conceder's points out; a coop target stamps every
 --      teammate; a Stop is neutral and the summary keeps the team's progress
 --   5. A Restart empties it all again, the solve included
---   6. `_rebuild_data_cols_for_all` rewrites every boggle game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every boggle game, its static
+--      blob included, without re-dating it
 --
 -- The fixture's required set (setup.psql) is 6 words worth 9 points; this
 -- file's board adds a Qu tile, a blank and two bonus words. A 50% target is
@@ -33,7 +35,7 @@ set search_path = boggle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(34);
+select plan(35);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -66,6 +68,8 @@ create function pg_temp.game(which text) returns uuid language sql as
   $$ select id from g where name = which $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 create function pg_temp.shell_data(game uuid) returns jsonb language sql as
@@ -97,21 +101,21 @@ create function pg_temp.zeros() returns jsonb language sql as
 
 -- ─── (1) A fresh game ───
 select is(
-  pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle' -> 'tiles',
+  pg_temp.static_game_data(pg_temp.game('coop')) -> 'puzzle' -> 'tiles',
   (select jsonb_agg(jsonb_build_object('id', (ord - 1)::text, 'letters', l) order by ord)
      from unnest(array['c', 'a', 'qu', 'r', null, 'e', 'x', 'o', 't', 'm', 'p', 'l', 'n', 'g', 'd', 'b'])
           with ordinality as x(l, ord)),
   'the tiles in row order, each id its cell''s index — a Qu tile''s letters are "qu", a blank''s null'
 );
 select is(
-  (pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle') - 'tiles' - 'words',
+  (pg_temp.static_game_data(pg_temp.game('coop')) -> 'puzzle') - 'tiles' - 'words',
   '{"boardSideSize": 4, "minWordLength": 3, "nReqdWords": 6, "reqdWordsScore": 9,
     "nBonusWords": 2, "bonusWordsScore": 3}'::jsonb,
   'the puzzle''s size, minimum length, and each list''s count and score'
 );
 select is(
   (select jsonb_agg(w ->> 'word' || '/' || (w ->> 'points') || '/' || (w ->> 'bonus'))
-     from jsonb_array_elements(pg_temp.game_data(pg_temp.game('coop')) -> 'puzzle' -> 'words') w),
+     from jsonb_array_elements(pg_temp.static_game_data(pg_temp.game('coop')) -> 'puzzle' -> 'words') w),
   '["cat/1/false", "car/1/false", "arc/1/false", "cart/1/false", "scare/2/false", "traces/3/false",
     "scat/1/true", "tacos/2/true"]'::jsonb,
   'every legal word scored, the required ones first, each flagged with its list'
@@ -123,7 +127,8 @@ select is(
   jsonb_build_array(pg_temp.six(pg_temp.zeros()), pg_temp.six(pg_temp.zeros())),
   'coop: every player fresh'
 );
-select is(pg_temp.game_data(pg_temp.game('coop')) ->> 'gametype', 'boggle_coop', 'the common part is underneath');
+select is(pg_temp.static_game_data(pg_temp.game('coop')) ->> 'gametype', 'boggle_coop', 'the common part is underneath, in the static blob');
+select is(pg_temp.game_data(pg_temp.game('coop')) ? 'puzzle', false, 'game_data carries no puzzle: it is all static');
 select is(
   pg_temp.summary_own(pg_temp.game('coop')),
   jsonb_build_object('team', pg_temp.zeros(), 'targetWinPercent', null, 'topScore', null),
@@ -273,12 +278,16 @@ select is(pg_temp.solved(pg_temp.game('compete')), '[false, false]'::jsonb, '…
 select is(pg_temp.game_data(pg_temp.game('compete')) -> 'ending', 'null'::jsonb, '… and the ending gone');
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(boggle._rebuild_data_cols_for_all() >= 3, true, '_rebuild_data_cols_for_all rewrites every boggle game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   3,
   '… every blob is back'
 );
