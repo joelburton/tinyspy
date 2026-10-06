@@ -68,15 +68,22 @@ export function makeBoard(
  * At the end every grid shows.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
+  // `team` goes onto the players; `gd` has none.
+  const { team, turns, ending, ...rest } = raw
   // The players first, their boards after: a cell's writer is one of these
   // same objects, so it is the player `playersById` holds.
-  const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null }))
+  // Each carries the grid twice (plans/team-facts.md): spread on, the side's;
+  // under `own`, their own — in coop the team's, which is nobody's in
+  // particular.
+  const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null, own: { board: null } }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  const teamBoard = raw.team === null ? null : makeBoard(raw.team.board, raw.puzzle, players)
+  const teamBoard = team === null ? null : makeBoard(team.board, raw.puzzle, players)
   raw.players.forEach((p, i) => {
     const seen = raw.ended || p.id === myId
-    players[i]!.board = teamBoard ?? (seen && p.board !== null ? makeBoard(p.board, raw.puzzle, players) : null)
+    const board = teamBoard ?? (seen && p.board !== null ? makeBoard(p.board, raw.puzzle, players) : null)
+    players[i]!.board = board
+    players[i]!.own.board = board
   })
 
   // Links that cannot miss get a bare lookup; an ending's `by` is null for a
@@ -89,10 +96,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // The gate has checked that I am seated, and my own grid is never withheld.
   const me = playersById[myId]! as GGameData['me']
 
-  const { turns, ending, ...rest } = raw
   return {
     ...rest,
-    team: null,
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
     ending: ending === null
       ? null

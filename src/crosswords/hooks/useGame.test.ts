@@ -39,10 +39,10 @@ describe('crosswords makeGameData — the links become players', () => {
     expect(gd.playersById.u1).toBe(gd.me)
   })
 
-  it('there is no turn order, and the team holds nothing', () => {
+  it('there is no turn order, and no team: the team\'s grid is on the players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     expect(gd.turns).toBeNull()
-    expect(gd.team).toBeNull()
+    expect(gd).not.toHaveProperty('team')
   })
 
   it('names who ended the game and the winner as players', () => {
@@ -148,6 +148,7 @@ describe('crosswords makeGameData — whose grid each seat holds', () => {
       'u1',
     )
     expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
     expect(gd.me.board.cellsById['0,0']!.fill).toBe('C')
   })
 

@@ -108,6 +108,12 @@ it into `game_data`, each key in its place.
 | `game_data` | `puzzle: {solution}`, null until the game ends. `revision`. `team: {board}` in coop, null in compete; on each racer `board` in compete, null in coop |
 | `summary_data` | `nCells`, the cells a player fills, and `team: {nFilledCells}` in coop, null in compete — the club card's "60% filled" |
 
+crosswords' one fact (`GFacts`) is `board`. `useGame` unpacks it onto every
+player twice — spread on, the side's (coop's one grid, the same object on
+every player; a racer's own in compete); under `own`, their own, which in coop
+is the team's grid ([plans/team-facts.md](../../plans/team-facts.md)). `gd`
+has no `team`.
+
 **A board is packed**, since it is rebuilt on every keystroke
 (`_make_json_board`). A cell's **index** is its place counted row by row, `row
 × width + col`:

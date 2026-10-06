@@ -27,7 +27,7 @@
  * ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
-import type { GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { SetupOf } from '../common/setup-form/types.ts'
@@ -461,13 +461,25 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   // `set_mark` answer the revision their own rebuild wrote, so the page knows
   // when a blob it reads carries its write.
   revision: number
-  // Coop's one grid; null in compete, where there is no team.
-  team: GTeamRaw | null
+  // The team's facts, sent once: coop's one grid. Null in compete, where
+  // there is no team.
+  team: GFactsRaw | null
   players: GPlayerRaw[]
 }
 
-/** What the team shares in coop (plans/team-facts.md): the one grid. */
-export type GTeamRaw = {
+/**
+ * crosswords' facts (plans/team-facts.md): the grid, and nothing else. A
+ * player carries it twice — spread on, their side's (the team's in coop,
+ * their own in compete); under `own`, their own. A coop grid is nobody's in
+ * particular, so a coop player's `own` holds the team's.
+ */
+export type GFacts = {
+  // Null for a rival mid-race.
+  board: GBoard | null
+}
+
+/** `GFacts` as the builders write them: the grid as stored. */
+export type GFactsRaw = {
   board: GBoardRaw
 }
 
@@ -531,7 +543,6 @@ export type GSummaryData = SummaryData & {
  *   setup
  *   puzzle                            # the template, frozen at create, and the solution, null until the game ends
  *   revision
- *   team: null                        # coop's grid is on every seat
  *   turns: null                       # no turn order
  *   ending: {reason, detail, by, winner}   # null while playing; by and winner are players
  *   ended
@@ -542,7 +553,8 @@ export type GSummaryData = SummaryData & {
  *
  * player:
  *   the common player
- *   board: {cells, cellsById}         # this seat's grid, coop's one on every seat; a rival's null mid-race
+ *   board: {cells, cellsById}         # the side's grid: coop's one on every player; a rival's null mid-race
+ *   own: {board}                      # this player's own; in coop the team's
  *
  * cell:
  *   id                                # "r,c"
@@ -566,8 +578,6 @@ export type GSummaryData = SummaryData & {
  * NO_SETUP_ROWS). Read-only: `useGame` builds it and nothing else writes it.
  */
 export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'players'> & {
-  // Coop's one grid is on every seat, so the team holds nothing.
-  team: null
   turns: { holder: GPlayer } | null
   ending: {
     reason: NonNullable<GGameDataRaw['ending']>['reason']
@@ -583,10 +593,14 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'player
   me: GPlayer & { board: GBoard }
 }
 
-/** A player as `gd` holds them: their grid unpacked — coop's one grid on every
- *  seat, a racer's own in compete, a rival's null while the race is on. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * A player as `gd` holds them: the common player with crosswords' facts twice
+ * — spread on, their side's; under `own`, their own (plans/team-facts.md). The
+ * grid unpacked: coop's one grid on every player, a racer's own in compete, a
+ * rival's null while the race is on.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** A seat's grid as `gd` holds it: a cell for every open, non-given cell, in
