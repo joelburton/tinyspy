@@ -160,7 +160,6 @@ export function ZTest_makeBeeGameDataRaw<Setup>(
     mode,
     coop,
     compete: !coop,
-    oneBoard: coop,
     title,
     setup,
     turns: null,

@@ -135,7 +135,6 @@ export type GStateLineData = {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

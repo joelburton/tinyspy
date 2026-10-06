@@ -202,7 +202,6 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     mode: 'coop',
     coop: true,
     compete: false,
-    oneBoard: true,
     title,
     setup,
     turns: {
@@ -247,7 +246,7 @@ export function ZTest_makeCodenamesduetCtx(
   const raw = ZTest_makeGameDataRaw(facts)
   // The two blobs the page hands down, split as the builders write them: what
   // create fixed, the deal whole, in the static one; the rest in game_data.
-  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle, ...changing } = raw
+  const { id, gametype, brand, club, mode, coop, compete, setup, puzzle, ...changing } = raw
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -258,7 +257,7 @@ export function ZTest_makeCodenamesduetCtx(
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
     gameData: changing,
-    staticGameData: { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle },
+    staticGameData: { id, gametype, brand, club, mode, coop, compete, setup, puzzle },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

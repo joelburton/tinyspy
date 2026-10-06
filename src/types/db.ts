@@ -1,6 +1,5 @@
 // cs-na
 
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -90,6 +89,9 @@ isOneToOne: false
                            },
 "_win_blockers":
 { Args: { "p_board": string,"p_check_words": boolean,"p_dict_2": number,"p_dict_3plus": number }; Returns: (number)[]
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "check_board":
 { Args: { "p_game_id": string }; Returns: Json
@@ -183,6 +185,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "g": Database["boggle"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -200,6 +205,9 @@ isOneToOne: false
                            },
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -319,6 +327,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "p_game_id": string }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -345,6 +356,9 @@ isOneToOne: false
                            },
 "_turns_remaining":
 { Args: { "p_max_turns": number,"p_turn_number": number }; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "create_game":
 { Args: { "p_club_handle": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
@@ -546,13 +560,13 @@ isOneToOne: false
                   ]
                 },"gametypes": {
                   Row: {
-                    "brand": string,"default_enroll": boolean,"gametype": string,"min_players": number,"one_board": boolean
+                    "brand": string,"default_enroll": boolean,"gametype": string,"min_players": number
                   }
                   Insert: {
-                    "brand": string,"default_enroll"?: boolean,"gametype": string,"min_players"?: number,"one_board": boolean
+                    "brand": string,"default_enroll"?: boolean,"gametype": string,"min_players"?: number
                   }
                   Update: {
-                    "brand"?: string,"default_enroll"?: boolean,"gametype"?: string,"min_players"?: number,"one_board"?: boolean
+                    "brand"?: string,"default_enroll"?: boolean,"gametype"?: string,"min_players"?: number
                   }
                   Relationships: [
                     
@@ -920,6 +934,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "g": Database["connections"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -940,6 +957,9 @@ isOneToOne: false
                            },
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1072,6 +1092,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "g": Database["crosswords"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -1098,6 +1121,9 @@ isOneToOne: false
                            },
 "_require_cell_write":
 { Args: { "p_game_id": string }; Returns: string
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "_writer_ids":
 { Args: { "p_game_id": string }; Returns: (string)[]
@@ -1253,6 +1279,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "lg": Database["letterboxed"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -1276,6 +1305,9 @@ isOneToOne: false
                            },
 "_require_chain_move":
 { Args: { "p_game_id": string }; Returns: string
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "candidate_words":
 { Args: { "p_board_mask": number,"p_max_band": number }; Returns: {
@@ -1386,7 +1418,7 @@ isOneToOne: false
           }
           Functions: {
             "_make_json_board":
-{ Args: { "p_game_id": string,"p_mode": string,"p_user_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
                            },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1407,6 +1439,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_maybe_finish_compete":
@@ -1613,6 +1648,9 @@ isOneToOne: false
 "_title_for":
 { Args: { "p_game_id": string }; Returns: string
                            },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "ai_exchange_tiles":
 { Args: { "p_base_version": number,"p_game_id": string,"p_rack_tiles": (string)[],"p_user_id": string }; Returns: Json
                            },
@@ -1766,6 +1804,9 @@ isOneToOne: false
 "_third":
 { Args: { "p_a": number,"p_b": number }; Returns: number
                            },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
                            },
@@ -1847,10 +1888,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "_make_json_events":
-{ Args: { "p_game_id": string }; Returns: Json
-                           },
-"_make_json_found_words":
+            "_make_json_found_words":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_game_data":
@@ -1861,6 +1899,9 @@ isOneToOne: false
                            },
 "_make_json_puzzle":
 { Args: { "g": Database["spellingbee"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
@@ -1882,6 +1923,9 @@ isOneToOne: false
                            },
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "candidate_words":
 { Args: { "p_center_bit": number,"p_legal_band": number,"p_puzzle_mask": number,"p_required_band": number }; Returns: {
@@ -2015,6 +2059,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "p_ended": boolean,"sg": Database["stackdown"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -2032,6 +2079,9 @@ isOneToOne: false
                            },
 "_word":
 { Args: { "ids": (number)[],"tiles": Json }; Returns: string
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2169,6 +2219,9 @@ isOneToOne: false
 "_make_json_puzzle_words":
 { Args: { "p_solution": Json }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -2192,6 +2245,9 @@ isOneToOne: false
                            },
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2313,6 +2369,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "p_ended": boolean,"wg": Database["waffle"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -2338,6 +2397,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "start1": number,"stride": number
             }[]
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2425,6 +2487,9 @@ isOneToOne: false
 "_make_json_puzzle":
 { Args: { "g": Database["wordiply"]['Tables']["games"]['Row'] }; Returns: Json
                            },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
@@ -2447,6 +2512,9 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: {
               "last_guess_at": string,"length_score": number,"longest_word_len": number,"n_guesses_used": number,"n_letters": number,"user_id": string
             }[]
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "candidate_bases":
 { Args: { "p_n": number,"p_source_band": number }; Returns: {
@@ -2583,6 +2651,9 @@ isOneToOne: false
 "_sync_title":
 { Args: { "p_game_id": string }; Returns: undefined
                            },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
                            },
@@ -2661,10 +2732,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "_make_json_events":
-{ Args: { "p_game_id": string }; Returns: Json
-                           },
-"_make_json_found_words":
+            "_make_json_found_words":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_game_data":
@@ -2675,6 +2743,9 @@ isOneToOne: false
                            },
 "_make_json_puzzle":
 { Args: { "g": Database["wordwheel"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
@@ -2696,6 +2767,9 @@ isOneToOne: false
                            },
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "candidate_words":
 { Args: { "p_center_bit": number,"p_legal_band": number,"p_puzzle_mask": number,"p_required_band": number }; Returns: {

@@ -137,7 +137,6 @@ select is(
     'mode',     'coop',
     'coop',     true,
     'compete',  false,
-    'oneBoard', true,
     'setup',    pg_temp.connections_setup((select id from puzzle)),
     'puzzle',   pg_temp.puzzle_of(pg_temp.coop())),
   'the whole static_game_data of a fresh coop game: the common part, and the frozen puzzle'

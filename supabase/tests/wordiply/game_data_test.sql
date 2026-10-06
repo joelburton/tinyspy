@@ -112,7 +112,6 @@ select is(
     'mode',     'coop',
     'coop',     true,
     'compete',  false,
-    'oneBoard', true,
     'setup',    pg_temp.wordiply_setup(),
     'puzzle',   jsonb_build_object(
                   'base',         'ar',

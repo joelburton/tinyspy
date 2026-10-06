@@ -13,7 +13,7 @@
 -- the parts it starts from, through a game's life:
 --
 --   1. A fresh free-for-all game, as a whole: the static part with the
---      gametype's brand and one_board; no turns, nobody ended, every player
+--      gametype's brand; no turns, nobody ended, every player
 --      on turn
 --   2. A turn-order game: seat order, the holder, who waits; the turn advances
 --   3. A player who ended while the game plays on, and one who conceded
@@ -109,9 +109,8 @@ select is(
     'mode',     'compete',
     'coop',     false,
     'compete',  true,
-    'oneBoard', false,
     'setup',    '{"timer": {"kind": "none"}}'::jsonb),
-  'the whole static common part: the game facts, the gametype''s brand and one_board, the setup'
+  'the whole static common part: the game facts, the gametype''s brand, the setup'
 );
 select is(
   pg_temp.game_data(pg_temp.race()),
@@ -153,10 +152,9 @@ select is(
 );
 select is(
   (pg_temp.static_game_data(pg_temp.turns()) ->> 'coop')::boolean
-    and (pg_temp.static_game_data(pg_temp.turns()) ->> 'oneBoard')::boolean
     and pg_temp.static_game_data(pg_temp.turns()) ->> 'brand' = 'PsychicNum',
   true,
-  'coop, one board and the brand come off the gametype'
+  'coop and the brand come off the game and its gametype'
 );
 
 select common._advance_turn(pg_temp.turns());

@@ -127,7 +127,6 @@ export type GPlayerRaw = PlayerRaw & GTrack & {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

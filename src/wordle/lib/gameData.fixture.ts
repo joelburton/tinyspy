@@ -146,7 +146,6 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     mode,
     coop,
     compete: !coop,
-    oneBoard: coop,
     title,
     setup,
     turns: turnBased ? { holder: turnHolderId } : null,
@@ -173,7 +172,7 @@ export function ZTest_makeWordleCtx(
   // The two blobs the page hands down, split as the builders write them: the
   // common part create fixed in the static one; the rest, the answer
   // included, in game_data.
-  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, ...changing } = raw
+  const { id, gametype, brand, club, mode, coop, compete, setup, ...changing } = raw
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -184,7 +183,7 @@ export function ZTest_makeWordleCtx(
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
     gameData: changing,
-    staticGameData: { id, gametype, brand, club, mode, coop, compete, oneBoard, setup },
+    staticGameData: { id, gametype, brand, club, mode, coop, compete, setup },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

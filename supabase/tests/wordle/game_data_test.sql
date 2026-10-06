@@ -116,7 +116,6 @@ select is(
     'mode',     'coop',
     'coop',     true,
     'compete',  false,
-    'oneBoard', true,
     'setup',    pg_temp.wordle_setup(5)),
   'the whole static_game_data of a fresh coop game: the common part alone'
 );

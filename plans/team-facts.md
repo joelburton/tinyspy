@@ -170,7 +170,9 @@ top-level board, and the pgTAP pins of the blob.
   { own: GFacts }`.
 - **`summary_data.team` keeps its two counts**, built by its own
   `_make_json_team_counts`; game_data's `team` is every fact.
-- **`oneBoard` is dropped in its own commit**, right after psychicnum's.
+- **`oneBoard` is dropped in its own commit**, right after psychicnum's
+  (migration 20261006000003, which also strips the key from the stored static
+  blobs).
 
 ## Open
 

@@ -527,7 +527,6 @@ export type GSummaryData = SummaryData & {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   puzzle                            # the template, frozen at create, and the solution, null until the game ends

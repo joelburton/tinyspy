@@ -190,7 +190,6 @@ export type GPlayerRaw = PlayerRaw & {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

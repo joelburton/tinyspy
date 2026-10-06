@@ -59,7 +59,7 @@ export function BoardCol({
 
   // The rows on the board I play: every guess on coop's shared board, only my
   // own in compete.
-  const boardEvents = gd.events.filter((e) => gd.oneBoard || e.by === gd.me)
+  const boardEvents = gd.events.filter((e) => gd.coop || e.by === gd.me)
 
   const verdict = useVerdictMark({ localFeedbackSlot })
   useMarkForeignGuesses({
@@ -96,7 +96,7 @@ export function BoardCol({
 
   // The players are working one board together: coop with more than one of
   // them. Solo, and in compete, each board is one player's own.
-  const isSharedBoard = gd.oneBoard && gd.players.length > 1
+  const isSharedBoard = gd.coop && gd.players.length > 1
 
   // Each picked tile, with its picker's color where WHOSE pick is worth
   // saying — on a shared board — and null where it is not. No picks are drawn

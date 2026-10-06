@@ -65,7 +65,7 @@ players, one comparison each):
 | read off them | `isConceded`, `isPlayerEnded`, `isEliminated`, `hasSolved` (= `solvedAt !== null`; a coop solve stamps every teammate, so it is right in both modes) |
 | the turn | `isStillPlaying`, `isOnTurn` (was `isMyTurn`), `isWaitingForTurn`, `isBoardInteractive` — derived by the hook from `gd.turns`, so no component writes `turnHolder.user_id === me.user_id` itself |
 | the former `readout` | `maxMistakes` / `maxGuesses`, `requiredCategoriesCount` / `requiredSecretsCount` (the same for every player; the field comment says so), `mistakeCount` / `guessesUsed`, `foundCount` (the player's own in every mode; what the team shares is `gd.team`'s — [team-facts](team-facts.md)) |
-| the board | `board`: the seat's view — connections' `matchedCats` + `tilesLeft`, wordle's rows, psychicnum's tiles (decision 9). In coop every seat's board is the same board, which is what `oneBoard` means |
+| the board | `board`: the seat's view — connections' `matchedCats` + `tilesLeft`, wordle's rows, psychicnum's tiles (decision 9). In coop every seat's board is the same board |
 | the picks (connections) | `picks`: mine held by the hook, a teammate's by Broadcast in coop, an opponent's null in compete |
 
 **Move, don't copy.** When a fact goes onto the player there is no `gd.x`
@@ -116,11 +116,11 @@ the builder, so the facts every game shares are built ONCE, in their final
 names, and a game's builder only adds what its own tables know.
 
 - **The common part of every `gd`** is the game facts every game shares —
-  `brand`, `mode`, `coop`, `compete`, `oneBoard`, `title`, `setup`, `turns`,
+  `brand`, `mode`, `coop`, `compete`, `title`, `setup`, `turns`,
   `ending`, `outcome` — and the player with the standing terms. One common SQL
   helper writes it (`common._make_json_game_data`), each game's builder adds
   its own fields on top, and that is what keeps the shared fields from
-  drifting between games. `brand` and `oneBoard` come off
+  drifting between games. `brand` comes off
   `common.gametypes`, so a game needs its manifest for nothing and `manifest`
   leaves `PlayAreaLoaderProps`. `winner` is common's too: the player ranked
   first.
@@ -153,10 +153,9 @@ A player, not an id, wherever the lookup cannot miss (`holder`, `by`).
 `outcome` sits top-level on the game and on the player, since a player's
 outcome arrives at the game's end whether or not they ended early.
 
-**The shape**, with `#` where a name does not say it. `oneBoard` is "the game
-has one board" (true in solo coop), a fact; "shared", which the Boards read to
-decide whose dot goes on a tile, is `oneBoard && players.length > 1` and is the
-Board's to ask. `board` is what this seat's tiles show and nothing a sentence
+**The shape**, with `#` where a name does not say it. "Shared", which the
+Boards read to decide whose dot goes on a tile, is `coop && players.length > 1`
+and is the Board's to ask. `board` is what this seat's tiles show and nothing a sentence
 about the game would quote: `guessCount` went, because it was `guessesUsed`
 read from the rows for the flash's timing, and two lookalike names must not
 hide a difference only one reader knows.
@@ -169,7 +168,6 @@ gd:                                       # the common part is every line not ma
   mode
   coop
   compete
-  oneBoard
   title
   setup
   setupRows                               # game

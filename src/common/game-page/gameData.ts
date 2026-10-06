@@ -20,9 +20,6 @@ export type StaticGameDataRaw = {
   mode: 'coop' | 'compete'
   coop: boolean
   compete: boolean
-  // The game has one board that every player's moves land on; false, each
-  // player plays their own copy.
-  oneBoard: boolean
   // The setup form's record, frozen at create. A game reads it as its own type;
   // every game's carries the timer.
   setup: Record<string, unknown> & { timer: TimerMode }

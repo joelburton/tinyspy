@@ -252,13 +252,12 @@ create table common.clubs_members (
 --
 -- ┌─ Convention for new gametypes ──────────────────────────────────┐
 -- │ Each gametype's baseline migration must self-register,          │
--- │ declaring its minimum player count, its brand and whether the   │
--- │ game has one board (the last two added by 20261001000000, and   │
--- │ required there):                                                │
+-- │ declaring its minimum player count and its brand (added by      │
+-- │ 20261001000000, and required there):                            │
 -- │                                                                 │
 -- │   insert into common.gametypes                                  │
--- │     (gametype, min_players, brand, one_board)                   │
--- │   values ('boggle_coop', 1, 'MothCubes', true)                  │
+-- │     (gametype, min_players, brand)                              │
+-- │   values ('boggle_coop', 1, 'MothCubes')                        │
 -- │   on conflict do nothing;                                       │
 -- │                                                                 │
 -- │ Every game baseline does this at the bottom of its file; a      │

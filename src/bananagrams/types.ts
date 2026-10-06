@@ -158,7 +158,6 @@ export type GBoard = {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

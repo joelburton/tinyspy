@@ -145,7 +145,6 @@ export type BeeStateLineData = BeeTeam & BeeRankNames & {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

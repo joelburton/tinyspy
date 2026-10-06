@@ -112,7 +112,6 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   mode
  *   coop
  *   compete
- *   oneBoard
  *   title
  *   setup
  *   setupRows

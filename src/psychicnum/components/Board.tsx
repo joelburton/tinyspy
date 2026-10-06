@@ -39,8 +39,8 @@ type Props = {
   // The tiles take a click or a key right now. When they may is `BoardCol`'s
   // to say.
   canPick: boolean
-  // The players are working one board together: `gd.oneBoard` with more than
-  // one of them at it.
+  // The players are working one board together: coop with more than one of
+  // them at it.
   isSharedBoard: boolean
   // Picks a tile, or un-picks with null.
   onPick: (tile: GTile | null) => void

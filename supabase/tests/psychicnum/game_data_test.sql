@@ -138,7 +138,6 @@ select is(
     'mode',     'coop',
     'coop',     true,
     'compete',  false,
-    'oneBoard', true,
     'setup',    '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     'puzzle',   jsonb_build_object(
       'words', '["zalpha","zbravo","zcharlie","zdelta","zecho","zfoxtrot","zgolf","zhotel"]'::jsonb)),

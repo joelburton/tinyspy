@@ -1928,7 +1928,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --
 --   static_game_data, the common part:
 --     id, gametype, brand, club: {handle}
---     mode, coop, compete, oneBoard
+--     mode, coop, compete
 --     setup                                as create_game was handed it; setup.timer is the clock
 --
 --   game_data, the common part:
@@ -2095,7 +2095,6 @@ begin
     'mode',     g.mode,
     'coop',     g.mode = 'coop',
     'compete',  g.mode = 'compete',
-    'oneBoard', gt.one_board,
     'setup',    g.setup);
 end;
 $$;

@@ -97,8 +97,8 @@ export function BoardCol({
         historyView={historyView}
         canPick={canPick}
         // Whose dot goes on a tile is worth saying only where it can differ:
-        // on one board with more than one player at it.
-        isSharedBoard={gd.oneBoard && gd.players.length > 1}
+        // on coop's one board with more than one player at it.
+        isSharedBoard={gd.coop && gd.players.length > 1}
         onPick={pick.choose}
       />
 

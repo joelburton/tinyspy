@@ -150,10 +150,11 @@ seat looks at, and what it shows. What is fixed before play is the
 so far laid on it — psychicnum's word tiles with their green and red,
 wordle's colored rows.
 
-Each seat has a board. In a game with `oneBoard` (`common.gametypes.one_board`)
-every player's moves land on the same one, so every seat's board is the same
-and the dots say whose move each was; otherwise each player plays their own
-copy, and a rival's board is withheld until the game ends. On the page it is
+Each seat has a board. In coop every player's moves land on the same one, so
+every seat's board is the same and the dots say whose move each was; in compete
+each player plays their own copy, and a rival's board is withheld until the
+game ends — except where the board is the contended thing itself (scrabble's,
+setgame's), which every player shares in both modes. On the page it is
 `p.board`, and `gd.me.board` is mine.
 
 ### puzzle
