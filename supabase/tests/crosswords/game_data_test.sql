@@ -1,13 +1,15 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: crosswords' page blobs — game_data, summary_data, and shell_data beside them
+-- Test: crosswords' page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `crosswords._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/crosswords.sql → The page
--- blobs). This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/crosswords.sql → The page blobs). This
+-- file pins what the page gets:
 --
---   1. A fresh game: the template with no solution, the first revision, coop's
+--   1. A fresh game: the template in static_game_data, no solution in
+--      game_data's puzzle, the first revision, coop's
 --      blank grid on the team (no grid on a player), compete's blank grid on
 --      each player (no team), both summaries
 --   2. Coop moves, one at a time: a fill in pen, a fill in pencil (lowercase),
@@ -17,8 +19,8 @@
 --      racer's (the hook withholds, not the builder)
 --   4. The ending: the solution arrives, shell_data rewritten
 --   5. A Restart blanks the grid; the revision keeps rising
---   6. `_rebuild_data_cols_for_all` rewrites every crosswords game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every crosswords game, its static
+--      blob included, without re-dating it
 --
 -- The puzzle is setup.psql's 2×2, answers C A / T S. A free-for-all game seats
 -- its players by username, so ada is writer 1 and bea writer 2.
@@ -29,7 +31,7 @@ set search_path = crosswords, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(30);
+select plan(31);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -57,6 +59,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 create function pg_temp.common_summary(game uuid) returns jsonb language sql as
@@ -78,9 +82,14 @@ create function pg_temp.blank(writers jsonb) returns jsonb language sql as
 
 -- ─── (1) A fresh game ───
 select is(
+  pg_temp.static_game_data(pg_temp.coop()) -> 'puzzle',
+  pg_temp.xw_meta_2x2(),
+  'the static puzzle is the template as the parsers wrote it'
+);
+select is(
   pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
-  pg_temp.xw_meta_2x2() || '{"solution": null}'::jsonb,
-  'the puzzle is the template as the parsers wrote it, with no solution mid-game'
+  '{"solution": null}'::jsonb,
+  'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'revision',
@@ -275,13 +284,17 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(crosswords._rebuild_data_cols_for_all() >= 2, true,
   '_rebuild_data_cols_for_all rewrites every crosswords game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   'every blob is back'
 );

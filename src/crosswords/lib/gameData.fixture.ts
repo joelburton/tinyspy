@@ -211,14 +211,19 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
 
 /**
  * The props `<GamePage>` hands crosswords' `PlayArea`, from the game's facts:
- * the `game_data` blob, and shell_data's roster read off it, viewed by `auth`
- * (`u1` unless said otherwise).
+ * the `game_data` and `static_game_data` blobs, and shell_data's roster read
+ * off them, viewed by `auth` (`u1` unless said otherwise).
  */
 export function ZTest_makeCrosswordsCtx(
   facts: ZTest_GameDataFacts = {},
-  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData' | 'staticGameData'> = {},
 ): PlayAreaLoaderProps {
   const raw = ZTest_makeGameDataRaw(facts)
+  // The two blobs the page hands down, split as the builders write them: what
+  // create fixed, the template included, in the static one; the rest, the
+  // solution included, in game_data.
+  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle, ...changing } = raw
+  const { solution, ...template } = puzzle
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -228,7 +233,8 @@ export function ZTest_makeCrosswordsCtx(
     players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    gameData: raw,
+    gameData: { ...changing, puzzle: { solution } },
+    staticGameData: { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle: template },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

@@ -261,11 +261,17 @@ drop function if exists crosswords._write_statuses(uuid, boolean);
 -- crosswords' facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
---   game_data, crosswords' part:
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, crosswords' part:
 --     puzzle                       the template as the parsers write it (id,
 --                                  title, author, copyright, note, width,
---                                  height, clues, cells), frozen at create,
---                                  plus `solution`, null until the game ends
+--                                  height, clues, cells), frozen at create
+--
+--   game_data, crosswords' part:
+--     puzzle: {solution}           null until the game ends
 --     revision                     raised by every rebuild; set_cell and
 --                                  set_mark answer the one their rebuild wrote
 --     team: {board}                coop's one grid; null in compete
@@ -327,15 +333,16 @@ $$;
 
 revoke execute on function crosswords._make_json_board(jsonb, jsonb, uuid[]) from public;
 
--- The template, and the solution once the game has ended (wordle's rule; the
--- column grant keeps it from any client read).
+-- The puzzle's part of game_data: the solution once the game has ended
+-- (wordle's rule; the column grant keeps it from any client read). The
+-- template is static (`_make_json_static_game_data`).
 create or replace function crosswords._make_json_puzzle(g crosswords.games, p_ended boolean)
 returns jsonb
 language sql
 immutable
 set search_path = crosswords, common, public, extensions
 as $$
-  select g.puzzle_content || jsonb_build_object(
+  select jsonb_build_object(
     'solution', case when p_ended then g.solution end);
 $$;
 
@@ -414,6 +421,22 @@ $$;
 
 revoke execute on function crosswords._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the template on top.
+-- Nothing in it changes after create_game, Restart included.
+create or replace function crosswords._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = crosswords, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', g.puzzle_content)
+    from crosswords.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function crosswords._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: how much of coop's grid is filled, so the club list can
 -- say "60% filled". A racer's grid is their own, so compete has no team count.
 create or replace function crosswords._make_json_summary_data(
@@ -484,12 +507,32 @@ $$;
 revoke execute on function crosswords._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- crosswords._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function crosswords._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = crosswords._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function crosswords._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- crosswords._rebuild_data_cols_for_all — every crosswords game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every crosswords game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every crosswords
+-- game without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function crosswords._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -503,6 +546,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('crosswords_coop', 'crosswords_compete')
   loop
+    perform crosswords._write_static_game_data(v_game_id);
     perform crosswords._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -925,6 +969,7 @@ begin
       case when p_mode = 'coop' then array[null::uuid] else p_player_user_ids end
     ) as o(owner);
 
+  perform crosswords._write_static_game_data(new_id);
   perform crosswords._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It is the only thing

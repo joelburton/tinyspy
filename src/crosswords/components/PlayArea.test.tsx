@@ -413,7 +413,7 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
 
   it('⌥N opens the note and asks teammates to open it too, when the puzzle has one', () => {
     const ctx = makeCtx()
-    ;(ctx.gameData as { puzzle: { note: string } }).puzzle.note = 'Theme: fruit'
+    ;(ctx.staticGameData as { puzzle: { note: string } }).puzzle.note = 'Theme: fruit'
     render(<WithKeys {...ctx} />)
     fireEvent.keyDown(document.body, { code: 'KeyN', key: '˜', altKey: true })
     expect(screen.getByText('Theme: fruit')).toBeInTheDocument()
@@ -448,7 +448,7 @@ describe('crosswords PlayArea — the page chords', () => {
   it('⌥X asks the explainer when the puzzle has a note', async () => {
     edgeFn.mockResolvedValue({ type: 'ok', data: { result: 'unsolved' } })
     const ctx = makeCtx()
-    ;(ctx.gameData as { puzzle: { note: string } }).puzzle.note = 'Cryptic'
+    ;(ctx.staticGameData as { puzzle: { note: string } }).puzzle.note = 'Cryptic'
     render(<WithKeys {...ctx} />)
     expect(stateOf('act-explain-clue')).toBe('active')
     await press({ key: '≈', code: 'KeyX', altKey: true })
