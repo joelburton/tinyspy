@@ -3,8 +3,7 @@
 /* scrabble's play surface, on the shared two-column scaffold
  * (common/game-page/playArea.module.css, imported as `shared`). PlayArea holds the
  * layout-root vars here; the board column's own styles (board sizing + the rack row)
- * live in BoardCol.module.css. The commit-row inner classes below are imported by
- * <Controls> (a BoardCol child) — they stay here so its import is untouched. */
+ * live in BoardCol.module.css, and the commit row's in Controls.module.css. */
 
 /* Per-game layout vars the shared scaffold + BoardCol read. --avail-h is the
  * vertical space left for the square board: viewport − chrome − the below-board
@@ -20,19 +19,6 @@
    * shrinks on a cramped laptop and the rack + action row keep fitting on one line.
    * Defined on .layout (not .boardCol) so the floating drag ghost can read it too. */
 /* @@ */   --rack-tile-size: clamp(22px, calc(min(var(--avail-w), var(--avail-h)) / 18), 38px);
-}
-
-/* The controls fill the space beside the rack: Recall on the left, the commit
- * slot (its `margin-left: auto`) shoved to the row's right edge. The left/right
- * split reads from the gap between them, so there's no divider rule. Because
- * belowBoard is pinned to --side, this flex:1 free space — not the board —
- * absorbs any change in the commit slot's width, so the board never moves. */
-/* @@ */ .controls {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 /* ─── Mobile: the status bar takes its height off the board ───────────────────
@@ -58,11 +44,7 @@
  * 0.75rem gap + 0.25rem margin + 5.1rem = 6.1rem. Portrait phones are
  * width-bound (--avail-w wins the board's min()), so this mostly matters on
  * LANDSCAPE phones, where the board is height-bound: subtracting the taller
- * reserve before the board sizes itself is what keeps the page from scrolling.
- *
- * MUST come after the base `.controls` rule: its `flex: 1` shorthand resets
- * flex-basis to 0%, so at equal specificity source order decides — an earlier
- * override silently loses. */
+ * reserve before the board sizes itself is what keeps the page from scrolling. */
 @media (--phone) {
 /* @@ */   .layout {
     /* The taller two-row reserve, PLUS the mobile status bar (see the --mobile
@@ -74,49 +56,4 @@
       100svh - var(--game-chrome-height) - 6.1rem - var(--mobile-status-height, 1.75rem) - 0.75rem
     );
   }
-  /* The controls take the full row width, wrapping onto their own second row —
-   * UNCONDITIONALLY (not content-dependent, so the slot height never moves
-   * with game state; a coop one-liner *almost* fits at 375px but compete's
-   * Pass button overflows it). The commit slot's margin-left:auto still
-   * right-justifies it within the new row. */
-/* @@ */   .controls {
-    flex-basis: 100%;
-  }
-}
-
-/* scrabble's PARTIAL-SWAP box: it holds EITHER the commit buttons OR (when an
- * own-move result / terminal verdict shows) the local feedback pill — the rack
- * beside it stays, so only this sub-area swaps. Sized to content + shoved to the
- * row's right edge (`margin-left: auto`). This is the AREA only; the buttons'
- * right-justify is the SEPARATE `.commitButtons` (docs/playarea.md →
- * PlayArea layout). The board never moves when it resizes — the flex:1
- * `.controls` free space absorbs it (belowBoard is pinned). */
-/* @@ */ .moveAreaOrLocalFeedback {
-  flex: 0 0 auto;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-
-/* Pill mode: fill the whole space left of the right edge (so `margin-left: auto`
- * resolves to 0) — everything right of Recall becomes the full-width feedback
- * area, letting a longer message read before it ellipsis-clips. */
-/* @@ */ .moveAreaOrLocalFeedbackPill {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* The commit BUTTONS [Swap] [Submit] [Pass], right-justified — the button layout,
- * kept separate from the area above (which just says "this is where the buttons
- * or the feedback go"). */
-/* @@ */ .commitButtons {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-/* @@ */ .loading {
-  padding: 2rem;
-  color: var(--page-text-color);
 }

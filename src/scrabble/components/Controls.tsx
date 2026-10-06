@@ -7,7 +7,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import type { Action } from '@/common/actions/useBindAction'
 import { SubmitWithScore } from '@/common/buttons/SubmitWithScore'
 import { cls } from '@/common/utils/cls'
-import styles from './PlayArea.module.css'
+import styles from './Controls.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 
 /**

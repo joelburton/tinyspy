@@ -63,7 +63,8 @@ export const ZTest_CONCEDED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
 const at = (id: number) => `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`
 
 /** A word play: its placements as the blob writes them (`"x,y:c"`, a capital
- *  for a blank), the words it formed and their score. It takes the player's go. */
+ *  for a blank), the words it formed and their score. It takes the player's
+ *  go; `tile_count` is an exchange's, so a word's is null. */
 export function ZTest_word(
   id: number,
   userId: string,
@@ -73,7 +74,7 @@ export function ZTest_word(
 ): GEventRaw {
   return {
     id, userId, kind: 'word', placements, words, score,
-    nTiles: placements.length, tookTurn: true, at: at(id),
+    nTiles: null, tookTurn: true, at: at(id),
   }
 }
 

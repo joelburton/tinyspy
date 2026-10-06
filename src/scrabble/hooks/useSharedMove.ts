@@ -27,8 +27,8 @@ export function useSharedMove({
   onReceive,
 }: {
   gameId: string
-  /** undefined while the game loads; the channel opens once it resolves to coop. */
-  mode: 'coop' | 'compete' | undefined
+  /** The channel opens in coop alone. */
+  mode: 'coop' | 'compete'
   onReceive: (payload: GSharedMovePayload) => void
 }): { shareMove: (payload: GSharedMovePayload) => void } {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)

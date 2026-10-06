@@ -9,8 +9,9 @@ import {
   premiumAt,
 } from '../lib/board'
 import type { GCell, GPremiumType } from '../types'
-import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'
-import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
+import type { ScrabblePrintModel } from './model'
 
 /**
  * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
@@ -22,19 +23,6 @@ import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
  * The board + rack sit at the top of the LEFT column; the moves flow down under them
  * (via `eventLog`) and continue in the RIGHT column, then onto further pages.
  */
-
-/** The print payload — plain data, built by the caller from the live game state, so
- *  this module knows nothing about the game hooks. */
-export type ScrabblePrintModel = PrintHeader & {
-  /** The 225 cells (the same cells the FE renders). */
-  board: GCell[]
-  /** One row per play, already formatted (# / who / what). */
-  moves: TurnRow[]
-  /** The tiles to show ('?' = a blank). */
-  rack: string[]
-  /** "Your rack" (compete) / "Team rack" (coop) / "" (a watcher — omit). */
-  rackLabel: string
-}
 
 /** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
  *  board-color exception in common/pdf/doc.md, kept faint so the ink reads clean. */

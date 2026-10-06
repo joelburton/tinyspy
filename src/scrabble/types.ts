@@ -182,15 +182,27 @@ export type GStateLineData = {
 }
 
 /**
- * Every answer scrabble gives about a turn: a log row's `kind`. `lib/answer.ts`
- * says what each one reads as (docs/outcomes.md → How a game does it).
+ * Every answer scrabble gives about a turn — the whole roster of what this game
+ * tells anybody. `lib/answer.ts` says what each one reads as
+ * (docs/outcomes.md → How a game does it).
  *
- * The dictionary's refusal is not one: `_commit_word` answers `invalid` and
- * writes no row, so a refused word never reaches the log or the board history.
- * The pill and the red tile flash are its only surfaces, and both read that
- * envelope.
+ * `word`, `exchange` and `pass` are a turn I took; the `_peer` three are an
+ * opponent's, in the header. `invalid` is the dictionary's refusal:
+ * `_commit_word` writes no row for it, so it never reaches the log. `leftovers`
+ * and `went_out` are the rows an ending writes, read by the log alone. A play
+ * whose shape the board turns away is not an answer — it never leaves the
+ * client, and its pill is its only surface.
  */
-export type GAnswer = GEventRaw['kind']
+export type GAnswer =
+  | { answerType: 'word'; words: string[]; score: number; bingo: boolean }
+  | { answerType: 'word_peer'; words: string[]; score: number }
+  | { answerType: 'invalid'; badWords: string[] }
+  | { answerType: 'exchange'; nTiles: number }
+  | { answerType: 'exchange_peer'; nTiles: number }
+  | { answerType: 'pass' }
+  | { answerType: 'pass_peer' }
+  | { answerType: 'leftovers' }
+  | { answerType: 'went_out' }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player and the placements into tiles (`GEvent`). */
@@ -205,7 +217,8 @@ export type GEventRaw = {
   placements: string[] | null
   words: string[] | null
   score: number | null
-  // The tiles an exchange swapped.
+  // The tiles an exchange swapped, or the tiles a `leftovers` row's rack still
+  // held; null otherwise.
   nTiles: number | null
   // A word, an exchange or a pass takes the player's go; the end's rows do not.
   tookTurn: boolean
@@ -362,6 +375,47 @@ export type GSuggestState =
 export type GHistoryTarget =
   | { kind: 'turn'; id: number }
   | { kind: 'peerPreview'; placements: GPlacement[]; sharerId: string; words: string[]; score: number }
+
+/** A teammate's shown move, as the board viewer draws it: their staged tiles
+ *  over my live board. */
+export type GPeerMove = {
+  sharer: GPlayer
+  placements: GPlacement[]
+  words: string[]
+  score: number
+}
+
+/**
+ * What the board viewer has open — a past turn, a teammate's shown move, or
+ * nothing — and the board it draws (`useHistoryView`). Both overlays freeze
+ * the move and wear the same chrome; a new move, a click or a key exits
+ * either.
+ */
+export type GHistoryView = {
+  // A past turn or a shown move is open: the board takes no move while it is.
+  isViewing: boolean
+  // What is open, read at event time by the board's drag handler, which is
+  // registered once.
+  targetRef: { readonly current: GHistoryTarget | null }
+  // The log row open on the board (`events.id`), or null.
+  viewedEventId: number | null
+  // A teammate's shown move, or null.
+  peerMove: GPeerMove | null
+  // Open a turn — the log's `#N` click, with the number it printed beside it.
+  show: (id: number, n: number | null) => void
+  // Open a teammate's shown move, unless my board has moved on since.
+  showPeerMove: (payload: GSharedMovePayload) => void
+  // Back to the live board.
+  exit: () => void
+  // The board just after the viewed turn; null when live, and for a shown
+  // move, which is drawn on the live board.
+  cells: GCell[] | null
+  // The viewed turn's tiles, or the shown move's, ringed; empty when live.
+  litCellIds: string[]
+  // The banner's words for a viewed turn ("#1 moth: +10 APPLE"); null when
+  // live, and for a shown move, whose banner names the sharer with their dot.
+  label: string | null
+}
 
 /**
  * A coop "show a move" broadcast: the sharer's staged tiles, so a teammate can
