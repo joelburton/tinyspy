@@ -18,16 +18,19 @@
 -- What is particular to bananagrams (docs/games/bananagrams.md has the rest):
 --   - Compete only, with no mode parameter; one player is allowed.
 --   - Each player's board is the page's own: the page holds it and saves it
---     back (save_player_board), and nobody else sees it until the game ends.
---     The tiles a player holds are the server's: dealt, grown by a peel,
---     swapped by a dump. The hand is only the page's way of showing the
+--     back (save_player_board), and the blob carries each board as last
+--     saved. The tiles a player holds are the server's: dealt, grown by a
+--     peel, swapped by a dump. The hand is only the page's way of showing the
 --     tiles not on the board.
---   - A player's progress, the number peers see, is the tiles they hold that
---     are not in their board's largest block (_main_block_size) — a tile
---     pushed off to the side is no more placed than one in the hand.
+--   - A player's `nUnplacedTiles`, the number rivals see, is the tiles they
+--     hold that are not in their board's largest block (_main_block_size) — a
+--     tile pushed off to the side is no more placed than one in the hand.
 --   - The only way to win is to peel with an empty hand when the bunch cannot
 --     refill the table. A peel draws 1 tile and a dump 3, as constants.
---   - A board save rewrites the statuses only when it changes that number.
+--   - Every letter is stored lowercase; the page draws the capitals.
+--   - The page reads the blobs `_rebuild_data_cols` writes onto common.games,
+--     and nothing from these tables. A board save rebuilds them too, so a
+--     rival's count moves as the board does.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -35,7 +38,15 @@
 
 grant usage on schema bananagrams to authenticated;
 
--- Games: any club member sees the row.
+-- The columns a club member may read. The page reads the blobs on
+-- common.games and nothing from here; the deal and the two piles stay out of
+-- the grant, since their order is every draw to come. Revoke first: grants
+-- are additive, so a column an earlier grant named (the bunch) stays readable
+-- until it is revoked.
+revoke select on bananagrams.games from authenticated;
+grant select
+  (game_id, hand_size, word_check, dict_2, dict_3plus, dump_to_bag)
+  on bananagrams.games to authenticated;
 drop policy if exists games_select on bananagrams.games;
 create policy games_select on bananagrams.games
   for select to authenticated
@@ -47,52 +58,32 @@ create policy games_select on bananagrams.games
     )
   );
 
--- Player boards: OWNER ONLY WHILE THE RACE IS ON, then open to the club.
--- A rival must not read your grid (or your rack) while it could help them —
--- the competitive visibility rule, enforced at the row level.
---
--- Once the game has ended it opens, as every other compete game's rows do.
--- Nothing is left to protect then, and the finished boards are the
--- interesting part — comparing grids is most of the fun of having raced, and
--- the printout can show every board.
---
--- The club gate is stated explicitly even though a non-member's subquery
--- would find nothing anyway: a policy whose safety depends on another
--- table's policy is a hidden coupling.
+-- Everything except a player's `board` and `tiles`: the page's useGame
+-- withholds a rival's until the end, and the table says the same.
+revoke select on bananagrams.player_boards from authenticated;
+grant select (game_id, user_id, updated_at) on bananagrams.player_boards to authenticated;
 drop policy if exists player_boards_select on bananagrams.player_boards;
 create policy player_boards_select on bananagrams.player_boards
   for select to authenticated
   using (
-    user_id = (select auth.uid())
-    or exists (
+    exists (
       select 1 from common.games cg
        where cg.id = player_boards.game_id
          and common._is_club_member(cg.club_handle)
-         and cg.ended_at is not null
     )
   );
 
--- Progress: club-wide. Peers read each other's counts (but not boards).
-drop policy if exists progress_select on bananagrams.progress;
-create policy progress_select on bananagrams.progress
+grant select on bananagrams.events to authenticated;
+drop policy if exists events_select on bananagrams.events;
+create policy events_select on bananagrams.events
   for select to authenticated
   using (
     exists (
       select 1 from common.games cg
-       where cg.id = progress.game_id
+       where cg.id = events.game_id
          and common._is_club_member(cg.club_handle)
     )
   );
-
--- `bunch_at_setup` is left out: it is the whole shuffled deal, so it would
--- tell a player every tile still to come. `bunch` and `bag` are readable, and
--- the page counts them.
-grant select
-  (game_id, hand_size, word_check, dict_2, dict_3plus, dump_to_bag, bunch, bag)
-  on bananagrams.games to authenticated;
-
-grant select on bananagrams.player_boards to authenticated;
-grant select on bananagrams.progress to authenticated;
 
 -- ============================================================
 -- bananagrams._full_bag — the standard 144-tile letter distribution
@@ -106,13 +97,13 @@ language sql
 immutable
 as $$
   select
-    repeat('A', 13) || repeat('B', 3)  || repeat('C', 3)  || repeat('D', 6)  ||
-    repeat('E', 18) || repeat('F', 3)  || repeat('G', 4)  || repeat('H', 3)  ||
-    repeat('I', 12) || repeat('J', 2)  || repeat('K', 2)  || repeat('L', 5)  ||
-    repeat('M', 3)  || repeat('N', 8)  || repeat('O', 11) || repeat('P', 3)  ||
-    repeat('Q', 2)  || repeat('R', 9)  || repeat('S', 6)  || repeat('T', 9)  ||
-    repeat('U', 6)  || repeat('V', 3)  || repeat('W', 3)  || repeat('X', 2)  ||
-    repeat('Y', 3)  || repeat('Z', 2);
+    repeat('a', 13) || repeat('b', 3)  || repeat('c', 3)  || repeat('d', 6)  ||
+    repeat('e', 18) || repeat('f', 3)  || repeat('g', 4)  || repeat('h', 3)  ||
+    repeat('i', 12) || repeat('j', 2)  || repeat('k', 2)  || repeat('l', 5)  ||
+    repeat('m', 3)  || repeat('n', 8)  || repeat('o', 11) || repeat('p', 3)  ||
+    repeat('q', 2)  || repeat('r', 9)  || repeat('s', 6)  || repeat('t', 9)  ||
+    repeat('u', 6)  || repeat('v', 3)  || repeat('w', 3)  || repeat('x', 2)  ||
+    repeat('y', 3)  || repeat('z', 2);
 $$;
 revoke execute on function bananagrams._full_bag() from public;
 
@@ -123,7 +114,7 @@ revoke execute on function bananagrams._full_bag() from public;
 -- right (a diagonal touch does not join), or 0 for an empty board. A tile the
 -- player holds that is not in this block — still in the page's hand, or
 -- pushed off to the side of the board — is not yet placed, so a player's
--- `progress.unplaced_count` is their tiles minus this.
+-- `nUnplacedTiles` is their tiles minus this (_make_json_players).
 --
 -- Each filled cell is visited once: a walk over the grid starts a flood from
 -- every filled cell no earlier flood reached, and keeps the largest count.
@@ -171,64 +162,142 @@ end;
 $$;
 revoke execute on function bananagrams._main_block_size(text) from public;
 
--- ============================================================
--- bananagrams._count_unplaced — bring the players' counts up to date
--- ============================================================
--- Sets `progress.unplaced_count` for `p_user_ids` from what the server holds: the
--- tiles each holds minus their board's main block (see _main_block_size),
--- clamped at 0 so a board that ran ahead of the server's tiles can't show a
--- negative count. `progress.placed` is every filled cell. Returns whether any
--- player's `unplaced_count` changed — the strip's number, so the caller rewrites
--- the statuses when it did.
-create or replace function bananagrams._count_unplaced(p_game_id uuid, p_user_ids uuid[])
-returns boolean
-language plpgsql
-as $$
-declare
-  changed_count int;
-begin
-  with counted as (
-    select pb.user_id,
-           pr.unplaced_count as old_unplaced,
-           greatest(length(pb.tiles) - bananagrams._main_block_size(pb.board), 0) as new_unplaced,
-           length(replace(pb.board, '.', '')) as placed
-      from bananagrams.player_boards pb
-      join bananagrams.progress pr
-        on pr.game_id = pb.game_id and pr.user_id = pb.user_id
-     where pb.game_id = p_game_id and pb.user_id = any (p_user_ids)
-  ), updated as (
-    update bananagrams.progress p
-       set unplaced_count = c.new_unplaced, placed = c.placed
-      from counted c
-     where p.game_id = p_game_id and p.user_id = c.user_id
-    returning c.old_unplaced, c.new_unplaced
-  )
-  select count(*) into changed_count from updated where old_unplaced <> new_unplaced;
-  return changed_count > 0;
-end;
-$$;
-revoke execute on function bananagrams._count_unplaced(uuid, uuid[]) from public;
+-- The counter and the statuses this game wrote before the page read the
+-- blobs; supabase/sql is re-applied, not diffed.
+drop function if exists bananagrams._count_unplaced(uuid, uuid[]);
+drop function if exists bananagrams._write_statuses(uuid, boolean);
 
 -- ============================================================
--- bananagrams._write_statuses — the page's copies of the game
+-- The page blobs — what bananagrams writes onto common.games
 -- ============================================================
--- Writes `common.games.game_status`, every `common.game_players.player_status`
--- and `common.games.clubpage_info` from bananagrams' own tables, assigning
--- each whole (plans/common-tables.md → The statuses). Every key is always
--- present, null when it has no value:
+-- `_rebuild_data_cols` writes everything a page shows onto `common.games`
+-- after every move and every board save (plans/seat-view.md → The page is
+-- written, not assembled), in named pieces a reader can follow, each a
+-- `_make_json_*` that builds and writes nothing. The common part of each blob
+-- is common's (supabase/sql/common.sql → The page blobs' common parts); this
+-- is bananagrams' part. Every key is always present, null when it has no
+-- value.
 --
---   game_status    {} — bananagrams has no info column
---   player_status  { unplaced_count, player_ended_reason }
---                  — the strip's number (the player's tiles not in their
---                  board's main block) and how the player ended: went out,
---                  or conceded
---   clubpage_info  { bunch_tiles_count, winner_user_id }
---                  — the tiles left in the bunch, and who went out
+--   game_data, bananagrams' part:
+--     nBunchTiles                          the draw pile's count; its order never
+--                                          leaves the server
+--     nBagTiles                            the out-of-play reserve's count
+--     team                                 null: compete only
+--     events: [event, …]                   every row, in order:
+--       id, userId, kind                   peel / dump / went_out
+--       tile                               the letter dumped; null otherwise
+--       nDrawn                             1 on a peel, 3 on a dump, 0 on going out
+--       at
+--     players: [player, …]                 the common player, plus:
+--       tiles                              every letter they hold, hand and board
+--                                          together, one lowercase string. Every
+--                                          player's is in the blob; the page's
+--                                          useGame withholds a rival's until the end
+--       nTiles                             length(tiles)
+--       nUnplacedTiles                     tiles not in their board's main block
+--                                          (_main_block_size): the strip's number
+--       board: {letters}                   the 625-character grid as last saved,
+--                                          row-major, "." an empty cell. Withheld
+--                                          from a rival as `tiles` is
+--
+--   summary_data, bananagrams' part:
+--     nBunchTiles
+
+-- The log: every row, in the order of play.
+create or replace function bananagrams._make_json_events(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = bananagrams, common, public, extensions
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id',     e.id,
+           'userId', e.user_id,
+           'kind',   e.kind,
+           'tile',   e.tile,
+           'nDrawn', e.n_drawn,
+           'at',     e.created_at) order by e.id), '[]'::jsonb)
+    from bananagrams.events e
+   where e.game_id = p_game_id;
+$$;
+
+revoke execute on function bananagrams._make_json_events(uuid) from public;
+
+-- Every player as bananagrams' game_data shows them: the common player, with
+-- the tiles they hold, the two counts, and their board as last saved. The
+-- unplaced count is clamped at 0: the page may have placed a tile the server
+-- has not been told it holds yet.
+create or replace function bananagrams._make_json_players(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = bananagrams, common, public, extensions
+as $$
+  select jsonb_agg(
+           cp.player || jsonb_build_object(
+             'tiles',          pb.tiles,
+             'nTiles',         length(pb.tiles),
+             'nUnplacedTiles', greatest(length(pb.tiles) - bananagrams._main_block_size(pb.board), 0),
+             'board',          jsonb_build_object('letters', pb.board))
+           order by cp.ord)
+    from common._make_json_players(p_game_id) cp
+    join bananagrams.player_boards pb on pb.game_id = p_game_id and pb.user_id = cp.id;
+$$;
+
+revoke execute on function bananagrams._make_json_players(uuid) from public;
+
+-- The whole game_data blob: the common part, with bananagrams' two counts, the
+-- log and the players on top.
+create or replace function bananagrams._make_json_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = bananagrams, common, public, extensions
+as $$
+  select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'nBunchTiles', length(g.bunch),
+           'nBagTiles',   length(g.bag),
+           'team',        null,
+           'events',      bananagrams._make_json_events(p_game_id),
+           'players',     bananagrams._make_json_players(p_game_id))
+    from bananagrams.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function bananagrams._make_json_game_data(uuid) from public;
+
+-- The game summed up: the one number a list of games shows for this one. The
+-- winner is already the common part's `ending.winner`.
+create or replace function bananagrams._make_json_summary_data(
+  p_game_id uuid,
+  p_status_changed_at timestamptz
+)
+returns jsonb
+language sql
+stable
+set search_path = bananagrams, common, public, extensions
+as $$
+  select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
+           'nBunchTiles', length(g.bunch))
+    from bananagrams.games g
+   where g.game_id = p_game_id;
+$$;
+
+revoke execute on function bananagrams._make_json_summary_data(uuid, timestamptz) from public;
+
+-- ============================================================
+-- bananagrams._rebuild_data_cols — one game's data columns, rebuilt
+-- ============================================================
+-- Rebuilds the page blobs (`game_data`, `summary_data`, and `shell_data`
+-- through `common._make_json_shell_data`) from bananagrams' own tables,
+-- assigning each whole. Every RPC calls it after a move, and save_player_board
+-- after every save; it is also the repair for one game by hand. The shapes
+-- are drawn above.
 --
 -- `p_update_status_changed_at` is true from create, Restart and every move,
 -- false from a rebuild (the pass over every game, a repair by hand), so a
 -- rebuild never re-dates a game.
-create or replace function bananagrams._write_statuses(
+create or replace function bananagrams._rebuild_data_cols(
   p_game_id uuid,
   p_update_status_changed_at boolean
 )
@@ -237,30 +306,53 @@ language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
 as $$
+declare
+  v_status_changed_at timestamptz;
 begin
-  update common.game_players gp
-     set player_status = jsonb_build_object(
-           'unplaced_count', p.unplaced_count,
-           'player_ended_reason', gp.player_ended_reason)
-    from bananagrams.progress p
-   where gp.game_id = p_game_id
-     and p.game_id = gp.game_id
-     and p.user_id = gp.user_id;
+  -- One instant for the column and the blob's copy of it.
+  select case when p_update_status_changed_at then now() else status_changed_at end
+    into v_status_changed_at
+    from common.games where id = p_game_id;
 
   update common.games
-     set game_status = '{}'::jsonb,
-         clubpage_info = jsonb_build_object(
-           'bunch_tiles_count', (select length(bunch) from bananagrams.games
-                                  where game_id = p_game_id),
-           'winner_user_id', (select user_id from common.game_players
-                               where game_id = p_game_id and final_ranking = 1)),
-         status_changed_at = case when p_update_status_changed_at
-                                  then now() else status_changed_at end
+     set game_data = bananagrams._make_json_game_data(p_game_id),
+         summary_data = bananagrams._make_json_summary_data(p_game_id, v_status_changed_at),
+         shell_data = common._make_json_shell_data(p_game_id),
+         status_changed_at = v_status_changed_at
    where id = p_game_id;
 end;
 $$;
 
-revoke execute on function bananagrams._write_statuses(uuid, boolean) from public;
+revoke execute on function bananagrams._rebuild_data_cols(uuid, boolean) from public;
+
+-- ============================================================
+-- bananagrams._rebuild_data_cols_for_all — every bananagrams game's, rebuilt
+-- ============================================================
+-- For a shape change, or a game created before its builder knew the blobs:
+-- `_rebuild_data_cols` over every bananagrams game without re-dating any, and
+-- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
+-- client calls it, so it has no grant and wears the `_`.
+create or replace function bananagrams._rebuild_data_cols_for_all()
+returns int
+language plpgsql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+declare
+  v_count int := 0;
+  v_game_id uuid;
+begin
+  for v_game_id in
+    select id from common.games where gametype = 'bananagrams'
+  loop
+    perform bananagrams._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function bananagrams._rebuild_data_cols_for_all() from public;
 
 drop function if exists bananagrams.create_game(text, jsonb, uuid[]);
 
@@ -477,11 +569,7 @@ begin
   from (select uid, row_number() over (order by uid) as pi
           from unnest(p_player_user_ids) as uid) pu;
 
-  insert into bananagrams.progress (game_id, user_id, unplaced_count, placed)
-  select new_id, uid, s_hand_size, 0
-    from unnest(p_player_user_ids) as uid;
-
-  perform bananagrams._write_statuses(new_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. The name is here even
   -- though this is the only `ok` — a call site cannot assert a case the payload
@@ -522,12 +610,12 @@ drop function if exists bananagrams.save_player_board(uuid, text);
 -- `tiles` minus what is on the board.
 --
 -- Trust model: the board is private and unvalidated, so it is stored as
--- handed — no check that the placed letters are a subset of `tiles`.
+-- handed — no check that the placed letters are a subset of `tiles`. Its
+-- shape is checked: 625 cells, each a lowercase letter or empty.
 --
--- Then the player's `progress` is recounted (_count_unplaced). Most saves
--- are a player rearranging their board, which leaves the count of tiles not
--- in the main block alone; only a save that changes it rewrites the
--- statuses.
+-- Then the blobs are rebuilt, every save: the saver's board in the blob is
+-- the board as last saved, which is what their page seeds from on a remount,
+-- and their `nUnplacedTiles` is the number a rival's strip shows.
 --
 -- A save into an ended game, or from a player who has conceded, is dropped —
 -- a late unmount-snapshot must not clobber a final board or revive a
@@ -547,8 +635,8 @@ declare
 begin
   caller_id := common._require_game_player(p_game_id);
 
-  -- Locked like every move, so a recount and a peel or dump don't interleave
-  -- their writes of the statuses.
+  -- Locked like every move, so a save and a peel or dump don't interleave
+  -- their rebuilds of the blobs.
   perform 1 from bananagrams.games where game_id = p_game_id for update;
   if not found then
     raise exception 'BUG: a board save for a game that does not exist'
@@ -566,12 +654,12 @@ begin
     return common._ok_envelope(jsonb_build_object('result', 'conceded'));
   end if;
 
-  -- The FE builds the 625-char grid itself; a player cannot hand over another
-  -- size, so a wrong one is ours.
-  if length(p_board) <> 25 * 25 then
-    raise exception 'BUG: a board save with the wrong grid size'
+  -- The FE builds the 625-char grid itself from lowercase tiles; a player
+  -- cannot hand over another shape, so a wrong one is ours.
+  if length(p_board) <> 25 * 25 or p_board !~ '^[a-z.]*$' then
+    raise exception 'BUG: a board save with the wrong grid shape'
       using errcode = 'PN350', hint = 'fault', column = '_',
-      detail = 'the 25x25 board snapshot must be 625 chars';
+      detail = 'the 25x25 board snapshot must be 625 chars, each a lowercase letter or .';
   end if;
 
   update bananagrams.player_boards
@@ -579,9 +667,7 @@ begin
          updated_at = now()
    where game_id = p_game_id and user_id = caller_id;
 
-  if bananagrams._count_unplaced(p_game_id, array[caller_id]) then
-    perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
-  end if;
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(jsonb_build_object('result', 'saved'));
 
@@ -679,7 +765,7 @@ as $$
      where p_check_words
        and not exists (
          select 1 from common.words cw
-          where cw.word = lower(w.word)
+          where cw.word = w.word
             and cw.difficulty <= case when length(w.word) = 2 then p_dict_2 else p_dict_3plus end
        )
   )
@@ -813,7 +899,10 @@ begin
       p_final_rankings => jsonb_build_object(caller_id::text, 1)
     );
 
-    perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+    insert into bananagrams.events (game_id, user_id, kind, n_drawn)
+    values (p_game_id, caller_id, 'went_out', 0);
+
+    perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
     return common._ok_envelope(jsonb_build_object(
       'result', 'won', 'invalid_cells', '[]'::jsonb));
   end if;
@@ -840,17 +929,16 @@ begin
     from ranked r
    where pb.game_id = p_game_id and pb.user_id = r.user_id;
 
-  -- Each racer now holds one more tile than their board shows.
-  perform bananagrams._count_unplaced(p_game_id, array(
-    select user_id from common.game_players
-     where game_id = p_game_id and player_ended_at is null));
-
   -- Advance the bunch past the drawn tiles.
   update bananagrams.games
      set bunch = substr(g.bunch, racing_count + 1)
    where game_id = p_game_id;
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  -- The peeler's row: everyone drew, but one player peeled.
+  insert into bananagrams.events (game_id, user_id, kind, n_drawn)
+  values (p_game_id, caller_id, 'peel', 1);
+
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'dealt', 'invalid_cells', '[]'::jsonb));
 
@@ -1035,8 +1123,8 @@ begin
 
   -- The letter always comes off a tile the FE rendered — there is no way to
   -- type one — so anything else is ours.
-  v_tile := upper(p_tile);
-  if v_tile !~ '^[A-Z]$' then
+  v_tile := p_tile;
+  if v_tile !~ '^[a-z]$' then
     raise exception 'BUG: a dump of something that is not a tile'
       using errcode = 'PN346', hint = 'fault', column = '_',
       detail = 'a tile id is a single letter';
@@ -1087,9 +1175,10 @@ begin
      set bunch = new_bunch, bag = new_bag
    where game_id = p_game_id;
 
-  perform bananagrams._count_unplaced(p_game_id, array[caller_id]);
+  insert into bananagrams.events (game_id, user_id, kind, tile, n_drawn)
+  values (p_game_id, caller_id, 'dump', v_tile, 3);
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'dumped'));
 
 exception when others then
@@ -1140,7 +1229,7 @@ begin
     p_final_rankings => '{}'::jsonb
   );
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1252,9 +1341,8 @@ begin
      set bunch = new_bunch, bag = new_bag
    where game_id = p_game_id;
 
-  update bananagrams.progress
-     set unplaced_count = g.hand_size, placed = 0
-   where game_id = p_game_id;
+  -- The log is the previous deal's.
+  delete from bananagrams.events where game_id = p_game_id;
 
   update common.game_players
      set solved_at = null
@@ -1262,7 +1350,7 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then
@@ -1306,7 +1394,7 @@ begin
 
   perform common._concede(p_game_id);
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'conceded'));
 
 exception when others then
@@ -1352,7 +1440,7 @@ begin
 
   perform common._stop(p_game_id);
 
-  perform bananagrams._write_statuses(p_game_id, p_update_status_changed_at => true);
+  perform bananagrams._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
