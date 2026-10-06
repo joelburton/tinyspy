@@ -1,13 +1,13 @@
 /* cs-unmet */
 
-/* The commit row beside the rack: Recall, then the slot that holds either the
- * commit buttons or the local feedback pill. */
+/* The move row beside the rack: Recall, then the slot that holds either the
+ * move buttons or the local feedback pill. */
 
-/* The controls fill the space beside the rack: Recall on the left, the commit
+/* The controls fill the space beside the rack: Recall on the left, the move
  * slot (its `margin-left: auto`) shoved to the row's right edge. The left/right
  * split reads from the gap between them, so there's no divider rule. Because
  * belowBoard is pinned to --side, this flex:1 free space — not the board —
- * absorbs any change in the commit slot's width, so the board never moves. */
+ * absorbs any change in the move slot's width, so the board never moves. */
 /* @@ */ .controls {
   flex: 1;
   min-width: 0;
@@ -16,11 +16,11 @@
   gap: 6px;
 }
 
-/* scrabble's PARTIAL-SWAP box: it holds EITHER the commit buttons OR (when an
+/* scrabble's PARTIAL-SWAP box: it holds EITHER the move buttons OR (when an
  * own-move result / terminal verdict shows) the local feedback pill — the rack
  * beside it stays, so only this sub-area swaps. Sized to content + shoved to the
  * row's right edge (`margin-left: auto`). This is the AREA only; the buttons'
- * right-justify is the SEPARATE `.commitButtons` (docs/playarea.md →
+ * right-justify is the SEPARATE `.moveButtons` (docs/playarea.md →
  * PlayArea layout). The board never moves when it resizes — the flex:1
  * `.controls` free space absorbs it (belowBoard is pinned). */
 /* @@ */ .moveAreaOrLocalFeedback {
@@ -38,10 +38,10 @@
   min-width: 0;
 }
 
-/* The commit BUTTONS [Swap] [Submit] [Pass], right-justified — the button layout,
+/* The move BUTTONS [Swap] [Submit] [Pass], right-justified — the button layout,
  * kept separate from the area above (which just says "this is where the buttons
  * or the feedback go"). */
-/* @@ */ .commitButtons {
+/* @@ */ .moveButtons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -56,7 +56,7 @@
   /* The controls take the full row width, wrapping onto their own second row —
    * UNCONDITIONALLY (not content-dependent, so the slot height never moves
    * with game state; a coop one-liner *almost* fits at 375px but compete's
-   * Pass button overflows it). The commit slot's margin-left:auto still
+   * Pass button overflows it). The move slot's margin-left:auto still
    * right-justifies it within the new row. */
 /* @@ */   .controls {
     flex-basis: 100%;

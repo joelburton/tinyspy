@@ -249,7 +249,7 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 --     nBagTiles                            the bag's order never leaves the server
 --     board: {letters}                     the one board, shared in both modes:
 --                                          225 characters, row-major, "." an
---                                          empty square, "c" a C tile, "C" a
+--                                          empty cell, "c" a C tile, "C" a
 --                                          blank played as C
 --     team: {rack, score, nRackTiles}      the team's one rack and its score,
 --                                          the players' sum less the leftovers;
@@ -295,7 +295,7 @@ $$;
 
 revoke execute on function scrabble._make_json_board(jsonb) from public;
 
--- A word play's placements, each the square and its letter under the board's
+-- A word play's placements, each the cell and its letter under the board's
 -- case rule: "7,7:c", or "7,7:C" for a blank played as C. Null for a row that
 -- placed nothing.
 create or replace function scrabble._make_json_placements(p_placements jsonb)
@@ -944,8 +944,8 @@ drop function if exists scrabble._commit_word(uuid, int, int, jsonb, text[], int
 -- log + advance + end check.
 --
 -- Answers, and the page's lib/answer.ts says what each is worth:
---   { result:'invalid', bad_words }                    -- a word fails the band (free reject)
---   { result:'accepted', drawn, version, terminal }    -- committed
+--   { result:'invalid', bad_words }    -- a word fails the band (free reject)
+--   { result:'accepted', drawn }       -- played; `drawn` is the tiles it drew
 --
 -- Every letter arrives lowercase, as it is stored and as the page holds it.
 create or replace function scrabble._commit_word(
@@ -975,7 +975,6 @@ declare
   v_ndraw      int;
   v_drawn      text[];
   v_new_rack   text[];
-  v_terminal   boolean := false;
 begin
   g := scrabble._require_move(p_game_id, p_base_version, 'PN437');
   select mode into v_mode from common.games where id = p_game_id;
@@ -999,7 +998,7 @@ begin
   v_board := g.board;
 
   -- ─── Integrity guards: apply placements to a LOCAL board ──
-  -- (in-bounds, on an empty square, no two on the same square) and
+  -- (in-bounds, on an empty cell, no two on the same cell) and
   -- collect the consumed tile glyphs. Nothing is persisted yet.
   for rec in select jsonb_array_elements(p_placements) loop
     v_x := (rec->>'x')::int;
@@ -1015,7 +1014,7 @@ begin
     if jsonb_typeof(v_board -> v_idx) = 'object' then
       raise exception 'BUG: a tile on an occupied square'
         using errcode = 'PN441', hint = 'fault', column = '_',
-        detail = format('a tile already sits on square %s', v_idx);
+        detail = format('a tile already sits on cell %s', v_idx);
     end if;
     v_consumed := v_consumed || (case when v_blank then '?' else v_letter end);
     v_board := jsonb_set(v_board, array[v_idx::text],
@@ -1076,7 +1075,6 @@ begin
   -- ─── End check: going out (bag empty AND acting rack empty) ──
   if coalesce(array_length(g.bag, 1), 0) = v_ndraw
      and coalesce(array_length(v_new_rack, 1), 0) = 0 then
-    v_terminal := true;
     perform scrabble._finish(
       p_game_id, 'resource_exhausted', 'complete',
       case when v_mode = 'compete' then p_user_id end, p_user_id);
@@ -1090,9 +1088,7 @@ begin
   return common._ok_envelope(
     jsonb_build_object(
       'result', 'accepted',
-      'drawn', to_jsonb(v_drawn),
-      'version', g.version + 1,
-      'terminal', v_terminal));
+      'drawn', to_jsonb(v_drawn)));
 
 -- The wrappers each carry their OWN copy of this block, and must: a
 -- wrapper's player gate raises BEFORE it delegates, so this block never
@@ -1257,9 +1253,8 @@ drop function if exists scrabble._commit_exchange(uuid, int, int, text[]);
 -- Coop: a rack refresh (and a turn, in turn-by-turn coop). The core shared
 -- by exchange_tiles (a person) and ai_exchange_tiles (a bot).
 --
--- The page's lib/answer.ts says what the row this wrote is worth. `terminal`
--- is always false — an exchange can't end a game — but every move answers
--- with it, so the FE branches on it uniformly.
+-- The page's lib/answer.ts says what the row this wrote is worth. Answers
+-- `{ result:'exchanged', drawn }`, the tiles it drew.
 create or replace function scrabble._commit_exchange(
   p_game_id      uuid,
   p_user_id      uuid,
@@ -1329,8 +1324,7 @@ begin
   perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
-    jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
-                       'version', g.version + 1, 'terminal', false));
+    jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn)));
 
 exception when others then
   get stacked diagnostics
@@ -1428,7 +1422,6 @@ as $$
 declare
   g          scrabble.games%rowtype;
   v_active   int;
-  v_terminal boolean := false;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   g := scrabble._require_move(p_game_id, p_base_version, 'PN456');
@@ -1456,7 +1449,6 @@ begin
    where gp.game_id = p_game_id and gp.player_ended_at is null;
 
   if g.consecutive_passes + 1 >= v_active then
-    v_terminal := true;
     perform scrabble._finish(p_game_id, 'all_passed', 'blocked', null, p_user_id);
   else
     perform common._advance_turn(p_game_id);
@@ -1465,8 +1457,7 @@ begin
   perform scrabble._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
   return common._ok_envelope(
-    jsonb_build_object('result', 'passed', 'version', g.version + 1,
-                       'terminal', v_terminal));
+    jsonb_build_object('result', 'passed'));
 
 exception when others then
   get stacked diagnostics
@@ -1867,14 +1858,14 @@ begin
 
   select * into cg from common.games where id = p_game_id;
   if cg.mode <> 'compete' or cg.ended_at is not null or cg.current_turn_user_id is null then
-    return common._ok_envelope(jsonb_build_object('result', 'done', 'done', true));
+    return common._ok_envelope(jsonb_build_object('result', 'done'));
   end if;
 
   select * into pl from scrabble.players
    where game_id = p_game_id and user_id = cg.current_turn_user_id;
   if pl.ai_level is null then
     -- A person holds the turn.
-    return common._ok_envelope(jsonb_build_object('result', 'done', 'done', true));
+    return common._ok_envelope(jsonb_build_object('result', 'done'));
   end if;
 
   return common._ok_envelope(jsonb_build_object(
@@ -1886,7 +1877,7 @@ begin
     'dict_3plus', g.dict_3plus,
     'ai_level', pl.ai_level,
     'version', g.version,
-    'bag_count', coalesce(array_length(g.bag, 1), 0)
+    'n_bag_tiles', coalesce(array_length(g.bag, 1), 0)
   ));
 
 exception when others then

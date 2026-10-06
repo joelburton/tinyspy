@@ -15,12 +15,12 @@ import { useStagedTiles } from '../hooks/useStagedTiles'
 import { useSubmitMove } from '../hooks/useSubmitMove'
 import { useBoardDrag } from '../hooks/useBoardDrag'
 import { useBoardColActions } from '../hooks/useBoardColActions'
-import type { GCell, GGameData, GHistoryView, GPlacement, GSharedMovePayload, GTentative } from '../types'
+import type { GCell, GGameData, GHistoryView, GPlacement, GShownMoveRaw, GTile } from '../types'
 import { Board } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { StateLine } from './StateLine'
-import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
+import { BlankPickerBlockingModal } from './BlankPickerBlockingModal'
 import shared from '@/common/game-page/playArea.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -29,11 +29,11 @@ import styles from './BoardCol.module.css'
 /** No cells and no staged tiles — the marks a read-only board wears for the
  *  live move. */
 const NO_CELLS: ReadonlySet<string> = new Set()
-const NO_TENTATIVES: ReadonlyMap<string, GTentative> = new Map()
+const NO_TILES: ReadonlyMap<string, GTile> = new Map()
 
 /**
  * scrabble's board column: the 15×15 board, and beneath it the rack and the
- * commit row — and the move. Laying a move out (`useStagedTiles`, `useBoardDrag`
+ * move row — and the move. Laying a move out (`useStagedTiles`, `useBoardDrag`
  * and the cursor keys), the rack's order (`useRackOrder`), and the move's trip
  * to the server (`useSubmitMove`) are all here, since each one reads the
  * others' state; `useBoardColActions` binds the commands the row places.
@@ -47,7 +47,7 @@ export function BoardCol({
   shownCells,
   historyView,
   localFeedbackSlot,
-  shareMove,
+  showMove,
   registerSuggestionApplier,
 }: {
   gd: GGameData
@@ -56,8 +56,8 @@ export function BoardCol({
   historyView: GHistoryView
   // PlayArea's below-board slot: a move's answer, the ending, whose turn.
   localFeedbackSlot: FeedbackSlot
-  // Show my staged tiles to my teammates (`useSharedMove`).
-  shareMove: (payload: GSharedMovePayload) => void
+  // Show my staged tiles to my teammates (`useShowMove`).
+  showMove: (payload: GShownMoveRaw) => void
   // Hand PlayArea the way a picked suggestion is staged; null on unmount.
   registerSuggestionApplier: (fn: ((placements: GPlacement[]) => void) | null) => void
 }) {
@@ -103,7 +103,7 @@ export function BoardCol({
     staged,
     rackOrder,
     submission,
-    shareMove,
+    showMove,
     localFeedbackSlot,
   })
 
@@ -141,13 +141,16 @@ export function BoardCol({
   // The live board carries my just-played tiles until the blob has them.
   const boardCells = historyView.cells === null ? submission.liveCells : shownCells
   // A shown move's tiles over the live board; my own staged tiles otherwise.
-  const peerMove = historyView.peerMove
-  const peerTentatives = useMemo(() => (peerMove === null
-    ? NO_TENTATIVES
-    : new Map(peerMove.placements.map((p) => [makeCellId(p.x, p.y), { letter: p.letter, blank: p.blank }]))),
-  [peerMove])
+  const shownMove = historyView.shownMove
+  const shownMoveTiles = useMemo(() => (shownMove === null
+    ? NO_TILES
+    : new Map(shownMove.placements.map((p) => {
+      const id = makeCellId(p.x, p.y)
+      return [id, { id, letter: p.letter, blank: p.blank }]
+    }))),
+  [shownMove])
   const boardMarks = {
-    stagedTiles: historyView.isViewing ? peerTentatives : staged.tentatives,
+    stagedTiles: historyView.isViewing ? shownMoveTiles : staged.laidTiles,
     justPlayedCellIds: historyView.isViewing ? NO_CELLS : submission.playedCellIds,
     refusedCellIds: historyView.isViewing ? NO_CELLS : submission.refusedCellIds,
     historyLitCellIds: new Set(historyView.litCellIds),
@@ -161,7 +164,7 @@ export function BoardCol({
     <>
       {/* `.peerPreview` recolors the frame and banner, so a teammate's shown
           move reads apart from a past turn (theme.css → --peer-preview-color). */}
-      <div className={cls(shared.boardCol, styles.boardCol, peerMove !== null && history.peerPreview)}>
+      <div className={cls(shared.boardCol, styles.boardCol, shownMove !== null && history.peerPreview)}>
         <MobileStatusBar>
           <StateLine gd={gd} />
         </MobileStatusBar>
@@ -179,12 +182,12 @@ export function BoardCol({
           {historyView.isViewing && (
             <HistoryBanner
               onExit={historyView.exit}
-              label={peerMove === null ? historyView.label : (
+              label={shownMove === null ? historyView.label : (
                 <>
-                  <Dot color={peerMove.sharer.color} /> {peerMove.sharer.username} showing:{' '}
-                  {peerMove.words.length > 0
-                    ? `+${peerMove.score} ${peerMove.words.map((w) => w.toUpperCase()).join(', ')}`
-                    : `${peerMove.placements.length} tile${peerMove.placements.length === 1 ? '' : 's'}`}
+                  <Dot color={shownMove.by.color} /> {shownMove.by.username} showing:{' '}
+                  {shownMove.words.length > 0
+                    ? `+${shownMove.score} ${shownMove.words.map((w) => w.toUpperCase()).join(', ')}`
+                    : `${shownMove.placements.length} tile${shownMove.placements.length === 1 ? '' : 's'}`}
                 </>
               )}
             />
@@ -207,7 +210,7 @@ export function BoardCol({
               submitScore={actions.submitScore}
               actSubmit={actions.actSubmit}
               actRecallTiles={actions.actRecallTiles}
-              actSharePreview={actions.actSharePreview}
+              actShowMove={actions.actShowMove}
               actExchange={actions.actExchange}
               actPass={actions.actPass}
               localFeedbackSlot={localFeedbackSlot}
@@ -217,7 +220,7 @@ export function BoardCol({
       </div>
 
       {staged.blankAt !== null && (
-        <ScrabbleBlankPickerBlockingModal onPick={staged.pickBlank} onCancel={staged.cancelBlank} />
+        <BlankPickerBlockingModal onPick={staged.pickBlank} onCancel={staged.cancelBlank} />
       )}
 
       {pointer.drag !== null && (

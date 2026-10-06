@@ -5,7 +5,7 @@
  *
  * Unlike the board-library games (stackdown, spellingbee), scrabble's board
  * layout and tile distribution never vary between games — they're the standard
- * Scrabble constants, hard-coded here. The premium-square grid is FE-only: the
+ * Scrabble constants, hard-coded here. The premium-cell grid is FE-only: the
  * server never scores (trusting commit — see play.ts), so it has no need for it.
  * The only thing mirrored SQL-side is the bag distribution + letter values that
  * `create_game`'s bag builder and end-game leftover scoring need. The only
@@ -24,7 +24,7 @@ import type { GCell, GPremiumType, GTile } from '../types.ts'
 export const BOARD_SIZE = 15
 export const RACK_SIZE = 7
 export const BINGO_BONUS = 50
-/** The center square index (7,7) — the first play must cover it. */
+/** The center cell's index (7,7) — the first play must cover it. */
 export const CENTER = 7 * BOARD_SIZE + 7
 /** The rack/bag glyph for a blank tile (a wild that's declared on play). */
 export const BLANK = '?'
@@ -98,7 +98,7 @@ const LAYOUT = [
 const PREMIUM_OF: Record<string, GPremiumType> = {
   T: 'TW',
   D: 'DW',
-  '*': 'DW', // the center star is a double-word square
+  '*': 'DW', // the center star is a double-word cell
   t: 'TL',
   d: 'DL',
   '.': 'none',
@@ -128,7 +128,7 @@ export const LETTER_VALUES: Record<string, number> = {
 }
 
 /** Face value of a placed tile — 0 for a blank, the letter's value otherwise. */
-export const cellValue = (tile: { letter: string; blank: boolean }): number =>
+export const tileValue = (tile: { letter: string; blank: boolean }): number =>
   tile.blank ? 0 : LETTER_VALUES[tile.letter]!
 
 /**

@@ -7,7 +7,7 @@ import {
   PREMIUMS,
   TILE_DISTRIBUTION,
   cellIndex,
-  cellValue,
+  tileValue,
   decodeBoard,
   decodePlacement,
   fullBag,
@@ -29,7 +29,7 @@ describe('tile distribution', () => {
 })
 
 describe('premium layout', () => {
-  it('covers all 225 squares', () => {
+  it('covers all 225 cells', () => {
     expect(PREMIUMS).toHaveLength(BOARD_SIZE * BOARD_SIZE)
   })
 
@@ -64,15 +64,15 @@ describe('premium layout', () => {
   })
 })
 
-describe('cellValue', () => {
+describe('tileValue', () => {
   it('scores letters by face value', () => {
-    expect(cellValue({ letter: 'a', blank: false })).toBe(1)
-    expect(cellValue({ letter: 'q', blank: false })).toBe(10)
-    expect(cellValue({ letter: 'd', blank: false })).toBe(2)
+    expect(tileValue({ letter: 'a', blank: false })).toBe(1)
+    expect(tileValue({ letter: 'q', blank: false })).toBe(10)
+    expect(tileValue({ letter: 'd', blank: false })).toBe(2)
   })
 
   it('scores a blank as 0 even though it reads as a letter', () => {
-    expect(cellValue({ letter: 'q', blank: true })).toBe(0)
+    expect(tileValue({ letter: 'q', blank: true })).toBe(0)
   })
 })
 

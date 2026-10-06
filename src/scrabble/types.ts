@@ -356,12 +356,6 @@ export type GMoveSlots = {
   oldLen: number
 }
 
-/** A tile a player has placed this turn but not yet committed. */
-export type GTentative = {
-  letter: string
-  blank: boolean
-}
-
 /** The AI suggest-a-move box's state (owned by PlayArea, rendered by InfoCol).
  *  `idle` renders NOTHING — the box claims no space until there's something
  *  to show (a deliberate exception to the pre-claim-space rule; see the render
@@ -377,21 +371,21 @@ export type GSuggestState =
 /**
  * What read-only overlay is open on the board — the shared history viewer's id,
  * widened for scrabble to carry BOTH kinds of read-only board it can show:
- *   - **`turn`** — a past turn's committed board (the history viewer).
- *   - **`peerPreview`** — a coop teammate's in-progress move (their staged tiles
- *     laid on the live board), received over Broadcast (see useSharedMove).
+ *   - **`turn`** — a past turn's played board (the history viewer).
+ *   - **`shownMove`** — a coop teammate's in-progress move (their staged tiles
+ *     laid on the live board), received over Broadcast (see useShowMove).
  * Both wear the same viewer chrome (frame + banner + frozen input) and the same
  * exits (click / keystroke / ✕ / a new move) — so they ride one
  * `useHistoryViewer<GHistoryTarget>`, and BoardCol switches on `kind` to render.
  */
 export type GHistoryTarget =
   | { kind: 'turn'; id: number }
-  | { kind: 'peerPreview'; placements: GPlacement[]; sharerId: string; words: string[]; score: number }
+  | { kind: 'shownMove'; placements: GPlacement[]; byId: string; words: string[]; score: number }
 
 /** A teammate's shown move, as the board viewer draws it: their staged tiles
  *  over my live board. */
-export type GPeerMove = {
-  sharer: GPlayer
+export type GShownMove = {
+  by: GPlayer
   placements: GPlacement[]
   words: string[]
   score: number
@@ -412,11 +406,11 @@ export type GHistoryView = {
   // The log row open on the board (`events.id`), or null.
   viewedEventId: number | null
   // A teammate's shown move, or null.
-  peerMove: GPeerMove | null
+  shownMove: GShownMove | null
   // Open a turn — the log's `#N` click, with the number it printed beside it.
   show: (id: number, n: number | null) => void
   // Open a teammate's shown move, unless my board has moved on since.
-  showPeerMove: (payload: GSharedMovePayload) => void
+  openShownMove: (payload: GShownMoveRaw) => void
   // Back to the live board.
   exit: () => void
   // The board just after the viewed turn; null when live, and for a shown
@@ -425,19 +419,20 @@ export type GHistoryView = {
   // The viewed turn's tiles, or the shown move's, ringed; empty when live.
   litCellIds: string[]
   // The banner's words for a viewed turn ("#1 moth: +10 APPLE"); null when
-  // live, and for a shown move, whose banner names the sharer with their dot.
+  // live, and for a shown move, whose banner names who showed it, with their dot.
   label: string | null
 }
 
 /**
- * A coop "show a move" broadcast: the sharer's staged tiles, so a teammate can
- * see it read-only on their own live board.
+ * A coop "show a move" broadcast, as it travels: the staged tiles of the
+ * player showing it (`byId`), so a teammate can see it read-only on their own
+ * live board. `GShownMove` is the same with the player.
  */
-export type GSharedMovePayload = {
-  // The sharer's staged tiles, not yet committed.
+export type GShownMoveRaw = {
+  // Their staged tiles, not yet played.
   placements: GPlacement[]
-  sharerId: string
-  // The sharer's board `version` when they shared; a receiver whose board has
+  byId: string
+  // Their board's `version` when they showed it; a receiver whose board has
   // moved on since drops it.
   baseVersion: number
   // The play's words and score, for the banner; empty and 0 for a play that

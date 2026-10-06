@@ -16,7 +16,7 @@ import {
  * database wrote it (`common.game_players.outcome`), never worked out here.
  *
  * The pill is one or two words, far terser than other games': scrabble's slot
- * is not a full below-board row but the space the commit buttons give up, with
+ * is not a full below-board row but the space the move buttons give up, with
  * the rack still beside it. No score in it either — the mobile status bar
  * above the board carries the live number.
  *

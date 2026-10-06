@@ -102,7 +102,7 @@ things the record gets wrong:
 ### F-z-index-4 · `three-literals-are-two` · the doc counts a literal that is gone — WORKED
 
 `docs/code-conventions.md` → The z- layers: *"Three values are deliberately still
-literals … and scrabble's `ScrabbleBlankPickerBlockingModal` overlay at 50, a
+literals … and scrabble's `BlankPickerBlockingModal` overlay at 50, a
 full-screen `position: fixed` modal parked below the panel tier, so an open chat
 or menu paints over it."* That file is a `<BlockingModal>` now and carries no
 `z-index` at all — what is left in it is the letter grid. The guard's pending

@@ -125,7 +125,7 @@ describe('scoring', () => {
     expect(r).toMatchObject({ valid: true, score: 10 })
   })
 
-  it('scores a blank as 0 even on a premium square', () => {
+  it('scores a blank as 0 even on a premium cell', () => {
     // Blank-as-Q on the center DW + I(8,7): (0 + 1) × 2 = 2.
     const r = evaluatePlay(emptyBoard(), [at(7, 7, 'q', true), at(8, 7, 'i')])
     expect(r).toMatchObject({ valid: true, score: 2 })

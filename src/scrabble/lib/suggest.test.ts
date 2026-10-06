@@ -90,8 +90,8 @@ const wordLegal = (trie: ReturnType<typeof buildTrie>, bands: GBands, word: stri
 /**
  * The naive brute-force reference generator. Its only virtue is being
  * OBVIOUSLY correct: try every distinct k-permutation of the rack multiset at
- * every start square in both orientations, lay the tiles in order skipping
- * over occupied squares, and keep whatever `evaluatePlay` accepts whose every
+ * every start cell in both orientations, lay the tiles in order skipping
+ * over occupied cells, and keep whatever `evaluatePlay` accepts whose every
  * formed word passes the band predicate. No anchors, no cross-checks, no
  * trie-guided pruning — nothing shared with the A&J implementation it judges.
  *
@@ -161,7 +161,7 @@ function bruteForce(board: GCell[], rack: readonly string[], trie: ReturnType<ty
     for (const horizontal of [true, false]) {
       for (let sy = 0; sy < N; sy++) {
         for (let sx = 0; sx < N; sx++) {
-          // Starting on an occupied square lays the same tiles as starting at
+          // Starting on an occupied cell lays the same tiles as starting at
           // the next empty one — skip the duplicate work.
           if (board[cellIndex(sx, sy)].tile !== null) continue
           const laid: { x: number; y: number; glyph: string }[] = []
@@ -284,9 +284,9 @@ describe('generateMoves — handcrafted boards', () => {
   })
 
   it('left parts stop at a neighboring anchor (the dedup invariant)', () => {
-    // Two runs in one row with a 3-square gap: the gap squares flanking each
+    // Two runs in one row with a 3-cell gap: the gap cells flanking each
     // run are anchors, so a rack-built left part may only use the middle
-    // square — plays reaching further left belong to the earlier anchor.
+    // cell — plays reaching further left belong to the earlier anchor.
     const board = emptyBoard()
     put(board, 2, 7, 'at')
     put(board, 7, 7, 'so')

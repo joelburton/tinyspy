@@ -78,7 +78,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
  * subscription: the page re-reads the blob on every move, and this is a pure
  * function of it (plans/seat-view.md → The page is written, not assembled).
  * A coop teammate's shown move is not here: it is never stored, and rides its
- * own Broadcast (`useSharedMove`).
+ * own Broadcast (`useShowMove`).
  *
  * A game whose builder has not written a blob yet cannot be drawn; the throw
  * lands in `PlayAreaErrorBoundary`'s card.

@@ -9,7 +9,8 @@ import { SelectField } from '@/common/fields/SelectField'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL } from '../lib/setup'
+import { AI_LEVELS } from '../lib/aiLevels'
+import { AI_BAND, AI_LEVEL_LABEL } from '../lib/setup'
 import type { GAiLevel, GSetupValues } from '../types'
 
 /**

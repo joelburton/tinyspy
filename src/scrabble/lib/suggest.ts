@@ -127,8 +127,8 @@ function acrossPass(
   const { children } = trie
   const occupied = (x: number, y: number): boolean => letterAt(x, y) !== null
 
-  // ANCHORS: the empty squares a move can hang off — orthogonally adjacent to
-  // ≥1 existing tile (any of the 4 directions: a square with only a *vertical*
+  // ANCHORS: the empty cells a move can hang off — orthogonally adjacent to
+  // ≥1 existing tile (any of the 4 directions: a cell with only a *vertical*
   // neighbor is still an anchor here; the across "word" may be a single new
   // tile riding on its cross-word, which the transpose pass then owns).
   // Empty board: the one anchor is CENTER (the first play must cover it).
@@ -144,7 +144,7 @@ function acrossPass(
       }
   }
 
-  // CROSS-CHECK MASKS: for every empty square, the set of letters (26-bit
+  // CROSS-CHECK MASKS: for every empty cell, the set of letters (26-bit
   // mask) that keep the perpendicular word legal. No vertical neighbors →
   // all-ones. Otherwise walk the contiguous run above (prefix) through the
   // trie ONCE, then for each candidate letter step to its child and walk the
@@ -198,10 +198,10 @@ function acrossPass(
        * covering it means a tile was placed — which simultaneously guarantees
        * ≥1 new tile, connectivity to the existing tiles (or center coverage
        * on the first move), and kills the duplicate emissions a
-       * left-part-only word would produce. Emitting only on an empty square
+       * left-part-only word would produce. Emitting only on an empty cell
        * or past the edge enforces right-side maximality (never emit a run
        * that abuts an existing tile on its right); left-side maximality is
-       * structural — the word starts after an edge, an empty square, or at a
+       * structural — the word starts after an edge, an empty cell, or at a
        * forced prefix's own start. Length ≥ 2 needs no explicit check:
        * 1-letter strings aren't in the trie.
        */
@@ -216,7 +216,7 @@ function acrossPass(
           return
         }
 
-        // Empty square (or past the right edge): emit-check first.
+        // Empty cell (or past the right edge): emit-check first.
         if (col > anchorCol && isLegal(trie, bands, node, col - wordStartCol))
           emit(placements.slice())
         if (col >= N) return
@@ -256,8 +256,8 @@ function acrossPass(
         }
         if (node >= 0) extendRight(anchorCol, node, start)
       } else {
-        // RACK-BUILT left parts, over the squares left of the anchor, up to
-        // `limit` = the run of consecutive empty NON-anchor squares
+        // RACK-BUILT left parts, over the cells left of the anchor, up to
+        // `limit` = the run of consecutive empty NON-anchor cells
         // immediately left. Two invariants ride on "non-anchor":
         //   (a) dedup — a play reaching further left would cover an earlier
         //       anchor and is generated there instead, so every move is

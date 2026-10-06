@@ -26,7 +26,7 @@ import {
   BOARD_SIZE,
   CENTER,
   cellIndex,
-  cellValue,
+  tileValue,
   inBounds,
   makeEmptyBoard,
   premiumAt,
@@ -53,7 +53,7 @@ export const tilesUsed = (placements: GPlacement[]): string[] =>
  * Geometry gate. Returns an error string (suitable for FE feedback) or null.
  * Ordered so the friendliest / most-fundamental complaint wins. This is the
  * sole authority on a legal *shape*: the server does NOT re-run these checks —
- * it trusts the committed play (see the module header).
+ * it trusts the submitted play (see the module header).
  */
 function geometryError(board: GCell[], placements: GPlacement[]): string | null {
   if (placements.length === 0) return 'Place at least one tile.'
@@ -81,7 +81,7 @@ function geometryError(board: GCell[], placements: GPlacement[]): string | null 
     if (placements.length < 2) return 'The first word must be at least 2 tiles.'
   }
 
-  // Contiguity: along the line of play, every square between the first and
+  // Contiguity: along the line of play, every cell between the first and
   // last placed tile must be filled — by a new tile or one already on the
   // board (which is how a play legally bridges over existing tiles).
   const horizontal = sameRow
@@ -177,7 +177,7 @@ function scoreRun(cells: GWordCell[]): number {
   let letters = 0
   let wordMult = 1
   for (const c of cells) {
-    let v = cellValue(c)
+    let v = tileValue(c)
     if (c.isNew) {
       const prem = premiumAt(c.x, c.y)
       if (prem === 'DL') v *= 2

@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Plain (non-premium) empty squares are white; only the premium squares below
+  /* Plain (non-premium) empty cells are white; only the premium cells below
      carry a color. */
   background: var(--scrabble-cell-bg);
   color: var(--scrabble-cell-ink-color);

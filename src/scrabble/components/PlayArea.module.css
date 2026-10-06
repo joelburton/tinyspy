@@ -3,7 +3,7 @@
 /* scrabble's play surface, on the shared two-column scaffold
  * (common/game-page/playArea.module.css, imported as `shared`). PlayArea holds the
  * layout-root vars here; the board column's own styles (board sizing + the rack row)
- * live in BoardCol.module.css, and the commit row's in Controls.module.css. */
+ * live in BoardCol.module.css, and the move row's in Controls.module.css. */
 
 /* Per-game layout vars the shared scaffold + BoardCol read. --avail-h is the
  * vertical space left for the square board: viewport − chrome − the below-board

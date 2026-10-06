@@ -39,11 +39,10 @@ import { ratedTrie } from '../scrabble-suggest-move/dict.ts'
 /**
  * What `get_ai_context` answers. TWO `ok`s, and `done` is the common one:
  * every client pokes this function on every version bump, so most calls find
- * no AI seat waiting. `done: true` is kept beside the new `result` — the field
- * this RPC has always returned.
+ * no AI seat waiting.
  */
 type AiContext =
-  | { result: 'done'; done: true }
+  | { result: 'done' }
   | {
       result: 'context'
       user_id: string
@@ -54,16 +53,16 @@ type AiContext =
       dict_3plus: number
       ai_level: GAiLevel
       version: number
-      bag_count: number
+      n_bag_tiles: number
     }
 
 /** What the three `ai_*` move RPCs answer. A board that moved under the bot is
  *  a RACE on the not-ok arm, not a `stale` result. */
 type MoveAnswer =
-  | { result: 'accepted'; drawn: string[]; version: number; terminal: boolean }
+  | { result: 'accepted'; drawn: string[] }
   | { result: 'invalid'; bad_words: string[] }
-  | { result: 'exchanged'; drawn: string[]; version: number; terminal: boolean }
-  | { result: 'passed'; version: number; terminal: boolean }
+  | { result: 'exchanged'; drawn: string[] }
+  | { result: 'passed' }
 
 // A generous per-invocation cap on AI moves (a chain of AI seats, each playing
 // until the bag empties, can't realistically exceed this) — a runaway guard.
@@ -137,7 +136,7 @@ serve(async (req: Request): Promise<Response> => {
           p_score: choice.score,
         }), 'ai_play_word')
         log.push({ userId: ctx.user_id, words: choice.words.map((w) => w.word), score: choice.score })
-      } else if (ctx.bag_count >= 7) {
+      } else if (ctx.n_bag_tiles >= 7) {
         // No playable word but the bag can afford a swap — dump the whole rack.
         res = await runRpc<MoveAnswer>(db.rpc('ai_exchange_tiles', {
           p_game_id: gameId, p_user_id: ctx.user_id, p_base_version: ctx.version, p_rack_tiles: choice.tiles,

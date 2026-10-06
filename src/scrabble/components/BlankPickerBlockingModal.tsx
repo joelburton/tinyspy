@@ -2,7 +2,7 @@
 
 import { BlockingModal } from '@/common/floating-panels/BlockingModal'
 import { CancelButton } from '@/common/buttons/CancelButton'
-import styles from './ScrabbleBlankPickerBlockingModal.module.css'
+import styles from './BlankPickerBlockingModal.module.css'
 
 // Lowercase, the data's case; the buttons draw capitals.
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('')
@@ -26,7 +26,7 @@ const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('')
  * `act-place-tile`, which declares the blank from the letter you type and never
  * opens this at all; this panel is the DRAG path, where there is no letter yet.)
  */
-export function ScrabbleBlankPickerBlockingModal({
+export function BlankPickerBlockingModal({
   onPick,
   onCancel,
 }: {

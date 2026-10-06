@@ -4,7 +4,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { makeCellId } from '../lib/board'
 import { makeEventText } from '../lib/eventText'
 import { historyBoard } from '../lib/play'
-import type { GGameData, GHistoryTarget, GHistoryView, GSharedMovePayload } from '../types'
+import type { GGameData, GHistoryTarget, GHistoryView, GShownMoveRaw } from '../types'
 
 /**
  * What the board viewer has open, and the board it draws. Built on the shared
@@ -31,9 +31,9 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     ? gd.events.find((e) => e.id === target.id)!
     : null
   // The sharer is a seated player: a shown move comes from the table.
-  const peerMove = target?.kind === 'peerPreview'
+  const shownMove = target?.kind === 'shownMove'
     ? {
-      sharer: gd.playersById[target.sharerId]!,
+      by: gd.playersById[target.byId]!,
       placements: target.placements,
       words: target.words,
       score: target.score,
@@ -50,19 +50,19 @@ export function useHistoryView(gd: GGameData): GHistoryView {
   }
 
   function makeLitCellIds(): string[] {
-    if (peerMove !== null) return peerMove.placements.map((p) => makeCellId(p.x, p.y))
+    if (shownMove !== null) return shownMove.placements.map((p) => makeCellId(p.x, p.y))
     if (viewedEvent?.placements) return viewedEvent.placements.map((t) => t.id)
     return []
   }
 
   /** Open a teammate's shown move — unless a real move has landed on my board
    *  since they staged it, when it no longer fits. No `#N`: it is no log row. */
-  function showPeerMove(payload: GSharedMovePayload) {
+  function openShownMove(payload: GShownMoveRaw) {
     if (payload.baseVersion !== gd.version) return
     showHistory({
-      kind: 'peerPreview',
+      kind: 'shownMove',
       placements: payload.placements,
-      sharerId: payload.sharerId,
+      byId: payload.byId,
       words: payload.words,
       score: payload.score,
     }, null)
@@ -72,9 +72,9 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     isViewing: target !== null,
     targetRef,
     viewedEventId: viewedEvent === null ? null : viewedEvent.id,
-    peerMove,
+    shownMove,
     show: (id, n) => showHistory({ kind: 'turn', id }, n),
-    showPeerMove,
+    openShownMove,
     exit: exitHistory,
     cells: viewedEvent === null ? null : historyBoard(gd.events, viewedEvent.id),
     litCellIds: makeLitCellIds(),

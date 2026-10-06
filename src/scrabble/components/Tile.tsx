@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { LETTER_VALUES } from '../lib/board'
+import { tileValue } from '../lib/board'
 import styles from './Tile.module.css'
 
 /** What the board or the rack says about a tile, beside the tile itself. */
@@ -55,7 +55,7 @@ export function Tile({
   where: 'board' | 'rack'
   marks: TileMarks
 }) {
-  const value = letter === null || blank ? 0 : LETTER_VALUES[letter]!
+  const value = letter === null ? 0 : tileValue({ letter, blank })
   return (
     <span
       data-tile={id}

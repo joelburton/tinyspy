@@ -18,9 +18,6 @@ import type { GAiLevel, GSetup } from '../types'
  * authority.
  */
 
-/** The five AI strength levels (policy.ts `LEVELS`), weakest → strongest. */
-export const AI_LEVELS: readonly GAiLevel[] = ['beginner', 'casual', 'intermediate', 'strong', 'best']
-
 export const AI_LEVEL_LABEL: Record<GAiLevel, string> = {
   beginner: 'Beginner',
   casual: 'Casual',

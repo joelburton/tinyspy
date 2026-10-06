@@ -4,8 +4,7 @@
  * plus the below-board RACK + ACTION row (scrabble's GameEntryArea — the rack is
  * the input, so it lives in the board column with everything needed to play). The
  * layout-root vars it reads (--avail-w/-h, --rack-tile-size) are on `.layout` in
- * PlayArea.module.css; the commit-row inner classes (.controls / .commitButtons /
- * …) live there too (Controls imports them). */
+ * PlayArea.module.css; the move row's own classes are Controls.module.css's. */
 
 /* The board column. Computes `--side` — the largest square that fits — HERE (not on
  * the board) so the below-board rack row can match the board's width from the same
@@ -60,7 +59,7 @@
 /* ─── Phone: the rack + controls become TWO rows ──────────────────────────────
  * At phone width the one-line row can't fit: the rack bottoms out at 206px
  * (7 × 22px min tiles + gaps + padding) and the controls need ≈205px (icon
- * buttons + the fixed-5.5rem commit slot) — but a 375px phone leaves only
+ * buttons + the fixed-5.5rem move slot) — but a 375px phone leaves only
  * ~150px beside the rack. Everything but Submit is already icon-only, so no
  * shrink recovers it; instead the controls take a full-width second row
  * (`.controls { flex-basis: 100% }` in PlayArea.module.css — unconditional,

@@ -113,7 +113,7 @@ select is((select (c->>'user_id')::uuid from ctx), (select id from bot), 'contex
 -- A person holds the turn → the bot has nothing to do (done, not an error).
 select pg_temp.sc_turn_seat((select id from gai), 0);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select is((select scrabble.get_ai_context((select id from gai)) -> 'data' ->> 'done'), 'true',
+select is((select scrabble.get_ai_context((select id from gai)) -> 'data' ->> 'result'), 'done',
   'get_ai_context returns done when a human holds the turn');
 reset role;
 

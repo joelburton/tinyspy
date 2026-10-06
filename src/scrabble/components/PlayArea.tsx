@@ -18,7 +18,7 @@ import { useDriveAiTurns } from '../hooks/useDriveAiTurns'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
 import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
-import { useSharedMove } from '../hooks/useSharedMove'
+import { useShowMove } from '../hooks/useShowMove'
 import { useShowOpponentMoves } from '../hooks/useShowOpponentMoves'
 import { useSuggestMove } from '../hooks/useSuggestMove'
 import { BoardCol } from './BoardCol'
@@ -122,10 +122,10 @@ function PlayArea({
   const historyView = useHistoryView(gd)
 
   // A teammate's shown move arrives over Broadcast and opens on the viewer.
-  const { shareMove } = useSharedMove({
+  const { showMove } = useShowMove({
     gameId: gd.id,
     mode: gd.mode,
-    onReceive: historyView.showPeerMove,
+    onReceive: historyView.openShownMove,
   })
 
   // ─── The commands, and the menu that lists them ────────
@@ -157,7 +157,7 @@ function PlayArea({
         shownCells={shownCells}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        shareMove={shareMove}
+        showMove={showMove}
         registerSuggestionApplier={suggestion.registerApplier}
       />
 

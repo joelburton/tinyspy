@@ -50,7 +50,7 @@ describe('Board — what each cell draws', () => {
   })
 
   it('a staged tile covers its cell\'s premium', () => {
-    const { container } = renderBoard({ stagedTiles: new Map([['3,0', { letter: 't', blank: false }]]) })
+    const { container } = renderBoard({ stagedTiles: new Map([['3,0', { id: '3,0', letter: 't', blank: false }]]) })
     expect(tileClasses(container, '3,0')).toMatch(/_staged_/)
     expect(cellAt(container, 3, 0).textContent).toBe('t1')
     // An empty premium cell shows its label.

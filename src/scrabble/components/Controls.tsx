@@ -12,7 +12,7 @@ import shared from '@/common/game-page/playArea.module.css'
 
 /**
  * The action half of scrabble's below-board row (the rack — with its floating
- * Shuffle — is rendered beside it by PlayArea). Recall on the left; the **commit
+ * Shuffle — is rendered beside it by PlayArea). Recall on the left; the **move
  * slot** ([Swap] [Pass] [Submit]) pushed to the right edge. That slot doubles as
  * the **local feedback area**: while the slot holds a message (an own-move
  * result, a not-ok, "you're out", whose turn, the terminal verdict) it draws
@@ -20,7 +20,7 @@ import shared from '@/common/game-page/playArea.module.css'
  * longer message reads before it clips). The rack (to the left) stays
  * interactive, so a keystroke / tile tap dismisses a gesture-cleared result.
  *
- * The commit buttons:
+ * The move buttons:
  *   - **Swap** (`act-exchange`, icon-only) — return rack tiles. Its bubble
  *     carries its own reason when it can't act ("Need ≥ 7 tiles in the bag",
  *     "Pick rack tiles first"), so this row places it and explains nothing.
@@ -33,9 +33,9 @@ import shared from '@/common/game-page/playArea.module.css'
  *     by a pill on submit, not by disabling) — and **Enter** is the same
  *     action, so the key and the button are gray at the same moments.
  *
- * The **Share** button sits beside Recall on the LEFT — not in the commit slot —
+ * The **Share** button sits beside Recall on the LEFT — not in the move slot —
  * so it stays visible when a pill takes the slot over. It broadcasts the staged
- * tiles for teammates to preview (see useSharedMove), and hides itself where
+ * tiles for teammates to preview (see useShowMove), and hides itself where
  * there is nobody to show them to (a race, or a solo game).
  *
  * Every one of them is an ACTION: what it does, what it is called, whether
@@ -46,7 +46,7 @@ export function Controls({
   submitScore,
   actSubmit,
   actRecallTiles,
-  actSharePreview,
+  actShowMove,
   actExchange,
   actPass,
   localFeedbackSlot,
@@ -61,13 +61,13 @@ export function Controls({
   actRecallTiles: Action
   /** Show the staged play to teammates, read-only. Hides itself where there is
    *  nobody to show it to. */
-  actSharePreview: Action
+  actShowMove: Action
   /** Swap rack tiles for fresh ones — it carries its own reason when it can't. */
   actExchange: Action
   /** Pass the turn. Hides itself in coop. */
   actPass: Action
-  /** PlayArea's below-board slot, drawn IN the commit slot (replacing the
-   *  commit buttons + filling its width) while it holds anything. */
+  /** PlayArea's below-board slot, drawn IN the move slot (replacing the
+   *  move buttons + filling its width) while it holds anything. */
   localFeedbackSlot: FeedbackSlot
 }) {
   const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)
@@ -75,9 +75,9 @@ export function Controls({
     <div className={styles.controls}>
       <ActionButton action={actRecallTiles} show="icon" />
       {/* Show a move to teammates (coop, ≥2 players). On the left with Recall so a
-          pill in the commit slot never hides it; enabled only with tiles staged.
+          pill in the move slot never hides it; enabled only with tiles staged.
           It hides itself where there is nobody to show it to. */}
-      <ActionButton action={actSharePreview} show="icon" />
+      <ActionButton action={actShowMove} show="icon" />
 
       <div
         className={cls(styles.moveAreaOrLocalFeedback, top !== null && styles.moveAreaOrLocalFeedbackPill)}
@@ -87,7 +87,7 @@ export function Controls({
             <FeedbackPill slot={localFeedbackSlot} />
           </div>
         ) : (
-          <div className={styles.commitButtons}>
+          <div className={styles.moveButtons}>
             {/* Swap's bubble carries its OWN reason when it can't act ("Need ≥
                 7 tiles in the bag", "Pick rack tiles first"), which is
                 `describe()`'s doing rather than a `title` worked out here. */}

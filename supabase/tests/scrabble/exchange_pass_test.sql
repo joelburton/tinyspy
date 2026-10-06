@@ -90,7 +90,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table rp2 on commit drop as
   select scrabble.pass_turn((select id from gcp), 1) as res;
 reset role;
-select is((select res -> 'data' ->> 'terminal' from rp2), 'true',
+select isnt((select ended_at from common.games where id = (select id from gcp)), null,
   'a full round of passes ends the game');
 select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gcp)),
   'all_passed/blocked', 'the all-passed end is stamped all_passed / blocked');

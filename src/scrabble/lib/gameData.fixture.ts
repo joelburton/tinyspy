@@ -113,15 +113,15 @@ export function ZTest_wentOut(id: number, userId: string, score: number): GEvent
 
 /** The board string the words lay down, in the order of play. */
 function makeLetters(events: readonly GEventRaw[]): string {
-  const squares = Array<string>(BOARD_SIZE * BOARD_SIZE).fill('.')
+  const cells = Array<string>(BOARD_SIZE * BOARD_SIZE).fill('.')
   for (const e of events) {
     for (const p of e.placements ?? []) {
       const [xy, ch] = p.split(':')
       const [x, y] = xy.split(',').map(Number)
-      squares[cellIndex(x, y)] = ch
+      cells[cellIndex(x, y)] = ch
     }
   }
-  return squares.join('')
+  return cells.join('')
 }
 
 const sumScores = (rows: readonly GEventRaw[]) => rows.reduce((n, e) => n + (e.score ?? 0), 0)

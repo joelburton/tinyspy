@@ -40,7 +40,7 @@ create temp table rco on commit drop as
     '[{"x":7,"y":7,"letter":"a","blank":false},
       {"x":8,"y":7,"letter":"t","blank":false}]'::jsonb, array['at'], 2) as res;
 reset role;
-select is((select res -> 'data' ->> 'terminal' from rco), 'true', 'coop going-out ends the game');
+select is((select res -> 'data' ->> 'result' from rco), 'accepted', 'the going-out word is played');
 select isnt((select ended_at from common.games where id = (select id from gco)), null,
   'common.games ended_at is set');
 select is((select game_ended_outcome from common.games where id = (select id from gco)),
@@ -123,7 +123,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rbl on commit drop as
   select scrabble.pass_turn((select id from gbl), 0) as res;
 reset role;
-select is((select res -> 'data' ->> 'terminal' from rbl), 'true', 'the last player passing ends the game (blocked)');
+select isnt((select ended_at from common.games where id = (select id from gbl)), null,
+  'the last player passing ends the game (blocked)');
 select is((select game_ended_outcome from common.games where id = (select id from gbl)),
   'won', 'blocked compete still crowns the leader');
 select is((select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_by_user_id::text

@@ -12,14 +12,14 @@ import { evaluatePlay } from '../lib/play'
 import type { useRackOrder } from './useRackOrder'
 import type { useStagedTiles } from './useStagedTiles'
 import type { useSubmitMove } from './useSubmitMove'
-import type { GCell, GGameData, GPlacement, GSharedMovePayload } from '../types'
+import type { GCell, GGameData, GPlacement, GShownMoveRaw } from '../types'
 
 /** Pass's question. scrabble's own rather than the registry's: passing here
  *  forfeits the turn's points and feeds the blocked-end streak, which is why
  *  it asks at all. */
 const PASS_CONFIRM: ConfirmOptions = {
   title: 'Pass your turn?',
-  message: 'You score nothing this turn, and if every seat passes in a row the game ends.',
+  message: 'You score nothing this turn, and if every player passes in a row the game ends.',
   confirmLabel: 'Pass',
   cancelLabel: 'Keep playing',
 }
@@ -32,7 +32,7 @@ const PASS_CONFIRM: ConfirmOptions = {
  * and a key comes with its action.
  *
  * Two gates. `isInteractive` stages tiles — on another player's turn too,
- * since scrabble lets you lay a move out before your turn comes. `canCommit`
+ * since scrabble lets you lay a move out before your turn comes. `canSubmit`
  * also needs my turn: Submit, Swap and Pass spend it. A move already out grays
  * the other two through its action's `pending`.
  */
@@ -46,7 +46,7 @@ export function useBoardColActions({
   staged,
   rackOrder,
   submission,
-  shareMove,
+  showMove,
   localFeedbackSlot,
 }: {
   gd: GGameData
@@ -60,21 +60,21 @@ export function useBoardColActions({
   staged: ReturnType<typeof useStagedTiles>
   rackOrder: ReturnType<typeof useRackOrder>
   submission: ReturnType<typeof useSubmitMove>
-  shareMove: (payload: GSharedMovePayload) => void
+  showMove: (payload: GShownMoveRaw) => void
   // Where a tile I don't hold, or an illegal shape, says so.
   localFeedbackSlot: FeedbackSlot
 }): {
   actSubmit: Action
   actRecallTiles: Action
   actShuffle: Action
-  actSharePreview: Action
+  actShowMove: Action
   actExchange: Action
   actPass: Action
   // The staged play's score for Submit to show; 0 for a shape that is not
   // legal yet, null with nothing staged.
   submitScore: number | null
 } {
-  const canCommit = isInteractive && gd.me.onTurn
+  const canSubmit = isInteractive && gd.me.onTurn
   const placements: GPlacement[] = staged.tiles.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
   const play = placements.length === 0 ? null : evaluatePlay(cells, placements)
 
@@ -144,9 +144,9 @@ export function useBoardColActions({
   /** Show my staged tiles to my teammates — one send per press; press again
    *  to show a changed move. */
   function showMoveToTeam() {
-    shareMove({
+    showMove({
       placements,
-      sharerId: gd.me.id,
+      byId: gd.me.id,
       baseVersion: gd.version,
       words: play?.valid ? play.words.map((w) => w.word) : [],
       score: play?.valid ? play.score : 0,
@@ -159,7 +159,7 @@ export function useBoardColActions({
   const actExchange = useBindAction('act-exchange', {
     describe: () => {
       if (gd.nBagTiles < RACK_SIZE) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
-      if (!canCommit || staged.tiles.length > 0 || actSubmit.pending || actPass.pending) {
+      if (!canSubmit || staged.tiles.length > 0 || actSubmit.pending || actPass.pending) {
         return { state: 'disabled', label: 'Swap' }
       }
       if (staged.pickedSlots.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Pick rack tiles first' }
@@ -174,7 +174,7 @@ export function useBoardColActions({
   const actPass = useBindAction('act-pass', {
     describe: () => {
       if (gd.coop) return 'hidden'
-      return canCommit && staged.tiles.length === 0 && !actSubmit.pending && !actExchange.pending
+      return canSubmit && staged.tiles.length === 0 && !actSubmit.pending && !actExchange.pending
         ? 'active'
         : 'disabled'
     },
@@ -186,7 +186,7 @@ export function useBoardColActions({
   const { actCommit: actSubmit } = useBoardCursorKeys({
     enabled: isInteractive,
     commit: 'act-submit',
-    canCommit: canCommit && staged.tiles.length > 0 && !actExchange.pending && !actPass.pending,
+    canCommit: canSubmit && staged.tiles.length > 0 && !actExchange.pending && !actPass.pending,
     onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
     onLetter: typeLetter,
     onBackspace: backspace,
@@ -207,7 +207,7 @@ export function useBoardColActions({
   })
 
   // Coop with somebody to show it to, so it hides itself in a race and alone.
-  const actSharePreview = useBindAction('act-share-preview', {
+  const actShowMove = useBindAction('act-show-move', {
     describe: () => {
       if (!gd.coop || gd.players.length < 2) return 'hidden'
       return { state: staged.tiles.length > 0 ? 'active' : 'disabled', label: 'Show move to team' }
@@ -219,7 +219,7 @@ export function useBoardColActions({
     actSubmit,
     actRecallTiles,
     actShuffle,
-    actSharePreview,
+    actShowMove,
     actExchange,
     actPass,
     submitScore: play === null ? null : play.valid ? play.score : 0,

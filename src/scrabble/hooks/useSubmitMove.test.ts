@@ -44,7 +44,7 @@ describe('useSubmitMove — the claim on my rack', () => {
   beforeEach(() => rpc.mockReset())
 
   it('a played word leaves its slots, and the count it drew, for the landing', async () => {
-    rpc.mockResolvedValue(answer({ result: 'accepted', drawn: ['e', 'r'], version: 1, terminal: false }))
+    rpc.mockResolvedValue(answer({ result: 'accepted', drawn: ['e', 'r'] }))
     const { view, play } = setup()
     await act(() => view.result.current.sendWord(PLACEMENTS, play, SLOTS))
     expect(view.result.current.takeMyMove()).toEqual({ slots: SLOTS, nDrawn: 2 })

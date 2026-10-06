@@ -45,12 +45,12 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
 // `onReceive`, so a test can land a teammate's broadcast.
 const sm = vi.hoisted(() => ({
   onReceive: null as null | ((p: unknown) => void),
-  shareMove: vi.fn(),
+  showMove: vi.fn(),
 }))
-vi.mock('../hooks/useSharedMove', () => ({
-  useSharedMove: (opts: { onReceive: (p: unknown) => void }) => {
+vi.mock('../hooks/useShowMove', () => ({
+  useShowMove: (opts: { onReceive: (p: unknown) => void }) => {
     sm.onReceive = opts.onReceive
-    return { shareMove: sm.shareMove }
+    return { showMove: sm.showMove }
   },
 }))
 
@@ -186,7 +186,7 @@ describe('scrabble PlayArea — the board viewer', () => {
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: [ME, MOTH], version: 3 })} />)
     act(() => sm.onReceive!({
       placements: [{ x: 7, y: 7, letter: 'a', blank: false }, { x: 8, y: 7, letter: 'b', blank: false }],
-      sharerId: 'u2',
+      byId: 'u2',
       baseVersion: 3,
       words: ['ab'],
       score: 5,
@@ -200,7 +200,7 @@ describe('scrabble PlayArea — the board viewer', () => {
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: [ME, MOTH], version: 5 })} />)
     act(() => sm.onReceive!({
       placements: [{ x: 7, y: 7, letter: 'a', blank: false }],
-      sharerId: 'u2',
+      byId: 'u2',
       baseVersion: 2,
       words: [],
       score: 0,
@@ -349,7 +349,7 @@ describe('scrabble PlayArea — the rack row', () => {
   })
 
   it('a typed letter stages its tile, and Enter plays the word under the RPC\'s names', async () => {
-    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', drawn: ['e', 'r'], version: 1, terminal: false }))
+    rpc.mockResolvedValue(okEnvelope({ result: 'accepted', drawn: ['e', 'r'] }))
     render(<WithKeys {...ZTest_makeScrabbleCtx()} />)
     // The cursor starts on the star, across: c, a, t.
     await press({ key: 'c', code: 'KeyC' })

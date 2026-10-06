@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/common/supabase/supabase'
 import { channelLeaving, releaseChannel } from '@/common/realtime/channelTeardown'
-import type { GSharedMovePayload } from '../types'
+import type { GShownMoveRaw } from '../types'
 
 /**
  * scrabble's coop "show a move" transport — a **stable-name** Broadcast channel
@@ -11,9 +11,9 @@ import type { GSharedMovePayload } from '../types'
  * connections peer-selection pattern (src/common/realtime/doc.md). It's
  * separate from `useGame`'s postgres-changes channel (which is per-tab
  * UUID-suffixed and carries no Broadcast) because this state is ephemeral
- * — a not-yet-committed move that's never stored, and that a teammate who misses
+ * — a not-yet-played move that's never stored, and that a teammate who misses
  * it simply doesn't see. **Coop only**: in compete the channel is never opened
- * (private racks, no shared board), so `shareMove` is a no-op and nothing is
+ * (private racks, no shared board), so `showMove` is a no-op and nothing is
  * received.
  *
  * `onReceive` fires for every incoming broadcast; it's held in a ref so a new
@@ -21,7 +21,7 @@ import type { GSharedMovePayload } from '../types'
  * default supabase Broadcast does NOT echo to the sender, which is what we want —
  * the sharer keeps editing their own board, only teammates get the preview.
  */
-export function useSharedMove({
+export function useShowMove({
   gameId,
   mode,
   onReceive,
@@ -29,8 +29,8 @@ export function useSharedMove({
   gameId: string
   /** The channel opens in coop alone. */
   mode: 'coop' | 'compete'
-  onReceive: (payload: GSharedMovePayload) => void
-}): { shareMove: (payload: GSharedMovePayload) => void } {
+  onReceive: (payload: GShownMoveRaw) => void
+}): { showMove: (payload: GShownMoveRaw) => void } {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const onReceiveRef = useRef(onReceive)
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useSharedMove({
       if (canceled) return
       const ch = supabase.channel(room)
       ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
-        onReceiveRef.current(payload as GSharedMovePayload),
+        onReceiveRef.current(payload as GShownMoveRaw),
       )
       ch.subscribe()
       channelRef.current = ch
@@ -68,9 +68,9 @@ export function useSharedMove({
     }
   }, [gameId, mode])
 
-  const shareMove = useCallback((payload: GSharedMovePayload) => {
+  const showMove = useCallback((payload: GShownMoveRaw) => {
     channelRef.current?.send({ type: 'broadcast', event: 'show-move', payload })
   }, [])
 
-  return { shareMove }
+  return { showMove }
 }

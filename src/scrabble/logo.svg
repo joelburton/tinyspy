@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="scrabble">
-  <!-- The board's center square: the DW premium color with its star, exactly
+  <!-- The board's center cell: the DW premium color with its star, exactly
        as Board.module.css paints it (the scrabble DW token fill, #7a3b34 star).
        NB: an XML comment must not contain a double hyphen, so no token names here. -->
   <rect x="2" y="2" width="44" height="44" rx="4" fill="#f0a9a0" stroke="#c97f74" stroke-width="1.5"/>

@@ -22,7 +22,7 @@ export function Help({ onClose, brand }: Props) {
       <p>
         <strong>Build words on the board from your rack of 7 tiles.</strong>{' '}
         Click a rack tile to hold it, then click an empty square to place it.
-        Click a placed (not-yet-committed) tile to take it back.
+        Click a placed (not-yet-played) tile to take it back.
       </p>
       <ul>
         <li>

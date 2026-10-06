@@ -24,7 +24,7 @@ import type { ScrabblePrintModel } from './model'
  * (via `eventLog`) and continue in the RIGHT column, then onto further pages.
  */
 
-/** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
+/** Premium cell → its label + print fill (RGB). Light pastel tones — the meaningful
  *  board-color exception in common/pdf/doc.md, kept faint so the ink reads clean. */
 const PREMIUM_STYLE: Record<GPremiumType, { label: string; fill: [number, number, number] }> = {
   TW: { label: 'TW', fill: [240, 188, 180] }, // triple word — light red
@@ -40,7 +40,7 @@ const TILE_FILL: [number, number, number] = [250, 247, 239]
 // .letter = 58cqmin, .value = 36cqmin), so the value reads small next to the letter.
 const LETTER_RATIO = 0.58
 const VALUE_RATIO = 0.36
-// Board line weights. (scrabble's premium-square + tile fills are the agreed
+// Board line weights. (scrabble's premium-cell + tile fills are the agreed
 // board-color exception in common/pdf/doc.md — they carry board meaning, not decoration.)
 const BORDER_W = 0.6 // empty-cell grid weight (a "normal" line — matches psychicnum's board)
 const TILE_BORDER_W = 1 // placed tiles get a thicker frame so they stand out from empty cells
@@ -87,8 +87,8 @@ function drawBoard(doc: jsPDF, board: GCell[], x0: number, y0: number, cell: num
       } else {
         doc.setLineWidth(BORDER_W)
         const prem = premiumAt(x, y)
-        // Non-premium squares are WHITE (like the on-screen board) — just the grid
-        // line; only premium squares get a fill.
+        // Non-premium cells are WHITE (like the on-screen board) — just the grid
+        // line; only premium cells get a fill.
         if (prem === 'none') doc.rect(px, py, cell, cell, 'S')
         else doc.setFillColor(...PREMIUM_STYLE[prem].fill).rect(px, py, cell, cell, 'FD')
         if (idx === CENTER) {

@@ -8,7 +8,7 @@ import { settled } from './helpers/ready'
 /**
  * Coop "show a move": a player broadcasts their in-progress (staged) tiles to
  * teammates, who see them on a read-only preview of the board. This is a genuinely
- * cross-client feature (a stable-name Broadcast channel — see useSharedMove), so it
+ * cross-client feature (a stable-name Broadcast channel — see useShowMove), so it
  * can ONLY be exercised with two real browser contexts; the component tests mock the
  * transport and just simulate the receive callback.
  *

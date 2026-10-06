@@ -47,9 +47,6 @@ import { mulberry32 } from '../../common/utils/mulberry32.ts'
  *  sweep (docs/games/scrabble.md) to an evenly-spaced mean-score ladder
  *  — ≈455 / 580 / 715 / 840 / 912 points per coop game (N=40). Retuning means
  *  re-running the sweep, deliberately. */
-export const LEVEL_NAMES: readonly GAiLevel[] = [
-  'beginner', 'casual', 'intermediate', 'strong', 'best',
-]
 export const LEVELS: Record<GAiLevel, GStrengthKnobs> = {
   beginner:     { vocabCap: 1, useLeave: false, bingoMissProb: 0.9, equityNoise: 30 },
   casual:       { vocabCap: 2, useLeave: false, bingoMissProb: 0.4, equityNoise: 10 },

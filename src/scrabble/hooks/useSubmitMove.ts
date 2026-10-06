@@ -19,14 +19,14 @@ const NO_CELLS: ReadonlySet<string> = new Set()
 /**
  * What the three move RPCs answer. `stale` is not here: a board that moved
  * under you is a RACE, so it arrives on the not-ok arm in the server's own
- * words ("Board changed"). `drawn` and `terminal` are kept for now; `drawn`'s
- * length is the count of new rack tiles to flash.
+ * words ("Board changed"). `drawn` is the tiles a move drew, whose count is
+ * the new rack tiles to flash.
  */
 type PlayAnswer =
-  | { result: 'accepted'; drawn: string[]; version: number; terminal: boolean }
+  | { result: 'accepted'; drawn: string[] }
   | { result: 'invalid'; bad_words: string[] }
-type SwapAnswer = { result: 'exchanged'; drawn: string[]; version: number; terminal: boolean }
-type PassAnswer = { result: 'passed'; version: number; terminal: boolean }
+type SwapAnswer = { result: 'exchanged'; drawn: string[] }
+type PassAnswer = { result: 'passed' }
 
 /** A word play the board has judged legal, as `evaluatePlay` read it. */
 type LegalPlay = Extract<ReturnType<typeof evaluatePlay>, { valid: true }>

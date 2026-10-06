@@ -28,7 +28,8 @@
 import { execFileSync } from 'node:child_process'
 import { buildTrie, type Trie } from '../../src/shared/dict-trie/trie.ts'
 import type { GAiLevel, GBands, GGameResult } from '../../src/scrabble/types.ts'
-import { playSelfGame, LEVELS, LEVEL_NAMES } from '../../src/scrabble/lib/policy.ts'
+import { AI_LEVELS } from '../../src/scrabble/lib/aiLevels.ts'
+import { playSelfGame, LEVELS } from '../../src/scrabble/lib/policy.ts'
 
 const DB_URL =
   process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -164,8 +165,8 @@ function main() {
   const sweep = flag('--sweep')
   const level = opt('--level', 'best') as GAiLevel
 
-  if (!sweep && !LEVEL_NAMES.includes(level)) {
-    console.error(`unknown level "${level}" — one of: ${LEVEL_NAMES.join(', ')} (or --sweep)`)
+  if (!sweep && !AI_LEVELS.includes(level)) {
+    console.error(`unknown level "${level}" — one of: ${AI_LEVELS.join(', ')} (or --sweep)`)
     process.exit(1)
   }
 
@@ -174,7 +175,7 @@ function main() {
 
   if (sweep) {
     console.log(`\nsweep: ${games} paired games/level, seeds ${offset + 1}..${offset + games}`)
-    const all = LEVEL_NAMES.map((lv) => summarize(lv, runLevel(trie, lv, games, offset)))
+    const all = AI_LEVELS.map((lv) => summarize(lv, runLevel(trie, lv, games, offset)))
     all.forEach(printLevel)
     printSweep(all)
   } else {

@@ -738,7 +738,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   stays a count and a compete opponent's rack reads null until terminal —
   subscriptions watch tables, reads go through views, per the
   view-reads/table-subscribes convention).
-- **`hooks/useSharedMove.ts`** — the coop "show a move" transport: a
+- **`hooks/useShowMove.ts`** — the coop "show a move" transport: a
   **stable-name** Broadcast channel (`scrabble:${gameId}`, so teammates merge
   into one room, like connections' peer-selection channel), separate from
   `useGame`'s postgres-changes channel because the shared move is ephemeral (a
@@ -758,7 +758,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   swapping in a `<FeedbackPill>` for the buttons + filling its width when
   there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
   (`act-shuffle`, `⌥Z`) floats over the rack corner, not in this row),
-  `ScrabbleBlankPickerBlockingModal` (declare a dragged blank's letter on drop —
+  `BlankPickerBlockingModal` (declare a dragged blank's letter on drop —
   a real `<BlockingModal>` since 2026-09-10, so it has the tab ring, Escape and
   panel tier every other modal has; its 26 letters are not actions, being
   answers to a question this panel asks rather than commands the page offers),
@@ -782,7 +782,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   `HistoryTarget` union it switches on; and owns the Share trigger), `InfoCol`
   (the readouts + score + the Stop/Concede action-row button + the GameEventLog),
   `PlayArea` (the thin coordinator: `useGame`, the shared below-board feedback
-  slot [both columns show into it], the coop `useSharedMove` transport, the
+  slot [both columns show into it], the coop `useShowMove` transport, the
   terminal message + the compete-win `CelebrationBlockingModal`, and the
   board-viewer state), `SetupForm` (`<SetupCoopStyleSection>` [coop pacing +
   first turn], two `<DictBandField>`s, the AI opponent count/level controls
@@ -810,7 +810,7 @@ board + the sharer's *tentative* tiles, vs history's committed *past* board — 
 both ride one `useHistoryViewer` via the `HistoryTarget` union (`{kind:'turn'} |
 {kind:'shared'}`), and `BoardCol` switches on `kind`.
 
-It's **ephemeral** — a stable Broadcast channel (`useSharedMove`), never stored;
+It's **ephemeral** — a stable Broadcast channel (`useShowMove`), never stored;
 a teammate who misses it simply doesn't see it, matching the trust model
 (friends, no anti-cheat needed). The committed board is already shared in coop,
 so the payload is just the placements (+ `sharerId` / `words` / `score` for the
@@ -830,7 +830,7 @@ Bob dismisses; no self-echo to Alice).
 |---|---|---|
 | `game:${gameId}` (stable) | `useCommonGame` | presence + pause + suspend + `common.games` (incl. compete leaderboard via `status`) |
 | `scrabble:${gameId}:${uuid}` | `useGame` | postgres-changes on `scrabble.{games, players, plays}` |
-| `scrabble:${gameId}` (stable) | `useSharedMove` | **coop only** — the "show a move" Broadcast (`show-move` event: a teammate's staged tiles for a read-only preview). Ephemeral, never stored; stable name so teammates merge into one room. |
+| `scrabble:${gameId}` (stable) | `useShowMove` | **coop only** — the "show a move" Broadcast (`show-move` event: a teammate's staged tiles for a read-only preview). Ephemeral, never stored; stable name so teammates merge into one room. |
 
 ### Printing the board (PDF)
 

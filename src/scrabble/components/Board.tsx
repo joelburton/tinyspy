@@ -5,7 +5,7 @@ import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import { BOARD_SIZE, CENTER, premiumAt } from '../lib/board'
-import type { GCell, GTentative } from '../types'
+import type { GCell, GTile } from '../types'
 import { Cell } from './Cell'
 import styles from './Board.module.css'
 
@@ -14,7 +14,7 @@ import styles from './Board.module.css'
 type BoardMarks = {
   // Tiles laid on the board but not played: my staged move, or a teammate's
   // shown one.
-  stagedTiles: ReadonlyMap<string, GTentative>
+  stagedTiles: ReadonlyMap<string, GTile>
   // The word just played, ringed green for its beat.
   justPlayedCellIds: ReadonlySet<string>
   // The new cells of a refused word, ringed red for its beat.
@@ -54,8 +54,7 @@ export function Board({
       {cells.map((cell, i) => {
         const x = i % BOARD_SIZE
         const y = Math.floor(i / BOARD_SIZE)
-        const staged = marks.stagedTiles.get(cell.id)
-        const tile = cell.tile ?? (staged === undefined ? null : { id: cell.id, ...staged })
+        const tile = cell.tile ?? marks.stagedTiles.get(cell.id) ?? null
         const isLifted = marks.liftedCellId === cell.id
         // A tile may land on an empty cell, or back on the one it was lifted from.
         const drop = marks.dropCellId !== cell.id ? null : tile !== null && !isLifted ? 'blocked' : 'ok'

@@ -7,7 +7,7 @@
  */
 /* @@ */ :root {
 /* @@ */   --scrabble-board-bg: #1f6f54; /* the felt green between cells */
-/* @@ */   --scrabble-cell-bg: #ffffff; /* a plain (non-premium) empty square — white */
+/* @@ */   --scrabble-cell-bg: #ffffff; /* a plain (non-premium) empty cell — white */
 
 /* @@ */   --scrabble-tw: #e06a52; /* triple word  */
 /* @@ */   --scrabble-dw: #f0a9a0; /* double word + center star */
@@ -17,21 +17,21 @@
 /* @@ */   --scrabble-tile-bg: var(--tile-3-fill-color); /* the shared normal tile (shade 3) */
 /* @@ */   --scrabble-tile-ink: var(--tile-slot-ink-color);
 /* @@ */   --scrabble-tile-edge: var(--tile-3-edge-color);
-  /* A placed-but-not-committed tile (and, in the turn-viewer, a tile THIS turn
+  /* A placed-but-not-played tile (and, in the turn-viewer, a tile THIS turn
      played): the normal tile with the shared attention OVERLAY stacked on top —
-     brighter + more yellow, so it clearly stands out from the committed C tiles. */
+     brighter + more yellow, so it clearly stands out from the played C tiles. */
 /* @@ */   --scrabble-tile-attention: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), var(--scrabble-tile-bg);
 /* @@ */   --scrabble-tile-picked:   #ffd24d; /* a rack tile picked for exchange */
 
-  /* ── Premium-square ink + board chrome, named during the palette sweep ────
+  /* ── Premium-cell ink + board chrome, named during the palette sweep ────
    * The premium letters are the board's printed notation, one color per premium
    * type; the shadows are this board's own depth. Values unchanged. */
-  /* The DOUBLE squares carry dark ink of their own hue; the TRIPLE squares are
+  /* The DOUBLE cells carry dark ink of their own hue; the TRIPLE cells are
      saturated enough to carry white, which they take from the shared ink token.
      The center star is a double-word, so it inks like one. */
 /* @@ */   --scrabble-dw-ink-color:   #7a3b34;
 /* @@ */   --scrabble-dl-ink-color:   #2c4f6b;
-  /* A plain square's ink — the muted green-gray the premium labels are read
+  /* A plain cell's ink — the muted green-gray the premium labels are read
      against. */
 /* @@ */   --scrabble-cell-ink-color: #6b8378;
 /* @@ */   --scrabble-cell-inner-shadow: inset 0 -2px 0 rgb(0 0 0 / 12%);
