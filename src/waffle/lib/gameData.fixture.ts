@@ -200,14 +200,18 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
 
 /**
  * The props `<GamePage>` hands waffle's `PlayArea`, from the game's facts: the
- * `game_data` blob, and shell_data's roster read off it, viewed by `auth`
- * (`u1` unless said otherwise).
+ * `game_data` and `static_game_data` blobs, and shell_data's roster read off
+ * them, viewed by `auth` (`u1` unless said otherwise).
  */
 export function ZTest_makeWaffleCtx(
   facts: ZTest_GameDataFacts = {},
-  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData'> = {},
+  over: Omit<ZTest_PlayAreaFacts, 'players' | 'gameData' | 'staticGameData'> = {},
 ): PlayAreaLoaderProps {
   const raw = ZTest_makeGameDataRaw(facts)
+  // The two blobs the page hands down, split as the builders write them: what
+  // create fixed, the deal and par included, in the static one; the rest, the
+  // solution included, in game_data.
+  const { id, gametype, brand, club, mode, coop, compete, oneBoard, setup, puzzle, ...changing } = raw
   return ZTest_makePlayAreaLoaderProps({
     gameId: raw.id,
     gametype: raw.gametype,
@@ -217,7 +221,11 @@ export function ZTest_makeWaffleCtx(
     players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    gameData: raw,
+    gameData: { ...changing, puzzle: { solution: puzzle.solution } },
+    staticGameData: {
+      id, gametype, brand, club, mode, coop, compete, oneBoard, setup,
+      puzzle: { dealtTiles: puzzle.dealtTiles, parSwaps: puzzle.parSwaps },
+    },
     auth: { user: { id: 'u1' } } as unknown as Session,
     ...over,
   })

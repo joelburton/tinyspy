@@ -100,6 +100,11 @@ test.describe('waffle mobile', () => {
     await expect(tileB).toHaveAttribute('aria-pressed', 'true') // picked up
     await tileA.tap() // second tap → swap
 
+    // That swap solves the board, so my win's celebration pops over the page;
+    // dismiss it as a player would, or it sits over the header's buttons.
+    await expect(page.getByRole('dialog', { name: /Solved it!/ })).toBeVisible({ timeout: 10000 })
+    await page.getByRole('button', { name: 'Nice!' }).click()
+
     // The swap committed: open the info sheet and confirm the swap log is no
     // longer empty (the readout lives in the off-canvas sheet on mobile).
     //

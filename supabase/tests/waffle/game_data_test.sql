@@ -1,13 +1,15 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: waffle's page blobs — game_data, summary_data, and shell_data beside them
+-- Test: waffle's page blobs — static_game_data, game_data, summary_data, and shell_data beside them
 -- ============================================================
 -- `waffle._rebuild_data_cols` writes everything a page shows onto
--- `common.games` after every move (supabase/sql/waffle.sql → The page blobs).
--- This file pins what the page gets:
+-- `common.games` after every move, and `_write_static_game_data` what nothing
+-- after create changes (supabase/sql/waffle.sql → The page blobs). This file
+-- pins what the page gets:
 --
---   1. A fresh game: the deal as tiles, par, no solution; a team with nothing
+--   1. A fresh game: the deal as tiles and par in static_game_data, no
+--      solution in game_data's puzzle; a team with nothing
 --      used in coop and none in compete; each player fresh with the dealt
 --      board, colored; both fresh summaries
 --   2. Mid-game coop: the log's swap as two tiles with the letters before it,
@@ -17,8 +19,8 @@
 --   4. The endings: the solution arrives, the solve stamps the team, the
 --      winner's count on the summary, shell_data rewritten
 --   5. A Restart empties it all again
---   6. `_rebuild_data_cols_for_all` rewrites every waffle game without
---      re-dating it
+--   6. `_rebuild_data_cols_for_all` rewrites every waffle game, its static
+--      blob included, without re-dating it
 --
 -- The board is setup.psql's: one swap (cells 0 and 1) from solved, so the
 -- dealt board's first two tiles are yellow and the rest green; par 1, budget 6.
@@ -29,7 +31,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(27);
+select plan(28);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -57,6 +59,8 @@ create function pg_temp.compete() returns uuid language sql as
   $$ select id from g where mode = 'compete' $$;
 create function pg_temp.game_data(game uuid) returns jsonb language sql as
   $$ select game_data from common.games where id = game $$;
+create function pg_temp.static_game_data(game uuid) returns jsonb language sql as
+  $$ select static_game_data from common.games where id = game $$;
 create function pg_temp.summary_data(game uuid) returns jsonb language sql as
   $$ select summary_data from common.games where id = game $$;
 -- The common part of a game's summary_data, as written: waffle's keys sit beside it.
@@ -77,15 +81,20 @@ create function pg_temp.counts(game uuid) returns jsonb language sql as
 -- ─── (1) A fresh game ───
 select is(
   (select jsonb_build_object(
-     'nDealt', jsonb_array_length(gd -> 'puzzle' -> 'dealtTiles'),
-     'first',  gd -> 'puzzle' -> 'dealtTiles' -> 0,
-     'second', gd -> 'puzzle' -> 'dealtTiles' -> 1,
-     'par',    gd -> 'puzzle' -> 'parSwaps',
-     'solution', gd -> 'puzzle' -> 'solution')
-     from (select pg_temp.game_data(pg_temp.coop()) gd) x),
+     'nDealt', jsonb_array_length(sgd -> 'puzzle' -> 'dealtTiles'),
+     'first',  sgd -> 'puzzle' -> 'dealtTiles' -> 0,
+     'second', sgd -> 'puzzle' -> 'dealtTiles' -> 1,
+     'par',    sgd -> 'puzzle' -> 'parSwaps',
+     'keys',   (select jsonb_agg(k order by k) from jsonb_object_keys(sgd -> 'puzzle') k))
+     from (select pg_temp.static_game_data(pg_temp.coop()) sgd) x),
   '{"nDealt": 21, "first": {"id": "0", "letter": "b"}, "second": {"id": "1", "letter": "a"},
-    "par": 1, "solution": null}'::jsonb,
-  'the puzzle: the deal as 21 tiles by position, the holes left out; par; no solution mid-game'
+    "par": 1, "keys": ["dealtTiles", "parSwaps"]}'::jsonb,
+  'the static puzzle: the deal as 21 tiles by position, the holes left out; par'
+);
+select is(
+  pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
+  '{"solution": null}'::jsonb,
+  'game_data''s puzzle: the solution alone, withheld mid-game'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',
@@ -266,12 +275,16 @@ select is(
 );
 
 -- ─── (6) _rebuild_data_cols_for_all ───
-update common.games set game_data = null, summary_data = null, shell_data = null, status_changed_at = '2026-01-01'
+update common.games
+   set static_game_data = null, game_data = null, summary_data = null, shell_data = null,
+       status_changed_at = '2026-01-01'
  where id in (select id from g);
 select is(waffle._rebuild_data_cols_for_all() >= 2, true, '_rebuild_data_cols_for_all rewrites every waffle game');
 select is(
   (select count(*)::int from common.games
-    where id in (select id from g) and game_data is not null and summary_data is not null and shell_data is not null),
+    where id in (select id from g)
+      and static_game_data is not null and game_data is not null
+      and summary_data is not null and shell_data is not null),
   2,
   '… every blob is back'
 );

@@ -17,7 +17,8 @@
 -- What the frontend reads is none of this schema's tables: `_rebuild_data_cols`
 -- writes the page blobs onto `common.games` after every move (plans/seat-view.md
 -- → The page is written, not assembled) — `game_data`, `summary_data`, and
--- `shell_data` through common — and the page reads those.
+-- `shell_data` through common — and `create_game` writes `static_game_data`
+-- once (plans/static-game-data.md); the page reads those.
 --
 -- What is particular to waffle (docs/games/waffle.md has the rest):
 --   - The board is built outside SQL, by an edge function, and taken at face
@@ -354,12 +355,17 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 -- waffle's facts on top; the pieces below build each part, so `select
 -- game_data from common.games` shows the page what it gets.
 --
---   game_data, waffle's part:
---     puzzle: {dealtTiles, parSwaps, solution}
---                                          the deal, frozen at create; a tile here
+-- `static_game_data` is what nothing after `create_game` changes, written once
+-- by `_write_static_game_data`; the page hands it to `useGame`, which merges
+-- each key back into its place in `game_data` (plans/static-game-data.md).
+--
+--   static_game_data, waffle's part:
+--     puzzle: {dealtTiles, parSwaps}       the deal, frozen at create; a tile here
 --                                          is {id, letter}, its id the cell's
---                                          position as text, the holes left out;
---                                          `solution` null until the game ends
+--                                          position as text, the holes left out
+--
+--   game_data, waffle's part:
+--     puzzle: {solution}                   null until the game ends; tiles as above
 --     team: {nSwapsUsed}                   the swaps summed over every player's own;
 --                                          null in compete (plans/team-facts.md)
 --     events: [{id, userId, swaps, colors, at}, …]
@@ -401,8 +407,9 @@ $$;
 
 revoke execute on function waffle._make_json_tiles(text, text) from public;
 
--- The deal: its tiles as dealt, its par, and the solution once the game has
--- ended (wordle's rule; the column grant keeps it from any client read).
+-- The puzzle's part of game_data: the solution once the game has ended
+-- (wordle's rule; the column grant keeps it from any client read). The deal is
+-- static (`_make_json_static_game_data`).
 create or replace function waffle._make_json_puzzle(wg waffle.games, p_ended boolean)
 returns jsonb
 language sql
@@ -410,9 +417,7 @@ immutable
 set search_path = waffle, common, public, extensions
 as $$
   select jsonb_build_object(
-    'dealtTiles', waffle._make_json_tiles(wg.board_at_setup, null),
-    'parSwaps',   wg.par_swaps,
-    'solution',   case when p_ended then waffle._make_json_tiles(wg.solution, null) end);
+    'solution', case when p_ended then waffle._make_json_tiles(wg.solution, null) end);
 $$;
 
 revoke execute on function waffle._make_json_puzzle(waffle.games, boolean) from public;
@@ -500,6 +505,24 @@ $$;
 
 revoke execute on function waffle._make_json_game_data(uuid) from public;
 
+-- The whole static_game_data blob: the common part, with the deal on top — its
+-- tiles as dealt and its par. Nothing in it changes after create_game.
+create or replace function waffle._make_json_static_game_data(p_game_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = waffle, common, public, extensions
+as $$
+  select common._make_json_static_game_data(p_game_id) || jsonb_build_object(
+           'puzzle', jsonb_build_object(
+             'dealtTiles', waffle._make_json_tiles(wg.board_at_setup, null),
+             'parSwaps',   wg.par_swaps))
+    from waffle.games wg
+   where wg.game_id = p_game_id;
+$$;
+
+revoke execute on function waffle._make_json_static_game_data(uuid) from public;
+
 -- The game summed up: the numbers a list of games shows for this one.
 create or replace function waffle._make_json_summary_data(
   p_game_id uuid,
@@ -572,12 +595,32 @@ $$;
 revoke execute on function waffle._rebuild_data_cols(uuid, boolean) from public;
 
 -- ============================================================
+-- waffle._write_static_game_data — one game's static blob, written
+-- ============================================================
+-- Writes `static_game_data`, which nothing after create changes, so no move
+-- writes it: `create_game` calls this once, and `_rebuild_data_cols_for_all`
+-- for a shape change.
+create or replace function waffle._write_static_game_data(p_game_id uuid)
+returns void
+language sql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+  update common.games
+     set static_game_data = waffle._make_json_static_game_data(p_game_id)
+   where id = p_game_id;
+$$;
+
+revoke execute on function waffle._write_static_game_data(uuid) from public;
+
+-- ============================================================
 -- waffle._rebuild_data_cols_for_all — every waffle game's, rebuilt
 -- ============================================================
 -- For a shape change, or a game created before its builder knew the blobs:
--- `_rebuild_data_cols` over every waffle game without re-dating any, and
--- answers how many it rewrote. Run by hand as postgres (`gmake db-psql`); no
--- client calls it, so it has no grant and wears the `_`.
+-- `_write_static_game_data` and `_rebuild_data_cols` over every waffle game
+-- without re-dating any, and answers how many it rewrote. Run by hand as
+-- postgres (`gmake db-psql`); no client calls it, so it has no grant and wears
+-- the `_`.
 create or replace function waffle._rebuild_data_cols_for_all()
 returns int
 language plpgsql
@@ -591,6 +634,7 @@ begin
   for v_game_id in
     select id from common.games where gametype in ('waffle_coop', 'waffle_compete')
   loop
+    perform waffle._write_static_game_data(v_game_id);
     perform waffle._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
     v_count := v_count + 1;
   end loop;
@@ -744,6 +788,7 @@ begin
   select new_id, uid, b_dealt
     from unnest(p_player_user_ids) uid;
 
+  perform waffle._write_static_game_data(new_id);
   perform waffle._rebuild_data_cols(new_id, p_update_status_changed_at => true);
 
   -- `result` NAMES the answer; `id` is the game to go to. It travels through
