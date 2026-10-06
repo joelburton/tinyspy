@@ -16,7 +16,7 @@
 
 import type { Action } from '@/common/actions/useBindAction'
 import type { Mark } from '@/common/board-marks/useMark'
-import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
 import type { Actor } from '@/common/members/member'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { SummaryData } from '@/common/manifest/summaryData'
@@ -47,8 +47,9 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
     // Every legal word, so the page judges a word itself.
     legalWords: string[]
   }
-  // What the team shares; null in compete, where there is no team.
-  team: GTeam | null
+  // The team's facts, sent once: the team's track and the one board. Null in
+  // compete, where there is no team.
+  team: GFactsRaw | null
   // The log: every submission, rejects included, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
@@ -68,22 +69,21 @@ export type GTrack = {
 }
 
 /**
- * What the team shares in coop (plans/team-facts.md): the team's track,
- * summed over every player's words. The budget it counts against is
- * `maxGuesses`, on every player.
+ * wordiply's facts (plans/team-facts.md): the track, the budget it counts
+ * against, and the board of accepted words. A player carries them twice —
+ * spread on, their side's (the team's in coop, their own in compete); under
+ * `own`, their own. The board's longest is the puzzle's (`puzzle.maxWordLen`).
  */
-export type GTeam = GTrack
-
-/**
- * What the info column's state line shows — "3/5 guesses" while playing, the
- * score bar and the letter count at the end: the team's track in coop, my own
- * in compete, against the budget and the board's longest. Decided once, in
- * `makeGameData`, so the line draws it and picks nothing. Named for its
- * reader: this is what to SHOW there, not a fact other components read.
- */
-export type GStateLineData = GTrack & {
+export type GFacts = GTrack & {
+  // The guess budget: the team's in coop, each player's own in compete.
   maxGuesses: number
-  maxWordLen: number
+  // The accepted words; null for a rival mid-race.
+  board: GBoard | null
+}
+
+/** `GFacts` as the builders write them: the board is always there. */
+export type GFactsRaw = Omit<GFacts, 'board'> & {
+  board: GBoard
 }
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
@@ -104,15 +104,11 @@ export type GEventRaw = {
   at: string
 }
 
-/** A player as wordiply's game_data shows them: the common player, with the
- *  budget, their own track and this seat's board. */
-export type GPlayerRaw = PlayerRaw & GTrack & {
-  // The guess budget: the team's in coop, each player's own in compete. The
-  // same on every player.
-  maxGuesses: number
-  // What this seat sees: the team's words in coop, the racer's own in
-  // compete.
-  board: GBoard
+/** A player as wordiply's game_data shows them: the common player, with
+ *  their own facts. */
+export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
+  // A racer's own words; null in coop, whose one board is `team`'s.
+  board: GBoard | null
 }
 
 /*
@@ -135,11 +131,6 @@ export type GPlayerRaw = PlayerRaw & GTrack & {
  *     maxWordLen
  *     longestWords
  *     legalWords
- *   team:                                    # null in compete
- *     nGuessesUsed
- *     lengthScore                            # null until the game ends
- *     nLetters                               # null until the game ends
- *     longestWordLen                         # null until the game ends
  *   turns: {holder}                          # null: no turn order; holder is a player
  *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
  *   ended
@@ -148,18 +139,17 @@ export type GPlayerRaw = PlayerRaw & GTrack & {
  *   players: [player, …]                     # seat order
  *   playersById
  *   me                                       # same object as playersById[auth.user.id]
- *   stateLineData: {nGuessesUsed, maxGuesses, lengthScore, nLetters, longestWordLen, maxWordLen}
- *                                            # the team's in coop, mine in compete
  *
  * player:
  *   the common player
- *   maxGuesses                               # 5, the same on every player
- *   nGuessesUsed                             # own, in every mode
- *   lengthScore                              # own; null until the game ends
- *   nLetters                                 # own; null until the game ends
- *   longestWordLen                           # own; null until the game ends
- *   board: {words}                           # what this seat sees: the team's words in coop, my own
- *                                            # in compete; null for a rival mid-race
+ *   nGuessesUsed                             # the side's: the team's in coop, their own in compete
+ *   lengthScore                              # null until the game ends
+ *   nLetters                                 # null until the game ends
+ *   longestWordLen                           # null until the game ends
+ *   maxGuesses                               # 5
+ *   board: {words}                           # coop's one board on every player; null for a rival mid-race
+ *   own: {nGuessesUsed, lengthScore, nLetters, longestWordLen, maxGuesses, board}
+ *                                            # this player's own
  *
  * event:
  *   id
@@ -178,7 +168,7 @@ export type GPlayerRaw = PlayerRaw & GTrack & {
  * built, and the seat rule applied: what I may not see yet is not here.
  * Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // renders them as <li>s, the printout prints the same array
   // (common/setup-form/doc.md → Setup rows).
@@ -198,14 +188,15 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'events' | 'play
   // My entry in `playersById`: the same object. My own board is always mine
   // to see.
   me: GPlayer & { board: GBoard }
-  // What the state line shows: the team's track in coop, my own in compete.
-  stateLineData: GStateLineData
 }
 
-/** One player of this game, as `gd` holds them: the blob's player, with the
- *  board withheld — null — for a rival mid-race. */
-export type GPlayer = Omit<GPlayerRaw, 'board'> & {
-  board: GBoard | null
+/**
+ * One player of this game, as `gd` holds them: the common player with
+ * wordiply's facts twice — spread on, their side's; under `own`, their own
+ * (plans/team-facts.md). A rival's board is null mid-race.
+ */
+export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
+  own: GFacts
 }
 
 /** What one seat sees: the accepted words, in the order of play. */
@@ -388,13 +379,12 @@ export type GAnswerMark = {
  * there is no polished pair and no `Raw`; the play surface reads `game_data`
  * instead (`GGameDataRaw`).
  *
- * `team` is `game_data`'s group less the longest word's length: the team's
- * track in coop, null in compete, whose summary shows no progress. The
+ * `team` is the team's track less the longest word's length in coop, null in compete, whose summary shows no progress. The
  * winner's length score is compete's, null until the race is won and always
  * null in coop (the winner is the common `ending.winner`).
  */
 export type GSummaryData = SummaryData & {
-  team: Omit<GTeam, 'longestWordLen'> | null
+  team: Omit<GTrack, 'longestWordLen'> | null
   maxGuesses: number
   winnerLengthScore: number | null
 }

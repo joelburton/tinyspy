@@ -99,30 +99,36 @@ describe('wordiply makeGameData — the links become players', () => {
   })
 })
 
-describe('wordiply makeGameData — the tracks and the state line', () => {
-  it('coop: each player\'s count is their own, the team\'s is everyone\'s, and the state line shows the team\'s', () => {
+describe('wordiply makeGameData — the tracks', () => {
+  it('coop: every player carries the team\'s track, and their own under `own`', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
-    expect([gd.me.nGuessesUsed, gd.playersById.u2!.nGuessesUsed]).toEqual([1, 1])
-    expect(gd.team).toEqual({ nGuessesUsed: 2, lengthScore: null, nLetters: null, longestWordLen: null })
-    expect(gd.stateLineData).toEqual({
-      nGuessesUsed: 2, lengthScore: null, nLetters: null, longestWordLen: null, maxGuesses: 5, maxWordLen: 7,
-    })
+    expect([gd.me.nGuessesUsed, gd.playersById.u2!.nGuessesUsed]).toEqual([2, 2])
+    expect([gd.me.own.nGuessesUsed, gd.playersById.u2!.own.nGuessesUsed]).toEqual([1, 1])
+    expect(gd.me).toMatchObject({ lengthScore: null, nLetters: null, longestWordLen: null, maxGuesses: 5 })
+    expect(gd).not.toHaveProperty('team')
+  })
+
+  it('coop: the one board, the same object on every player and under `own`', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
+    expect(gd.me.board.words).toEqual(['cars', 'hangars'])
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 
   it('the scores arrive once the game has ended', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS, ...STOPPED }), 'u1')
     // cars (4) + hangars (7): 11 letters, the longest 7 of 7.
-    expect(gd.stateLineData).toMatchObject({ nGuessesUsed: 2, lengthScore: 100, nLetters: 11, longestWordLen: 7 })
-    expect(gd.me).toMatchObject({ lengthScore: 57, nLetters: 4, longestWordLen: 4 })
+    expect(gd.me).toMatchObject({ nGuessesUsed: 2, lengthScore: 100, nLetters: 11, longestWordLen: 7 })
+    expect(gd.me.own).toMatchObject({ lengthScore: 57, nLetters: 4, longestWordLen: 4 })
   })
 
-  it('a race has no team, so the state line shows my own track', () => {
+  it('a racer\'s side is themselves, so both copies are their own', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, events: EVENTS }),
       'u1',
     )
-    expect(gd.team).toBeNull()
-    expect(gd.stateLineData).toMatchObject({ nGuessesUsed: 1, maxGuesses: 5 })
+    expect([gd.me.nGuessesUsed, gd.me.own.nGuessesUsed]).toEqual([1, 1])
+    expect(gd.me.own.board).toBe(gd.me.board)
   })
 })
 
@@ -146,7 +152,7 @@ describe('wordiply makeGameData — the seat rule', () => {
   it('coop withholds nothing: one board, the team\'s accepted words', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO, events: EVENTS }), 'u1')
     expect(gd.events).toHaveLength(3)
-    expect(gd.playersById.u2!.board).toEqual(gd.me.board)
+    expect(gd.playersById.u2!.board).toBe(gd.me.board)
     expect(gd.me.board.words).toEqual(['cars', 'hangars'])
   })
 

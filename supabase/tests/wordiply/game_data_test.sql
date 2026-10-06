@@ -10,11 +10,11 @@
 --
 --   1. A fresh coop game's static_game_data and game_data, as a whole: the
 --      common parts, the puzzle as built in the static blob, a team with
---      nothing used, no log, and every player fresh with an empty board; both
---      fresh summaries
+--      nothing used and an empty board, no log, and every player fresh,
+--      carrying no board; both fresh summaries
 --   2. Mid-game coop: the log carries a reject beside the accepted word, each
---      player's own count, the team's, one board on every seat, and no score
---      before the end
+--      player's own count, the team's facts sent once — its count and the one
+--      board — and no score before the end
 --   3. Mid-game compete: each racer's own count and own board; the log
 --      carries every racer's rows (the hook withholds, not the builder)
 --   4. The endings: the scores arrive, the team's and each player's own; the
@@ -75,8 +75,8 @@ create function pg_temp.track(t jsonb) returns text language sql as
   $$ select concat_ws('/', t ->> 'nGuessesUsed', coalesce(t ->> 'lengthScore', '-'),
                       coalesce(t ->> 'nLetters', '-'), coalesce(t ->> 'longestWordLen', '-')) $$;
 
--- A player who has not moved, in a free-for-all game: the common fields, and
--- wordiply's on top.
+-- A coop player who has not moved, in a free-for-all game: the common fields,
+-- and wordiply's on top, the board being the team's.
 create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language sql as $$
   select jsonb_build_object(
     'id',             uid,
@@ -98,7 +98,7 @@ create function pg_temp.fresh_player(uid uuid, name text) returns jsonb language
     'lengthScore',    null,
     'nLetters',       null,
     'longestWordLen', null,
-    'board',          jsonb_build_object('words', '[]'::jsonb))
+    'board',          null)
 $$;
 
 -- ─── (1) A fresh coop game, as a whole ───
@@ -128,12 +128,13 @@ select is(
     'ending',   null,
     'ended',    false,
     'outcome',  null,
-    'team',     '{"nGuessesUsed": 0, "lengthScore": null, "nLetters": null, "longestWordLen": null}'::jsonb,
+    'team',     '{"nGuessesUsed": 0, "lengthScore": null, "nLetters": null, "longestWordLen": null,
+                  "maxGuesses": 5, "board": {"words": []}}'::jsonb,
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
       pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea'))),
-  'the whole game_data of a fresh coop game: the common part, a team with nothing used, no log, fresh players with empty boards'
+  'the whole game_data of a fresh coop game: the common part, a team with nothing used and an empty board, no log, fresh players carrying no board'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()),
@@ -182,14 +183,14 @@ select is(
   'coop: the team''s count in game_data.team, no score before the end'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
+  pg_temp.game_data(pg_temp.coop()) -> 'team' -> 'board',
   '{"words": ["bar"]}'::jsonb,
-  'coop: every seat''s board shows the team''s accepted words, and no reject'
+  'coop: the team''s one board shows the accepted words, and no reject'
 );
 select is(
-  pg_temp.player(pg_temp.coop(), 'ada11111-1111-1111-1111-111111111111') -> 'board',
-  pg_temp.player(pg_temp.coop(), 'bea22222-2222-2222-2222-222222222222') -> 'board',
-  '… the same board on both seats'
+  (select jsonb_agg(p -> 'board') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
+  '[null, null]'::jsonb,
+  '… and is sent once: no coop player carries a board'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()) -> 'team',
@@ -299,7 +300,7 @@ select is(
   jsonb_build_array(
     pg_temp.fresh_player('ada11111-1111-1111-1111-111111111111', 'ada'),
     pg_temp.fresh_player('bea22222-2222-2222-2222-222222222222', 'bea')),
-  'after a Restart every player is fresh again, empty board and all'
+  'after a Restart every player is fresh again'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'events',

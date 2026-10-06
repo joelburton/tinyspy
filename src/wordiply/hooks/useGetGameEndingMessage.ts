@@ -19,8 +19,9 @@ export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
   const outcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const teamLengthScore = gd.team?.lengthScore ?? null
-  const teamNLetters = gd.team?.nLetters ?? null
+  // A coop player's side is the team.
+  const teamLengthScore = gd.coop ? gd.me.lengthScore : null
+  const teamNLetters = gd.coop ? gd.me.nLetters : null
   const winner = gd.ending?.winner ?? null
   const winnerId = winner?.id ?? null
   const winnerName = winner?.username ?? null

@@ -69,7 +69,7 @@ export function InfoCol({
         {/* State — guesses only during play; score + letters once ended.
             Fixed min-height so the swap doesn't jump the rows below. */}
         <div className={styles.stateBlock}>
-          <StateLine data={gd.stateLineData} isGameEnded={gd.ended}/>
+          <StateLine facts={gd.me} puzzle={gd.puzzle} isGameEnded={gd.ended}/>
         </div>
         {/* Whose-turn line — only for a turn-order game. An ADJACENT line:
             wordiply's state region is a bespoke stateBlock, so TurnStatusLine

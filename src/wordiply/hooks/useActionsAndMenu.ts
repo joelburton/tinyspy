@@ -150,7 +150,7 @@ export function useActionsAndMenu({
           events: gd.events,
           players: gd.players,
           me: gd.me,
-          track: gd.stateLineData,
+          track: gd.me,
           setupRows: gd.setupRows,
         }),
       )

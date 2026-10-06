@@ -87,8 +87,9 @@ export function ZTest_guess(
 /**
  * Build the `game_data` blob `wordiply._rebuild_data_cols` would write from
  * these facts: each track counted off the accepted rows (one player's, or the
- * whole team's in coop) with its scores held back until the end, each seat's
- * board in the mode's scope, and where every player stands derived.
+ * whole team's in coop) with its scores held back until the end; the team's
+ * facts in coop with the one board, a racer's own board in compete; and where
+ * every player stands derived.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
@@ -144,8 +145,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       waitingForTurn: stillPlaying && !onTurn,
       maxGuesses: 5,
       ...makeTrack(p.id),
-      // The words on this seat's board: the team's in coop, their own in compete.
-      board: { words: accepted.filter((e) => coop || e.userId === p.id).map((e) => e.word) },
+      // A racer's own words; coop's one board is the team's.
+      board: coop ? null : { words: accepted.filter((e) => e.userId === p.id).map((e) => e.word) },
     }
   })
 
@@ -164,7 +165,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     ended,
     outcome,
     puzzle: { base, maxWordLen, longestWords, legalWords },
-    team: coop ? makeTrack(null) : null,
+    team: coop ? { ...makeTrack(null), maxGuesses: 5, board: { words: accepted.map((e) => e.word) } } : null,
     events,
     players,
   }

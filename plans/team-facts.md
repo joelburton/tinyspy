@@ -136,8 +136,10 @@ top-level board, and the pgTAP pins of the blob.
   strands' hint bar, sent in `team` today with a null on each coop player,
   becomes a fact like the rest.
 - **wordiply:** its accepted words become `board` in `GFacts`, sent once in
-  coop, and the front end stops rebuilding them from `gd.events`
-  (`useSubmitGuess`'s dedup, `useMarkForeignGuesses`).
+  coop. (Built 2026-10-06. `useSubmitGuess`'s dedup and
+  `useMarkForeignGuesses` still read `gd.events`, and must: the dedup counts
+  rejects, which the server dedups on too, and the foreign mark needs the
+  newest row's player and id. Neither is on the board.)
 - **crosswords:** `useGame` already puts the one grid on every player; it
   stops nulling the rest.
 - **scrabble:** the board and `nBagTiles` move from the top of the blob into

@@ -223,7 +223,7 @@ it into `game_data`, each key in its place:
 | blob | wordiply's part |
 |---|---|
 | `static_game_data` | `puzzle: {base, maxWordLen, longestWords, legalWords}`, frozen at create |
-| `game_data` | `team`, the team's track, null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player `maxGuesses` (5), their own track, and `board: {words}` — what this seat sees: the team's accepted words in coop, their own in compete |
+| `game_data` | `team`, the team's facts sent once — its track, the budget and the one board of accepted words — null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player their own facts: `maxGuesses` (5), their track, and a racer's `board: {words}`, null on a coop player |
 | `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop |
 
 **The client reads nothing from these tables.** The page is handed the blobs
@@ -524,8 +524,12 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
 - **`useGame`** builds `gd` through `makeGameData`, a pure function of the blob
   and who I am: the players with their links resolved, the seat rule (mid-race
   in compete a rival's rows leave `gd.events` and their `board` is null), the
-  setup rows, and `stateLineData` — the team's track in coop, mine in compete.
-  It reads nothing and subscribes to nothing.
+  setup rows, and wordiply's facts (`GFacts`: the track, `maxGuesses`,
+  `board`) on every player twice — spread on, the side's (the team's in coop,
+  their own in compete); under `own`, their own
+  ([plans/team-facts.md](../../plans/team-facts.md)). The state line reads
+  `gd.me` beside `gd.puzzle`, whose `maxWordLen` is the board's longest. It
+  reads nothing and subscribes to nothing.
 - **`BoardCol` owns the move.** `useSubmitGuess` holds the shared
   `useFoundWordSubmit` engine — a lookup in the shipped `legalWords` Set
   (points = the word's length), the `submit_guess` call, what each answer

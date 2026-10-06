@@ -306,27 +306,28 @@ drop function if exists wordiply._write_statuses(uuid, boolean);
 --                                          end to show the longest
 --
 --   game_data, wordiply's part:
---     team: {nGuessesUsed, lengthScore, nLetters, longestWordLen}
---                                          the team's words, summed; null in compete,
---                                          where there is no team (plans/team-facts.md);
---                                          the three scores null until the game ends
+--     team: {nGuessesUsed, lengthScore, nLetters, longestWordLen, maxGuesses, board}
+--                                          the team's facts, once: its words, summed,
+--                                          and the one board; null in compete, where
+--                                          there is no team (plans/team-facts.md); the
+--                                          three scores null until the game ends
 --     events: [{id, userId, word, valid, reason, tookTurn, at}, …]
 --                                          every submission, rejects included, every
 --                                          player's; what a racer may see of a rival
 --                                          mid-race is the hook's rule
---     players: [player, …]                 the common player, plus:
+--     players: [player, …]                 the common player, plus this player's own facts:
 --       maxGuesses                         5, the same on every player
---       nGuessesUsed                       this player's own, in every mode
---       lengthScore                        this player's own; null until the game ends
---       nLetters                           this player's own; null until the game ends
---       longestWordLen                     this player's own; null until the game ends
---       board: {words}                     what this seat sees: the team's accepted
---                                          words in coop, the racer's own in compete
+--       nGuessesUsed
+--       lengthScore                        null until the game ends
+--       nLetters                           null until the game ends
+--       longestWordLen                     null until the game ends
+--       board: {words}                     a racer's accepted words; null in coop,
+--                                          whose one board is `team`'s
 --
 --   summary_data, wordiply's part (the common part names and dates the game and
 --   carries its ending; the winner is `ending.winner`):
 --     team: {nGuessesUsed, lengthScore, nLetters}
---                                          the same group, less the longest word's
+--                                          the team's track, less the longest word's
 --                                          length; null in compete
 --     maxGuesses
 --     winnerLengthScore                    compete's, once the race is won; null in coop
@@ -401,9 +402,14 @@ $$;
 
 revoke execute on function wordiply._make_json_track(uuid, uuid, boolean) from public;
 
--- What one seat sees on the board: the accepted words, in the order of play.
--- In coop every seat sees the team's; in compete, the racer's own.
-create or replace function wordiply._make_json_board(p_game_id uuid, p_user_id uuid, p_mode text)
+-- The shape this had while every coop seat carried its own copy of the board;
+-- supabase/sql is re-applied, not diffed.
+drop function if exists wordiply._make_json_board(uuid, uuid, text);
+
+-- A side's board: the accepted words, in the order of play. A null
+-- `p_user_id` is the coop team's one board, every player's words; else that
+-- racer's own.
+create or replace function wordiply._make_json_board(p_game_id uuid, p_user_id uuid)
 returns jsonb
 language sql
 stable
@@ -414,30 +420,33 @@ as $$
     from wordiply.events e
    where e.game_id = p_game_id
      and e.valid
-     and (p_mode = 'coop' or e.user_id = p_user_id);
+     and (p_user_id is null or e.user_id = p_user_id);
 $$;
 
-revoke execute on function wordiply._make_json_board(uuid, uuid, text) from public;
+revoke execute on function wordiply._make_json_board(uuid, uuid) from public;
 
--- What the team shares: the whole team's track. Null in compete, where there
--- is no team (plans/team-facts.md).
+-- The team's facts, sent once: the whole team's track, the budget, and the one
+-- board. Null in compete, where there is no team (plans/team-facts.md).
 create or replace function wordiply._make_json_team(p_game_id uuid)
 returns jsonb
 language sql
 stable
 set search_path = wordiply, common, public, extensions
 as $$
-  select case when cg.mode = 'coop' then
-           wordiply._make_json_track(p_game_id, null, cg.ended_at is not null)
-         end
+  select wordiply._make_json_track(p_game_id, null, cg.ended_at is not null)
+           -- submit_guess's budget.
+           || jsonb_build_object(
+                'maxGuesses', 5,
+                'board',      wordiply._make_json_board(p_game_id, null))
     from common.games cg
-   where cg.id = p_game_id;
+   where cg.id = p_game_id
+     and cg.mode = 'coop';
 $$;
 
 revoke execute on function wordiply._make_json_team(uuid) from public;
 
--- Every player as wordiply's game_data shows them: the common player, with the
--- budget, their own track and this seat's board.
+-- Every player as wordiply's game_data shows them: the common player, with
+-- their own facts — the budget, their track, and in compete their board.
 create or replace function wordiply._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -449,7 +458,9 @@ as $$
              -- submit_guess's budget.
              || jsonb_build_object('maxGuesses', 5)
              || wordiply._make_json_track(p_game_id, cp.id, cg.ended_at is not null)
-             || jsonb_build_object('board', wordiply._make_json_board(p_game_id, cp.id, cg.mode))
+             -- Coop's one board is sent once, in `team`.
+             || jsonb_build_object('board', case when cg.mode = 'compete'
+                                              then wordiply._make_json_board(p_game_id, cp.id) end)
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join common.games cg on cg.id = p_game_id;
@@ -500,7 +511,10 @@ stable
 set search_path = wordiply, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',              wordiply._make_json_team(p_game_id) - 'longestWordLen',
+    'team',              case when cg.mode = 'coop' then
+                           wordiply._make_json_track(p_game_id, null, cg.ended_at is not null)
+                             - 'longestWordLen'
+                         end,
     'maxGuesses',        5,
     'winnerLengthScore', case when cg.mode = 'compete' then
                            (select wordiply._make_json_track(p_game_id, gp.user_id, true)->'lengthScore'

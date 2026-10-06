@@ -3,7 +3,7 @@
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { getRejectLabel } from '../lib/answer'
-import type { GEvent, GGameData, GPlayer, GStateLineData } from '../types'
+import type { GEvent, GFacts, GGameData, GPlayer } from '../types'
 
 /**
  * Build the wordiply print model — the pure half of print-to-PDF, kept away
@@ -68,9 +68,9 @@ export function buildWordiplyPrintModel(o: {
   events: GEvent[]
   players: GPlayer[]
   me: GPlayer
-  // The header summary's numbers: the team's track in coop, mine in compete
-  // (`gd.stateLineData`). Its scores are null until the end.
-  track: GStateLineData
+  // The header summary's numbers: my side's facts, `gd.me` — the team's track
+  // in coop, mine in compete. Its scores are null until the end.
+  track: GFacts
   setupRows: SetupRow[]
 }): WordiplyPrintModel {
   // Compete tracks are PARALLEL races, not one shared sequence, so interleaving
