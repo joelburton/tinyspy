@@ -85,12 +85,15 @@ create policy games_select on crosswords.games
 -- supabase/sql is re-applied, not diffed.
 drop function if exists crosswords._bump_cell_version();
 
+-- This helper's earlier name; supabase/sql is re-applied, not diffed.
+drop function if exists crosswords._cell_key(int, int);
+
 -- ============================================================
--- crosswords._cell_key — a cell's key in a grid
+-- crosswords._make_cell_id — a cell's id in a grid
 -- ============================================================
 -- "row,col", the key a grid's `cells` object stores a cell under and the id
 -- the page gives it.
-create or replace function crosswords._cell_key(p_row int, p_col int)
+create or replace function crosswords._make_cell_id(p_row int, p_col int)
 returns text
 language sql
 immutable
@@ -98,7 +101,7 @@ set search_path = crosswords, common, public, extensions
 as $$
   select p_row || ',' || p_col;
 $$;
-revoke execute on function crosswords._cell_key(int, int) from public;
+revoke execute on function crosswords._make_cell_id(int, int) from public;
 
 -- ============================================================
 -- crosswords._fillable_cells — the cells a player writes
@@ -112,7 +115,7 @@ immutable
 set search_path = crosswords, common, public, extensions
 as $$
   select (rr.ord - 1)::int, (cc.ord - 1)::int,
-         crosswords._cell_key((rr.ord - 1)::int, (cc.ord - 1)::int)
+         crosswords._make_cell_id((rr.ord - 1)::int, (cc.ord - 1)::int)
     from jsonb_array_elements(p_puzzle_content -> 'cells') with ordinality as rr(rowval, ord)
     cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
    where cc.cellval ->> 'kind' = 'cell'
@@ -302,7 +305,7 @@ as $$
     select i, cell
       from generate_series(
              0, (p_puzzle_content ->> 'width')::int * (p_puzzle_content ->> 'height')::int - 1) i
-      cross join lateral (select p_cells -> crosswords._cell_key(
+      cross join lateral (select p_cells -> crosswords._make_cell_id(
                                    i / (p_puzzle_content ->> 'width')::int,
                                    i % (p_puzzle_content ->> 'width')::int) as cell) c
   )
@@ -949,7 +952,7 @@ drop function if exists crosswords._require_cell_write(uuid);
 -- crosswords._require_cell_write — the gate every grid write shares
 -- ============================================================
 -- Refuses a write into a game that has ended (a teammate finished the grid,
--- or the clock ran out, mid-keystroke — a race) or from a player who has
+-- or the timer ran out, mid-keystroke — a race) or from a player who has
 -- conceded. Returns the grid the caller writes: null for coop's shared grid,
 -- the caller's own id in compete.
 create or replace function crosswords._require_cell_write(p_game_id uuid)
@@ -1009,9 +1012,9 @@ drop function if exists crosswords.set_cell(uuid, int, int, text, boolean);
 -- correct grid, and rebuilds the page blobs.
 --
 -- Answers the revision its rebuild wrote, so the page knows when a blob it
--- reads carries this letter, and whether the caller's grid is now solved. No
--- outcome: typing a letter is not adjudicated, and the cell is already on
--- screen.
+-- reads carries this letter, and nothing more: typing a letter is not
+-- adjudicated, the cell is already on screen, and a solve's ending arrives in
+-- the blobs.
 create or replace function crosswords.set_cell(
   p_game_id uuid,
   p_row int,
@@ -1029,7 +1032,6 @@ declare
   v_owner     uuid;
   v_fill      text;
   v_pencil    boolean;
-  v_solved    boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   g := crosswords._lock_game(p_game_id);
@@ -1059,7 +1061,7 @@ begin
   end if;
 
   update crosswords.grids gr
-     set cells = crosswords._merge_cell(gr.cells, crosswords._cell_key(p_row, p_col), jsonb_build_object(
+     set cells = crosswords._merge_cell(gr.cells, crosswords._make_cell_id(p_row, p_col), jsonb_build_object(
            'fill',   v_fill,
            'pencil', nullif(v_pencil, false),
            'wrong',  null,
@@ -1068,13 +1070,12 @@ begin
    where gr.game_id = p_game_id
      and gr.owner_id is not distinct from v_owner;
 
-  v_solved := crosswords._maybe_finish(p_game_id, v_owner, auth.uid());
+  perform crosswords._maybe_finish(p_game_id, v_owner, auth.uid());
 
   perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
     'result', 'set',
-    'revision', (select revision from crosswords.games where game_id = p_game_id),
-    'solved', v_solved));
+    'revision', (select revision from crosswords.games where game_id = p_game_id)));
 
 exception when others then
   get stacked diagnostics
@@ -1138,7 +1139,7 @@ begin
 
   -- Only the targeted edge's key; the other edge's mark is left as it is.
   update crosswords.grids gr
-     set cells = crosswords._merge_cell(gr.cells, crosswords._cell_key(p_row, p_col),
+     set cells = crosswords._merge_cell(gr.cells, crosswords._make_cell_id(p_row, p_col),
            jsonb_build_object(case when p_side = 'right' then 'markRight' else 'markBottom' end, p_mark))
    where gr.game_id = p_game_id
      and gr.owner_id is not distinct from v_owner;
@@ -1170,8 +1171,8 @@ drop function if exists crosswords.check_cells(uuid, jsonb);
 --
 -- Flags/unflags `wrong` against the solution, skipping empty and pencil
 -- cells (givens have no place in a grid). Available in both modes; wrong is
--- self-informative, not answer-leaking. Answers with how many it flagged, so
--- "checked, all correct" and "checked nothing" are told apart.
+-- self-informative, not answer-leaking. The flags reach the page in the
+-- blobs, which is the check's whole answer.
 create or replace function crosswords.check_cells(p_game_id uuid, p_cells jsonb)
 returns jsonb
 language plpgsql
@@ -1181,7 +1182,6 @@ as $$
 declare
   g           crosswords.games;
   v_owner     uuid;
-  v_wrong int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   g := crosswords._lock_game(p_game_id);
@@ -1196,24 +1196,16 @@ begin
                     'wrong', nullif(not crosswords._matches(gr.cells -> a.key ->> 'fill',
                                                             g.solution -> a.row -> a.col), false))))
              from (select distinct (e ->> 'row')::int as row, (e ->> 'col')::int as col,
-                          crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
+                          crosswords._make_cell_id((e ->> 'row')::int, (e ->> 'col')::int) as key
                      from jsonb_array_elements(p_cells) e) a
             where gr.cells -> a.key ->> 'fill' is not null
               and not coalesce((gr.cells -> a.key ->> 'pencil')::boolean, false)), '{}'::jsonb)
    where gr.game_id = p_game_id
      and gr.owner_id is not distinct from v_owner;
 
-  select count(*) into v_wrong
-    from crosswords.grids gr
-    cross join lateral (select distinct crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
-                          from jsonb_array_elements(p_cells) e) a
-   where gr.game_id = p_game_id
-     and gr.owner_id is not distinct from v_owner
-     and coalesce((gr.cells -> a.key ->> 'wrong')::boolean, false);
-
   perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
-    'result', 'checked', 'wrong_count', v_wrong));
+    'result', 'checked'));
 exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
@@ -1241,9 +1233,7 @@ drop function if exists crosswords.reveal_cells(uuid, jsonb);
 -- isn't competitive that way — reveal is a scoped, incremental solving aid
 -- (letter / word / puzzle), and there's no honest line between "revealed one
 -- letter" and "gave up". So a finished grid is a finished grid
--- (docs/games/crosswords.md §9). `solved` is in the answer because a reveal
--- that completes the grid is how a crossword ends, and the call site has to
--- know whether this one did.
+-- (docs/games/crosswords.md §9); its ending arrives in the blobs.
 create or replace function crosswords.reveal_cells(p_game_id uuid, p_cells jsonb)
 returns jsonb
 language plpgsql
@@ -1252,7 +1242,6 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   g        crosswords.games;
-  v_solved boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   g := crosswords._lock_game(p_game_id);
@@ -1281,7 +1270,7 @@ begin
                          'pencil',   null,
                          'writer',   auth.uid())))
              from (select distinct (e ->> 'row')::int as row, (e ->> 'col')::int as col,
-                          crosswords._cell_key((e ->> 'row')::int, (e ->> 'col')::int) as key
+                          crosswords._make_cell_id((e ->> 'row')::int, (e ->> 'col')::int) as key
                      from jsonb_array_elements(p_cells) e) a
             where crosswords._is_fillable(g.puzzle_content, a.row, a.col)
               -- Skip a (degenerate) empty solution array: crossplay's revealAt
@@ -1292,11 +1281,11 @@ begin
    where gr.game_id = p_game_id
      and gr.owner_id is null;
 
-  v_solved := crosswords._maybe_finish(p_game_id, null, auth.uid());
+  perform crosswords._maybe_finish(p_game_id, null, auth.uid());
 
   perform crosswords._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
   return common._ok_envelope(jsonb_build_object(
-    'result', 'revealed', 'solved', v_solved));
+    'result', 'revealed'));
 
 exception when others then
   get stacked diagnostics
@@ -1446,7 +1435,7 @@ begin
     if v_given then
       v_fill := upper(coalesce(v_tmpl ->> 'fill', ''));
     else
-      select upper(gr.cells -> crosswords._cell_key(r, c) ->> 'fill') into v_fill
+      select upper(gr.cells -> crosswords._make_cell_id(r, c) ->> 'fill') into v_fill
         from crosswords.grids gr
        where gr.game_id = p_game_id
          and gr.owner_id is not distinct from v_owner;
@@ -1459,10 +1448,10 @@ begin
 
   if v_solved then
     return common._ok_envelope(jsonb_build_object(
-      'result', 'solved', 'answer', v_answer, 'solved', true, 'note', v_note));
+      'result', 'solved', 'answer', v_answer, 'note', v_note));
   end if;
   return common._ok_envelope(jsonb_build_object(
-    'result', 'unsolved', 'answer', null, 'solved', false, 'note', v_note));
+    'result', 'unsolved', 'answer', null, 'note', v_note));
 
 exception when others then
   get stacked diagnostics

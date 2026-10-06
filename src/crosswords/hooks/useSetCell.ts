@@ -5,13 +5,12 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import type { GGameData, GPendingWrites } from '../types'
 
 /** What `crosswords.set_cell` puts in `data`: the revision its rebuild of the
- *  blobs wrote, and whether the grid is now solved (the ending arrives in the
- *  blob either way). */
-type SetCellAnswer = { result: 'set'; revision: number; solved: boolean }
+ *  blobs wrote. A solve's ending arrives in the blob. */
+type SetCellAnswer = { result: 'set'; revision: number }
 
 /**
  * A keystroke's trip to `crosswords.set_cell`: the letter shows at once
@@ -35,7 +34,7 @@ export function useSetCell({
     // A keystroke is the player's next move.
     localFeedbackSlot.dismiss()
     const penciled = pencil && fill !== null
-    const handle = pendingWrites.add(cellKey(row, col), {
+    const handle = pendingWrites.add(makeCellId(row, col), {
       fill,
       pencil: penciled,
       wrong: false,

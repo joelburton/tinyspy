@@ -11,7 +11,7 @@
  * the canonical answer ONLY IF the caller has already filled those cells in
  * correctly. So the feature can only explain a word you've already solved — the
  * answer is never a spoiler, and it's leak-safe in compete too. If the word
- * isn't solved yet, the RPC reports `solved = false` and we return 409.
+ * isn't solved yet, the RPC answers `unsolved` and we return 409.
  *
  * Modernized from crossplay's approach: instead of the `<scratchpad>` text
  * protocol, we use NATIVE adaptive thinking (like codenamesduet-suggest-clue) —
@@ -34,13 +34,12 @@ import { runRpc } from '../_shared/dbResult.ts'
 type Cell = { row: number; col: number }
 
 /**
- * What `reveal_solved_word` answers. TWO `ok`s: the word is solved (so there is
- * an answer to explain), or it is not — which used to be told apart by `answer`
- * being null, an absence rather than a name.
+ * What `reveal_solved_word` answers. TWO `ok`s, each by name: the word is
+ * solved (so there is an answer to explain), or it is not.
  */
 type RevealedWord =
-  | { result: 'solved'; answer: string; solved: true; note: string | null }
-  | { result: 'unsolved'; answer: null; solved: false; note: string | null }
+  | { result: 'solved'; answer: string; note: string | null }
+  | { result: 'unsolved'; answer: null; note: string | null }
 
 serve(async (req) => {
   const pre = preflight(req)
@@ -64,7 +63,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? ''
 
     // Pull the canonical answer + note as the caller. The RPC only returns the
-    // answer if the caller has already solved these cells (else solved=false).
+    // answer if the caller has already solved these cells (else `unsolved`).
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,

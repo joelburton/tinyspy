@@ -25,8 +25,8 @@ import { useRevealCells } from '../hooks/useRevealCells'
 import { useSetCell } from '../hooks/useSetCell'
 import { useSetMark } from '../hooks/useSetMark'
 import { useTeammateFills } from '../hooks/useTeammateFills'
-import { cellKey } from '../lib/cellKey'
-import { activeClueNumber, findCellByNumber, wordCells } from '../lib/cursor'
+import { makeCellId } from '../lib/cellId'
+import { findActiveClueNumber, findCellByNumber, listWordCells } from '../lib/cursor'
 import type { GDirection, GGameData } from '../types'
 import { ActiveClueBar } from './ActiveClueBar'
 import { ClueLists } from './ClueLists'
@@ -158,11 +158,11 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
 
   // The word under the cursor, and the two clues it sits in.
   const wordCellIds = useMemo(
-    () => new Set(wordCells(grid, row, col, dir).map((p) => cellKey(p.row, p.col))),
+    () => new Set(listWordCells(grid, row, col, dir).map((p) => makeCellId(p.row, p.col))),
     [grid, row, col, dir],
   )
-  const acrossNumber = activeClueNumber(grid, row, col, 'across')
-  const downNumber = activeClueNumber(grid, row, col, 'down')
+  const acrossNumber = findActiveClueNumber(grid, row, col, 'across')
+  const downNumber = findActiveClueNumber(grid, row, col, 'down')
   const activeNumber = dir === 'across' ? acrossNumber : downNumber
   const activeClueText = activeNumber === null
     ? null
@@ -173,7 +173,7 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
 
   // Teammates' cursor cells and fresh fills, as the colors the grid draws.
   const peerCursorColors = useMemo(
-    () => new Map([...peers.values()].map((pc) => [cellKey(pc.row, pc.col), colorVarFor(pc.color)])),
+    () => new Map([...peers.values()].map((pc) => [makeCellId(pc.row, pc.col), colorVarFor(pc.color)])),
     [peers],
   )
   const fillFlashColors = useMemo(

@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { cellKey } from '../lib/cellKey'
-import { advanceAfterFill, findCellByNumber, initialCursor, jumpClue } from '../lib/cursor'
-import { nextMarkState } from '../lib/marks'
+import { makeCellId } from '../lib/cellId'
+import { advanceAfterFill, findCellByNumber, makeInitialCursor, jumpClue } from '../lib/cursor'
+import { getNextMark } from '../lib/marks'
 import type { GGridEntry } from '../reactTypes'
 import type { GBoard, GCursor, GMarkSide, GMarkType, GPuzzleCell, GRebusAfterSubmit } from '../types'
 import { useGridKeyboard } from './useGridKeyboard'
@@ -38,7 +38,7 @@ export function useGridEntry({
   localFeedbackSlot: FeedbackSlot
 }): { entry: GGridEntry } {
   // Every puzzle has an open cell to start on.
-  const [cursor, setCursor] = useState<GCursor>(() => initialCursor(grid)!)
+  const [cursor, setCursor] = useState<GCursor>(() => makeInitialCursor(grid)!)
   const [pencil, setPencil] = useState(false)
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
@@ -51,7 +51,7 @@ export function useGridEntry({
   }
   /** What a cell holds on my board; a given is not on it. */
   function fillAt(row: number, col: number): string | null {
-    return board.cellsById[cellKey(row, col)]?.fill ?? null
+    return board.cellsById[makeCellId(row, col)]?.fill ?? null
   }
   /** What a cell READS right now — a given's printed letter, or the fill. */
   function readAt(row: number, col: number): string | null {
@@ -62,9 +62,9 @@ export function useGridEntry({
 
   /** Cycle the cryptic edge mark on one side of a cell: none → break → hyphen. */
   function cycleMark(row: number, col: number, side: GMarkSide) {
-    const cell = board.cellsById[cellKey(row, col)]
+    const cell = board.cellsById[makeCellId(row, col)]
     const current = side === 'right' ? cell?.markRight : cell?.markBottom
-    setMark(row, col, side, nextMarkState(current ?? undefined))
+    setMark(row, col, side, getNextMark(current ?? undefined))
   }
 
   const { actRebus } = useGridKeyboard({

@@ -10,7 +10,7 @@ import type { GGameData } from '../types'
  * the game is played.
  *
  * WHY it ended is the server's word (`gd.ending.reason`), never the browser
- * clock's, and who solved it first is the server's `ending.winner`.
+ * timer's, and who solved it first is the server's `ending.winner`.
  *
  * The message keeps its identity for as long as the ending does, which is what
  * lets the effect that shows it show it once rather than on every reload of

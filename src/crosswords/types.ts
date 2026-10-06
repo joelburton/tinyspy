@@ -61,8 +61,8 @@ export type GPuzzleCell =
        *  uploaded half-finished `.ipuz` carries, which `create_game` seeds
        *  into the grid. Null on a blank template. */
       fill: string | null
-      revealed?: boolean
-      wrong?: boolean
+      // A penciled letter: set only on the printers' copy of the grid
+      // (`makePrintState`), which carries the board's fills.
       pencil?: boolean
       /** Author-defined circle around the cell (common theme marker).
        *  Pure presentation: set at parse time, never mutated, ignored

@@ -87,10 +87,10 @@ function WithKeys(props: PlayAreaLoaderProps) {
 
 /** What each RPC answers on the happy path, by name. */
 const OK_DATA: Record<string, unknown> = {
-  check_cells: { result: 'checked', wrong_count: 0 },
-  reveal_cells: { result: 'revealed', solved: false },
+  check_cells: { result: 'checked' },
+  reveal_cells: { result: 'revealed' },
   export_solution: { result: 'exported', solution: [] },
-  set_cell: { result: 'set', revision: 2, solved: false },
+  set_cell: { result: 'set', revision: 2 },
   set_mark: { result: 'marked', revision: 2 },
 }
 

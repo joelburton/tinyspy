@@ -121,7 +121,7 @@ const validate = (setup: unknown): FormErrors => {
 /**
  * The coop club line. While the grid is being solved it says how much of it is
  * filled; no puzzle name, which is the game's TITLE, one line above on the same
- * card. The clock beating an unfinished grid is coop's one loss.
+ * card. The timer running out on an unfinished grid is coop's one loss.
  */
 function makeCoopLabel(summary: GSummaryData): string {
   if (summary.ending === null) {
@@ -146,7 +146,7 @@ function makeCoopLabel(summary: GSummaryData): string {
 
 /**
  * The compete club line: no per-racer progress, and the race's one winner is
- * the common `ending.winner`. The two no-winner losses, the clock and the last
+ * the common `ending.winner`. The two no-winner losses, the timer and the last
  * racer conceding, are told apart by the ending's reason.
  */
 function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {

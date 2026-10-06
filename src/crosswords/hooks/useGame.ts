@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import type {
   GBoard,
   GBoardRaw,
@@ -40,7 +40,7 @@ export function makeBoard(
     // A digit names the writer's 1-based place; 0 is nobody.
     const writerPlace = raw.writers === null ? 0 : Number(raw.writers[i])
     cells.push({
-      id: cellKey(r, c),
+      id: makeCellId(r, c),
       row: r,
       col: c,
       fill: packed === '' ? null : packed.toUpperCase(),

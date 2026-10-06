@@ -7,7 +7,7 @@ import {
   jumpWordEdge,
   moveCursor,
   retreatForBackspace,
-  wordCells,
+  listWordCells,
 } from '../lib/cursor'
 import type { GArrowKey, GCursor, GGridKeysOptions, GPuzzleCell } from '../types'
 
@@ -34,7 +34,7 @@ type GridKeys = {
  * action, and a floating panel with focus stops every one of them.
  *
  * Contrast `common/board-cursor/useBoardCursorKeys`, which is the same idea for
- * the tile-placement games: a cursor, letters and a commit. This one is
+ * the tile-placement games: a cursor, letters and a submit. This one is
  * crosswords' own because the grid is the game — the two-step ⌫, the given cells
  * you slide off, the clue walk and the edge marks have no sibling.
  */
@@ -57,8 +57,8 @@ export function useGridKeyboard({
   onMark,
 }: GGridKeysOptions): GridKeys {
   const ready = grid !== null && cursor !== null && enabled && !suspended
-  /** Walking the grid: alive at terminal too, since reading back a solved
-   *  puzzle is part of the post-game. */
+  /** Walking the grid: alive once the game has ended too, since reading back
+   *  a solved puzzle is part of the post-game. */
   const nav = (): ActionState => (ready ? 'active' : 'disabled')
   /** Changing the grid: everything `nav` allows, minus the frozen board. */
   const write = (): ActionState => (ready && isBoardInteractive ? 'active' : 'disabled')
@@ -156,7 +156,7 @@ export function useGridKeyboard({
   useBindAction('act-clear-word', {
     describe: write,
     run: onBoard((g, c) => {
-      const word = wordCells(g, c.row, c.col, c.dir)
+      const word = listWordCells(g, c.row, c.col, c.dir)
       for (const p of word) {
         if (!isGiven(p.row, p.col) && fillAt(p.row, p.col) != null) {
           setCell(p.row, p.col, null, false)

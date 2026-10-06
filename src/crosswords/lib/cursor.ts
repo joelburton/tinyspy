@@ -81,7 +81,7 @@ export function computeBorderMask(cells: GPuzzleCell[][], row: number, col: numb
 /** First open cell scanning row-by-row. Returns `null` only on an
  *  all-blocks grid (which the parsers won't produce). The grid uses this
  *  as the initial cursor position. */
-export function firstOpenCell(cells: GPuzzleCell[][]): GCellPos | null {
+export function findFirstOpenCell(cells: GPuzzleCell[][]): GCellPos | null {
   for (let r = 0; r < cells.length; r++) {
     for (let c = 0; c < cells[r]!.length; c++) {
       if (cells[r]![c]!.kind === 'cell') return { row: r, col: c }
@@ -93,7 +93,7 @@ export function firstOpenCell(cells: GPuzzleCell[][]): GCellPos | null {
 /**
  * Initial cursor position + direction for a freshly-loaded puzzle.
  *
- * Picks the first open cell in reading order (same as `firstOpenCell`),
+ * Picks the first open cell in reading order (same as `findFirstOpenCell`),
  * then picks the direction that has an actual clue starting there:
  *
  *   - If the cell starts an across word (and possibly also a down word),
@@ -106,8 +106,8 @@ export function firstOpenCell(cells: GPuzzleCell[][]): GCellPos | null {
  *
  * Returns null only when the grid has no open cells.
  */
-export function initialCursor(cells: GPuzzleCell[][]): GCursor | null {
-  const start = firstOpenCell(cells)
+export function makeInitialCursor(cells: GPuzzleCell[][]): GCursor | null {
+  const start = findFirstOpenCell(cells)
   if (!start) return null
   const { row, col } = start
   const startsAcross = !isOpen(cells, row, col - 1) && isOpen(cells, row, col + 1)
@@ -152,7 +152,7 @@ export function findWordStart(
 /** Every cell of the word containing `(row, col)` in `dir`, in word
  *  order. Used to compute the highlighted "current word" cells on the
  *  board. Returns `[]` for a block input. */
-export function wordCells(
+export function listWordCells(
   cells: GPuzzleCell[][],
   row: number,
   col: number,
@@ -177,7 +177,7 @@ export function wordCells(
  *  (i.e. the clue number at the start of the word). Used to highlight
  *  the active clue in the clue list and to render the active clue text
  *  in the header. */
-export function activeClueNumber(
+export function findActiveClueNumber(
   cells: GPuzzleCell[][],
   row: number,
   col: number,
@@ -319,7 +319,7 @@ type ClueStart = {
 /** Every word-start cell in reading order, across-first then down. Each
  *  entry is a (row, col, dir, number). Used by `jumpClue` to walk the
  *  clue list with Tab / Shift+Tab. */
-export function clueStarts(cells: GPuzzleCell[][]): ClueStart[] {
+export function listClueStarts(cells: GPuzzleCell[][]): ClueStart[] {
   const across: ClueStart[] = []
   const down: ClueStart[] = []
   for (let r = 0; r < cells.length; r++) {
@@ -336,14 +336,14 @@ export function clueStarts(cells: GPuzzleCell[][]): ClueStart[] {
 }
 
 /** Jump the cursor to the next (delta=+1) or previous (delta=-1) clue
- *  in the canonical order produced by `clueStarts`. Wraps around at
+ *  in the canonical order produced by `listClueStarts`. Wraps around at
  *  either end. The cursor's `dir` follows the new clue's direction. */
 export function jumpClue(
   cells: GPuzzleCell[][],
   cursor: GCursor,
   delta: 1 | -1,
 ): GCursor {
-  const starts = clueStarts(cells)
+  const starts = listClueStarts(cells)
   if (starts.length === 0) return cursor
   const here = findWordStart(cells, cursor.row, cursor.col, cursor.dir)
   const idx = starts.findIndex(
@@ -359,7 +359,7 @@ export function jumpClue(
  *  the cursor, or every open cell of the grid. */
 export function listScopeCells(cells: GPuzzleCell[][], cursor: GCursor, scope: GScope): GCellPos[] {
   if (scope === 'letter') return [{ row: cursor.row, col: cursor.col }]
-  if (scope === 'word') return wordCells(cells, cursor.row, cursor.col, cursor.dir)
+  if (scope === 'word') return listWordCells(cells, cursor.row, cursor.col, cursor.dir)
   const out: GCellPos[] = []
   cells.forEach((row, r) => row.forEach((cell, c) => {
     if (cell.kind === 'cell') out.push({ row: r, col: c })

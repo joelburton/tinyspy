@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import type { GBoard, GPuzzleCell, GPuzzleState, GPuzzleTemplate } from '../types'
 
 /**
@@ -15,7 +15,7 @@ export function makePrintState(puzzle: GPuzzleTemplate, board: GBoard): GPuzzleS
       if (t.kind === 'block') return t
       const given = t.given === true
       // A given has no place on the board.
-      const live = given ? undefined : board.cellsById[cellKey(r, c)]
+      const live = given ? undefined : board.cellsById[makeCellId(r, c)]
       return {
         kind: 'cell',
         number: t.number,

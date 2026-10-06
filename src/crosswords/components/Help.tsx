@@ -31,8 +31,8 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
       </p>
       <p>
         <strong>More:</strong> <kbd>Shift+Enter</kbd> opens a box for a{' '}
-        <strong>rebus</strong> (several letters in one cell) — <kbd>Enter</kbd> commits
-        and steps on, <kbd>Tab</kbd> commits and jumps to the next clue. Press{' '}
+        <strong>rebus</strong> (several letters in one cell) — <kbd>Enter</kbd> submits
+        and steps on, <kbd>Tab</kbd> submits and jumps to the next clue. Press{' '}
         <kbd>#</kbd> to jump straight to a clue number. <kbd>|</kbd> and{' '}
         <kbd>_</kbd> cycle a word-break / hyphen mark on the current cell's right /
         bottom edge (a cryptic-style annotation for where one entry splits into

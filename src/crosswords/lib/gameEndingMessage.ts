@@ -15,8 +15,8 @@ import {
  * come back in one object so the two cannot disagree. The outcome is MINE, as
  * the database wrote it (`common.game_players.outcome`), never worked out here.
  *
- * Coop is won by completing the grid and lost only to the clock. A race is won
- * by the first correct grid, and lost by everyone to the clock or to every
+ * Coop is won by completing the grid and lost only to the timer. A race is won
+ * by the first correct grid, and lost by everyone to the timer or to every
  * racer conceding. A Stop is the shared neutral ending in both modes.
  *
  * Call it only when the game HAS ended; it has no answer for a live one.
@@ -44,7 +44,7 @@ export function buildGameEndingMessage({
 
     if (gameOutcome === 'lost') {
       if (mode === 'coop') {
-        // The clock is coop's one loss: there is no concede in coop.
+        // The timer is coop's one loss: there is no concede in coop.
         return { pillText: 'Lost: out of time', infoColText: 'Out of time' }
       }
       if (reason === 'timeout') {

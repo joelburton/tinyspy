@@ -86,14 +86,14 @@ export function Controls({ pencil, actPencil, check, reveal, children }: Props) 
         >
           P
         </button>
-        {/* Pen = committed. Bold ink-blue against the pencil's gray italic. */}
+        {/* Pen = submitted. Bold ink-blue against the pencil's gray italic. */}
         <button
           type="button"
           {...asPen.buttonProps}
           className={cls(styles.btn, styles.penBtn, !pencil && styles.btnOn)}
           onMouseDown={keepFocusOffTheBoard}
           aria-pressed={!pencil}
-          data-tooltip={nameWithKey('Pen — committed entries', actPencil)}
+          data-tooltip={nameWithKey('Pen — submitted entries', actPencil)}
           onClick={() => {
             if (pencil) actPencil.run()
           }}

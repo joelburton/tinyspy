@@ -6,12 +6,12 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import type { GBoard, GCellPos, GGameData } from '../types'
 
-/** What `crosswords.check_cells` puts in `data`: how many of the asked cells it
- *  flagged, a number it works out anyway. */
-type CheckAnswer = { result: 'checked'; wrong_count: number }
+/** What `crosswords.check_cells` puts in `data`. The flags themselves arrive in
+ *  the blob. */
+type CheckAnswer = { result: 'checked' }
 
 /**
  * A check's trip to `crosswords.check_cells`. The flagged cells arrive in the
@@ -43,7 +43,7 @@ export function useCheckCells({
     } else if (res.type === 'ok' && res.data.result === 'checked') {
       // A given has no place on the board, so its lookup misses.
       const skippedPencil = cells.some((p) => {
-        const cell = board.cellsById[cellKey(p.row, p.col)]
+        const cell = board.cellsById[makeCellId(p.row, p.col)]
         return cell !== undefined && cell.pencil && cell.fill !== null
       })
       const { outcome, text } = answerMessage({ answerType: 'checked', skippedPencil })

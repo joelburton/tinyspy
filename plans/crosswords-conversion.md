@@ -1,6 +1,6 @@
 # crosswords on the page blobs — the conversion plan
 
-**Status: ANSWERED 2026-10-06; steps 1–11 done (10 and 12 have no column), step 13 (the naming pass) next.** This is the seat-view
+**Status: ANSWERED 2026-10-06; steps 1–13 done (10 and 12 have no column), step 14 (prose and comments) next.** This is the seat-view
 conversion for crosswords, the last game to convert and one of the games
 [plans/seat-view.md](seat-view.md) names a problem child. This file holds the
 inventory (step 1), the proposed tables and blobs, the sketch (step 2), and
@@ -280,7 +280,7 @@ What the sketch settles, and why:
 - **A `GCell`, not a `GTile`** (question 4). The player acts on a single cell
   (types into it, checks it, reveals it, marks its edge), so it has an
   identity, and the thing is a cell: there is no piece to move. Its id is
-  `"r,c"`, strands' form, where `cellKey` writes `"r:c"` today.
+  `"r,c"`, strands' form, where `makeCellId` writes `"r:c"` today.
 - **The seat rule**, one named function in `makeGameData`: a rival's `board`
   is null while the game is played and filled once it has ended. Today's page
   draws one grid at the end too (decision C5), so nothing reads a rival's

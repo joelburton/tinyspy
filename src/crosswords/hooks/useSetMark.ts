@@ -5,7 +5,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import type { GGameData, GMarkSide, GMarkType, GPendingWrites } from '../types'
 
 /** What `crosswords.set_mark` puts in `data`: the revision its rebuild of the
@@ -30,7 +30,7 @@ export function useSetMark({
 } {
   async function setMark(row: number, col: number, side: GMarkSide, mark: GMarkType | null) {
     const handle = pendingWrites.add(
-      cellKey(row, col),
+      makeCellId(row, col),
       side === 'right' ? { markRight: mark } : { markBottom: mark },
     )
     const res = await runRpc<SetMarkAnswer>(db.rpc('set_mark', {

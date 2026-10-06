@@ -31,8 +31,9 @@ select (crosswords.create_game(
 select crosswords.set_cell(:'gc_id', 0, 0, 'c', false);
 select crosswords.set_cell(:'gc_id', 0, 1, 'a', false);
 select crosswords.set_cell(:'gc_id', 1, 0, 't', false);
-select (crosswords.set_cell(:'gc_id', 1, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_last \gset
-select is(:'s_last'::boolean, true, 'the final correct fill reports solved = true');
+select crosswords.set_cell(:'gc_id', 1, 1, 's', false);
+select (ended_at is not null) as s_last from common.games where id = :'gc_id' \gset
+select is(:'s_last'::boolean, true, 'the final correct fill ends the game');
 
 reset role;
 select is((select game_ended_outcome from common.games where id = :'gc_id'), 'won',
@@ -58,7 +59,8 @@ select crosswords.set_cell(:'gc2_id', 0, 0, 'c', false);
 select crosswords.set_cell(:'gc2_id', 0, 1, 'a', false);
 select crosswords.set_cell(:'gc2_id', 1, 0, 't', false);
 -- Last cell is PENCIL but correct — solve does not skip pencil.
-select (crosswords.set_cell(:'gc2_id', 1, 1, 's', true) -> 'data' ->> 'solved')::boolean as s_pencil \gset
+select crosswords.set_cell(:'gc2_id', 1, 1, 's', true);
+select (ended_at is not null) as s_pencil from common.games where id = :'gc2_id' \gset
 select is(:'s_pencil'::boolean, true, 'a correct PENCIL cell still completes the solve');
 reset role;
 
@@ -67,8 +69,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select crosswords.set_cell(:'gp_id', 0, 0, 'c', false);
 select crosswords.set_cell(:'gp_id', 0, 1, 'a', false);
 select crosswords.set_cell(:'gp_id', 1, 0, 't', false);
-select (crosswords.set_cell(:'gp_id', 1, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_comp \gset
-select is(:'s_comp'::boolean, true, 'compete: completing your grid reports solved');
+select crosswords.set_cell(:'gp_id', 1, 1, 's', false);
+select (ended_at is not null) as s_comp from common.games where id = :'gp_id' \gset
+select is(:'s_comp'::boolean, true, 'compete: completing your grid ends the game');
 reset role;
 
 select is((select game_ended_outcome from common.games where id = :'gp_id'), 'won',
@@ -120,7 +123,8 @@ select (crosswords.create_game(
 
 -- Full-string rebus fill: "HEART" in (0,0), "S" in (0,1).
 select crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);
-select (crosswords.set_cell(:'gr_full', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_full \gset
+select crosswords.set_cell(:'gr_full', 0, 1, 's', false);
+select (ended_at is not null) as s_rebus_full from common.games where id = :'gr_full' \gset
 select is(:'s_rebus_full'::boolean, true, 'rebus: the full-string fill completes the solve');
 reset role;
 select is((select game_ended_outcome from common.games where id = :'gr_full'), 'won',
@@ -136,7 +140,8 @@ reset role;
 select is(pg_temp.xw_cell(:'gr_first', null, 0, 0) ? 'wrong',
   false, 'rebus: check does not flag a correct bare first-letter fill');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select (crosswords.set_cell(:'gr_first', 0, 1, 's', false) -> 'data' ->> 'solved')::boolean as s_rebus_first \gset
+select crosswords.set_cell(:'gr_first', 0, 1, 's', false);
+select (ended_at is not null) as s_rebus_first from common.games where id = :'gr_first' \gset
 select is(:'s_rebus_first'::boolean, true, 'rebus: the bare first-letter fill also completes the solve');
 reset role;
 

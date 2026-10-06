@@ -12,8 +12,8 @@ import { navigate } from '@/common/routing/router'
 import { clubPath } from '@/common/routing/routes'
 import { db } from '../db'
 import { stripClueEmphasis } from '../lib/clueRuns'
-import { activeClueNumber, listScopeCells, wordCells } from '../lib/cursor'
-import { enumerationFor } from '../lib/enumeration'
+import { findActiveClueNumber, listScopeCells, listWordCells } from '../lib/cursor'
+import { makeEnumeration } from '../lib/enumeration'
 import { writeIpuz } from '../lib/parse/ipuz'
 import { printCrosswordsPdf, printCrosswordsSolutionPdf } from '../pdf/printCrosswordsPdf'
 import { makePrintState } from '../pdf/printState'
@@ -188,7 +188,7 @@ export function useActionsAndMenu({
 
   // New game opens the club's SETUP dialog rather than creating one: a
   // crossword's setup names a puzzle, so "the same again" would re-serve the
-  // grid just solved (docs/games/crosswords.md → Terminal).
+  // grid just solved (docs/games/crosswords.md → Frontend).
   const actNewGame = useBindAction('act-new-game', {
     terminal: gd.ended,
     describe: () => 'active',
@@ -276,15 +276,15 @@ export function useActionsAndMenu({
 function makeClueAsker(gd: GGameData, board: GBoard, entry: GGridEntry) {
   return function askClue(): GClueAsked | null {
     const { row, col, dir } = entry.cursor
-    const number = activeClueNumber(gd.puzzle.cells, row, col, dir)
+    const number = findActiveClueNumber(gd.puzzle.cells, row, col, dir)
     const text = number === null ? undefined : gd.puzzle.clues[dir].find((c) => c.number === number)?.text
     if (number === null || !text) return null
-    const word = wordCells(gd.puzzle.cells, row, col, dir)
+    const word = listWordCells(gd.puzzle.cells, row, col, dir)
     return {
       label: `${number}${dir === 'across' ? 'A' : 'D'}`,
       cells: word,
       clueText: stripClueEmphasis(text),
-      enumeration: enumerationFor(word, board, dir),
+      enumeration: makeEnumeration(word, board, dir),
     }
   }
 }

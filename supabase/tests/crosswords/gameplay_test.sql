@@ -35,11 +35,11 @@ select (crosswords.create_game(
 -- ── set_cell ─────────────────────────────────────────────────────────
 -- Lowercase input is uppercased. The answer carries the revision its rebuild
 -- of the page blobs wrote: create_game's rebuild wrote 1, so this write's is 2.
--- ONE call, two values off its `data` — calling it twice would be two writes.
-with r as (select crosswords.set_cell(:'gc_id', 0, 0, 'c', false) -> 'data' as d)
-select d ->> 'revision' as sv1, d ->> 'solved' as ss1 from r \gset
-select is(:'sv1'::bigint, 2::bigint, 'set_cell answers the revision its rebuild wrote (2)');
-select is(:'ss1'::boolean, false, 'one filled cell is not solved');
+-- ONE call, its whole answer — calling it twice would be two writes.
+select crosswords.set_cell(:'gc_id', 0, 0, 'c', false) -> 'data' as set_answer \gset
+select is(:'set_answer'::jsonb, '{"result": "set", "revision": 2}'::jsonb,
+  'set_cell answers the revision its rebuild wrote (2), and nothing more');
+select is((select ended_at from common.games where id = :'gc_id'), null, 'one filled cell does not end the game');
 
 reset role;
 select is(pg_temp.xw_cell(:'gc_id', null, 0, 0) ->> 'fill',
@@ -198,14 +198,14 @@ reset role;
 -- false, no answer (never leaks the letter the player hasn't solved).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  true, 'reveal_solved_word: a correctly-filled word is solved');
+  (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'result'),
+  'solved', 'reveal_solved_word: a correctly-filled word is solved');
 select is(
   (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'answer'),
   'CA', 'reveal_solved_word: returns the answer for a solved word');
 select is(
-  (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":1,"col":0}]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  false, 'reveal_solved_word: a wrong cell → not solved');
+  (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":1,"col":0}]'::jsonb) -> 'data' ->> 'result'),
+  'unsolved', 'reveal_solved_word: a wrong cell → not solved');
 select is(
   (crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":1,"col":0}]'::jsonb) -> 'data' ->> 'answer'),
   null::text, 'reveal_solved_word: an unsolved word leaks no answer');
@@ -215,8 +215,8 @@ select is(
 -- gg's row-0 across word is (0,0)=given C + (0,1)=Schrödinger A/E.
 select crosswords.set_cell(:'gg_id', 0, 1, 'a', false);
 select is(
-  (crosswords.reveal_solved_word(:'gg_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  true, 'reveal_solved_word: a word spanning a given cell solves off the template letter');
+  (crosswords.reveal_solved_word(:'gg_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'result'),
+  'solved', 'reveal_solved_word: a word spanning a given cell solves off the template letter');
 select is(
   (crosswords.reveal_solved_word(:'gg_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'answer'),
   'CA', 'reveal_solved_word: given-cell answer uses the template + Schrödinger primary');
@@ -233,13 +233,13 @@ select (crosswords.create_game(
 select crosswords.set_cell(:'grw_id', 0, 0, 'c', false);
 select crosswords.set_cell(:'grw_id', 0, 1, 'a', false);
 select is(
-  (crosswords.reveal_solved_word(:'grw_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  true, 'reveal_solved_word (compete): the solver reads their own solved word');
+  (crosswords.reveal_solved_word(:'grw_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'result'),
+  'solved', 'reveal_solved_word (compete): the solver reads their own solved word');
 reset role;
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (crosswords.reveal_solved_word(:'grw_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  false, 'reveal_solved_word (compete): a non-solver gets solved=false for the same cells');
+  (crosswords.reveal_solved_word(:'grw_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb) -> 'data' ->> 'result'),
+  'unsolved', 'reveal_solved_word (compete): a non-solver gets unsolved for the same cells');
 reset role;
 
 -- Non-player cannot probe at all (_require_game_player).
@@ -262,8 +262,8 @@ select is(
   (crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb) -> 'data' ->> 'note'),
   'Ripe for a theme', 'reveal_solved_word: returns the puzzle note for the explainer');
 select is(
-  (crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb) -> 'data' ->> 'solved')::boolean,
-  true, 'reveal_solved_word: empty p_cells is vacuously solved');
+  (crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb) -> 'data' ->> 'result'),
+  'solved', 'reveal_solved_word: empty p_cells is vacuously solved');
 select is(
   (crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb) -> 'data' ->> 'answer'),
   '', 'reveal_solved_word: empty p_cells yields an empty answer');

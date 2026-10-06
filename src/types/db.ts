@@ -1028,10 +1028,7 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "_cell_key":
-{ Args: { "p_col": number,"p_row": number }; Returns: string
-                           },
-"_fillable_cells":
+            "_fillable_cells":
 { Args: { "p_puzzle_content": Json }; Returns: {
               "col": number,"key": string,"row": number
             }[]
@@ -1057,6 +1054,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"_make_cell_id":
+{ Args: { "p_col": number,"p_row": number }; Returns: string
+                           },
 "_make_json_board":
 { Args: { "p_cells": Json,"p_puzzle_content": Json,"p_writer_ids": (string)[] }; Returns: Json
                            },

@@ -7,10 +7,9 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import type { GCellPos, GGameData } from '../types'
 
-/** What `crosswords.reveal_cells` puts in `data`. `solved` matters to the
- *  server — a reveal can complete the grid and end the game — and the ending
- *  reaches the page in the blob. */
-type RevealAnswer = { result: 'revealed'; solved: boolean }
+/** What `crosswords.reveal_cells` puts in `data`. A reveal can complete the
+ *  grid and end the game; the ending reaches the page in the blob. */
+type RevealAnswer = { result: 'revealed' }
 
 /**
  * A reveal's trip to `crosswords.reveal_cells` (coop only). The letters arrive

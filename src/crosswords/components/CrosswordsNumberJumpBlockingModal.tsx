@@ -28,7 +28,7 @@ export function CrosswordsNumberJumpBlockingModal({ onSubmit, onClose }: Props) 
     inputRef.current?.focus()
   }, [])
 
-  function commit() {
+  function submit() {
     const trimmed = value.trim()
     if (!trimmed) {
       onClose()
@@ -68,7 +68,7 @@ export function CrosswordsNumberJumpBlockingModal({ onSubmit, onClose }: Props) 
             e.stopPropagation()
             if (pressed('keys-number-jump-go', e)) {
               e.preventDefault()
-              commit()
+              submit()
             } else if (pressed('keys-number-jump-close', e)) {
               e.preventDefault()
               onClose()

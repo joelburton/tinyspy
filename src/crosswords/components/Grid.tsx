@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import shared from '@/common/game-page/playArea.module.css'
 import { cls } from '@/common/utils/cls'
-import { cellKey } from '../lib/cellKey'
+import { makeCellId } from '../lib/cellId'
 import { computeBorderMask } from '../lib/cursor'
 import type { GGridEntry } from '../reactTypes'
 import type { GBoard, GPuzzleTemplate, GSolution } from '../types'
@@ -95,7 +95,7 @@ export function Grid({ puzzle, board, entry, marks, solution, collapseRebus }: P
     >
       {puzzleCells.map((row, r) =>
         row.map((pc, c) => {
-          const id = cellKey(r, c)
+          const id = makeCellId(r, c)
           if (pc.kind === 'block') {
             return <Cell key={id} kind="block" mask={masks[r]![c]!} hidden={pc.hidden === true} />
           }

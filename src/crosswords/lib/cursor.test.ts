@@ -3,18 +3,18 @@
 import { describe, expect, it } from 'vitest'
 import type { GPuzzleCell } from '../types'
 import {
-  activeClueNumber,
+  findActiveClueNumber,
   advanceAfterFill,
-  clueStarts,
+  listClueStarts,
   findWordEnd,
   findWordStart,
-  firstOpenCell,
-  initialCursor,
+  findFirstOpenCell,
+  makeInitialCursor,
   jumpClue,
   jumpWordEdge,
   moveCursor,
   retreatForBackspace,
-  wordCells,
+  listWordCells,
 } from './cursor'
 
 /** Build a `Cell[][]` from an ASCII sketch: `#` is a block, `.` an empty
@@ -39,20 +39,20 @@ function grid(rows: string[]): GPuzzleCell[][] {
   )
 }
 
-describe('firstOpenCell', () => {
+describe('findFirstOpenCell', () => {
   it('skips leading blocks', () => {
     const g = grid(['##.', '.##'])
-    expect(firstOpenCell(g)).toEqual({ row: 0, col: 2 })
+    expect(findFirstOpenCell(g)).toEqual({ row: 0, col: 2 })
   })
   it('returns null on all-block', () => {
-    expect(firstOpenCell(grid(['##', '##']))).toBeNull()
+    expect(findFirstOpenCell(grid(['##', '##']))).toBeNull()
   })
 })
 
-describe('initialCursor', () => {
+describe('makeInitialCursor', () => {
   it('defaults to across on a normal rectangular grid', () => {
     // (0, 0) starts both directions; convention picks across.
-    expect(initialCursor(grid(['...', '...', '...']))).toEqual({
+    expect(makeInitialCursor(grid(['...', '...', '...']))).toEqual({
       row: 0,
       col: 0,
       dir: 'across',
@@ -64,18 +64,18 @@ describe('initialCursor', () => {
     // isolated cell at column 1 that starts a down word. The first
     // across would be at row 1 with number 2.
     const g = grid(['#.#', '...', '#.#'])
-    expect(initialCursor(g)).toEqual({ row: 0, col: 1, dir: 'down' })
+    expect(makeInitialCursor(g)).toEqual({ row: 0, col: 1, dir: 'down' })
   })
 
   it('falls back to across for an isolated cell that starts neither', () => {
     // A single open cell with blocks on every side. (Not a realistic
     // puzzle shape, but the helper shouldn't crash.)
     const g = grid(['###', '#.#', '###'])
-    expect(initialCursor(g)).toEqual({ row: 1, col: 1, dir: 'across' })
+    expect(makeInitialCursor(g)).toEqual({ row: 1, col: 1, dir: 'across' })
   })
 
   it('returns null on an all-block grid', () => {
-    expect(initialCursor(grid(['##', '##']))).toBeNull()
+    expect(makeInitialCursor(grid(['##', '##']))).toBeNull()
   })
 })
 
@@ -157,10 +157,10 @@ describe('jumpWordEdge', () => {
   })
 })
 
-describe('wordCells', () => {
+describe('listWordCells', () => {
   it('returns full across word', () => {
     const g = grid(['...', '###', '###'])
-    expect(wordCells(g, 0, 1, 'across')).toEqual([
+    expect(listWordCells(g, 0, 1, 'across')).toEqual([
       { row: 0, col: 0 },
       { row: 0, col: 1 },
       { row: 0, col: 2 },
@@ -168,7 +168,7 @@ describe('wordCells', () => {
   })
   it('returns full down word', () => {
     const g = grid(['.##', '.##', '.##'])
-    expect(wordCells(g, 1, 0, 'down')).toEqual([
+    expect(listWordCells(g, 1, 0, 'down')).toEqual([
       { row: 0, col: 0 },
       { row: 1, col: 0 },
       { row: 2, col: 0 },
@@ -176,15 +176,15 @@ describe('wordCells', () => {
   })
   it('returns empty for block start', () => {
     const g = grid(['#.', '..'])
-    expect(wordCells(g, 0, 0, 'across')).toEqual([])
+    expect(listWordCells(g, 0, 0, 'across')).toEqual([])
   })
 })
 
-describe('activeClueNumber', () => {
+describe('findActiveClueNumber', () => {
   it('returns the number at the word start', () => {
     const g = grid(['...', '#..', '...'])
-    expect(activeClueNumber(g, 2, 1, 'down')).toBe(2)
-    expect(activeClueNumber(g, 1, 2, 'across')).toBe(4)
+    expect(findActiveClueNumber(g, 2, 1, 'down')).toBe(2)
+    expect(findActiveClueNumber(g, 1, 2, 'across')).toBe(4)
   })
 })
 
@@ -276,14 +276,14 @@ describe('advanceAfterFill', () => {
   })
 })
 
-describe('clueStarts', () => {
+describe('listClueStarts', () => {
   it('emits across then down, in numeric reading order within each', () => {
     // grid "...", "#..", "..."
     // (0,0) starts across only — block below means no down word
     // (0,1) starts down only; (0,2) starts down only
     // (1,1) starts across only; (2,0) starts across only
     const g = grid(['...', '#..', '...'])
-    const summary = clueStarts(g).map((s) => `${s.dir[0]}${s.number}`)
+    const summary = listClueStarts(g).map((s) => `${s.dir[0]}${s.number}`)
     expect(summary.filter((s) => s.startsWith('a'))).toEqual(['a1', 'a4', 'a5'])
     expect(summary.filter((s) => s.startsWith('d'))).toEqual(['d2', 'd3'])
     expect(summary.indexOf('a5')).toBeLessThan(summary.indexOf('d2'))
