@@ -57,7 +57,7 @@ import { signIn } from './helpers/session'
  * for a fixed viewport/DPR, but committing pixel goldens would be brittle across
  * machines. This is a hand-run tool, consistent with the narrow e2e charter.
  *
- * Not in scope: bananagrams (fixed 25×25 arena, not the hug formula) and
+ * Not in scope: bananagrams (fixed 25×25 grid, not the hug formula) and
  * crosswords (its own keyboard-required layout).
  */
 

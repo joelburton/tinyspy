@@ -179,6 +179,30 @@ describe('peel', () => {
   })
 })
 
+describe('Check words', () => {
+  it('saves the board first, paints the cells that failed, and clears them on a clean answer', async () => {
+    const onCheckBoard = vi.fn()
+      .mockResolvedValueOnce({ invalidCells: [CENTER] })
+      .mockResolvedValueOnce({ invalidCells: [] })
+    const { result } = render({ initialBoard: withCenter('a'), onCheckBoard })
+    await act(async () => result.current.actCheckBoard.run())
+    expect(mockRpc).toHaveBeenCalledWith('save_player_board', expect.anything())
+    expect(result.current.invalidCells.has(CENTER)).toBe(true)
+    await act(async () => result.current.actCheckBoard.run())
+    expect(result.current.invalidCells.size).toBe(0)
+  })
+
+  it('a check that failed leaves the red cells as they were', async () => {
+    const onCheckBoard = vi.fn()
+      .mockResolvedValueOnce({ invalidCells: [CENTER] })
+      .mockResolvedValueOnce(null)
+    const { result } = render({ initialBoard: withCenter('a'), onCheckBoard })
+    await act(async () => result.current.actCheckBoard.run())
+    await act(async () => result.current.actCheckBoard.run())
+    expect(result.current.invalidCells.has(CENTER)).toBe(true)
+  })
+})
+
 describe('the dump', () => {
   it('can draw while the bunch and the bag together cover it', () => {
     expect(render({

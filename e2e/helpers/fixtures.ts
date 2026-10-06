@@ -340,7 +340,7 @@ export async function createBananagramsGame(
   const res = await asUser(creator.session.access_token)
     .schema('bananagrams')
     .rpc('create_game', {
-      target_club: club.handle,
+      p_club_handle: club.handle,
       // bunch_size is required by bananagrams.create_game (the full 144-tile
       // bunch in play, no reserve; the win test drains the pool directly rather
       // than relying on a small bunch).
@@ -350,7 +350,7 @@ export async function createBananagramsGame(
       // setup blob is what the setup rows read back, and an absent key rendered
       // "Words: checked (undefined)" plus two "undefined (—)" dictionary rows
       // on screen and on paper. The real dialog always sends them.
-      setup: {
+      p_setup: {
         hand_size: 15,
         bunch_size: 144,
         word_check: 'off',
@@ -359,7 +359,7 @@ export async function createBananagramsGame(
         dump_to_bag: false,
         timer: { kind: 'none' },
       },
-      player_user_ids: playerUserIds,
+      p_player_user_ids: playerUserIds,
     })
   return { id: createdGameId(res, 'bananagrams.create_game'), gametype: 'bananagrams' }
 }
@@ -1251,26 +1251,28 @@ export function putCodenamesduetInSuddenDeath(gameId: string): void {
   )
 }
 
-/** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
- *  select to their own player_boards row. Useful when a test needs to place a
- *  player's REAL tiles (the FE derives the hand by letter, so placing arbitrary
- *  letters wouldn't empty it). */
+/** Read `member`'s own tiles (every letter they hold, lowercase) off the
+ *  `game_data` blob, where the page reads them. Useful when a test needs to
+ *  place a player's REAL tiles (the FE derives the hand by letter, so placing
+ *  arbitrary letters wouldn't empty it). */
 export async function getBananagramsTiles(
   member: E2EMember,
   gameId: string,
 ): Promise<string> {
   const res = await asUser(member.session.access_token)
-    .schema('bananagrams')
-    .from('player_boards')
-    .select('tiles')
-    .eq('game_id', gameId)
+    .schema('common')
+    .from('games')
+    .select('game_data')
+    .eq('id', gameId)
     .single()
   if (res.error || !res.data) throw new Error(`get tiles: ${res.error?.message}`)
-  return res.data.tiles as string
+  const gameData = res.data.game_data as { players: { id: string; tiles: string }[] }
+  return gameData.players.find((p) => p.id === member.userId)!.tiles
 }
 
-/** Save `member`'s bananagrams board placement (a 625-char grid). Drives their
- *  public progress count: unplaced = held tiles − filled cells. */
+/** Save `member`'s bananagrams board placement (a 625-char grid, lowercase
+ *  letters and `.`). Rebuilds the blobs, so rivals see their unplaced count
+ *  move. */
 export async function saveBananagramsBoard(
   member: E2EMember,
   gameId: string,
@@ -1278,7 +1280,7 @@ export async function saveBananagramsBoard(
 ): Promise<void> {
   const res = await asUser(member.session.access_token)
     .schema('bananagrams')
-    .rpc('save_player_board', { target_game: gameId, board })
+    .rpc('save_player_board', { p_game_id: gameId, p_board: board })
   envelopeData(res, 'bananagrams.save_player_board')
 }
 
@@ -1286,7 +1288,8 @@ export async function saveBananagramsBoard(
  *  out-of-play `bag`) so the next peel can't refill the table — the way to drive
  *  a winning peel in a test without draining tile-by-tile. Both columns are
  *  hidden from PostgREST roles (they'd leak future draws), so we reach them the
- *  same way the import scripts do: psql as the local superuser. Test-only. */
+ *  same way the import scripts do: psql as the local superuser, then rebuild the
+ *  page blobs so the page counts the empty piles. Test-only. */
 export function drainBananagramsPool(gameId: string): void {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   execFileSync(
@@ -1294,7 +1297,8 @@ export function drainBananagramsPool(gameId: string): void {
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
-      '-c', `update bananagrams.games set bunch = '', bag = '' where id = '${gameId}';`,
+      '-c', `update bananagrams.games set bunch = '', bag = '' where game_id = '${gameId}';`,
+      '-c', `select bananagrams._rebuild_data_cols('${gameId}', p_update_status_changed_at => false);`,
     ],
     { stdio: 'pipe' },
   )

@@ -68,7 +68,7 @@ further pages rather than shrinking past legibility. The width is computed
 from that cap and not from how many tracks a page holds, so a lone track on a
 second page is the same size as the three before it; a lone coop board with
 white space beside it is the accepted price. A game whose board is wide asks
-for fewer — bananagrams' crossword sprawls across a 25×25 arena and takes two.
+for fewer — bananagrams' crossword sprawls across a 25×25 grid and takes two.
 
 **Compete prints a word section per player.** In compete the words and the
 score are per-player facts. One merged list under one tally reported the

@@ -48,8 +48,10 @@ export function Help({ onClose, brand }: Props) {
       </p>
 
       <p>
-        Your words don’t have to be real — placement isn’t checked, so anything
-        that fills your board counts. Had enough? <strong>Concede</strong> to
+        To go out, your tiles must form one connected grid; whether the words
+        must be real is up to the game’s <strong>Check words</strong> setting.
+        Press <strong>Check words</strong> to test your board any time. Had
+        enough? <strong>Concede</strong> to
         drop out and take the loss — the others keep racing, and if everyone
         concedes the game ends.
       </p>

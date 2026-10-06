@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * bananagrams is DESKTOP-ONLY (docs/mobile.md → "Where each game plays"): a
- * drag-heavy 25×25 arena that's unpleasant even on a keyboard tablet, so it's
+ * drag-heavy 25×25 grid that's unpleasant even on a keyboard tablet, so it's
  * hard-blocked on *all* touch — the PlayArea renders the shared
  * `<DeviceBlockNotice>` in place of the board when `useIsCoarsePointer()` matches.
  *
@@ -30,7 +30,7 @@ test.describe('bananagrams desktop-only block', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    // The block screen, not the board (bananagrams' arena renders `data-cell`
+    // The block screen, not the board (bananagrams' grid renders `data-cell`
     // grid cells — none should exist behind the block).
     await expect(page.getByText('Bananagrams needs a desktop')).toBeVisible({ timeout: 20000 })
     await expect(page.locator('[data-cell]')).toHaveCount(0)

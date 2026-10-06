@@ -412,8 +412,11 @@ every run of two or more across and down) de-duped, alphabetical, unscored.
   the state line.
 - **`hooks/useEditingBoard.test.ts`** — the editing board: the derived hand,
   the two saves (after an edit, on unmount), typing and Backspace, the
-  hand-error flash, a peel and its blocked cells, the dump's threshold, an
-  inert board.
+  hand-error flash, a peel and its blocked cells, Check words painting and
+  clearing its cells, the dump's threshold, an inert board.
+- **`hooks/usePeel.test.ts`**, **`hooks/useDump.test.ts`**,
+  **`hooks/useCheckBoard.test.ts`** — each trip to the server: what every
+  answer shows in the local slot and hands back to the editing board.
 - **`components/Board.test.tsx`** — a cell per spot, the cursor's ring, a
   drop's answer (a lifted tile may land back on its own cell), the red cells,
   a press's coordinates.
@@ -430,9 +433,10 @@ every run of two or more across and down) de-duped, alphabetical, unscored.
   in every word-check setting and `check_board` (`legal_check_test.sql`),
   `replay_board` with conservation (hands + bunch + bag = 144), `concede`,
   `stop_game`, `submit_timeout`, and the grants (`rls_test.sql`).
-- **e2e** — `bananagrams`, `bananagrams-block` (the touch block screen) and
-  `bananagrams-print`. Their helpers lag the conversion
-  (plans/seat-view.md → When every game has converted).
+- **e2e** — `bananagrams` (render, a placed tile surviving a reload, the
+  win, a peel's draw, a dump, a rival's live count, New game, Stop),
+  `bananagrams-block` (the touch block screen) and `bananagrams-print`; and
+  `tab-swallow`'s bananagrams case.
 
 ## Won't do
 

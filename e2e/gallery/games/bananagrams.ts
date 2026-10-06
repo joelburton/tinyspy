@@ -1,10 +1,10 @@
 // cs-unmet
 
-import { execFileSync } from 'node:child_process'
 import {
   asUser,
   createBananagramsGame,
   drainBananagramsPool,
+  getBananagramsTiles,
   type E2EClub,
   type E2EMember,
 } from '../../helpers/fixtures'
@@ -12,40 +12,14 @@ import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
-const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const SIZE = 25
-
-/**
- * A player's hand, read as the superuser.
- *
- * `player_boards.tiles` is private to its owner by design — the gallery needs
- * it because it plays FOR that player, and no RPC hands you your own tiles as a
- * value. Reading is the escape hatch; the WRITE still goes through
- * `save_player_board`, which is where the real bookkeeping lives.
- */
-function tilesOf(gameId: string, userId: string): string {
-  return execFileSync(
-    'psql',
-    [
-      LOCAL_DB,
-      '-X',
-      '-tA',
-      '-c',
-      `select tiles from bananagrams.player_boards
-        where game_id = '${gameId}' and user_id = '${userId}';`,
-    ],
-    { encoding: 'utf8' },
-  )
-    .trim()
-    .replace(/[^A-Za-z]/g, '')
-}
 
 /**
  * A plausible grid: a run across with a run crossing it downward.
  *
  * The letters are simply the next ones off the hand — they don't spell
- * anything, and they don't have to. `setup.word_check` defaults to `'off'`
- * (the fixture leaves it unset), which is a real, player-pickable option
+ * anything, and they don't have to. The fixture's `setup.word_check` is `'off'`,
+ * which is a real, player-pickable option
  * meaning "we're not checking the dictionary"; under it, only the GEOMETRY
  * matters — one 4-connected mass — and that's exactly what the screenshot is
  * for. Hunting a real word from the hand would be solver work in service of a
@@ -109,10 +83,10 @@ export const bananagramsGallery: GameGallery = {
     // board); the rival stays mid-build — a real race, caught at the end.
     for (const member of club.members as E2EMember[]) {
       const layEverything = cell.phase === 'won' && member.userId === viewer.userId
-      const board = buildBoard(tilesOf(id, member.userId), layEverything)
+      const board = buildBoard(await getBananagramsTiles(member, id), layEverything)
       const res = await asUser(member.session.access_token)
         .schema('bananagrams')
-        .rpc('save_player_board', { target_game: id, board })
+        .rpc('save_player_board', { p_game_id: id, p_board: board })
       if (res.error) throw new Error(`bananagrams.save_player_board: ${res.error.message}`)
     }
 
@@ -120,9 +94,9 @@ export const bananagramsGallery: GameGallery = {
       drainBananagramsPool(id)
       const res = await asUser(viewer.session.access_token)
         .schema('bananagrams')
-        .rpc('peel', { target_game: id })
+        .rpc('peel', { p_game_id: id })
       if (res.error) throw new Error(`bananagrams.peel: ${res.error.message}`)
-      const result = (res.data as { result?: string })?.result
+      const result = (res.data as { data?: { result?: string } })?.data?.result
       if (result !== 'won') throw new Error(`peel → ${result}, expected won`)
     }
     if (cell.phase === 'lost') await timeOut(club, 'bananagrams', id)

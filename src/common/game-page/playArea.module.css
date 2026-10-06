@@ -214,7 +214,7 @@
  * `isolation`'s only other effect is on `mix-blend-mode`, which `src/` never uses.
  *
  * WHAT GOES ON IT is the element that encloses the board AND anything floating
- * over it — bananagrams' `.boardFrame` (the arena plus its zoom controls), not
+ * over it — bananagrams' `.boardFrame` (the grid plus its zoom controls), not
  * the scroll area inside it. WHAT MUST STAY OUTSIDE is anything that has to paint
  * over the rest of the page: the drag ghosts (`--z-ghost`, rendered as siblings
  * of the board) and the games' hand-built modals. Tooltips, the definition

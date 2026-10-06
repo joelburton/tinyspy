@@ -54,10 +54,10 @@ test.describe('bananagrams renders', () => {
     expect(handBox!.x, 'hand is on screen (not pushed off the right)').toBeLessThan(vp.width)
     expect(handBox!.x).toBeGreaterThanOrEqual(0)
 
-    // The fixed 25×25 arena renders all its cells; the board opens centered on
-    // the middle of the arena, so the center cell (12,12) must sit INSIDE the
+    // The fixed 25×25 grid renders all its cells; the board opens centered on
+    // the middle of the grid, so the center cell (12,12) must sit INSIDE the
     // viewport, not scrolled off-screen (the "blank PlayArea" regression).
-    expect(await page.locator('[data-cell]').count(), 'all arena cells rendered').toBe(25 * 25)
+    expect(await page.locator('[data-cell]').count(), 'all grid cells rendered').toBe(25 * 25)
     const center = page.locator('[data-cell][data-x="12"][data-y="12"]')
     await expect(center).toBeVisible()
     const cbox = await center.boundingBox()
@@ -170,8 +170,8 @@ test.describe('bananagrams win', () => {
 
 /**
  * Peel — continue path: with a full bunch, peeling deals a tile to EVERY
- * player. From the peeler's view their own hand gains a tile (live `tiles`
- * subscription) and a peer's count ticks up (progress realtime).
+ * player. From the peeler's view their own hand gains a tile and a peer's
+ * count ticks up, both off the rebuilt `game_data` blob.
  */
 test.describe('bananagrams peel draw', () => {
   test('peeling deals a tile to every player', async ({ browser }) => {
@@ -310,7 +310,7 @@ test.describe('bananagrams peer counts', () => {
     await pageB.keyboard.type(l2)
     await expect(cellB).toContainText(l2)
     // Wall-clock of the placement, for aligning with the [rt] stamps — any
-    // progress event delivered before this moment was page-mount noise.
+    // blob event delivered before this moment was page-mount noise.
     const savedAt = new Date().toTimeString().slice(0, 8) + '.' + String(Date.now() % 1000).padStart(3, '0')
     try {
       await expect(bobCount).toHaveText('13')
@@ -318,20 +318,20 @@ test.describe('bananagrams peer counts', () => {
       // Evidence dump before failing (this is the original lost-event
       // suspect; it fails too rarely to debug live, so the failure must
       // convict itself):
-      //  - the server's row AT FAILURE TIME, read via psql before teardown —
+      //  - the server's counts AT FAILURE TIME, read via psql before teardown —
       //    bob's page overwrites the board with its own empty snapshot on
       //    unmount, so a post-test read is contaminated;
       //  - the save's completion time;
-      //  - alice's [rt] trail. An `event … bananagrams.progress` line AFTER
+      //  - alice's [rt] trail. An `event … common.games` line AFTER
       //    savedAt means delivery worked and the UI is at fault; none means
       //    the event was LOST on a live channel.
       const serverRow = execFileSync(
         'psql',
         ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-tAX', '-c',
-         `select user_id, unplaced from bananagrams.progress where game_id = '${game.id}';`],
+         `select p->>'id', p->>'nUnplacedTiles' from common.games, jsonb_array_elements(game_data->'players') p where id = '${game.id}';`],
         { encoding: 'utf8' },
       ).trim()
-      console.log(`save committed at ${savedAt}; server progress rows AT FAILURE:\n${serverRow}`)
+      console.log(`save committed at ${savedAt}; server counts AT FAILURE:\n${serverRow}`)
       console.log(`[rt] trail from alice's page at failure:\n${rtLines.join('\n')}`)
       throw err
     }

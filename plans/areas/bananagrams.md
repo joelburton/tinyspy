@@ -14,8 +14,8 @@ the tile-feedback pass against [tile-feedback.md](../tile-feedback.md).
 
 ## The conversion — rulings before step 1
 
-Joel, 2026-10-05, answering [plans/bananagrams-conversion.md](../bananagrams-conversion.md)'s
-questions by number before any code:
+Joel, 2026-10-05, answering the conversion proposal's questions by number
+before any code:
 
 - **The board rides the blob, seeded once.** `save_player_board` rebuilds the
   blobs on every save; `usePlayerBoard` seeds its board state from
@@ -85,7 +85,8 @@ questions by number before any code:
   `saveBananagramsBoard` (sends `target_game`), `drainBananagramsPool`
   (filters on `id` where the column is `game_id`; must rebuild the blobs),
   `getBananagramsTiles` (reads `player_boards.tiles` as the member; moves to
-  `game_data`). Left for the sweep after the last game.
+  `game_data`). Fixed at the end of the conversion (2026-10-06, Joel: "fix
+  now"), with the gallery's calls; every bananagrams e2e case green.
 - **Prod**: not counted this session; prod's last applied migration is
   20260925000001, so the lowercase migration's letter-count check runs over
   whatever bananagrams rows prod holds.
