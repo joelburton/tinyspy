@@ -1,5 +1,6 @@
 // cs-na
 
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -1643,13 +1644,13 @@ isOneToOne: false
           Tables: {
             "events": {
                   Row: {
-                    "board_after": (number)[],"cards": (number)[],"created_at": string,"game_id": string,"id": number,"kind": string,"took_turn": boolean,"user_id": string
+                    "board_after": (number)[],"created_at": string,"game_id": string,"id": number,"kind": string,"tiles": (number)[],"took_turn": boolean,"user_id": string
                   }
                   Insert: {
-                    "board_after": (number)[],"cards": (number)[],"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"took_turn"?: boolean,"user_id": string
+                    "board_after": (number)[],"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"tiles": (number)[],"took_turn"?: boolean,"user_id": string
                   }
                   Update: {
-                    "board_after"?: (number)[],"cards"?: (number)[],"created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"took_turn"?: boolean,"user_id"?: string
+                    "board_after"?: (number)[],"created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"tiles"?: (number)[],"took_turn"?: boolean,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1657,12 +1658,6 @@ isOneToOne: false
       columns: ["game_id"]
 isOneToOne: false
       referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
       referencedColumns: ["game_id"]
     }
                   ]
@@ -1681,13 +1676,13 @@ isOneToOne: false
                   ]
                 },"players": {
                   Row: {
-                    "game_id": string,"hints_used": number,"sets_found": number,"user_id": string
+                    "game_id": string,"n_hints_used": number,"n_sets_found": number,"user_id": string
                   }
                   Insert: {
-                    "game_id": string,"hints_used"?: number,"sets_found"?: number,"user_id": string
+                    "game_id": string,"n_hints_used"?: number,"n_sets_found"?: number,"user_id": string
                   }
                   Update: {
-                    "game_id"?: string,"hints_used"?: number,"sets_found"?: number,"user_id"?: string
+                    "game_id"?: string,"n_hints_used"?: number,"n_sets_found"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1696,31 +1691,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "board": (number)[] | null,"deck_kind": string | null,"deck_left": number | null,"game_id": string | null,"palette": string | null
-                  }
-                  Insert: {
-                           "board"?: (number)[] | null,"deck_kind"?: string | null,"deck_left"?: never,"game_id"?: string | null,"palette"?: string | null
-                         }
-                        Update: {
-                           "board"?: (number)[] | null,"deck_kind"?: string | null,"deck_left"?: never,"game_id"?: string | null,"palette"?: string | null
-                         }
-                        Relationships: [
-                    
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
             "_board_min":
@@ -1733,10 +1709,10 @@ isOneToOne: false
 { Args: { "p_deck_kind": string }; Returns: number
                            },
 "_find_set":
-{ Args: { "p_cards": (number)[] }; Returns: (number)[]
+{ Args: { "p_tiles": (number)[] }; Returns: (number)[]
                            },
 "_find_set_with":
-{ Args: { "p_card": number,"p_cards": (number)[] }; Returns: (number)[]
+{ Args: { "p_tile": number,"p_tiles": (number)[] }; Returns: (number)[]
                            },
 "_finish":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason_detail": string }; Returns: undefined
@@ -1744,11 +1720,32 @@ isOneToOne: false
 "_is_set":
 { Args: { "p_a": number,"p_b": number,"p_c": number }; Returns: boolean
                            },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_tiles": (number)[] }; Returns: Json
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "_third":
 { Args: { "p_a": number,"p_b": number }; Returns: number
-                           },
-"_write_statuses":
-{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1757,7 +1754,7 @@ isOneToOne: false
 { Args: { "p_club_handle": string,"p_mode": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
                            },
 "record_hint":
-{ Args: { "p_cards": (number)[],"p_game_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_tiles": (number)[] }; Returns: Json
                            },
 "replay_board":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1766,7 +1763,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "submit_set":
-{ Args: { "p_cards": (number)[],"p_game_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_tiles": (number)[] }; Returns: Json
                            },
 "submit_timeout":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2067,12 +2064,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "games"
       referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "events_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
     }
                   ]
                 },"games": {
@@ -2096,13 +2087,13 @@ isOneToOne: false
                   ]
                 },"players": {
                   Row: {
-                    "active_hint_coords": Json | null,"game_id": string,"hint_points": number,"hints_spent": number,"user_id": string
+                    "active_hint_coords": Json | null,"game_id": string,"hint_points": number,"n_hints_used": number,"user_id": string
                   }
                   Insert: {
-                    "active_hint_coords"?: Json | null,"game_id": string,"hint_points"?: number,"hints_spent"?: number,"user_id": string
+                    "active_hint_coords"?: Json | null,"game_id": string,"hint_points"?: number,"n_hints_used"?: number,"user_id": string
                   }
                   Update: {
-                    "active_hint_coords"?: Json | null,"game_id"?: string,"hint_points"?: number,"hints_spent"?: number,"user_id"?: string
+                    "active_hint_coords"?: Json | null,"game_id"?: string,"hint_points"?: number,"n_hints_used"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -2110,12 +2101,6 @@ isOneToOne: false
       columns: ["game_id"]
 isOneToOne: false
       referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
       referencedColumns: ["game_id"]
     }
                   ]
@@ -2135,64 +2120,47 @@ isOneToOne: false
                 }
           }
           Views: {
-            "games_state": {
-                  Row: {
-                    "band": number | null,"board": (string)[] | null,"game_id": string | null,"hint_cost": number | null,"min_word_length": number | null,"puzzle_date": string | null,"puzzle_id": string | null,"puzzle_title": string | null,"solution": Json | null
-                  }
-                  Insert: {
-                           "band"?: number | null,"board"?: (string)[] | null,"game_id"?: string | null,"hint_cost"?: number | null,"min_word_length"?: number | null,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"puzzle_title"?: string | null,"solution"?: never
-                         }
-                        Update: {
-                           "band"?: number | null,"board"?: (string)[] | null,"game_id"?: string | null,"hint_cost"?: number | null,"min_word_length"?: number | null,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"puzzle_title"?: string | null,"solution"?: never
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "games_puzzle_id_fkey"
-      columns: ["puzzle_id"]
-isOneToOne: false
-      referencedRelation: "puzzles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"players_state": {
-                  Row: {
-                    "active_hint_coords": Json | null,"game_id": string | null,"hint_points": number | null,"hints_spent": number | null,"user_id": string | null
-                  }
-                  Insert: {
-                           "active_hint_coords"?: never,"game_id"?: string | null,"hint_points"?: never,"hints_spent"?: number | null,"user_id"?: string | null
-                         }
-                        Update: {
-                           "active_hint_coords"?: never,"game_id"?: string | null,"hint_points"?: never,"hints_spent"?: number | null,"user_id"?: string | null
-                         }
-                        Relationships: [
-                    {
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games"
-      referencedColumns: ["game_id"]
-    },{
-      foreignKeyName: "players_game_id_fkey"
-      columns: ["game_id"]
-isOneToOne: false
-      referencedRelation: "games_state"
-      referencedColumns: ["game_id"]
-    }
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
-            "_active_hint_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
-                           },
-"_consumed_keys":
+            "_consumed_keys":
 { Args: { "p_game_id": string,"p_user_id": string }; Returns: (string)[]
+                           },
+"_count_found_puzzle_words":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: number
                            },
 "_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
                            },
-"_hint_points_for":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: number
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_found_puzzle_words":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "p_ended": boolean,"sg": Database["strands"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_puzzle_words":
+{ Args: { "p_solution": Json }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_tile_ids":
+{ Args: { "p_coords": Json }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_board": (string)[] }; Returns: Json
                            },
 "_maybe_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: boolean
@@ -2200,14 +2168,11 @@ isOneToOne: false
 "_path_key":
 { Args: { "p_coords": Json }; Returns: (string)[]
                            },
-"_player_state_visible":
-{ Args: { "p_game_id": string,"p_user_id": string }; Returns: boolean
-                           },
-"_solution_for":
-{ Args: { "p_game_id": string }; Returns: Json
-                           },
-"_write_statuses":
+"_rebuild_data_cols":
 { Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "concede":
 { Args: { "p_game_id": string }; Returns: Json

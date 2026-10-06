@@ -106,6 +106,20 @@ New game hides its button mid-game as the siblings' does; the history view is
 `useHistoryView`. The printer reads `gd`. The move (picks, the claim, the hint
 and its ring, the letter keys) is the BoardCol pass's.
 
+## The BoardCol pass (step 10)
+
+Joel took the recs ("commit and do it"; steps 1–9 are bf52c054d). BoardCol
+owns the move: `usePickedTiles` (ids held, the table's tiles handed back, a
+rival's claim drops a pick), `useSubmitClaim` (the in-flight ids, derived
+against the live table, so a landed claim holds nothing), `useSpendHint` (the
+ring from the log, cleared by any claim; the ladder; the third rung claims)
+and `useBoardColActions` (the letter key, ⌫, Hint, `canPick`, `pickTile`).
+`.boardCol`, `.pillSlot`, `.mobileStatus` and the portrait rule moved
+verbatim into `BoardCol.module.css`. `db.ts` regenerated for `p_tiles`.
+The letter key's action is `act-pick-by-letter` (Joel, 2026-10-05): "pick"
+is the shared verb for putting a tile in the move, and "by letter" tells it
+from the cursor's Space (`act-toggle-tile`) and a click (`pickClicked`).
+
 ## The inventory (step 1)
 
 - **The loader** (`hooks/useGame.ts`) reads `setgame.games_state` (`id,

@@ -152,7 +152,7 @@ const pickedCards = () =>
  *  nothing action still swallows the keystroke, which is how it would take the
  *  history viewer's any-key exit away from it. */
 const cardKeyState = () =>
-  getActions().find((b) => b.id === 'act-toggle-card')?.describe('button').state
+  getActions().find((b) => b.id === 'act-pick-by-letter')?.describe('button').state
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
  *  focused. An Option chord matches on `code`, since ⌥ changes the character. */

@@ -3,114 +3,125 @@
 import { cls } from '@/common/utils/cls'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { ActionButton } from '@/common/actions/ActionButton'
-import type { Action } from '@/common/actions/useBindAction'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import type { Card as CardCode } from '../lib/cards'
-import type { FlashKind } from '../lib/flash'
+import { HistoryBanner } from '@/common/event-log/HistoryBanner'
+import { usePickedTiles } from '../hooks/usePickedTiles'
+import { useSubmitClaim } from '../hooks/useSubmitClaim'
+import { useSpendHint } from '../hooks/useSpendHint'
+import { useBoardColActions } from '../hooks/useBoardColActions'
+import { countsFor } from '../lib/readouts'
 import { Board } from './Board'
 import { Counts } from './Counts'
-import { countsFor } from '../lib/readouts'
-import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
-import styles from './PlayArea.module.css'
+import styles from './BoardCol.module.css'
+import type { GGameData, GHistoryView, GTile } from '../types'
 
-type Props = {
-  board: readonly CardCode[]
-  picked: readonly CardCode[]
-  ringed: readonly CardCode[]
-  flashes: ReadonlyMap<CardCode, FlashKind>
-  disabled: boolean
-  // A teammate holds the move (the page's `isWaitingForTurn`) — fades the
-  // table. See `Board`.
-  isWaitingForTurn: boolean
-  // ── The mobile status bar's contents ──
-  isCompete: boolean
-  teamFound: number
-  deckLeft: number
-  hintsUsed: number
-  // Ask for a hint. The SAME binding the info column places, so the two copies
-  // can't come to say different things — including the gray "No hints when
-  // competing" face, which the action carries.
-  actHint: Action
-  onCardClick: (card: CardCode) => void
-  // PlayArea's below-board slot — a claim's result, the terminal verdict,
-  // "you're out", or the your-turn prompt.
-  localFeedbackSlot: FeedbackSlot
-  // ── Turn-history viewer ──
-  // The viewed turn's one-line description (drives the banner over the
-  // pill slot), or null when live.
-  historyLabel: string | null
-  onExitHistory: () => void
-}
+/** No tiles — the marks a past turn's table wears for the live move. */
+const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
- * setgame's board column: the table, and one fixed-height row beneath it.
+ * setgame's board column: the table, one fixed-height row beneath it, and the
+ * move — picking tiles, the claim they make, and the hint (`usePickedTiles`,
+ * `useSubmitClaim`, `useSpendHint`, `useBoardColActions`).
  *
- * That row is the whole below-board apparatus, and it is much smaller than most
+ * The row is the whole below-board apparatus, and it is much smaller than most
  * games' because setgame has **no text entry at all** — no typed word, no move
- * row, no on-screen keyboard. A claim is three cards; there is nothing to echo
- * back. What the row does carry is the feedback pill: your own verdict, the
- * terminal result, or (in turn-by-turn coop) the prompt that it is your move
- * — and, while a past turn is open, the shared history banner over it.
+ * row, no on-screen keyboard. A claim is three tiles; there is nothing to echo
+ * back. What the row does carry is the feedback pill: your own refusal, the
+ * ending, or (under turn order) the prompt that it is your move — and, while a
+ * past turn is open, the shared history banner over it. Fixed height, empty or
+ * not: the pill comes and goes constantly, and a collapsing row would bounce
+ * the board on every claim.
  *
- * Fixed height, empty or not. The pill comes and goes constantly during play,
- * and a collapsing row would bounce the board on every claim.
- *
- * Above the board sits the shared `<MobileStatusBar>`, which is `display: none`
- * on desktop and costs nothing there. Below the breakpoint the whole info column
- * is off-canvas in the `<InfoSheet>`, so without it a player has to open a sheet
- * to read their own score — and, in this game, to ask for a hint. **The hint
- * button is duplicated there on purpose**: asking is a routine move here, not a
- * rescue, and routine moves belong on the play surface. Both copies are the same
- * ACTION, so they cannot come to say different things.
+ * Above the board sits the shared `<MobileStatusBar>`, `display: none` on
+ * desktop. On a phone the info column is off-canvas, so without it a player
+ * would open a sheet to read their own count — and, in this game, to ask for a
+ * hint. **The Hint button is on it too, on purpose**: asking is a routine move
+ * here, not a rescue, and routine moves belong on the play surface.
  */
 export function BoardCol({
-  board,
-  picked,
-  ringed,
-  flashes,
-  disabled,
-  isWaitingForTurn,
-  isCompete,
-  teamFound,
-  deckLeft,
-  hintsUsed,
-  actHint,
-  onCardClick,
+  gd,
+  shownTiles,
+  historyView,
   localFeedbackSlot,
-  historyLabel,
-  onExitHistory,
-}: Props) {
-  const isViewingHistory = historyLabel !== null
+}: {
+  gd: GGameData
+  // The table to show — PlayArea picks it: a past turn's, or the live one.
+  shownTiles: GTile[]
+  historyView: GHistoryView
+  // PlayArea's below-board slot: a refused claim or hint, the ending, "you're
+  // out", the your-turn prompt.
+  localFeedbackSlot: FeedbackSlot
+}) {
+  // ─── Which table is on screen ─────────────────────────────────
+  // The board responds to me: the move is mine, on the live table — a click or
+  // key over a past turn is the viewer's exit.
+  const isInteractive = gd.me.onTurn && !historyView.isViewing
+
+  // ─── The pending move ─────────────────────────────────────────
+  // The picks, the claim they make, the hint that picks for you, and the keys.
+  const picks = usePickedTiles(gd.board.tilesById)
+  const submission = useSubmitClaim({ gd, localFeedbackSlot })
+  const hint = useSpendHint({
+    gd,
+    setPicks: picks.set,
+    submitClaim: submission.send,
+    localFeedbackSlot,
+  })
+  const actions = useBoardColActions({
+    gd,
+    isInteractive,
+    picks,
+    inFlightTileIds: submission.inFlightTileIds,
+    submitClaim: submission.send,
+    spendHint: hint.spend,
+    localFeedbackSlot,
+  })
+
+  // Any key is the next move, so any key drops the previous move's result.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
+
+  // ─── Render ───────────────────────────────────────────────────
+
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <Counts items={countsFor('mobile', { isCompete, teamFound, deckLeft, hintsUsed })} />
-          {/* Rendered in compete too, disabled and saying why — the same call
-              the info column's copy makes, for the same reason: a button that
-              vanishes leaves a player hunting for a feature they know exists. */}
-          <ActionButton action={actHint} show="icon" />
+          <Counts
+            items={countsFor('mobile', {
+              isCompete: gd.compete,
+              teamFound: gd.stateLineData.nSetsFound,
+              deckLeft: gd.stateLineData.nTilesInDeck,
+              hintsUsed: gd.stateLineData.nHintsUsed ?? 0,
+            })}
+          />
+          {/* On the bar in compete too, disabled and saying why — the same
+              action the info column places. */}
+          <ActionButton action={actions.actHint} show="icon" />
         </div>
       </MobileStatusBar>
 
       <Board
-        board={board}
-        picked={picked}
-        ringed={ringed}
-        flashes={flashes}
-        disabled={disabled}
-        isWaitingForTurn={isWaitingForTurn}
-        onCardClick={onCardClick}
+        tiles={shownTiles}
+        marks={{
+          // My picks and the hint's ring are the live table's; a past turn's
+          // table rings that turn's own tiles instead.
+          pickedTileIds: historyView.isViewing ? NO_TILES : new Set(picks.tileIds),
+          ringTileIds: new Set((historyView.isViewing ? historyView.litTiles : hint.ringTiles).map((t) => t.id)),
+          inFlightTileIds: historyView.isViewing ? NO_TILES : submission.inFlightTileIds,
+          isWaitingForTurn: gd.me.waitingForTurn,
+        }}
+        canPick={actions.canPick}
+        onPick={actions.pickTile}
       />
       {/* `bannerHost` only WHILE VIEWING — the banner is `position: absolute;
           inset: 0` and needs a positioning context; conditional so a `position`
-          this row doesn't otherwise want isn't sitting on it during play (the
-          same call connections / psychicnum make). */}
-      <div className={cls(styles.pillSlot, isViewingHistory && history.historyBannerHost)}>
-        {isViewingHistory && <HistoryBanner label={historyLabel} onExit={onExitHistory} />}
+          this row doesn't otherwise want isn't sitting on it during play. */}
+      <div className={cls(styles.pillSlot, historyView.isViewing && history.historyBannerHost)}>
+        {historyView.isViewing && <HistoryBanner label={historyView.label} onExit={historyView.exit} />}
         <FeedbackPill slot={localFeedbackSlot} />
       </div>
     </div>

@@ -490,10 +490,10 @@ nothing is live on paper, so the reason to hold it back doesn't apply
 ### The keyboard
 
 A letter under every card, typing toggles it, Backspace clears, and the third
-picked card submits. Two actions — `act-toggle-card` and
+picked card submits. Two actions — `act-pick-by-letter` and
 `act-clear-picks` — not the shared `useCaptureKeys`: that helper accumulates
 *text*, and a letter here is a toggle on a card, not a character appended to a
-word. `act-toggle-card` is a PATTERN action, handed whichever letter fired it,
+word. `act-pick-by-letter` is a PATTERN action, handed whichever letter fired it,
 which is what makes twenty-one cards one action rather than twenty-one.
 
 The letters are a **fixed 3 × 7 grid** (`lib/letters.ts`), of which only the

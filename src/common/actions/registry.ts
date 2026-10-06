@@ -303,7 +303,7 @@ export const ACTIONS = {
   'act-toggle-tile': { label: 'Pick the tile', keys: [named(' ', 'Space')] },
   'act-pick-tile': { label: 'Play that tile', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-extend-trace': { label: 'Extend the trace', keys: [{ pattern: 'letter', label: 'A–Z' }] },
-  'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
+  'act-pick-by-letter': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
   'act-drop-last-cell': { label: 'Drop the last tile', icon: IconDelete, keys: [named('Backspace', '⌫')] },
   'act-clear-picks': { label: 'Clear picks', icon: IconDelete, keys: [named('Backspace', '⌫')] },
   // bananagrams asks the server whether the board reads as words RIGHT NOW —
