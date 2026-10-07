@@ -4,7 +4,7 @@
  * of the longest word at the end. */
 
 /* The info-column "state" region — reserved height so the mid-game
- * "guesses n/5" ↔ terminal score-bar swap doesn't jump the rows below. */
+ * "guesses n/5" ↔ ending score-bar swap doesn't jump the rows below. */
 /* @@ */ .stateBlock {
   min-height: 4.5rem;
   display: flex;
@@ -13,7 +13,7 @@
   gap: 0.4rem;
 }
 
-/* Terminal reveal — the longest possible word. NO card: it's critical
+/* Ending reveal — the longest possible word. NO card: it's critical
  * information, so it reads as plain full-color text, not a boxed aside. */
 /* @@ */ .reveal {
   margin-top: 0.5rem;
@@ -28,7 +28,7 @@
   color: var(--page-text-color);
 }
 
-/* The best-possible word, revealed at terminal. Click-to-define, so the pointer
+/* The best-possible word, revealed at the end. Click-to-define, so the pointer
  * and the hover underline are `<DefinableWord>`'s; this is the word's own type,
  * aligned left under its label. */
 /* @@ */ .revealWord {

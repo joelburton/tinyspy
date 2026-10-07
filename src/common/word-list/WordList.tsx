@@ -18,7 +18,7 @@ import styles from './WordList.module.css'
  *   - **found** — a word someone found; `userId` colors its dot (the finder).
  *     `isBonus` adds a trailing '•'; `isPangram` bolds it (games without either
  *     concept just omit the flag).
- *   - **unfound** — a word nobody found, shown only post-terminal (a hollow gray
+ *   - **unfound** — a word nobody found, shown only after the end (a hollow gray
  *     ring + gray word). Carries `isBonus` too: the reveal covers **both** lists,
  *     required and bonus, so the post-game artifact includes the interesting
  *     vocabulary nobody reached.
@@ -34,7 +34,7 @@ export type WordListRow =
     userId: string
     // EVERY player who found this word, `userId` first, because the WHO filter
     // matches against the whole list rather than the attributed finder alone.
-    // Only compete post-terminal can hold more than one. Optional: omitting it
+    // Only compete after the end can hold more than one. Optional: omitting it
     // means "just `userId`".
     finderIds?: string[]
     isBonus?: boolean
@@ -53,9 +53,9 @@ type Props = {
   players: Member[]
   // The viewer, for the WHO filter's self-first ordering.
   myId: string
-  // Compete gates the per-player filter options until terminal (RLS).
+  // Compete gates the per-player filter options until the game ends (RLS).
   isCompete: boolean
-  isTerminal: boolean
+  isGameEnded: boolean
 }
 
 /**
@@ -79,14 +79,14 @@ export function WordList({
   players,
   myId,
   isCompete,
-  isTerminal,
+  isGameEnded,
 }: Props) {
-  const wordFilter = useWordListFilter({ rows, players, myId, isCompete, isTerminal })
+  const wordFilter = useWordListFilter({ rows, players, myId, isCompete, isGameEnded })
   const shown = wordFilter.filter(rows)
 
   // The heading tallies THE FILTERED LIST — "Words: 7 · Score: 10" — so the
   // filters become a reading tool: flip WHO to a player to see their coop
-  // contribution, or to Missed at terminal to see what the reveal cost.
+  // contribution, or to Missed at the end to see what the reveal cost.
   //
   // None of the three is memoized, and that is deliberate rather than an
   // oversight to fix: both `rows` (built fresh in each game's render) and
@@ -116,7 +116,7 @@ export function WordList({
   }, [players])
 
   // Just the found words for the useRecentlyFound input — the unfound reveal
-  // entries arrive in bulk when the game terminalizes and would all flash at once.
+  // entries arrive in bulk when the game ends and would all flash at once.
   //
   // THIS memo is load-bearing, unlike the tallies above: `useRecentlyFound`'s
   // effect depends on this array's identity, so a fresh one per render would
@@ -163,7 +163,7 @@ export function WordList({
           ) : (
             shown.map((entry) => {
               // Unfound reveal entries — words nobody found, only ever
-              // post-terminal. Hollow gray ring + gray word.
+              // after the end. Hollow gray ring + gray word.
               if (entry.kind === 'unfound') {
                 return (
                   <li
@@ -181,10 +181,10 @@ export function WordList({
               }
               // A found word — a filled dot in its finder's color, word in black.
               const colorName = colorByUser.get(entry.userId)
-              // Mid-game only: at terminal the reveal lands every peer's rows
+              // Mid-game only: at the end the reveal lands every peer's rows
               // in one refetch, and marking them all as just-arrived would say
               // the opposite of what the mark means.
-              const isRecent = !isTerminal && recentlyFound.has(entry.word)
+              const isRecent = !isGameEnded && recentlyFound.has(entry.word)
               return (
                 <li
                   key={entry.word}

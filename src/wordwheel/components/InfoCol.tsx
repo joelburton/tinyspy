@@ -1,6 +1,6 @@
 // cs-blessed-wordwheel
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -26,7 +26,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
 }) {
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
@@ -86,7 +86,7 @@ export function InfoCol({
         players={gd.players}
         myId={gd.me.id}
         isCompete={gd.compete}
-        isTerminal={gd.ended}
+        isGameEnded={gd.ended}
       />
     </div>
   )

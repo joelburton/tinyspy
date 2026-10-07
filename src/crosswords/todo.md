@@ -32,20 +32,20 @@
   are still hunting. `disabled` is *possible here, just not right now*, and it
   carries a tooltip saying why — a hint when you have used your last one. Most
   games' gate variable folds several of these together and has to be split
-  before the actions can be honest; psychicnum's `canGuess` hid "terminal"
+  before the actions can be honest; psychicnum's `canGuess` hid "game ended"
   inside "out of guesses" and is now `isStillPlaying`.
 
   **Two answer their asker differently**, which is what `ActionAsker` is for:
   Restart and New game are reachable all game from the menu and their keys —
   the confirmations are written for exactly that ("will be shelved, not lost",
-  "Keep playing") — and get a BUTTON only at terminal. `describe: (asker) =>
-  asker === 'button' && !isTerminal ? 'hidden' : 'active'`. Restart's is
+  "Keep playing") — and get a BUTTON only at the end. `describe: (asker) =>
+  asker === 'button' && !isGameEnded ? 'hidden' : 'active'`. Restart's is
   already done in `useStandardGameActions`; each game's own `act-new-game` is
   not.
 
   **Two things the collapse destroys if you are not watching.** Back-to-club
   is `weight={over ? 'primary' : 'secondary'}` — filled only once the game is
-  over; hoisting the terminal branch's `weight="primary"` into the single list
+  over; hoisting the ending branch's `weight="primary"` into the single list
   makes it shout all game. And the gray `shared.actionsDivider` span goes
   between the actions you take WHILE PLAYING and the ones about the END of the
   game — both sides are pressable mid-game, so nothing but the bar says where

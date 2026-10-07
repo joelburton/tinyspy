@@ -79,7 +79,7 @@ test.describe('waffle replay board', () => {
     // "B (…)"), and the across word a0 reads as an em dash in the info list.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
 
-    // Reveal is TERMINAL-ONLY — waffle's mid-game give-up was removed
+    // Reveal is ENDED-ONLY — waffle's mid-game give-up was removed
     // 2026-08-03 so every game has the same order: Stop, then Reveal. The menu
     // item is present mid-game but inert: there is nothing to show, since the
     // solution reaches a compete client only once the game is over for all.
@@ -87,7 +87,7 @@ test.describe('waffle replay board', () => {
     await expect(page.getByRole('menuitem', { name: 'Reveal solution' })).toBeDisabled()
     await page.keyboard.press('Escape')
 
-    // Stop it for the table (the neutral 'ended' terminal).
+    // Stop it for the table (a neutral 'ended').
     await page.getByRole('button', { name: 'Stop game' }).first().click()
     await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })

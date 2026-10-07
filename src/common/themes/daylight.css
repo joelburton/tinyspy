@@ -200,7 +200,7 @@
      from `--outcomes-lost-ink-color` in oklab, where the old maroon
      kept a considered 0.124 of distance so a destructive action could
      never read as a loss. The distance was retired knowingly — a
-     terminal frame and a Delete button are never in the same
+     ending frame and a Delete button are never in the same
      sightline. (Parked in this folder's todo.md: it should read
      differently, and 0.037 is not "differently".)
 
@@ -319,7 +319,7 @@
        wash       a much lighter version: a pill background.
        bar        a status bar showing an outcome — the event log's
                   left bar.
-       terminalFrame  the band around a board that is no longer a live
+       endingFrame    the band around a board that is no longer a live
                   position. A big area, so it must read as a band
                   without shouting the outcome at full saturation.
 
@@ -440,7 +440,7 @@
 /* @@ */   --outcomes-noted-bar-color:     var(--outcomes-noted-fill-color);
 /* @@ */   --outcomes-error-bar-color:     var(--outcomes-error-fill-color);
 
-  /* TERMINALFRAME — the band around a finished board, drawn hard against
+  /* ENDINGFRAME — the band around a finished board, drawn hard against
      the board's edge with no whitespace around it, so it has to carry
      against the tiles on one side AND the near-white page on the
      other.
@@ -471,13 +471,13 @@
      near GAMUT-MAPS on the way out: oklch(0.45 0.105 73.5°) is outside
      sRGB, so the browser lands it at a lower chroma. That is the
      clamp, not a tweak. */
-/* @@ */   --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)     0.564 0.105 h);
-/* @@ */   --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)    0.45  0.105 h);
-/* @@ */   --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)    0.45  0.105 h);
-/* @@ */   --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color) 0.45  0.105 h);
-/* @@ */   --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)   0.45  0.105 h);
-/* @@ */   --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)   0.45  0.105 h);
-/* @@ */   --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color) 0.45  0     h);
+/* @@ */   --outcomes-won-endingFrame-color:        oklch(from var(--outcomes-won-base-color)     0.564 0.105 h);
+/* @@ */   --outcomes-lost-endingFrame-color:       oklch(from var(--outcomes-lost-base-color)    0.45  0.105 h);
+/* @@ */   --outcomes-near-endingFrame-color:       oklch(from var(--outcomes-near-base-color)    0.45  0.105 h);
+/* @@ */   --outcomes-warning-endingFrame-color:    oklch(from var(--outcomes-warning-base-color) 0.45  0.105 h);
+/* @@ */   --outcomes-noted-endingFrame-color:      oklch(from var(--outcomes-noted-base-color)   0.45  0.105 h);
+/* @@ */   --outcomes-error-endingFrame-color:      oklch(from var(--outcomes-error-base-color)   0.45  0.105 h);
+/* @@ */   --outcomes-neutral-endingFrame-color:    oklch(from var(--outcomes-neutral-base-color) 0.45  0     h);
 
   /* ══ PILL ═══════════════════════════════════════════════════════
      The feedback pill — in the header (what other players are doing)
@@ -799,7 +799,7 @@
 
      `suspended` and `current` are states.md's words, not ours: current
      = "at least one club member is viewing its GamePage right now",
-     suspended = "a non-current, non-terminal game". It explicitly
+     suspended = "a non-current game that hasn't ended". It explicitly
      forbids 'active', which overloads view-state and play-state.
 
      No neutral cell yet, deliberately: the reserve-every-cell policy

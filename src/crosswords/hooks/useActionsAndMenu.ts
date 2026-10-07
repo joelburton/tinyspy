@@ -83,10 +83,10 @@ export function useActionsAndMenu({
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,
-    isTerminal: gd.ended,
+    isGameEnded: gd.ended,
     mode: gd.mode,
     // Out of the race while the game goes on: in this game, only by conceding.
-    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
+    isPlayerEnded:!gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -183,7 +183,7 @@ export function useActionsAndMenu({
 
   // The post-game answer grid: my own, reversible look (useSolutionReveal).
   const actReveal = useBindAction('act-reveal', {
-    describe: () => describeReveal({ noun: 'solution', revealed: solutionReveal.revealed, isTerminal: gd.ended }),
+    describe: () => describeReveal({ noun: 'solution', revealed: solutionReveal.revealed, isGameEnded: gd.ended }),
     run: solutionReveal.toggle,
   })
 
@@ -191,7 +191,7 @@ export function useActionsAndMenu({
   // crossword's setup names a puzzle, so "the same again" would re-serve the
   // grid just solved (docs/games/crosswords.md → Frontend).
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.ended,
+    ended: gd.ended,
     describe: () => 'active',
     run: () => navigate(`${clubPath(gd.club.handle)}?new=${gd.gametype}`),
   })

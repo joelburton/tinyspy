@@ -18,7 +18,7 @@ import { actionButton } from './helpers/actions'
  *   2. **the shield holding in a real client** — the answer must not be sitting
  *      in the page while the game is live;
  *   3. **the reveal**, which since 2026-08-15 is a purely LOCAL display toggle:
- *      the server hands the answer over at terminal, and the board still draws
+ *      the server hands the answer over at the end, and the board still draws
  *      nothing until this viewer asks. Only a browser can tell "on the client"
  *      apart from "on the screen".
  *

@@ -48,10 +48,10 @@ export function useActionsAndMenu({
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,
-    isTerminal: gd.ended,
+    isGameEnded: gd.ended,
     mode: 'compete',
     // Out of the race while the game goes on: in this game, only by conceding.
-    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
+    isPlayerEnded:!gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -84,7 +84,7 @@ export function useActionsAndMenu({
   // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game
   // rather than ending it) and goes straight through once the game has ended.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.ended,
+    ended: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe: (asker) => (asker === 'button' && !gd.ended
       ? 'hidden'

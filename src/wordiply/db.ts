@@ -11,6 +11,6 @@ import { supabase } from '@/common/supabase/supabase'
  * Unlike the hidden-solution games, `wordiply.games_state` hides nothing —
  * the base, the length lists, and the longest word all ship to the FE
  * (we don't care about cheating). The FE simply declines to RENDER the
- * scores + the longest word until terminal.
+ * scores + the longest word until the game has ended.
  */
 export const db = supabase.schema('wordiply')

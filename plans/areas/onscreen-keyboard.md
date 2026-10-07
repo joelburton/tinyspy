@@ -96,7 +96,7 @@ bindings, and that is why one of them can be gray while letters are live.
 
 ### F-onscreen-keyboard-2 · `wordiply-drops-the-keyboard` · The prop that stops the page moving has one caller
 
-**SUPERSEDED the same day.** Joel: the keyboard should be SHOWN at terminal —
+**SUPERSEDED the same day.** Joel: the keyboard should be SHOWN after the end —
 its caps carry the colors of the letters used, which is the record of the game.
 `gameOver`, `.gameOver` and the `visibility: hidden` are gone; both games now
 show a disabled keyboard, the same look as not-your-turn. What this finding
@@ -105,8 +105,8 @@ unmounted the column's bottom 12.4rem, which is the half that was never about
 the prop. Everything below is the reading as it stood.
 
 **SHIPPED, 2026-09-22** (Joel ruled it an oversight, not a deliberate second
-arrangement). wordiply passes `gameOver={isTerminal}` and the branch is gone:
-one arrangement, played or finished, with the keyboard withdrawn at terminal
+arrangement). wordiply passes `gameOver={isGameEnded}` and the branch is gone:
+one arrangement, played or finished, with the keyboard withdrawn at the end
 instead of unmounted. `.verdictSlot` went with it — dead the moment the branch
 did — and `.kbFeedback` now says it serves both pills, its floor being about one
 pill's own height, which is the same reserve a mid-game soft-reject lands in.
@@ -134,7 +134,7 @@ drawn box, in capitals, ending *"layout must never move on a state change"*:
 > downward at the exact moment a player is reading their verdict.
 
 wordle passes `gameOver`. **wordiply never passes it**, and instead branches on
-`isTerminal` and unmounts the keyboard entirely
+`isGameEnded` and unmounts the keyboard entirely
 (`src/wordiply/components/BoardCol.tsx:131`), swapping in a `.verdictSlot`. Which
 is `display: none` by another route.
 
@@ -143,7 +143,7 @@ The arithmetic, from the stylesheets rather than from a screenshot:
 | wordiply, below the board | height |
 |---|---|
 | playing — `.kbFeedback` `min-height: 2rem` + three cap rows (`3 × 3.2rem` + `2 × 0.4rem`) | ≈ 12.4rem |
-| terminal — `.verdictSlot` `min-height: 3.6rem` | 3.6rem |
+| ended — `.verdictSlot` `min-height: 3.6rem` | 3.6rem |
 
 Nothing reserves the difference. **Wants a headless measurement before the fix**
 — the board is sized off `--avail-h` and could absorb some of it — but the
@@ -151,7 +151,7 @@ numbers say the column moves about 8.8rem at the frame the game ends.
 
 `BoardCol.tsx` is a game file, so any change is evidence-and-fix-forward and is
 not blessed. Whether wordiply should pass `gameOver` or keep a deliberately
-different terminal layout is the decision in it.
+different ending layout is the decision in it.
 
 ### F-onscreen-keyboard-3 · `props-wear-the-marker` · Four props carry `/**`
 
@@ -295,7 +295,7 @@ guess while every letter beside it is pressable.
 **What this file deliberately does NOT take from the consumers.** The computed
 colors stay in `e2e/wordle-keyboard.e2e.ts`, where a browser can read a fill and
 an ink; the withdraw stays pinned at both consumers, since it is about a game's
-terminal frame rather than the component's own contract.
+ending frame rather than the component's own contract.
 
 **Two slips in writing it, both caught by running it.** A case asserted an
 inventory of 26 caps without rendering anything — it passed nothing and failed
@@ -405,4 +405,4 @@ or `todo.md` instead; a note here never stands in for either)*
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-22, blessed.** the on-screen QWERTY for a game whose letters land on the board. Three files `cs-blessed-onscreen-keyboard` — the component, its stylesheet, and the spec this area wrote; opened, read, worked and closed in one day. **Eleven findings in `plans/areas/onscreen-keyboard.md`, all worked** — eight from the read, three from the closing re-read. **What the folder turns on is that its caps are two different things**: the 26 letters are KEYS that hand back a character (an action apiece would be a registry entry per keycap), while ⌫ and Enter are the GAME's own bindings worn through `actionSurface` — one binding drawn twice, which is why Enter can sit gray over an empty guess while every letter beside it is live. **The finding with a consequence was a consumer's:** `gameOver` withdraws the keyboard while keeping its box, and the stylesheet argues inside a drawn box that layout must never move on a state change — but wordiply never passed it, branching on `isTerminal` and unmounting instead, which is `display: none` by another road and about 12.4rem of column gone on the frame a player starts reading their verdict. Fixed forward, and pinned: the first spec for it asserted the keyboard was still in the document, which PASSES with `gameOver` dropped entirely, so it asserts the withdraw class too. **The folder had no spec of its own, and the gap was the reason it exists** — the e2e locates caps to read their color and every typing test in both games drives PHYSICAL keys, so nothing had tapped one and `onKey` wired to the wrong letter would have left the suite green. Four plants against the new spec all bite. **Five pending `vocabularies` rows became three converted and two recorded**, both recorded ones being PAIRS chosen against each other — the two gaps, and the two cap sizes; that `0.85rem` equals `--font-size-2` is a coincidence of arithmetic (Joel), reached by fitting a word to a key. The disabled fade took `--chrome-disabled-opacity` and got lighter, following the decision the rule above had already made about a key being a control. **The closing re-read caught the day's own prose for the fourth area running:** the spec written an hour earlier opened by rostering the coverage it was joining and narrating what came before it — F-4's fault plus archaeology, in the file written after fixing F-4. **Handed on:** nothing — `todo.md` is empty
+**CLOSED 2026-09-22, blessed.** the on-screen QWERTY for a game whose letters land on the board. Three files `cs-blessed-onscreen-keyboard` — the component, its stylesheet, and the spec this area wrote; opened, read, worked and closed in one day. **Eleven findings in `plans/areas/onscreen-keyboard.md`, all worked** — eight from the read, three from the closing re-read. **What the folder turns on is that its caps are two different things**: the 26 letters are KEYS that hand back a character (an action apiece would be a registry entry per keycap), while ⌫ and Enter are the GAME's own bindings worn through `actionSurface` — one binding drawn twice, which is why Enter can sit gray over an empty guess while every letter beside it is live. **The finding with a consequence was a consumer's:** `gameOver` withdraws the keyboard while keeping its box, and the stylesheet argues inside a drawn box that layout must never move on a state change — but wordiply never passed it, branching on `isGameEnded` and unmounting instead, which is `display: none` by another road and about 12.4rem of column gone on the frame a player starts reading their verdict. Fixed forward, and pinned: the first spec for it asserted the keyboard was still in the document, which PASSES with `gameOver` dropped entirely, so it asserts the withdraw class too. **The folder had no spec of its own, and the gap was the reason it exists** — the e2e locates caps to read their color and every typing test in both games drives PHYSICAL keys, so nothing had tapped one and `onKey` wired to the wrong letter would have left the suite green. Four plants against the new spec all bite. **Five pending `vocabularies` rows became three converted and two recorded**, both recorded ones being PAIRS chosen against each other — the two gaps, and the two cap sizes; that `0.85rem` equals `--font-size-2` is a coincidence of arithmetic (Joel), reached by fitting a word to a key. The disabled fade took `--chrome-disabled-opacity` and got lighter, following the decision the rule above had already made about a key being a control. **The closing re-read caught the day's own prose for the fourth area running:** the spec written an hour earlier opened by rostering the coverage it was joining and narrating what came before it — F-4's fault plus archaeology, in the file written after fixing F-4. **Handed on:** nothing — `todo.md` is empty

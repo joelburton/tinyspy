@@ -37,14 +37,14 @@ stamped):
 
 **Evidence, not roster:** `turnText.tsx` + `turnText.test.tsx` are
 `cs-blessed-feedback` (`feedback` owns the words; the row says so), the way
-`terminal` treated `terminalMessage.ts`. The fourteen game `InfoCol.tsx` files,
+`terminal` treated `endingMessage.ts`. The fourteen game `InfoCol.tsx` files,
 eight `BoardCol.tsx` files and `GamePage.tsx` that place these are consumers,
 each its own area. `game-page/playArea.module.css` began as evidence — two roster
 components took their root class from it — and F-11 then edited it, moving the
 column's eight classes out; it is not stamped for this area, since what it keeps
 is the shell's. `docs/playarea.md → Info-column
 readouts`, `docs/mobile.md → The two mobile pages` / `the info-sheet recipe` /
-`The mobile status bar`, `docs/ui.md → Terminal results` and
+`The mobile status bar`, `docs/ui.md → Endings` and
 `docs/common-folders.md`'s folder table are read as evidence and fixed where
 they are wrong.
 
@@ -71,9 +71,9 @@ on desktop.
 The other four are info-column FURNITURE every game composes: `infoPanel` (the
 heading + 2px frame the event log, the word list and bananagrams's hand wear),
 `OpponentStrip` (● name: metric, viewer first, the game supplies `metricFor`),
-`TurnStatusLine` (Your turn / Waiting for ● name…, inert at terminal) and
+`TurnStatusLine` (Your turn / Waiting for ● name…, inert once the game has ended) and
 `InfoActionsRow` (the game's buttons with an optional outcome-inked line — the
-one row for playing, locally-terminal and over).
+one row for playing, player-ended and over).
 
 ```
 GamePage (shell)                         ── mobile only ──▶ <InfoSwitchButton open>      binds act-toggle-info-sheet → setInfoSheetOpen(!open)
@@ -87,13 +87,13 @@ GamePage (shell)                         ── mobile only ──▶ <InfoSwitc
                     ├── <p .infoState>                    the game's own readout
                     ├── <TurnStatusLine>                  nine games, gated on currentTurnUserId !== null; root class .infoState (game-page's)
                     ├── <OpponentStrip metricFor metricLabel leading?>     thirteen games
-                    ├── <InfoActionsRow message?>{buttons}</InfoActionsRow>   sixteen games; root classes .infoActions/.terminalActions (game-page's)
+                    ├── <InfoActionsRow message?>{buttons}</InfoActionsRow>   sixteen games; root classes .infoActions/.endingActions (game-page's)
                     └── EventLog · WordList · HandCard    each wearing infoPanel.heading / .headerRow / .box
 useHistoryViewer.showHistory() → setInfoSheetOpen(false)   opening a turn leaves the info page
 ```
 
 The folder's tests are green (3 files, 10 tests). What the reading THOUGHT it
-measured — a 0px-tall terminal turn line — was the audit's own scaffold and not
+measured — a 0px-tall turn line after the end — was the audit's own scaffold and not
 this folder's code: the character in the source is a literal U+00A0 and the line
 is 17px. F-7 is withdrawn and carries the whole story.
 
@@ -208,13 +208,13 @@ because the pointer is null for the whole game or for none of it; the condition
 just has to be the real one. Same file: *"the shared `.infoState` type register"*
 is game-page's class (F-11), and the *"non-breaking space"* comment is F-7.
 
-### F-info-sheet-7 · `terminal-turn-line-collapses` · At terminal the whose-turn line renders a plain space and is 0px tall, so the column reflows by a line — **WITHDRAWN 2026-09-18: THE PREMISE IS FALSE.** There is no bug
+### F-info-sheet-7 · `ended-turn-line-collapses` · Once the game has ended the whose-turn line renders a plain space and is 0px tall, so the column reflows by a line — **WITHDRAWN 2026-09-18: THE PREMISE IS FALSE.** There is no bug
 
-`if (isTerminal) return <p className={shared.infoState}>{' '}</p>` — `' '` is
+`if (isGameEnded) return <p className={shared.infoState}>{' '}</p>` — `' '` is
 U+0020, collapsible whitespace, and a block holding only that has no line box.
 Measured headless in Chromium with the scaffold's rules (`margin: 0`,
 `font-size: 0.95rem`, a flex column with `gap: 1rem`): **0px**, against 17px
-for `&nbsp;` and 17px for `<strong>Your turn</strong>`. So on the play→terminal
+for `&nbsp;` and 17px for `<strong>Your turn</strong>`. So on the play→ended
 flip in every turn-order game the line vanishes and everything below it moves
 up by a line — the exact reflow the props docstring (*"KEEPS its height"*), the
 component docstring (*"an inert height-holder"*), the code comment (*"hold the
@@ -254,7 +254,7 @@ disappear at terminal. changing things at terminal is ok."* So dropping the line
 is permitted — which makes it a choice about appearance rather than a repair, and
 the code keeps the blank row because that is what four places document and what
 ships. Asked whether the ruling should become a general rule in
-`docs/ui.md → Layout stability` (which grants terminal exceptions one at a time,
+`docs/ui.md → Layout stability` (which grants end-of-game exceptions one at a time,
 by name), he chose to keep it local: nothing in `ui.md` changes.
 
 ### F-info-sheet-8 · `doc-md-is-a-lede` · `doc.md` is one paragraph; the folder's design lives in two docstrings and `docs/mobile.md` — WORKED
@@ -272,8 +272,8 @@ four pieces of furniture · the mobile page and why a page and not a drawer ·
 `MobileStatusBar` as that design's cost paid back), and a `## Details` of four
 items — the render tree, a *placed when / what the game supplies* table keyed by
 condition rather than by game, the store argument harvested from F-17, and the
-turn line's fixed presence. It leaves the terminal line's HEIGHT to
-`docs/playarea.md`, which owns the terminal-readout rule — one home per decision.
+turn line's fixed presence. It leaves the ended line's HEIGHT to
+`docs/playarea.md`, which owns the ended-readout rule — one home per decision.
 (It was written that way because F-7 claimed the height was not held; that claim
 turned out to be false, and the split is still right.)
 `docs/mobile.md` keeps the mobile design; the doc cites it rather than restating
@@ -282,8 +282,8 @@ it.
 ### F-info-sheet-9 · `stale-doc-claims` · `docs/playarea.md` and `docs/mobile.md` describe the folder as it was — WORKED, except the folder-table row F-11 decides
 
 - `playarea.md`: *"Shared in `common/game-page/playArea.module.css` —
-  `.infoState` / `.infoHelp` / `.infoActions` / `.terminalActions` /
-  `.outcome_*` / `.terminalExtra`"* — `.outcome_*` are `InfoActionsRow.module.css`'s
+  `.infoState` / `.infoHelp` / `.infoActions` / `.endingActions` /
+  `.outcome_*` / `.endingExtra`"* — `.outcome_*` are `InfoActionsRow.module.css`'s
   since 2026-09-15.
 - `playarea.md`: *"a bold, outcome-colored result line (won = green / lost =
   red / manual-end = neutral, via the `--outcomes-*-ink-color` tones)"* — an
@@ -314,10 +314,10 @@ folder's sheet, which is what the rule wanted in the first place.
 sheet, its switch, the chrome its panels share"*. What the folder holds is the
 panel frame (`infoPanel`) and four components. The classes every InfoCol puts
 on its own markup — `.infoCol` (the column), `.noShrinkRow`, `.infoState`,
-`.infoHelp`, `.infoActions`, `.terminalActions`, `.actionsDivider`,
-`.terminalExtra` — are in `game-page/playArea.module.css`, and two of THIS
+`.infoHelp`, `.infoActions`, `.endingActions`, `.actionsDivider`,
+`.endingExtra` — are in `game-page/playArea.module.css`, and two of THIS
 folder's components take their root class from that sheet: `TurnStatusLine`
-wears `.infoState`, `InfoActionsRow` wears `.infoActions` + `.terminalActions`
+wears `.infoState`, `InfoActionsRow` wears `.infoActions` + `.endingActions`
 (its own module holds only the line's rules, and says so). `todo.md` filed both
 halves — the setup-form audit's *"it feels wrong for someone else to import
 CSS that is named for one component"* (Joel, 2026-09-14; the sheet has since
@@ -375,7 +375,7 @@ is the clamp deciding how much width the column takes from the board, a
 negotiation between the two columns and not a rule about either. Everything worn
 by the column or a row inside it moved: `.infoCol` (+ its `--mobile` override),
 `.noShrinkRow` (+ `.noShrinkRow p`), `.infoState`, `.infoHelp`, `.infoActions`,
-`.terminalActions`, `.actionsDivider` (+ its two sibling rules), `.terminalExtra`.
+`.endingActions`, `.actionsDivider` (+ its two sibling rules), `.endingExtra`.
 That test also settled the sub-question the option had left open ("`.infoCol`'s
 column geometry stays with the shell since `.layout` sizes it — or moves too"):
 it moves, and `--info-col-width` crossing the folder line is a contract, the way
@@ -421,8 +421,8 @@ six members *"for every member the type admits"*; the stylesheet has six
   and the argument for a ceiling (nobody passes it) is the census the rule
   forbids.
 - **(b) keep it, with a true reason.** The row's message is either a
-  `TerminalMessage` (whose outcome is `TerminalOutcome`, `won | lost |
-  neutral`) or a live sentence a game writes; neither is a fault, and a fault
+  `EndingMessage` (whose outcome is `EndOutcome`, an `Extract` of the
+  vocabulary) or a live sentence a game writes; neither is a fault, and a fault
   has the fault modal. Then the docstring says that, and stops citing
   outcomes.md for the opposite. Against: outcomes.md has already ruled that
   "no caller passes it today" is not a reason.
@@ -438,7 +438,7 @@ apply — while this one was a reason about plumbing. Keeping it left the three
 surfaces that show an outcome disagreeing: the pill and the event log's bar admit
 all seven, and only the row admitted six.
 
-`Exclude<Outcome, …>` now appears nowhere in the repo; `TerminalOutcome`'s
+`Exclude<Outcome, …>` now appears nowhere in the repo; `EndOutcome`'s
 `Extract` is the one subset left, which is what `outcomes.md` says it should be.
 `docs/outcomes.md`'s "other narrowing is an open question" paragraph is answered
 in place, and `todo.md`'s Bugs section is empty.
@@ -633,7 +633,7 @@ written before the doc was. Both now say `Details`.
 ### F-info-sheet-19 · `scaffold-claim-in-row-comment` · `InfoActionsRow`'s render comment still calls its classes the play-surface scaffold's — WORKED
 
 *"The row's own classes are the play-surface scaffold's, because a game can
-compose them directly"* — F-11 moved `.infoActions` / `.terminalActions` into
+compose them directly"* — F-11 moved `.infoActions` / `.endingActions` into
 this folder's `infoCol.module.css`, and the import on line 6 already said so.
 The comment now names the column's sheet.
 
@@ -678,7 +678,7 @@ today; the sentence no longer depends on that.)
 
 ### F-info-sheet-25 · `tallies` · F-4's defect one section down, and in the todo — WORKED
 
-`docs/playarea.md`'s `.terminalExtra` bullet: *"Users today: wordle, stackdown,
+`docs/playarea.md`'s `.endingExtra` bullet: *"Users today: wordle, stackdown,
 letterboxed"* — the same roster shape F-4 deleted from the turn line and the
 status bar a screen above; wordle's answer is kept as the worked example.
 `todo.md`'s Soon item: *"fourteen of them, 196-348 lines"* — a tally in a durable
@@ -751,7 +751,7 @@ explain. Comments only; no test changed and none was run.
   `InfoActionsMessage` docstring and `docs/outcomes.md`, F-13 is the code,
   F-14 the prop note, F-15 `base.css`'s token comment and `docs/ui.md`'s ramp
   table, F-16 the `.headerRow` rule and the struck todo, F-7's character the
-  comment on the line, and Joel's terminal ruling `docs/playarea.md`'s two
+  comment on the line, and Joel's end-of-game ruling `docs/playarea.md`'s two
   shapes (kept local, so `ui.md` is untouched)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file —
   one Soon item (the shared `<InfoCol>`, which waits on a game or two), one
@@ -765,4 +765,4 @@ explain. Comments only; no test changed and none was run.
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-19, blessed** (Joel: *"bless the files in this area, close the area, and commit"*); sixteen files `cs-blessed-info-sheet`. Audited 2026-09-18 (Joel: *"this is the roster. do the audit"*); `turnText` stays `cs-blessed-feedback` as evidence. The info column: its mobile sheet, its switch, the bordered panel its readouts wear, the whose-turn line (`TurnStatusLine`, moved in from `turn-log` 2026-09-12), and its action row (`InfoActionsRow`, moved in from `game-page` 2026-09-15). Seventeen findings in `plans/areas/info-sheet.md`. **The prose pass landed 2026-09-18** — the marker pass, the switch docstring arguing from a sheet width the same commit abolished, "used to" in seven files, the consumer rosters in five files and two docs (each now naming its condition), the stylesheet crediting a hook that renders nothing of it, the `@/` import inside `common/`, and a `doc.md` grown from one paragraph to an intro plus a Details with the render tree (off `INTROS_OWED`); it swept twelve files outside the folder that still opened their mobile comment on the deleted "Game info" menu item or the retired `wide` prop. **F-11 then ruled and shipped (b) the same day** — the info column's own stylesheet, `info-sheet/infoCol.module.css`: the column box and its eight row classes left `game-page/playArea.module.css` on the line that a game's PlayArea root div keeps its classes (`.layout` / `.mobileFill` / `.responsiveInfoCol`, the column-width clamp among them) and the column keeps its own; eighteen files repointed one import, no class renamed, no pixel moved. **F-12 ruled and shipped (a)** the same day: the row's `Exclude<Outcome, 'error'>` is gone, an `.outcome_error` rule inks the seventh word, and `Exclude<Outcome, …>` now appears nowhere in the repo — the three surfaces that show an outcome agree about the vocabulary. **F-15 ruled and shipped** the same day: the info column's unnamed `0.95rem` became **`--font-size-packed`** in `base.css` — a role name beside the font ramp rather than a step on it, for text where vertical space is the scarce thing — and the folder's other fits took their tokens, which emptied three `DECLARED_AHEAD` entries and turned up a false claim in blessed `StandardButton.module.css` (an info-column button has always been 1rem; the column sets no font-size). **F-16 ruled (2), no change to the CSS:** `infoPanel.headerRow` stays rather than becoming `core-css`'s `.heading-with-controls`, because that pattern is a global class whose readers are pages while these two are shared components — the reason now sits on the rule, and `patterns/heading.css` and `docs/ui.md` stop claiming the info column's two rows as instances of it, which they were not. **Nothing left in the area needs a decision, and the one "measured bug" was not one.** F-7 is WITHDRAWN on a false premise: the terminal turn line's character is a literal **U+00A0**, written as the character itself, so the line is 17px and the four places saying it holds its height were right all along. The audit had read it as U+0020 — which it is indistinguishable from in every view of a source file — and its measurement script then reproduced 0px from a scaffold typed by hand. A claim about a character is a claim about bytes. That line now says what the character is; Joel's ruling that *"changing things at terminal is ok"* stands but is kept local, so the code is unchanged. **F-14 worked:** `OpponentStrip.metricLabel` is required, the migration excuse it was optional for having finished — all thirteen callers already passed one — and the render's `&&` guard went with it. **F-13 worked too:** `useIsInfoSheetOpen`, the rename `docs/code-conventions.md` had scheduled for whenever this folder was next worked on — its "one folder still spells it the other way" paragraph is deleted with it. **The closing re-read landed 2026-09-18, F-18 to F-26**, all prose and all worked: eight of the nine were the area's own work next door — two docstrings pointing at the intro for an argument the harvest had put under Details, the row's comment still calling its classes the scaffold's after F-11 moved them, F-12's rewrite calling `noted` a move judgment, F-3's "used to" in two more files, F-4's roster shape one section down in `playarea.md`, F-11's width line told one-sidedly in two files, a tally in the todo, and F-2's vanished menu item and ✕ in sixteen e2e sites (fourteen files) the sweep had counted as two, every one quoting a `GamePage` comment that no longer exists. The `doc.md` harvest is checked: each ruling has a durable home. Twenty-six findings, all worked, ruled or withdrawn. Open in its `todo.md`: the shared `<InfoCol>` and `composes:`, which wait for a game or two (Joel)
+**CLOSED 2026-09-19, blessed** (Joel: *"bless the files in this area, close the area, and commit"*); sixteen files `cs-blessed-info-sheet`. Audited 2026-09-18 (Joel: *"this is the roster. do the audit"*); `turnText` stays `cs-blessed-feedback` as evidence. The info column: its mobile sheet, its switch, the bordered panel its readouts wear, the whose-turn line (`TurnStatusLine`, moved in from `turn-log` 2026-09-12), and its action row (`InfoActionsRow`, moved in from `game-page` 2026-09-15). Seventeen findings in `plans/areas/info-sheet.md`. **The prose pass landed 2026-09-18** — the marker pass, the switch docstring arguing from a sheet width the same commit abolished, "used to" in seven files, the consumer rosters in five files and two docs (each now naming its condition), the stylesheet crediting a hook that renders nothing of it, the `@/` import inside `common/`, and a `doc.md` grown from one paragraph to an intro plus a Details with the render tree (off `INTROS_OWED`); it swept twelve files outside the folder that still opened their mobile comment on the deleted "Game info" menu item or the retired `wide` prop. **F-11 then ruled and shipped (b) the same day** — the info column's own stylesheet, `info-sheet/infoCol.module.css`: the column box and its eight row classes left `game-page/playArea.module.css` on the line that a game's PlayArea root div keeps its classes (`.layout` / `.mobileFill` / `.responsiveInfoCol`, the column-width clamp among them) and the column keeps its own; eighteen files repointed one import, no class renamed, no pixel moved. **F-12 ruled and shipped (a)** the same day: the row's `Exclude<Outcome, 'error'>` is gone, an `.outcome_error` rule inks the seventh word, and `Exclude<Outcome, …>` now appears nowhere in the repo — the three surfaces that show an outcome agree about the vocabulary. **F-15 ruled and shipped** the same day: the info column's unnamed `0.95rem` became **`--font-size-packed`** in `base.css` — a role name beside the font ramp rather than a step on it, for text where vertical space is the scarce thing — and the folder's other fits took their tokens, which emptied three `DECLARED_AHEAD` entries and turned up a false claim in blessed `StandardButton.module.css` (an info-column button has always been 1rem; the column sets no font-size). **F-16 ruled (2), no change to the CSS:** `infoPanel.headerRow` stays rather than becoming `core-css`'s `.heading-with-controls`, because that pattern is a global class whose readers are pages while these two are shared components — the reason now sits on the rule, and `patterns/heading.css` and `docs/ui.md` stop claiming the info column's two rows as instances of it, which they were not. **Nothing left in the area needs a decision, and the one "measured bug" was not one.** F-7 is WITHDRAWN on a false premise: the ended turn line's character is a literal **U+00A0**, written as the character itself, so the line is 17px and the four places saying it holds its height were right all along. The audit had read it as U+0020 — which it is indistinguishable from in every view of a source file — and its measurement script then reproduced 0px from a scaffold typed by hand. A claim about a character is a claim about bytes. That line now says what the character is; Joel's ruling that *"changing things at terminal is ok"* stands but is kept local, so the code is unchanged. **F-14 worked:** `OpponentStrip.metricLabel` is required, the migration excuse it was optional for having finished — all thirteen callers already passed one — and the render's `&&` guard went with it. **F-13 worked too:** `useIsInfoSheetOpen`, the rename `docs/code-conventions.md` had scheduled for whenever this folder was next worked on — its "one folder still spells it the other way" paragraph is deleted with it. **The closing re-read landed 2026-09-18, F-18 to F-26**, all prose and all worked: eight of the nine were the area's own work next door — two docstrings pointing at the intro for an argument the harvest had put under Details, the row's comment still calling its classes the scaffold's after F-11 moved them, F-12's rewrite calling `noted` a move judgment, F-3's "used to" in two more files, F-4's roster shape one section down in `playarea.md`, F-11's width line told one-sidedly in two files, a tally in the todo, and F-2's vanished menu item and ✕ in sixteen e2e sites (fourteen files) the sweep had counted as two, every one quoting a `GamePage` comment that no longer exists. The `doc.md` harvest is checked: each ruling has a durable home. Twenty-six findings, all worked, ruled or withdrawn. Open in its `todo.md`: the shared `<InfoCol>` and `composes:`, which wait for a game or two (Joel)

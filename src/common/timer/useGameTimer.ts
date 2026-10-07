@@ -46,8 +46,8 @@ export function useGameTimer({
   gameId: string
   mode: TimerMode
   paused: boolean
-  // The game is live (loaded + not terminal). The driver only runs while true —
-  // a terminal game freezes the clock at its final value, and a still-loading
+  // The game is live (loaded + not ended). The driver only runs while true —
+  // an ended game freezes the clock at its final value, and a still-loading
   // game doesn't tick yet.
   running: boolean
 }): { displaySeconds: number; expired: boolean } {
@@ -90,7 +90,7 @@ export function useGameTimer({
 
   // Driver: while the game is live, not paused, and timed, ask the
   // server to advance the shared clock once a second and read back
-  // the authoritative count. Stopping (pause / terminal / untimed)
+  // the authoritative count. Stopping (pause / ended / untimed)
   // is the whole pause+idle mechanism — no ticks accrue.
   useEffect(function driveTheClock() {
     if (!running || paused || mode.kind === 'none') return

@@ -59,7 +59,7 @@ export function GameEventLog({
     players,
     myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     // setgame's compete race happens on ONE shared board, like scrabble's — so
     // "All" is literally what you are looking at, and the per-player entries
     // are the extra rather than the default.

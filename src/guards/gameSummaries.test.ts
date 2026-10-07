@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { gametypes } from '@/gametypes'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 
 /**
  * The **summary** every game renders, per play state, checked by
@@ -67,7 +67,7 @@ function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFa
 }
 
 /**
- * Per gametype FAMILY (baseGametype): a realistic mid-game status blob, then the terminal
+ * Per gametype FAMILY (baseGametype): a realistic mid-game status blob, then the ending
  * cases that family actually reaches, per mode.
  *
  * **The status keys must match what the RPC really writes.** A missing key silently falls
@@ -391,7 +391,7 @@ const row = (
   status: Record<string, unknown>,
   setup: Record<string, unknown>,
 ): SummaryData =>
-  ({ id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status, setup }) as unknown as SummaryData
+  ({ id: 'g', gametype, play_state: state, ended: state !== 'playing', status, setup }) as unknown as SummaryData
 
 /** Every summary as a markdown table, one `| game | state | message |` row per case. */
 function buildTable(): string {
@@ -437,7 +437,7 @@ describe('game status labels', () => {
    * `default:`, so a state they don't recognize makes a *finished* game read as `solving…`
    * (or `7 tiles left`) in the club list — quietly wrong, which is the worst kind.
    * Echoing the raw state (codenamesduet, bananagrams) is ugly but visibly wrong; a
-   * distinct terminal-ish phrase (psychicnum's `lost`) at least doesn't lie about whether
+   * distinct game-over phrase (psychicnum's `lost`) at least doesn't lie about whether
    * the game is over.
    *
    * The allowlist below is today's offenders, pinned so the test guards against NEW ones

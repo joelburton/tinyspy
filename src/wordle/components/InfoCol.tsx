@@ -6,7 +6,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
@@ -32,7 +32,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // The answer to DISPLAY, or null while it stays hidden — which is the default
@@ -103,7 +103,7 @@ export function InfoCol({
             when the viewer opens it and gives the space back when they close it,
             a blessed exception to docs/ui.md → Layout stability. */}
         {solution !== null && (
-          <div className={shared.terminalExtra}>
+          <div className={shared.endingExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was <DefinableWord word={solution} className={styles.answerReveal} />
             </p>

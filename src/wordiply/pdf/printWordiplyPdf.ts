@@ -24,7 +24,7 @@ import type { WordiplyPrintModel } from './model'
  * `startY` parameter already allowed it.
  *
  * What it prints, and what it deliberately doesn't, is decided in
- * [`model.ts`](./model.ts) — in particular wordiply's terminal-only reveal
+ * [`model.ts`](./model.ts) — in particular wordiply's reveal at the end
  * (scores + longest word) has to hold on paper too. This file only draws.
  */
 
@@ -44,7 +44,7 @@ export function printWordiplyPdf(m: WordiplyPrintModel): void {
 
   drawHeader(pd, m)
 
-  // Terminal blocks stack above the log, each returning the y to continue from.
+  // Ending blocks stack above the log, each returning the y to continue from.
   // Mid-game both are absent and the log simply starts at colTop — no reserved
   // space, because unlike the on-screen layout a page has nothing below to shift.
   let y = colTop
@@ -67,7 +67,7 @@ export function printWordiplyPdf(m: WordiplyPrintModel): void {
 }
 
 /**
- * The terminal reveal: the longest word that was possible. wordiply's headline
+ * The ending reveal: the longest word that was possible. wordiply's headline
  * payoff, and the one thing a player most wants off the screen and onto paper.
  * Printed big, since it's the answer.
  */

@@ -276,7 +276,7 @@ Two consequences worth knowing:
   games list, resumable — so the question it asks mid-game is only "Start a new
   game?", and once the game has ended it asks nothing.
 - **Reveal** is not an RPC: it's a local, per-player display toggle ([ui.md →
-  Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)),
+  Endings](../ui.md#endings--the-moment-vs-the-record)),
   available once the game has ended, because only then does `game_data` carry
   the solution. The page draws the solution's tiles, all green, in place of the
   board, and changes no one's saved board — so the history replay still replays
@@ -545,8 +545,8 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   +3") so the form reads without opening anything. The setup pair is
   `GSetupValues` / `GSetup` in `types.ts`.
 
-**The end — the prototype for the app-wide treatment** (see [ui.md → Terminal
-results](../ui.md#terminal-results--the-moment-vs-the-record)). No modal
+**The end — the prototype for the app-wide treatment** (see [ui.md →
+Endings](../ui.md#endings--the-moment-vs-the-record)). No modal
 carries the verdict: it's in-page (the below-board pill + the action row's
 line), and the action row offers Restart right there. The shared
 **`CelebrationBlockingModal`** (confetti + jingle) pops for **my** win — every

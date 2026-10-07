@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { EndOutcome, PlayerEndedReason } from '@/common/terminal/gameEnding'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndOutcome, PlayerEndedReason } from '@/common/ending/gameEnding'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 
 /**
  * What psychicnum says to a player who has ended while the others play on,
@@ -23,9 +23,9 @@ export function buildPlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`common.game_players.outcome`).
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for why I ended. */
-  function makePlayerEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makePlayerEndingWords(): Pick<EndingMessage, 'pillText' | 'infoColText'> {
     // A solve and the clock end the game rather than the player, so a player
     // ends on their own only by conceding or spending their budget.
     if (reason === 'conceded') {

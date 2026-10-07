@@ -24,7 +24,7 @@ them may break.
      row's lock serializes two simultaneous finishes, so the first commits
      the winner and the second finds a finished game.
    - **It plays out** (`ends-when-all-done`) — a player who meets the goal is
-     **locally terminal** while the others continue, and the ranking decides
+     **player-ended** while the others continue, and the ranking decides
      at the end. Ties break **quality-then-speed** (`order by <metric>,
      solved_at`); a game whose ranking deliberately has no speed step has
      **co-winners** instead.
@@ -114,8 +114,8 @@ server-side detection of its running out.
 
 - **`setup.compete_style`** — an opt-in choice in setup of when a compete
   game ends (`ends-when`): when decided, or playing out. The shape of coop's
-  `coop_style: 'turns'`, validated by `create_game` and branched at the
-  terminal transition; not a new gametype. A game needs a per-player goal for
+  `coop_style: 'turns'`, validated by `create_game` and branched where
+  the game ends; not a new gametype. A game needs a per-player goal for
   playing out to rank anything, and something slower than a typing contest
   for ending when decided to mean anything.
 - **Progress on a loss** — keep a verdict where everyone lost a loss, but
@@ -147,10 +147,10 @@ player](code-conventions.md#names-about-the-viewing-player)); a negated idea
 with a formula of its own is a new term, and goes here.
 
 ```js
-// isTerminal — the game is over, for everyone.
+// isGameEnded — the game is over, for everyone.
 //   Doesn't mean: I'm out. A player who finished or conceded while the others
 //   play on doesn't make it true.
-isTerminal = common.games.ended_at !== null
+isGameEnded = common.games.ended_at !== null
 
 // isConceded — I walked away from a compete game, and forfeit any win.
 //   Doesn't mean: I'm out for any other reason. A player who solved, was
@@ -158,19 +158,19 @@ isTerminal = common.games.ended_at !== null
 //   team can't concede.
 isConceded = me.player_ended_reason === 'conceded'   // common.game_players.player_ended_reason
 
-// isLocallyTerminal — I'm not playing any more, for whatever reason: finished,
+// isPlayerEnded — I'm not playing any more, for whatever reason: finished,
 //   eliminated, out of budget, or conceded. The game may go on for the others.
-//   Doesn't mean: the game is over — that is isTerminal. Doesn't say why: for
+//   Doesn't mean: the game is over — that is isGameEnded. Doesn't say why: for
 //   the reason, read isConceded or the game's own fact (solved, eliminated,
-//   budget spent). A locally terminal player who did NOT concede may still win.
-isLocallyTerminal = me.player_ended_at !== null      // common.game_players.player_ended_at
-// so every conceder is locally terminal:
-//   isConceded → isLocallyTerminal
+//   budget spent). A player-ended player who did NOT concede may still win.
+isPlayerEnded = me.player_ended_at !== null          // common.game_players.player_ended_at
+// so every conceder is player-ended:
+//   isConceded → isPlayerEnded
 
 // isStillPlaying — the game still wants moves from me.
 //   Doesn't mean: it's my turn. Waiting for my turn is still playing.
 //   Implied by isOnTurn: whoever has the turn is still playing.
-isStillPlaying = !isTerminal && !isLocallyTerminal
+isStillPlaying = !isGameEnded && !isPlayerEnded
 
 // isTurnBased — this game has a turn order. Fixed when the game is created.
 //   Doesn't mean: someone holds the turn right now.
@@ -179,8 +179,8 @@ isTurnBased = /* the players were seated in a turn order: common.game_players.tu
 // turnHolderId — the turn pointer as stored: the player the turn order names,
 //   or null if it names nobody. A record, not a claim about who is playing.
 //   Doesn't mean: that player is still playing, or that the game is still on —
-//   the pointer is not cleared when a game ends, and a player can go locally
-//   terminal while holding it. Doesn't mean "free-for-all" when null — that is
+//   the pointer is not cleared when a game ends, and a player's own end can
+//   come while holding it. Doesn't mean "free-for-all" when null — that is
 //   !isTurnBased. Never ask "is it my turn?" of this alone.
 turnHolderId = common.games.current_turn_user_id
 
@@ -323,16 +323,16 @@ wins.**
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
   - Doesn't mean: the game has a `final-ranking`. Only the winner is known;
     the ranking comes at the end.
-- **`locally-terminal`** — the player isn't playing any more, while the game
-  may go on for others: `isLocallyTerminal` in code, as `ended` is
-  `isTerminal`, and `common.game_players.player_ended_at` in the database,
+- **`player-ended`** — the player isn't playing any more, while the game
+  may go on for others: `isPlayerEnded` in code, as `ended` is
+  `isGameEnded`, and `common.game_players.player_ended_at` in the database,
   with the player's reason pair beside it.
   The reasons vary — `reached-goal`, `eliminated`, `conceded`, or their
   allotted play used up without losing by it.
   - Doesn't mean: `won` or `lost` — it says the player stopped, not how it
     went.
   - Doesn't mean: the game `ended`. When the game ends — a Stop, a `timeout`,
-    a win — players who were still playing are not locally terminal; the
+    a win — players who were still playing are not `player-ended`; the
     game is over.
 - **`loses-by`** — what, other than someone else winning, makes a player
   (or team) lose: in compete what makes a player `eliminated`, in coop what
@@ -354,12 +354,12 @@ wins.**
   (boggle compete without a target).
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
-  - **`ends-when-all-done`** — only when every player is `locally-terminal`,
+  - **`ends-when-all-done`** — only when every player is `player-ended`,
     so the rest play on after it is `decided` (wordle: short, and fun to
     finish).
   - **`ends-when-one-left`** — with two or more players, when only one is not
-    yet `locally-terminal`: the last player needn't reach the `game-goal` to
-    end it. A solo game ends when its one player is `locally-terminal`.
+    yet `player-ended`: the last player needn't reach the `game-goal` to
+    end it. A solo game ends when its one player is `player-ended`.
   - **`ends-when-resource-exhausted`** — for everyone at once, when its
     `exhaustible-resource` runs out, however long before that it was
     `decided` (setgame: a player already beaten plays the deck out).
@@ -399,7 +399,7 @@ wins.**
   - **`progress-shown-count`** — a live number per rival; the card says what
     it counts (sets found, categories found, hints used).
 - **`ended`** — the game is over for everyone: the prose and player-facing
-  word for `isTerminal`.
+  word for `isGameEnded`.
   - Doesn't mean: `stopped` — a game ends many ways, and being stopped is one.
 - **`stopped`** — any player stopped the whole game (the **Stop** action,
   formerly "End"). Nobody else `won` or `lost` it; players who `conceded`
@@ -473,13 +473,12 @@ wins.**
   share a ranking, and the next one skips: two tied for first are both 1,
   and the player after them is 3. A ranking of 1 is `won`; any other ranking
   is `lost`.
-  - Doesn't mean: the players who are, or aren't, `locally-terminal`. A
-    solver is locally terminal and ranked; a conceder is locally terminal and
-    not.
+  - Doesn't mean: the players who are, or aren't, `player-ended`. A
+    solver is player-ended and ranked; a conceder is player-ended and not.
   - Doesn't mean: everyone unranked `lost`. In a `stopped` or `no-result`
     game the unranked neither won nor lost, except the conceders; a
     `decided-stands` win keeps its 1.
-- **`outcome-at-player-end`** — a player who becomes `locally-terminal` while
+- **`outcome-at-player-end`** — a player who becomes `player-ended` while
   the game goes on gets an outcome at once, read off the game's card:
   - `lost` — `eliminated` by one of the game's `loses-by`, or `conceded`
   - `won` — `reached-goal` in a game that `ends-when-decided`, which ends
@@ -550,7 +549,7 @@ section to tie the two together — never a second name for the same concept.
 | **target** | `goal-chosen` | the setup field players pick a chosen goal with (a rank, a percentage) |
 | **plays out** | `ends-when-all-done` | the game waits for every player, and a ranking decides at the end |
 | **race** | `race-game` | ranked by speed: the first to meet the goal wins, whether or not the game ends there |
-| **locally terminal** | `locally-terminal` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.player_ended_at` ([common-schema.md](common-schema.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
+| **player-ended** | `player-ended` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.player_ended_at` ([common-schema.md](common-schema.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
 | **move budget** / **mistake budget** | `loses-by-move-budget` / `loses-by-mistake-budget` | what a wrong (or any) move spends |
 | **collective finish** | — | an `exhaustible-resource` everyone shares: the bag or the deck running out for everyone |
 | **refundable budget** | — | a cap that blocks play but that undo refunds, so it never loses the game |
@@ -566,7 +565,7 @@ comments still use them; say the right-hand word instead:
 
 | retired | say instead |
 |---|---|
-| player-done | locally terminal (`locally-terminal`) |
+| player-done | player-ended (`player-ended`) |
 | finish (line), built-in, none | the goal (`game-goal`): intrinsic (`goal-intrinsic`), no goal (`goal-none`) |
 | first past the post | ends when decided (`ends-when-decided`) |
 | natural finish | ran out (`resource-exhausted`); for the gametype's rule, `exhaustible-resource`; scrabble's all-pass is `all-passed` |

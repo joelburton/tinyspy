@@ -14,7 +14,7 @@ import { useState } from 'react'
 export type ChangeCause<T> =
   /** A move did it. `before` is the content as it was, to diff against. */
   | { byMove: true; before: T }
-  /** It changed, and nothing a player did changed it — a fresh deal, a terminal
+  /** It changed, and nothing a player did changed it — a fresh deal, an ending
    *  reveal, a game opened at a board arrived at long ago. */
   | { byMove: false }
 

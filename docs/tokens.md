@@ -56,7 +56,7 @@ Every color has a **name**, and every name says which **bucket** it belongs to.
   `--z-chat`, not `--z-index-chat`, because the token is the layer and not a
   value for a property (`base.css` → THE Z- LAYERS).
 - **Hyphens separate different questions; camelCase joins words that answer
-  one** (`--button-quiet-primary-hover-color`, but `terminalFrame`). Part count
+  one** (`--button-quiet-primary-hover-color`, but `endingFrame`). Part count
   is not something to optimize.
 - **A bucket that names a component is spelled as the code spells it**
   (`--pageHeader-height`, `--floatingPanel-titlebar-height`), so grepping the
@@ -121,7 +121,7 @@ The outcome variants:
 | `-ink` | text and thin lines on a light ground; must stay recognizably its color when thin |
 | `-wash` | a much lighter version of the same message |
 | `-bar` | a status bar showing an outcome; `fill` today, named so it can differ |
-| `-terminalFrame` | the band around a board that is no longer live — big, so less saturated |
+| `-endingFrame` | the band around a board that is no longer live — big, so less saturated |
 
 **A decided piece takes `-fill`, not `-wash`**: the result palette at full
 saturation, so it carries the same message as the game's other outcome signals.
@@ -148,7 +148,7 @@ What derives, and what does not:
     outline treatment's ink is a larger step down the same way.
   - The outline's hover and press are base mixed over the card in **oklab**, a
     little and then twice as much.
-  - `-terminalFrame` is fixed oklch lightness and chroma at base's hue. Green is
+  - `-endingFrame` is fixed oklch lightness and chroma at base's hue. Green is
     the exception, lifted because at that lightness it reads as black, and
     neutral is achromatic.
 - **Chosen per member, with the step recorded as a comment:**

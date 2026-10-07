@@ -3,8 +3,8 @@
 import type {
   EndOutcome,
   PlayerEndedReason,
-} from '@/common/terminal/gameEnding'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+} from '@/common/ending/gameEnding'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 
 /**
  * What waffle says to a racer who has ended while the others play on, for the
@@ -27,9 +27,9 @@ export function buildPlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`common.game_players.outcome`).
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for why I ended. */
-  function makePlayerEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makePlayerEndingWords(): Pick<EndingMessage, 'pillText' | 'infoColText'> {
     // Only compete reaches here: a coop player does not end on their own.
     if (reason === 'reached_goal') {
       return {

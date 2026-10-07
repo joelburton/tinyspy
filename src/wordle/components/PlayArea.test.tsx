@@ -341,7 +341,7 @@ describe('wordle PlayArea — icon-only action row', () => {
 })
 
 /**
- * The ending (the waffle treatment — docs/ui.md → Terminal results). No
+ * The ending (the waffle treatment — docs/ui.md → Endings). No
  * modal carries the verdict; a win pops the CelebrationBlockingModal at the
  * MOMENT it lands (the ending arriving) — the team's in coop, mine in compete —
  * never on mounting an already-won game. And the word stays HIDDEN in a

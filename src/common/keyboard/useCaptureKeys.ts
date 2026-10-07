@@ -33,8 +33,8 @@ export type CaptureKeysOptions = {
   // Submit the pending text (Enter, when non-empty).
   onSubmit: () => void
   // Hard-off. When true the entry is not here at all — no typing, no submit,
-  // and in particular NO feedback dismissal, so a terminal sticky pill isn't
-  // cleared by a stray key. Use for loading / terminal. Default false.
+  // and in particular NO feedback dismissal, so an ending sticky pill isn't
+  // cleared by a stray key. Use for loading / ended. Default false.
   disabled?: boolean
   // Soft-busy. When true, a key still dismisses feedback, but no character is
   // appended/deleted and Enter doesn't submit —
@@ -137,7 +137,7 @@ export function useCaptureKeys({
 
   // Any key is the player's next move, so it clears the last verdict — but it
   // does NOT claim the keystroke, which is how the letter that dismissed a pill
-  // still types. Off entirely when the entry is done, so a terminal pill isn't
+  // still types. Off entirely when the entry is done, so an ending pill isn't
   // wiped by a stray key.
   useBindAction('act-dismiss-feedback', {
     describe: () => (disabled || onAnyKey === undefined ? 'hidden' : 'active'),

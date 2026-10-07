@@ -13,8 +13,8 @@ import { signIn } from './helpers/session'
  * representative; the flow is identical everywhere it's wired.
  *
  * Two players, BOTH connected (so the game isn't presence-paused). Alice concedes
- * (through the shared confirmation) → her board goes locally-terminal ("You
- * conceded") while Bob keeps playing (no terminal for him, his Concede still
+ * (through the shared confirmation) → her board goes player-ended ("You
+ * conceded") while Bob keeps playing (no ending for him, his Concede still
  * live).
  *
  * Alice answers the question's Concede, not its second answer, Stop for all —
@@ -48,10 +48,10 @@ test.describe('concede (compete)', () => {
     await pageA.getByRole('button', { name: 'Concede / Stop game' }).click()
     await pageA.locator('[data-floating-panel]').getByRole('button', { name: 'Concede' }).click()
 
-    // Alice is now locally terminal — "You conceded" (the InfoActionsRow line).
+    // Alice is now player-ended — "You conceded" (the InfoActionsRow line).
     await expect(pageA.getByText('You conceded')).toBeVisible({ timeout: 15000 })
 
-    // Bob keeps racing: no conceded/terminal state for him, and his Concede is live.
+    // Bob keeps racing: no conceded/ended state for him, and his Concede is live.
     await expect(pageB.getByText('You conceded')).toBeHidden()
     await expect(pageB.getByRole('button', { name: 'Concede / Stop game' })).toBeEnabled()
 

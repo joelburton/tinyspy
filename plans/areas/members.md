@@ -143,7 +143,7 @@ false.
 | where | says | is |
 |---|---|---|
 | `member.ts:13` | *"the single most-imported name in `common/lib/`"* | `common/lib/` no longer exists |
-| `member.ts:16` | `terminalOutcomeVerb.ts` *"lives next door"* | it is in `common/terminal/` |
+| `member.ts:16` | `endingOutcomeVerb.ts` *"lives next door"* | it is in `common/ending/` |
 | `memberColor.ts:10` | *"`themes/fixed.css` owns the actual shade"* | `core-css/fixed.css` |
 | `memberColor.ts:8` | `common.color_for_username` *"in the baseline migration"* | defined in `supabase/sql/common.sql:544` (behavior); the migration only mentions it |
 | `Dot.tsx:34` | *"paired `-border` shade (see theme.css)"* | the token is `--member-NAME-edge-color`, in `fixed.css` |
@@ -181,7 +181,7 @@ would trade this for a worse mismatch, so the whole-pair question
 ### F-members-4 · `census-sentences` · Counts and who-uses lists, which the ruling deletes rather than corrects
 
 - `member.ts:13`: *"over a hundred files"*. `memberList.ts:11`: *"well over a
-  hundred files"*. (`terminal/terminalOutcomeVerb.ts:15` has the same sentence
+  hundred files"*. (`ending/endingOutcomeVerb.ts:15` has the same sentence
   — the terminal area's, noted for it.) The fact that matters is *types only,
   so imports erase*; the count is the drift-magnet.
 - `memberColor.ts:14–17`: *"Used wherever … the member-list circles, chat name
@@ -203,7 +203,7 @@ unfound word) — examples that explain a prop's meaning, not a census. Kept.
 the picker sentence was standing in for: the ORDER is part of the contract,
 because it is the order the swatches lay out in. `orderSelfFirst` keeps "you,
 then the others" and loses the four callers. The third copy of the count, in
-`terminal/terminalOutcomeVerb.ts`, went too rather than waiting for its own
+`ending/endingOutcomeVerb.ts`, went too rather than waiting for its own
 area — leaving one of three identical sentences is how the three drift apart.
 
 ### F-members-5 · `dark-theme-contradiction` · `memberColor.ts` says the indirection exists so a dark theme can remap the palette; the palette is exempt from theming
@@ -434,7 +434,7 @@ the sentences are aspirational. Joel's, and not this finding's to settle.
 - **`fixed.css`'s header** said the member colors paint *"bold name labels
   (chat usernames)"* — a `corecss` sentence, and F-members-2 made it false the
   day it landed. Fixed there rather than noted, and called out for `corecss`.
-- **`terminalOutcomeVerb.ts:15`** carried the same "well over a hundred files"
+- **`endingOutcomeVerb.ts:15`** carried the same "well over a hundred files"
   count as F-members-4. Deleted with the other two rather than left for the
   `terminal` area (row 41, still `cs-unmet`).
 
@@ -517,7 +517,7 @@ Both came from Joel mid-session rather than from the read, so neither has an
 the disc-plus-name rendering of this folder's own claim and it lived one folder
 over. Counting real JSX use sites at the time: one was a turn log
 (`TurnLogActor`, a wrapper), and about thirty-seven were not — peer-narration
-feedback pills across thirteen games, terminal winner lines, codenamesduet's
+feedback pills across thirteen games, ending winner lines, codenamesduet's
 banners and peer-activity line, setgame's `LastSet`, chat, the pause overlay.
 The component already said as much about itself: `ActorShow` documents `auto`
 as *"the default for feedback"* and `both` as the turn-log exception.

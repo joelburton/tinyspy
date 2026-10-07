@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from '../lib/gameEndingMessage'
 import type { GGameData } from '../types'
 
@@ -18,7 +18,7 @@ import type { GGameData } from '../types'
  * the blob. The blob rebuilds its `ending` object on every reload, so the memo
  * keys on the ending's strings and numbers, not on that object.
  */
-export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
+export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const outcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome

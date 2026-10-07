@@ -6,8 +6,8 @@ import type { GamePlayerLegacy } from '../members/member'
  * How one player's game ENDED, as the past-tense verb the compete strip's cell
  * prints.
  *
- * Reach for this when rendering a terminal readout for a single player. The
- * common shape is `${terminalOutcomeVerb(p)} at ${value}` — "Won at 40", "Won
+ * Reach for this when rendering an ending readout for a single player. The
+ * common shape is `${endingOutcomeVerb(p)} at ${value}` — "Won at 40", "Won
  * at Genius" — and a game whose cell leads with the number instead can carry
  * the verb behind it as an annotation, lowercased there ("260 (lost)"). Mind
  * the separator either way: the strip puts `·` BETWEEN players, so a cell that
@@ -21,7 +21,7 @@ import type { GamePlayerLegacy } from '../members/member'
  *
  * A missing member reads as 'Lost': a peer we cannot resolve did not win.
  */
-export function terminalOutcomeVerb(member: GamePlayerLegacy | undefined): 'Won' | 'Conceded' | 'Lost' {
+export function endingOutcomeVerb(member: GamePlayerLegacy | undefined): 'Won' | 'Conceded' | 'Lost' {
   if (member?.outcome === 'won') return 'Won'
   if (member?.player_ended_reason === 'conceded') return 'Conceded'
   return 'Lost'

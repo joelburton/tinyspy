@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 import { BOARD_SIZE } from './board'
 
 /**
@@ -42,11 +42,11 @@ export function buildGameEndingMessage({
   // Everyone the server ranked first, by name — one on a solve, any number on
   // a tied timeout, none when nobody won.
   winnerNames: string[]
-}): TerminalMessage {
+}): EndingMessage {
   const nWords = `${nWordsUsed} ${nWordsUsed === 1 ? 'word' : 'words'}`
 
   /** The two texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makeGameEndingWords(): Pick<EndingMessage,'pillText' | 'infoColText'> {
     // A Stop is the uniform neutral ending shared with the other games — the
     // shared message owns its words.
     if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)

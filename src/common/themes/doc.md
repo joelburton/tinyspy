@@ -19,7 +19,7 @@ offers, how a move or a game went, the warm ramp every game's tiles converge
 on, and so on — and within a bucket, into families. A family is a set of
 members that each carry the same set of variants: every button family has its
 filled color, its hover, its press, its ink, its outline; every outcome family
-has its ink, its fill, its edge, its wash, its bar and its terminal frame.
+has its ink, its fill, its edge, its wash, its bar and its ending frame.
 Every cell is written, including the ones nothing reads yet, because a family
 picked at one sitting is picked by one formula, and a value chosen alone two
 years later beside the one button that needed it drifts out of family. Each

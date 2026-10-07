@@ -144,7 +144,7 @@ to resolve rather than carry:
   what shape a caller passes.
 - **The per-game table** (sixteen rows, a notes column of per-game design)
   is the biggest block in the doc, and most of a row is that game's business
-  — where its board goes, why its family, what it prints at terminal. Each
+  — where its board goes, why its family, what it prints at the end. Each
   game's doc carries the same story.
 
 **Decisions in the collapse:**

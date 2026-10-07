@@ -1,6 +1,6 @@
 # Area: terminal
 
-The folders it reads: `terminal`. The process is
+The folders it reads: `ending`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
@@ -45,18 +45,18 @@ ruled keep (*"don't change it"*); the comment says what is there.
 
 ## The roster
 
-`src/common/terminal/` — what shows when a game ends. Seven files
+`src/common/ending/` — what shows when a game ends. Seven files
 `cs-met-terminal`, plus the folder's own two docs (not stamped; the script's
 scope is files with a first-line comment):
 
 - `CelebrationBlockingModal.tsx` · `.module.css` · `.test.tsx` — the dialog a
   win puts up
 - `useCelebration.ts` · `useCelebration.test.ts` — when it fires
-- `terminalOutcomeVerb.ts` · `terminalOutcomeVerb.test.ts` — the verb a
+- `endingOutcomeVerb.ts` · `endingOutcomeVerb.test.ts` — the verb a
   finished game is described with
 - `doc.md` · `todo.md`
 
-**`terminalMessage.ts` and `terminalMessage.test.ts` are EVIDENCE, not roster.**
+**`endingMessage.ts` and `endingMessage.test.ts` are EVIDENCE, not roster.**
 They sit in this folder and read `cs-blessed-feedback` — `feedback` wrote them
 and owns the verdict's words, which the plan's row 44 says outright. They were
 left at that stamp rather than re-stamped: Joel agreed the list without ruling
@@ -66,7 +66,7 @@ turns up a change they need, the stamp question comes back to Joel first.
 
 **Left off the roster on purpose:** `common/reveal/` is row 45 and its own area
 (showing the answer after the end is a different thing from the game ending),
-and the twenty-odd game files that call `useCelebration` or `terminalMessage`
+and the twenty-odd game files that call `useCelebration` or `endingMessage`
 are consumers, each its own game's area.
 
 ## The state, simply — AS FOUND
@@ -86,7 +86,7 @@ modal that is the moment, and a verb for a compete strip's cell.
                   │     └── <p .subline>
                   └── actions slot: [<StandardButton primary>] <StandardButton "Nice!">
 
-<OpponentStrip metricFor>       info-sheet/ — seven compete info columns print `terminalOutcomeVerb(member)` in the cell
+<OpponentStrip metricFor>       info-sheet/ — seven compete info columns print `endingOutcomeVerb(member)` in the cell
 ```
 
 What each game hands the hook, as found (the gate is the caller's; the hook
@@ -96,7 +96,7 @@ only watches for the flip):
 |---|---|---|
 | codenamesduet · connections · crosswords · psychicnum · spellingbee · stackdown · waffle · wordle · wordwheel | `playState === 'won'` | the games row |
 | boggle | `status.mode === 'coop' && status.outcome === 'target'` | the games row |
-| bananagrams | `isTerminal && selfWon` (`status.winner_username` is me) | the games row |
+| bananagrams | `isGameEnded && selfWon` (`status.winner_username` is me) | the games row |
 | scrabble | `won_compete && status.winner_user_id === me` | the games row |
 | strands | `won`, or `won_compete` and my roster row's `result.won` | row + roster |
 | letterboxed | `won`, or `won_compete` and (`status.winner_id === me` or my `status.leaderboard` row's `won`) | the games row |
@@ -104,9 +104,9 @@ only watches for the flip):
 
 Every gate reads only what `GamePageLoader` awaited before the PlayArea
 mounted, which is the hook's rule 1 holding at all fourteen sites.
-`terminalMessage.ts` (evidence) was checked against its claims: `FeedbackMessage.terminalVerdict(over)` exists,
+`endingMessage.ts` (evidence) was checked against its claims: `FeedbackMessage.endingVerdict(over)` exists,
 `InfoActionsRow` takes `over.infoColText` + `over.outcome`, and
-`TerminalOutcome` is one of the subsets `docs/outcomes.md` lists as surviving.
+`EndOutcome` is one of the subsets `docs/outcomes.md` lists as surviving.
 The folder's tests are green (4 files, 16 tests); `tsc -b` is clean.
 
 ## Findings
@@ -143,7 +143,7 @@ Three paragraphs of the docstring are not for a caller:
   `target` outcome, setgame and wordiply never (the table above). The
   condition, not the list: a game hands the hook whichever flip it can read
   correctly on its first render.
-- *"the ONLY modal a terminal game pops"* — say it as the rule (a terminal
+- *"the ONLY modal a terminal game pops"* — say it as the rule (an ended
   game pops nothing else; the verdict is in-page), not as a count.
 
 The body's `usePanelEscape` comment ("No Escape handler of its own — … owns
@@ -187,7 +187,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   and then four numbered items. *"waffle's coop win is the first consumer"* —
   "the first" is a claim that rots, and archaeology besides.
 
-### F-terminal-5 · `verb-docstring` · `terminalOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale — WORKED
+### F-terminal-5 · `verb-docstring` · `endingOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale — WORKED
 
 - Two `/**` blocks, file-level and function-level, both opening with
   "reach for this"; one function, one docstring.
@@ -200,7 +200,7 @@ passed to the shell — the confetti has to come above it — is the keep.
 - *"Kept OUT of `member.ts` deliberately. That file is types-only…"* — the
   same rationale is written in `member.ts`'s docstring (which owns it: "Types
   only, and that is load-bearing … The one VALUE that reads these types was
-  put in `common/terminal/terminalOutcomeVerb.ts` precisely so it stays out")
+  put in `common/ending/endingOutcomeVerb.ts` precisely so it stays out")
   and again in `memberList.ts`. One home per decision: here, one clause and a
   pointer at `member.ts`.
 - *"the word the OpponentStrip prints"* — true of six of the seven callers;
@@ -216,7 +216,7 @@ it defends, as `//` — exactly where `useTurnStartFlash` (its named twin) puts
 the same sentence. The three rules and the load-bearing paragraph about rule 1
 are for the caller and stay.
 
-### F-terminal-7 · `ui-md-census` · `docs/ui.md → Terminal results` counts the celebrating games, and counts wrong — WORKED
+### F-terminal-7 · `ui-md-census` · `docs/ui.md → Endings` counts the celebrating games, and counts wrong — WORKED
 
 *"Fifteen of sixteen games celebrate; wordiply has no win state to
 celebrate"* — fourteen do; setgame has no celebration either. *"Scrabble and
@@ -246,19 +246,19 @@ Its `TurnStatusLine` item asks whether a folder should import another folder's
 readout stylesheet and ends *"Same question in `terminal` and `word-entry`."*
 It was true while `InfoActionsRow` lived here and read
 `game-page/playArea.module.css`; that row moved to `info-sheet/` at
-`game-page`'s close (2026-09-15), and nothing in `terminal/` imports any
+`game-page`'s close (2026-09-15), and nothing in `ending/` imports any
 stylesheet but its own. The three words come out. (`word-entry` answered its
 half as F-word-entry-8.)
 
-### F-terminal-10 · `doc-md` · `doc.md` is three sentences about `terminalMessage` and names neither the hook nor the verb — WORKED
+### F-terminal-10 · `doc-md` · `doc.md` is three sentences about `endingMessage` and names neither the hook nor the verb — WORKED
 
 The lede describes the one file that is NOT on this roster and says nothing of
-`useCelebration`, `CelebrationBlockingModal` or `terminalOutcomeVerb`. Owed:
+`useCelebration`, `CelebrationBlockingModal` or `endingOutcomeVerb`. Owed:
 a lede that says what the folder is (a game's end — when to celebrate, the
 celebration, and the words), the `## Intro to area` (the moment vs the
 record; why the moment is the one modal; why the hook watches a flip and never
 fires on mount; why the verb lives here and not beside `Member`), and a
-`## Details` carrying the render tree above. `common/terminal` then comes off
+`## Details` carrying the render tree above. `common/ending` then comes off
 `INTROS_OWED`.
 
 ### F-terminal-11 · `which-family` · The celebration is a `modal-blocking` in code and a `modal-normal` in three durable sentences — WORKED as (a)
@@ -282,7 +282,7 @@ sentences say otherwise:
   move: that is a `modal-normal` (setup, edit profile, the celebration)"* —
   written 2026-08-24 (`004682d3`), true for one day, blessed 2026-09-11 with
   the claim still in it. That folder's `doc.md` render tree has it right
-  (`BlockingModal … CelebrationBlockingModal (terminal)`).
+  (`BlockingModal … CelebrationBlockingModal (ending)`).
 
 **Decision: which family IS the celebration?**
 
@@ -384,7 +384,7 @@ question only.
 
 ### F-terminal-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased — WORKED as (a)
 
-`terminalOutcomeVerb.ts`: *"The capitalized word is the only form … the
+`endingOutcomeVerb.ts`: *"The capitalized word is the only form … the
 strip's word is computed once, here."* `scrabble/components/InfoCol.tsx`'s
 `metricFor` returns `${score} (${outcomeOf(player).toLowerCase()})` — "40
 (won)". A second form, made at a call site. Not a bug on screen; a claim the
@@ -437,15 +437,15 @@ onClose={close} />}` passes no title, which every one of the fourteen does. It
 is now waffle's two lines, verbatim. Same paragraph: *"all of which GamePage
 awaits before rendering a PlayArea"* — the awaiting has been `GamePageLoader`'s
 since `game-page` split the route (2026-09-15); `doc.md` had the right name and
-the hook did not. `docs/ui.md` → Terminal results carried the same `<GamePage>`
+the hook did not. `docs/ui.md` → Endings carried the same `<GamePage>`
 claim one paragraph after the one F-17 fixes; both say `GamePageLoader` now.
 
-### F-terminal-17 · `ui-md-keeps-what-f2-removed` · `docs/ui.md` → Terminal results kept the two phrases F-2 took out of the docstring — WORKED
+### F-terminal-17 · `ui-md-keeps-what-f2-removed` · `docs/ui.md` → Endings kept the two phrases F-2 took out of the docstring — WORKED
 
 *"ported from crossplay"* (archaeology) and *"**the only modal a terminal game
 pops**"* (a count, and F-2's exact words) stood in the doc's paragraph on the
 component after the docstring lost them. The paragraph now says it as the rule
-the docstring does: it pops for a win and for nothing else, and a terminal game
+the docstring does: it pops for a win and for nothing else, and an ended game
 pops no other modal, its verdict being in-page.
 
 ### F-terminal-18 · `nice-is-full-width` · `docs/ui.md` → Dialog buttons gave "Nice!" as its example of a right-justified lone button — WORKED
@@ -559,7 +559,7 @@ longer conditional.
   React's "storing information from previous renders" pattern, which the
   double render handles. `spellingbee-coop-win.e2e.ts` exercises the flip
   live.
-- **`terminalMessage.ts` / `.test.ts` stay `cs-blessed-feedback`** — the
+- **`endingMessage.ts` / `.test.ts` stay `cs-blessed-feedback`** — the
   audit turned up no change they need, so the restamp question does not come
   back to Joel this round.
 - **What `todo.md` handed the area** (its first read): two items, both the
@@ -617,4 +617,4 @@ longer conditional.
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-18, blessed** (Joel: *"close the area and commit"*). Seven files `cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18); the row had said CLOSED for one commit before the re-read, and that was Claude's inference, not Joel's word (*"re-open the area; that was ENTIRELY WRONG"*). The closing re-read was done 2026-09-18 after Joel's own edits: eight more findings, all worked — and, for the sixth area running, most of them were the day's own work recurring next door (the doc.md tree drew the h2 he had changed, a test counted callers the way F-7 had just stopped ui.md doing, ui.md kept two phrases F-2 removed). Three rulings came out of it, each Joel's: the title is an `h2` at `1.5rem` by decision, uncommented (*"we don't need a comment explaining why i've resized a title"*), with the literal excused in `vocabularies.test.ts`; "a single-button dialog right-justifies its button" is not a rule and left ui.md; and `title`'s default and `primary`, the "Play again" half of the 2026-07-08 port that no game ever passed, are gone (*"remove both, since they're not used"*). Nothing is open. A game's end — when to celebrate it, the celebration, and the words. Twenty-two findings in `plans/areas/terminal.md`: ten prose ones in a single pass, four decisions Joel took one at a time, every one answered as (a), and the re-read's eight. **What changed the app:** the celebration's `body` has no default, the one it had ("You solved the puzzle.") being false at scrabble's compete win and a second copy of the title at the three puzzle sites that took it; and the `.title` size override went, after which Joel made the heading an `<h1>` outright (`91e67ce8`); `base.css`'s heading comment dropped its h2 example on his call and `docs/ui.md`'s table dropped the name, so **what level a modal title takes is now unstated** — listing it under h1 would contradict that level's meaning, and that ruling has not been made. **What changed the docs:** the celebration is a `modal-blocking` wherever it is described (it has rendered one since 2026-08-25), and ui.md's "Two panels stay off the shell" paragraph — rotted in BOTH halves, scrabble's blank picker having joined the shell 2026-09-10 — now names crosswords' number jump as the one panel still hand-rolled. **The area's lesson: re-verify a finding's premise before presenting it.** F-14 recommended making scrabble print `Won · 260` like its siblings; reading its call site first showed `260 (lost)` is argued — `OpponentStrip` separates PLAYERS with `·`, so `Won · 260` runs one mark through two jobs — and the docstring changed while no game did. `doc.md` was written during the prose pass (F-10 is a prose finding) and `common/terminal` came off `INTROS_OWED`; `todo.md` is empty. Handed on: setgame and wordiply join with `·` inside a strip cell, for their own areas; `terminalMessage.ts` stayed `cs-blessed-feedback` throughout, evidence rather than roster
+**CLOSED 2026-09-18, blessed** (Joel: *"close the area and commit"*). Seven files `cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18); the row had said CLOSED for one commit before the re-read, and that was Claude's inference, not Joel's word (*"re-open the area; that was ENTIRELY WRONG"*). The closing re-read was done 2026-09-18 after Joel's own edits: eight more findings, all worked — and, for the sixth area running, most of them were the day's own work recurring next door (the doc.md tree drew the h2 he had changed, a test counted callers the way F-7 had just stopped ui.md doing, ui.md kept two phrases F-2 removed). Three rulings came out of it, each Joel's: the title is an `h2` at `1.5rem` by decision, uncommented (*"we don't need a comment explaining why i've resized a title"*), with the literal excused in `vocabularies.test.ts`; "a single-button dialog right-justifies its button" is not a rule and left ui.md; and `title`'s default and `primary`, the "Play again" half of the 2026-07-08 port that no game ever passed, are gone (*"remove both, since they're not used"*). Nothing is open. A game's end — when to celebrate it, the celebration, and the words. Twenty-two findings in `plans/areas/terminal.md`: ten prose ones in a single pass, four decisions Joel took one at a time, every one answered as (a), and the re-read's eight. **What changed the app:** the celebration's `body` has no default, the one it had ("You solved the puzzle.") being false at scrabble's compete win and a second copy of the title at the three puzzle sites that took it; and the `.title` size override went, after which Joel made the heading an `<h1>` outright (`91e67ce8`); `base.css`'s heading comment dropped its h2 example on his call and `docs/ui.md`'s table dropped the name, so **what level a modal title takes is now unstated** — listing it under h1 would contradict that level's meaning, and that ruling has not been made. **What changed the docs:** the celebration is a `modal-blocking` wherever it is described (it has rendered one since 2026-08-25), and ui.md's "Two panels stay off the shell" paragraph — rotted in BOTH halves, scrabble's blank picker having joined the shell 2026-09-10 — now names crosswords' number jump as the one panel still hand-rolled. **The area's lesson: re-verify a finding's premise before presenting it.** F-14 recommended making scrabble print `Won · 260` like its siblings; reading its call site first showed `260 (lost)` is argued — `OpponentStrip` separates PLAYERS with `·`, so `Won · 260` runs one mark through two jobs — and the docstring changed while no game did. `doc.md` was written during the prose pass (F-10 is a prose finding) and `common/ending` came off `INTROS_OWED`; `todo.md` is empty. Handed on: setgame and wordiply join with `·` inside a strip cell, for their own areas; `endingMessage.ts` stayed `cs-blessed-feedback` throughout, evidence rather than roster

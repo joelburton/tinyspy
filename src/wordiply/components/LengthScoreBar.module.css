@@ -1,9 +1,9 @@
 /* cs-unmet */
 
 /* wordiply's length-score readout — a big percentage over a filled track,
- * rendered only at terminal (mid-game the info column shows "guesses n/5"
- * instead; the score is a terminal-only reveal). See LengthScoreBar.tsx for the
- * scoring and why it's terminal-only.
+ * rendered only at the end (mid-game the info column shows "guesses n/5"
+ * instead; the score is revealed only at the end). See LengthScoreBar.tsx for
+ * the scoring and why it waits for the end.
  *
  * A hand-rolled bar rather than the shared <RankBar>: that one is a LADDER of
  * discrete named tiers you climb, this is one continuous percentage of the best

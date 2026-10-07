@@ -28,15 +28,15 @@ export function computePlayerStanding(
   game: StandingGame,
 ): PlayerStanding {
   const isConceded = player.player_ended_reason === 'conceded'
-  const isLocallyTerminal = player.player_ended_at !== null
-  const isStillPlaying = !game.isGameEnded && !isLocallyTerminal
+  const isPlayerEnded = player.player_ended_at !== null
+  const isStillPlaying = !game.isGameEnded && !isPlayerEnded
   const isOnTurn = isStillPlaying && (!game.isTurnBased || game.turnHolderId === player.id)
   const isWaitingForTurn = isStillPlaying && !isOnTurn
   const isBoardInteractive = game.draftsOffTurn ? isStillPlaying : isOnTurn
   const hasSolved = player.solved_at !== null
   return {
     isConceded,
-    isLocallyTerminal,
+    isPlayerEnded,
     isStillPlaying,
     isOnTurn,
     isWaitingForTurn,

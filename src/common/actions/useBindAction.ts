@@ -9,8 +9,8 @@ import type { ConfirmAnswer, ConfirmOptions } from '../floating-panels/confirmat
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
 /** Whether an action applies right now, and how. `hidden` is "not here at this
- *  moment" — a play-only action at terminal; `disabled` is "here, and not right
- *  now" — Submit with an empty entry. */
+ *  moment" — a play-only action once the game ends; `disabled` is "here, and
+ *  not right now" — Submit with an empty entry. */
 export type ActionState = 'active' | 'hidden' | 'disabled'
 
 /**
@@ -72,8 +72,8 @@ export type BindActionOptions = {
   // no parameter at all — see `ActionAsker`.
   describe: (asker: ActionAsker) => Described | ActionState
   // Is the game over? The registry's confirmation is skipped when it is —
-  // at terminal there is nothing left to interrupt.
-  terminal?: boolean
+  // once it has ended there is nothing left to interrupt.
+  ended?: boolean
 }
 
 /** A registry entry joined to a game's callbacks: the whole action, and the
@@ -101,7 +101,7 @@ function described(answer: Described | ActionState): Described {
  *     const actNewGame = useBindAction('act-new-game', {
  *       run: createNewGame,
  *       describe: () => (loading ? 'disabled' : 'active'),
- *       terminal: isTerminal,
+ *       ended: isGameEnded,
  *     })
  *
  * Bind it once and hand the same value to everything that shows it — the
@@ -110,7 +110,7 @@ function described(answer: Described | ActionState): Described {
  * not bind does not exist on this page.
  *
  * The `run` you get back asks the action's question first, when the registry
- * gives it one and the game is not terminal, and is single-flight, so every
+ * gives it one and the game has not ended, and is single-flight, so every
  * surface shares one wait. doc.md has the whole model.
  */
 export function useBindAction(id: ActionId, options: BindActionOptions): Action {
@@ -150,11 +150,11 @@ export function useBindAction(id: ActionId, options: BindActionOptions): Action 
   const ask = useCallback(
     async (key?: string) => {
       const asked = optionsRef.current
-      // At terminal the question is not asked — there is nothing left to
-      // interrupt.
+      // Once the game has ended the question is not asked — there is nothing
+      // left to interrupt.
       const question = defn.confirm
       let answer: ConfirmAnswer = 'confirm'
-      if (question && !asked.terminal) {
+      if (question && !asked.ended) {
         askingRef.current = question
         try {
           answer = await askConfirmation(question)

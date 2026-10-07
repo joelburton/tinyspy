@@ -39,7 +39,7 @@ Agreed 2026-09-05 — every source file of `src/common/buttons/`, one
 | `src/common/buttons/StandardButton.module.css` | the taxonomy's stylesheet — `.standardButton`, `.small`, `.iconOnly`, the tone and weight rules (292 lines) | `cs-blessed-buttons` |
 | `src/common/buttons/StandardButton.test.tsx` | the rules that keep `label` / `show` / `tooltip` three things | `cs-blessed-buttons` |
 | `src/common/buttons/AIButton.tsx` | ask an AI helper — sparkles, the amber shared with Hint | `cs-blessed-buttons` |
-| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled at terminal, outline elsewhere | `cs-blessed-buttons` |
+| `src/common/buttons/BackToClubButton.tsx` | leave the game for the club; draws "Club", called "Back to club"; filled once the game has ended, outline elsewhere | `cs-blessed-buttons` |
 | `src/common/buttons/CancelButton.tsx` | never mind — always "Cancel", always the quiet outline, never a drawn glyph | `cs-blessed-buttons` |
 | `src/common/buttons/FormSubmitButton.tsx` | **written by this area** (F-buttons-20) — a form or dialog's commit, Cancel's partner: it owns `type="submit"` + the emphasis, and defaults no words | `cs-blessed-buttons` |
 | `src/common/buttons/ClearButton.tsx` | wipe the pending selection — the eraser on a plain outline | `cs-blessed-buttons` |
@@ -101,15 +101,15 @@ Who asks for it: ten info columns render `<BackToClubButton label={null}>`
 (boggle, letterboxed, setgame, spellingbee, strands, waffle, wordiply, wordle,
 wordwheel; crosswords with `compact` too), and ten games pass
 `backLabel={null}` through `<TerminalActionRow>`, whose prop docstring
-promises "pass `null` for the icon-only square". `docs/ui.md` → Terminal
-results says the same ("most games pass `iconOnly` so the row survives a
+promises "pass `null` for the icon-only square". `docs/ui.md` → Endings
+says the same ("most games pass `iconOnly` so the row survives a
 ~22rem column"). Every one of those draws "‹ Club" or "‹ Back to club" today.
 
 **Recommendation:** write the `undefined`/`null` split out, the way the base
 does — `label === undefined ? (compact ? 'Club' : undefined) : label` — and
 let the base's `aria-label` rule stand for the icon-only case (the explicit
 `aria-label={name}` stays for the compact case, where "Club" is drawn but the
-control is called "Back to club"). Then look at the terminal rows in the
+control is called "Back to club"). Then look at the ending rows in the
 gallery: they have never rendered as designed, so the design should be seen
 before it ships.
 
@@ -175,7 +175,7 @@ the review of this change.
 accepted and rides in `...rest`, which spreads AFTER `weight={variant}` and
 wins. Two props name one axis, and only this purpose button renames it. Three
 callers pass `variant="primary"` (`TerminalActionRow`, `DeviceBlockNotice`,
-crosswords' terminal strip).
+crosswords' ending strip).
 
 **Recommendation:** drop `variant`; take `weight` with the default
 `'secondary'` like every sibling, and change the three callers.
@@ -358,7 +358,7 @@ defect in seven.
   which F-buttons-2 deleted this morning and the other of which never existed.
   It now describes `weight` and the draws-"Club"/called-"Back to club" split.
 - `docs/ui.md:209` and `:1342` gave `common/components/game/terminal/`, a
-  pre-reorg path; the folder is `common/terminal/`. Both are OUTSIDE
+  pre-reorg path; the folder is `common/ending/`. Both are OUTSIDE
   F-buttons-13's 1806–2225 range, so nothing else was going to reach them.
 
 **Left for its own decision:** `core-css/base.css:265` calls the icon-only box
@@ -1121,7 +1121,7 @@ the spellings the sweeps used.
   2.05rem`, which every claim about it matched), `docs/ui.md` 1806–2241
   (F-buttons-13), `docs/buttons.html` (F-buttons-15),
   `terminal/TerminalActionRow.tsx`, `page-header/PageHeaderButton.tsx`,
-  `reveal/useSolutionReveal.test.ts`, the crosswords terminal strip, and the
+  `reveal/useSolutionReveal.test.ts`, the crosswords ending strip, and the
   caller lists for every purpose button (in the roster's descriptions).
 - **Claims that checked out and are worth not re-checking:** `RevealButton`'s
   six clear-win games are exactly the six `alreadyShown` callers; `.titlebar

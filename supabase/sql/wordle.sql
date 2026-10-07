@@ -130,7 +130,7 @@ as $$
            -- The title NEVER spells the answer of its own accord — not on
            -- the game's end, which would spoil every lost game the players may
            -- still replay blind, and not on anybody's reveal, which is a LOCAL
-           -- per-player display toggle (docs/ui.md → Terminal results) that a
+           -- per-player display toggle (docs/ui.md → Endings) that a
            -- club-wide title cannot follow: it would tell Moth the word because
            -- Joel looked. A win still titles "SLATE", because the winning guess
            -- IS the answer and the branches below read the most recent guess.

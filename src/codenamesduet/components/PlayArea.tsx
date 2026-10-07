@@ -7,8 +7,8 @@ import type {
 } from '@/common/game-page/playAreaLoaderProps'
 import {
   CelebrationBlockingModal,
-} from '@/common/terminal/CelebrationBlockingModal'
-import { useCelebration } from '@/common/terminal/useCelebration'
+} from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
@@ -65,7 +65,7 @@ type PlayAreaProps =
  * Above it, `<GamePage>` owns members, the timer, the ending, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it.
  *
- * **The end of a game is in-page** (docs/ui.md → Terminal results): the
+ * **The end of a game is in-page** (docs/ui.md → Endings): the
  * below-board slot carries the ending's `pillText` and the action row its
  * `infoColText`, both until the player leaves. A win — only a win — also pops
  * `<CelebrationBlockingModal>` at the moment the last agent is contacted.

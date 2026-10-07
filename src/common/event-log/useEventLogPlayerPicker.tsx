@@ -32,7 +32,7 @@ type EventLogPlayerPickerOptions = {
   myId: string
   mode: 'coop' | 'compete'
   // Distinguishes an RLS-hidden opponent log from a genuinely empty one.
-  isTerminal: boolean
+  isGameEnded: boolean
   // True when compete is still ONE shared game — a race on a single public board
   // (scrabble's turn-based race, setgame's contended board), so `All` is literally
   // what you're looking at and the dropdown defaults there; the per-player entries
@@ -59,7 +59,7 @@ type EventLogPlayerPickerOptions = {
  * Everyone is named by handle, you included. doc.md → Details says why the
  * results travel together rather than being re-derived per game.
  *
- *     const eventLogPicker = useEventLogPlayerPicker({ players, myId, mode, isTerminal })
+ *     const eventLogPicker = useEventLogPlayerPicker({ players, myId, mode, isGameEnded })
  *     const shown = eventLogPicker.filter(rows)
  *     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
  */
@@ -67,7 +67,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
   players,
   myId,
   mode,
-  isTerminal,
+  isGameEnded,
   competeSharesOneGame = false,
   label = 'Whose turns to show',
   emptyLabel = 'Nothing yet.',
@@ -136,7 +136,7 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
       // Only a SINGLE opponent's log is honestly "hidden": an aggregate view
       // still carries my own rows mid-game, so an empty one really does mean
       // nobody has played.
-      mode === 'compete' && !showsEveryone && picked !== myId && !isTerminal
+      mode === 'compete' && !showsEveryone && picked !== myId && !isGameEnded
         ? 'Hidden until game ends.'
         : emptyLabel,
   }

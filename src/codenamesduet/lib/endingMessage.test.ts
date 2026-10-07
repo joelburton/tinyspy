@@ -11,8 +11,8 @@
  * the two texts empty.
  */
 import { describe, expect, it } from 'vitest'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
-import { buildGameEndedMessageNeutral } from '@/common/terminal/terminalMessage'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { buildGameEndedMessageNeutral } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from './endingMessage'
 
 // Every ending the RPCs write, as [outcome, detail].

@@ -47,8 +47,8 @@ key ("Find 2 more valid words" on a Hint that is not yet earned); it comes from
 the action rather than the placement because the conditions that decide the
 state are the ones that know why. `hidden` and `disabled` say different things
 and the distinction matters: hidden is "not here at this moment", which is how
-a play-only action leaves at terminal, while disabled is "here, and not right
-now", which is Submit with an empty entry.
+a play-only action leaves once the game ends, while disabled is "here, and not
+right now", which is Submit with an empty entry.
 
 **`describe()` is asked BY someone, and the asker names itself.** Four
 surfaces read an action — a button, a menu row, Help's key list and the
@@ -120,9 +120,9 @@ The passes skip it so a sibling that wants the key gets it, but when nothing
 takes the key a disabled match prevents the default, so Space with no legal
 peel does not scroll the page. A hidden action leaves the key alone.
 
-**The options have two knobs besides `run` and `describe`.** `terminal` is
-what skips the registry's question — at terminal there is nothing left to
-interrupt — and an action whose row carries a `confirm` passes it. `runAlternative`
+**The options have two knobs besides `run` and `describe`.** `ended` is
+what skips the registry's question — once the game has ended there is nothing
+left to interrupt — and an action whose row carries a `confirm` passes it. `runAlternative`
 is the body for a question's second answer. An `Action` also carries `pending`, true from the press until
 the run settles, the question included; every surface reads it to gray.
 
@@ -195,8 +195,8 @@ tell it to stand down inside a chat box — and it looks perfectly reasonable in
 a diff.
 
 **The confirmation is asked by the shared run**, not by the callback. New game
-always asks the new-game question and always only mid-game, because at terminal
-there is nothing left to interrupt — so the registry carries the question and no game
+always asks the new-game question and always only mid-game, because once the
+game has ended there is nothing left to interrupt — so the registry carries the question and no game
 carries the same three lines. A question only one game asks
 stays inside that game's callback. The asking goes through
 `common/floating-panels/confirmationService.ts`, which exists precisely because

@@ -113,7 +113,7 @@ export {
   //     MORE without needing a caption (and still reads as more in grayscale).
   //   IconHideSolution (EyeOff) — the SAME button as IconRevealSolution, showing
   //     its other face. The reveal is a local, reversible view (docs/ui.md →
-  //     Terminal results), so the control that opened the solution is the one
+  //     Endings), so the control that opened the solution is the one
   //     that puts it away, and the struck-through eye is the universal "stop
   //     showing me this". Deliberately NOT boxed: the box says "this is the
   //     whole solution", which is the thing you're leaving.

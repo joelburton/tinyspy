@@ -32,7 +32,7 @@ export type ConfirmAnswer = 'confirm' | 'alternative' | null
 
 /** The canonical stop confirm — one question object, carried by the
  *  registry on the Stop action, so every placement of Stop asks the identical
- *  question. Stopping is the one always-confirmed act: it's terminal for the
+ *  question. Stopping is the one always-confirmed act: it ends the game for the
  *  whole group, even solo/coop (unlike suspend, which is confirmed only when
  *  there are peers to surprise). A RACE never asks this one — there the way
  *  out is Concede, whose question offers stopping as its alternative. */
@@ -45,7 +45,8 @@ export const STOP_GAME_CONFIRM: ConfirmOptions = {
 
 /**
  * The canonical new-game confirm, asked only while a game is still in progress
- * (at terminal there's nothing to interrupt, so New game goes straight through).
+ * (once it has ended there's nothing to interrupt, so New game goes straight
+ * through).
  *
  * Starting a new game does NOT end this one: `create_game` clears the club's
  * current-view flag on the old row, which stays in `common.games` and can be
@@ -65,7 +66,8 @@ export const NEW_GAME_CONFIRM: ConfirmOptions = {
 
 /**
  * The canonical restart confirm, asked only while a game is still IN PROGRESS —
- * at terminal there's nothing left to lose, so Restart goes straight through.
+ * once it has ended there's nothing left to lose, so Restart goes straight
+ * through.
  *
  * Mid-game it's the most destructive thing in the app after Stop: it wipes the
  * group's progress on a board they're still playing, for everyone at once, and

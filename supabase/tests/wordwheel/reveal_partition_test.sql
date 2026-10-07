@@ -93,9 +93,9 @@ select wordwheel.submit_word((select id from g), 'ache', 1, false, false);
 -- ============================================================
 -- (1)–(3) Mid-game, as bea: cat A is populated, cat B is empty (peer
 --         found_words still RLS-hidden), and the answer key is present
---         (the reveal is a client-side isTerminal gate).
+--         (the reveal is a client-side isGameEnded gate).
 -- ============================================================
--- The FE flips the WordList to the cat-A/cat-B model at `isTerminal` (from
+-- The FE flips the WordList to the cat-A/cat-B model at `isGameEnded` (from
 -- common.games), NOT on required_words appearing — that ships from game start.
 -- The table shows bea every racer's row; what keeps cat B "found by others"
 -- empty in play is the hook's seat rule over game_data, not RLS.

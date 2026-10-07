@@ -16,7 +16,7 @@ const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
  * Read the hidden target as the local superuser.
  *
  * This is the escape hatch the contract warns about, and it's the benign kind:
- * it READS a column RLS hides until terminal, and writes nothing. Every state
+ * it READS a column RLS hides until the end, and writes nothing. Every state
  * below is still produced by `submit_guess`, so the board, the colors and the
  * verdict are all the ones a player would have produced. The alternative —
  * writing a "won" row directly — is what the contract forbids, because it can
@@ -81,10 +81,10 @@ export const wordleGallery: GameGallery = {
 
       // SOLVING FIRST DOESN'T END A COMPETE RACE — the winner is fewest
       // guesses, so the game waits until every player is done, and a solver
-      // just goes locally terminal while the others play on. The same rule the
+      // just goes player-ended while the others play on. The same rule the
       // `lost` branch already followed; missing here, this cell photographed a
       // still-running board under a heading that said someone had won, until
-      // the runner's terminal check caught it.
+      // the runner's ended check caught it.
       if (cell.mode === 'compete') {
         for (const m of club.members) {
           if (m.userId !== viewer.userId) await seedWordleGuesses(m, id, 6)

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useEffect } from 'react'
-import type { TerminalMessage } from '../terminal/terminalMessage'
+import type { EndingMessage } from '../ending/endingMessage'
 import type { FeedbackSlot } from './feedbackSlotStore'
 import { FeedbackMessage } from './FeedbackMessage'
 
@@ -12,7 +12,7 @@ import { FeedbackMessage } from './FeedbackMessage'
  * game builds, each null while it does not apply.
  *
  * - `gameEndingMessage`: the game has ended, and how. Shown as a
- *   `terminalVerdict`.
+ *   `endingVerdict`.
  * - `playerEndingMessage`: I have ended while the others play on. Shown as a
  *   `standingState`, which ranks below the verdict, so the verdict takes the
  *   pill if both are ever shown.
@@ -26,13 +26,13 @@ export function useShowEndingFeedback(
     gameEndingMessage,
     playerEndingMessage,
   }: {
-    gameEndingMessage: TerminalMessage | null
-    playerEndingMessage: TerminalMessage | null
+    gameEndingMessage: EndingMessage | null
+    playerEndingMessage: EndingMessage | null
   },
 ): void {
   useEffect(function showGameEndingFeedback() {
     if (!gameEndingMessage) return
-    const id = slot.show(FeedbackMessage.terminalVerdict(gameEndingMessage))
+    const id = slot.show(FeedbackMessage.endingVerdict(gameEndingMessage))
     return () => slot.retract(id)
   }, [slot, gameEndingMessage])
 

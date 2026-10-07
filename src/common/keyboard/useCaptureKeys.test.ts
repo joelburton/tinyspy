@@ -79,7 +79,7 @@ describe('useCaptureKeys — core entry', () => {
     await press('Enter')
     expect(onChange).not.toHaveBeenCalled()
     expect(onSubmit).not.toHaveBeenCalled()
-    // The dismissal is gated too, so a stray key can't wipe the terminal pill.
+    // The dismissal is gated too, so a stray key can't wipe the ending pill.
     expect(onAnyKey).not.toHaveBeenCalled()
   })
 

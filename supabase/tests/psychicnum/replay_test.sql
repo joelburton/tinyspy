@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: psychicnum.replay_board (restart this board from scratch)
 -- ============================================================
--- The "Replay board" menu item / terminal-row Restart. Resets the working
+-- The "Replay board" menu item / ending-row Restart. Resets the working
 -- state on the SAME game row — the frozen puzzle (words / secrets / mode)
 -- stays, everything the players did is wiped. Both modes reset ALL players.
 -- Available from a finished game OR mid-game; any game player may call it; a

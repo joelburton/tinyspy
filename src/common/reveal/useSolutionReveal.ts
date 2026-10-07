@@ -21,7 +21,7 @@ type SolutionRevealOptions = {
 }
 
 /**
- * The terminal solution reveal — "am I looking at the answer?" — as LOCAL,
+ * The ending solution reveal — "am I looking at the answer?" — as LOCAL,
  * per-player, unpersisted state: nothing is written, nothing rides realtime,
  * and my looking opens nothing on anybody else's screen. `toggle` goes both
  * ways, so a game whose reveal rewrites the board can always put back the one

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { buildGameEndedMessageNeutral } from '@/common/terminal/terminalMessage'
+import { buildGameEndedMessageNeutral } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
 const MOTH = { username: 'moth', color: 'blue' }

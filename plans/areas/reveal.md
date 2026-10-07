@@ -29,7 +29,7 @@ two docs (not stamped; the script's scope is files with a first-line comment):
 **Left off the roster on purpose:** the ten PlayAreas that call the hook are
 consumers, each its own game's area. `act-reveal` and its two icons are
 `actions`' and `icons`' (both closed). `docs/common.md → Revealing the
-solution` and `docs/ui.md → Terminal results` are read as evidence and fixed
+solution` and `docs/ui.md → Endings` are read as evidence and fixed
 where they are wrong, as any doc is.
 
 **`todo.md` handed the area nothing** — empty in all four sections.
@@ -38,7 +38,7 @@ where they are wrong, as any doc is.
 
 One hook, one predicate, and a design that has already shipped and is
 documented in `docs/common.md → Revealing the solution` (2026-08-15) and
-`docs/ui.md → Terminal results` (the clear-win default, 2026-08-15, corrected
+`docs/ui.md → Endings` (the clear-win default, 2026-08-15, corrected
 for coop 2026-08-16). The plan's row 45 said the area "has to build" this
 taxonomy; it was built three weeks before the row was written (F-7).
 
@@ -49,7 +49,7 @@ taxonomy; it was built three weeks before the row was written (F-7).
      ├── impliedBy: solvedByMe({ isCompete, playState, mine })   the six clear-win games
      └── act-reveal's describe()          impliedBySolve → disabled "Solution already shown"
                                           revealed → "Hide …" + IconHideSolution
-                                          else → "Reveal …", disabled until isTerminal
+                                          else → "Reveal …", disabled until isGameEnded
 ```
 
 (`reset` and `hide` are on the interface and nothing calls either — F-10.)
@@ -140,7 +140,7 @@ so only the `describe` header changes.
 
 *"Showing the answer once a game has ended."* Owed: the lede, an `## Intro to
 area` (the reveal is a personal, temporary, unpersisted display choice; a game
-you solved starts shown; the shield is the server's at `is_terminal` and is a
+you solved starts shown; the shield is the server's once the game has ended and is a
 different question; who has a reveal, who has a word list instead, who has no
 answer), and a `## Details` with the caller table above and the per-game
 reasons F-2 moves out of the docstring. `common/reveal` then comes off
@@ -151,7 +151,7 @@ reasons F-2 moves out of the docstring. `common/reveal` then comes off
 - `docs/common.md → Revealing the solution`: *"**Nothing autoreveals**, a win
   included."* Written 2026-08-15 (`72d48d94`); the clear-win default landed
   the same day (`69c693b3`), after it.
-- `docs/ui.md → Terminal results`: *"Ten games hide their answer until a player
+- `docs/ui.md → Endings`: *"Ten games hide their answer until a player
   asks … and that includes **on a win**"* — and eight lines later, *"**A game
   you SOLVED starts revealed.**"* The paragraph contradicts itself. Same
   section: *"`common/hooks/game/useSolutionReveal.ts` holds all three"* — the
@@ -193,7 +193,7 @@ if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' 
 if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
 // Named in the inert case too: the registry's bare "Reveal" would make the
 // row change its words as the game ended, which is not what it says.
-return isTerminal
+return isGameEnded
   ? { state: 'active', label: 'Reveal solution' }
   : { state: 'disabled', label: 'Reveal solution', tooltip: "Can't reveal until all end" }
 ```
@@ -213,7 +213,7 @@ The tooltip is the half that matters: `docs/ui.md` states it as the rule
 (*"keeps the control visible but disabled, tooltipped 'Can't reveal until all
 end'"*), and five games do not pass one, so a grayed Reveal explains itself in
 wordle and says nothing in strands. Every one of the ten gates its live state
-on `isTerminal`, so there is no game where the tooltip would be wrong. No test
+on `isGameEnded`, so there is no game where the tooltip would be wrong. No test
 asserts a reveal tooltip today.
 
 **Decision:**
@@ -221,19 +221,19 @@ asserts a reveal tooltip today.
 - **(a) leave it** — a `describe()` is the game's, written beside its other
   actions, and six copies of six lines is the cost of that.
 - **(b) the hook hands back the describe** — `useSolutionReveal` takes the
-  noun (`'solution' | 'answer'`) and `isTerminal` and returns
+  noun (`'solution' | 'answer'`) and `isGameEnded` and returns
   `describeReveal`, so a game writes `useBoundAction('act-reveal', {
   describe: reveal.describe, run: reveal.toggle })`. The three branches and
   the tooltip live once, beside the state they read. Ten call sites change,
   each in its own area.
 - **(c) a helper in `reveal/`, not on the hook** — `describeReveal({ reveal,
-  isTerminal, noun })`, the same single copy without widening the hook's
+  isGameEnded, noun })`, the same single copy without widening the hook's
   return. Recommended: the hook stays state, the words stay a function, and a
   game that wants a different face writes its own.
 
 **WORKED 2026-09-18 as `describe-helper`** (Joel: *"yes to describe-helper"*),
 together with F-9's nouns, since the two land in the same line of code.
-`describeReveal({ noun, revealed, impliedBySolve?, isTerminal })` lives beside
+`describeReveal({ noun, revealed, impliedBySolve?, isGameEnded })` lives beside
 the hook with its own test; ten `describe()` bodies became one line each, and
 `IconHideSolution` left ten import lists. `impliedBySolve` is optional, so the
 four games that never imply say so by omission. psychicnum's own state stays
@@ -309,7 +309,7 @@ docstring's *"Restart calls `reset()`, not `hide()`"* paragraph and the
 `reset` member's note defend a case that cannot arise, and the test *"reset
 hands control back to impliedBy; hide would not"* pins it.
 
-Outside the folder, the same story: `docs/ui.md → Terminal results` says each
+Outside the folder, the same story: `docs/ui.md → Endings` says each
 game *"does still owe … dropping the local reveal in its `onRestarted`"* — no
 `onRestarted` exists in `src/common`; and psychicnum's PlayArea carries *"No
 reveal-flag reset here: `common.reset_game` clears solution_revealed"*, a
@@ -337,7 +337,7 @@ The five surviving `onRestarted` sentences went with it: `docs/ui.md` (both the
 word there is `_target_for` no longer sending it. Two more the grep for the
 callback did not reach: psychicnum's *"No reveal-flag reset here"* comment (the
 Notes item below, fixed here rather than handed on — it names a column dropped
-2026-08-15 and would have read as live code) and `e2e/terminal-reveal.e2e.ts`,
+2026-08-15 and would have read as live code) and `e2e/ending-reveal.e2e.ts`,
 which credited "the game's own onRestarted" for a re-hide the remount does.
 
 ### F-reveal-11 · `psychicnum-reveal-ignores-the-asker` · psychicnum's Reveal hides itself from the MENU and Help, where nine games and its own siblings stay — WORKED as ruled
@@ -352,7 +352,7 @@ produce the same screen.
 
 The defect is narrower: `describe` is handed an ASKER, and psychicnum's
 neighbors use it — `act-new-game` is `(asker) => (asker === 'button' &&
-!isTerminal ? 'hidden' : 'active')`, and the hint and spoiler carry a comment
+!isGameEnded ? 'hidden' : 'active')`, and the hint and spoiler carry a comment
 saying they gray rather than drop because *"the menu row is what NAMES those
 glyphs"*. `act-reveal` ignored it, so mid-hunt it left the menu row and the
 Help list as well as the button, and `menuRow` drops a hidden row before the
@@ -430,7 +430,7 @@ crosswords' own comments keep their voice, for their area.
 
 ### F-reveal-16 · `shipped-broken-in-ui-md` · The sentence F-3 cut from `solvedByMe`'s docstring stands in `ui.md`, with the date F-3 called wrong — WORKED
 
-`docs/ui.md → Terminal results`, the coop bullet: *"which is how three of the
+`docs/ui.md → Endings`, the coop bullet: *"which is how three of the
 six shipped broken on 2026-08-16"* — the same archaeology, the same wrong date
 (the fix's, not the shipping's), in the doc the area read as evidence and
 edited twice. Cut; the three present-tense facts stay. The same phrase in
@@ -449,8 +449,8 @@ games that imply. Both now read as strands does: never for a player who did
 not solve it, the one who did is `impliedBy`'s. `crosswords/PlayArea.tsx`
 said *"Crosswords is the one game that never auto-shows on a win"* — a count,
 and wrong by three (letterboxed, wordiply, codenamesduet). And two e2e headers
-carried it: `terminal-reveal.e2e.ts` (*"never automatic … a win included"*, in
-a spec whose game, stackdown, implies) and `psychicnum-terminal.e2e.ts`
+carried it: `ending-reveal.e2e.ts` (*"never automatic … a win included"*, in
+a spec whose game, stackdown, implies) and `psychicnum-ending.e2e.ts`
 (*"never on its own, a win included"*). Each now excepts the solver and names
 `solved-reveal.e2e.ts` as that case's spec.
 
@@ -460,7 +460,7 @@ The row was last written with F-10 and never learned F-8, F-9 or F-11 — the
 helper, the noun, psychicnum's asker — nor the vocabulary, and counted two
 stamped files where there are four. Rewritten to what the area is.
 
-### F-reveal-19 · `two-copies-of-the-reasons` · `ui.md → Terminal results` and `doc.md` now carry the same design twice — WORKED as (c)
+### F-reveal-19 · `two-copies-of-the-reasons` · `ui.md → Endings` and `doc.md` now carry the same design twice — WORKED as (c)
 
 `ui.md`'s section has held the per-game reasons since 2026-08-16
 (`2695afc3`) — the six that imply with a clause each, the four that never do
@@ -477,11 +477,11 @@ summary and a pointer.
 
 **Decision:**
 
-- **(a) leave both** — ui.md is where the UX rationale for the whole terminal
+- **(a) leave both** — ui.md is where the UX rationale for the whole ending
   reads as one story, and the reveal's paragraphs are part of it.
 - **(b) ui.md keeps its decisions and points at `doc.md` for the rest** —
   the three properties, "a game you solved starts revealed", the inert face
-  keeping the View eye, terminal-only, offered twice, the whole answer, the
+  keeping the View eye, only after the end, offered twice, the whole answer, the
   club-list title, codenamesduet's reason; the per-game reasons, the coop
   mechanics and the initializer note leave, replaced by one sentence naming
   the two terms and a link. Recommended — it is the icons ruling applied, and
@@ -590,4 +590,4 @@ docstring pointed at `doc.md` for the coop reason and now points at ui.md.
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-18, blessed** (Joel: *"first, bless the files in this area. then: close the area and commit"*): four files `cs-blessed-reveal`, two of them written by the area. Audited the same day (Joel: *"this is a tiny section, just do the audit"*), every finding worked, the closing re-read done. Showing the answer after the end: `useSolutionReveal`, the personal, temporary, unpersisted display choice; `solvedByMe`, the predicate that starts a solver's answer shown; and `describeReveal`, the one `describe()` every game's `act-reveal` places. The design shipped 2026-08-15 and is documented in [common-schema.md → Revealing the solution](../../docs/common-schema.md#revealing-the-solution) and [ui.md → Terminal results](../../docs/ui.md#terminal-results--the-moment-vs-the-record); this row used to say the area "has to build" it, three weeks after it had. Nineteen findings in `plans/areas/reveal.md`: eleven from the audit, eight from the closing re-read. **What the area turns on is a vocabulary, Joel's:** the **puzzle-solution** (the puzzle's own, fixed at generation, the same for everybody, and what the control shows) and a **board-solution** (what one player's finished board amounts to, per player and per run); `impliedBy` is one sentence over them — *this player's board-solution IS the puzzle-solution* — which is why wordle implies and crosswords does not (Joel: *"crosswords will continue to have reveal; the author's solution is distinct"*). Three earlier namings were tried and each broke on a game; the terms live in `doc.md`, ui.md and both docstrings. **What changed the app:** `SolutionReveal` is `{ revealed, toggle, impliedBySolve }` — `reset` and `hide` had had no caller since the restart key (2026-09-15) unmounts the surface, so they went, test case and all; `describeReveal({ noun, revealed, impliedBySolve?, isTerminal })` replaced ten hand-written `describe()` bodies, so every game's gray Reveal now carries *"Can't reveal until all end"* where five had none (Joel: *"they should all show the tooltip"*); the noun is **solution** wherever the thing is one (Joel: wordiply says *best solution*, codenamesduet *key cards*), so seven games' words changed and *"Solution already shown"* stopped contradicting two of them; and psychicnum's reveal hides only the BUTTON mid-hunt, keeping its menu row and Help entry gray (Joel: *"'reveal solution' makes no sense until the game is ended"*). **What changed the docs:** the hook's docstring is twelve lines over the folder's new `doc.md`, which carries the two terms, the caller table and the per-game reasons (`common/reveal` off `INTROS_OWED`); *"nothing autoreveals, a win included"* was false for every game that implies and stood in its game docs, its components and two e2e headers — all fixed, the last of them at the re-read; `onRestarted`, a callback that exists nowhere in `src`, went from five sentences and an e2e comment, one of which credited it for a re-hide that `_target_for` does. **The re-read's eight were the day's own work standing next door, for the seventh area running**: the rejected "clear win" in two test headers, F-8 landing after the `doc.md` tree and the interface note had been written, the "shipped broken" sentence F-3 cut from the docstring still in ui.md with its wrong date, F-6's claim in two more PlayAreas, two tallies and this row — and F-19, the one with a decision in it: ui.md's Terminal results and `doc.md` carried the per-game reasons and the coop mechanics twice, and Joel ruled that **`doc.md` defers to ui.md** (the intro keeps the two terms, the caller table stays, and ui.md is where the per-game reasons live). Nothing is open
+**CLOSED 2026-09-18, blessed** (Joel: *"first, bless the files in this area. then: close the area and commit"*): four files `cs-blessed-reveal`, two of them written by the area. Audited the same day (Joel: *"this is a tiny section, just do the audit"*), every finding worked, the closing re-read done. Showing the answer after the end: `useSolutionReveal`, the personal, temporary, unpersisted display choice; `solvedByMe`, the predicate that starts a solver's answer shown; and `describeReveal`, the one `describe()` every game's `act-reveal` places. The design shipped 2026-08-15 and is documented in [common-schema.md → Revealing the solution](../../docs/common-schema.md#revealing-the-solution) and [ui.md → Endings](../../docs/ui.md#endings--the-moment-vs-the-record); this row used to say the area "has to build" it, three weeks after it had. Nineteen findings in `plans/areas/reveal.md`: eleven from the audit, eight from the closing re-read. **What the area turns on is a vocabulary, Joel's:** the **puzzle-solution** (the puzzle's own, fixed at generation, the same for everybody, and what the control shows) and a **board-solution** (what one player's finished board amounts to, per player and per run); `impliedBy` is one sentence over them — *this player's board-solution IS the puzzle-solution* — which is why wordle implies and crosswords does not (Joel: *"crosswords will continue to have reveal; the author's solution is distinct"*). Three earlier namings were tried and each broke on a game; the terms live in `doc.md`, ui.md and both docstrings. **What changed the app:** `SolutionReveal` is `{ revealed, toggle, impliedBySolve }` — `reset` and `hide` had had no caller since the restart key (2026-09-15) unmounts the surface, so they went, test case and all; `describeReveal({ noun, revealed, impliedBySolve?, isGameEnded })` replaced ten hand-written `describe()` bodies, so every game's gray Reveal now carries *"Can't reveal until all end"* where five had none (Joel: *"they should all show the tooltip"*); the noun is **solution** wherever the thing is one (Joel: wordiply says *best solution*, codenamesduet *key cards*), so seven games' words changed and *"Solution already shown"* stopped contradicting two of them; and psychicnum's reveal hides only the BUTTON mid-hunt, keeping its menu row and Help entry gray (Joel: *"'reveal solution' makes no sense until the game is ended"*). **What changed the docs:** the hook's docstring is twelve lines over the folder's new `doc.md`, which carries the two terms, the caller table and the per-game reasons (`common/reveal` off `INTROS_OWED`); *"nothing autoreveals, a win included"* was false for every game that implies and stood in its game docs, its components and two e2e headers — all fixed, the last of them at the re-read; `onRestarted`, a callback that exists nowhere in `src`, went from five sentences and an e2e comment, one of which credited it for a re-hide that `_target_for` does. **The re-read's eight were the day's own work standing next door, for the seventh area running**: the rejected "clear win" in two test headers, F-8 landing after the `doc.md` tree and the interface note had been written, the "shipped broken" sentence F-3 cut from the docstring still in ui.md with its wrong date, F-6's claim in two more PlayAreas, two tallies and this row — and F-19, the one with a decision in it: ui.md's Endings and `doc.md` carried the per-game reasons and the coop mechanics twice, and Joel ruled that **`doc.md` defers to ui.md** (the intro keeps the two terms, the caller table stays, and ui.md is where the per-game reasons live). Nothing is open

@@ -90,7 +90,7 @@ row components instead. `ClubPage`'s `ListedGame` copied `baseGametype` and
 `brand` off the manifest, computed `statusLabel` from it, then handed the
 gametype STRING down to be re-resolved — Joel: *"it includes some things on
 the manifest for a gametype, but also wants to include manifest itself."* It
-now carries `gameId · manifest · title · lastActiveAt · isTerminal ·
+now carries `gameId · manifest · title · lastActiveAt · isGameEnded ·
 statusLabel`: the game's own fields plus the gametype it belongs to, with
 `statusLabel` the exception because `labelFor(row)` is a call, not a field.
 Seven sites in `ClubPage.tsx` (the type, the `listed.push`, the two "Your

@@ -570,16 +570,11 @@ the games above:
 
 ## Owed, not done at psychicnum
 
-- The terminal sweep: `TerminalMessage` → `EndingMessage`, the `isTerminal` /
-  `isLocallyTerminal` names on shared components and `PlayAreaLoaderProps`, and the
-  `--outcomes-*-terminalFrame-color` tokens. In `src/common/`'s hooks the
-  wording appears in `useClubGames.isTerminal` (ClubPage reads it),
-  `useChangeCause`, `useSetupDialog`, `useSolutionReveal`, `useGameTimer`,
-  `useCaptureKeys`, `useWordListFilter`, `useEventLogPlayerPicker`,
-  `useShowEndingFeedback` and `useStandardGameActions`.
+- The ending rename (`EndingMessage`, `isGameEnded` / `isPlayerEnded`,
+  `endingFrame`) is plans/endings.md's, being done.
 - `GamePlayer` → `Player` once every game converts: common's types are the
   bare ones, a game's wear the `G` (`src/common/members/todo.md`).
-- A Stop drops a win that already stands (`src/common/terminal/todo.md`).
+- A Stop drops a win that already stands (`src/common/ending/todo.md`).
 - One `.d.ts` for CSS custom properties in `style` (`todo.md`).
 - Test-only attributes (`data-board`, `data-tile`) become `data-testid`, as
   one sweep across the games (`todo.md`). Until then, a new test-only

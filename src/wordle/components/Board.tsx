@@ -1,7 +1,7 @@
 // cs-blessed-wordle
 
 import { cls } from '@/common/utils/cls'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'

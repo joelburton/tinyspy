@@ -9,7 +9,7 @@ looks like.
 A finished game still has one thing to say, and for ten of the sixteen it is the
 answer itself — the word, the solved grid, the categories nobody got, where the
 theme words were hiding. Putting it on screen is not a question about
-permission: the server hands the solution over the moment the game is terminal
+permission: the server hands the solution over the moment the game has ended
 for everyone, so by the time anybody can ask for it, every client already has
 it. What is left is a display question, and it is asked one player at a time.
 
@@ -58,7 +58,7 @@ filter already IS the control, mount none of this.
      └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
            impliedBySolve → disabled, "Solution already shown"
            revealed       → "Hide <noun>" + IconHideSolution
-           else           → "Reveal <noun>", disabled until isTerminal with "Can't reveal until all end"
+           else           → "Reveal <noun>", disabled until isGameEnded with "Can't reveal until all end"
 ```
 
 | game | its puzzle-solution | a board-solution reaches it | `impliedBy` | its `noun` |
@@ -77,7 +77,7 @@ filter already IS the control, mount none of this.
 | bananagrams · scrabble · setgame | none | — | — | no answer to show |
 
 **One `describe()` serves all ten**, `describeReveal({ noun, revealed,
-impliedBySolve?, isTerminal })`, so the three states cannot drift: inert with
+impliedBySolve?, isGameEnded })`, so the three states cannot drift: inert with
 "Solution already shown", live as "Hide <noun>" wearing `IconHideSolution`, and
 "Reveal <noun>" — gray until the game is over for EVERYONE, tooltipped *"Can't
 reveal until all end"*. `noun` is **solution** unless the thing shown genuinely
@@ -94,7 +94,7 @@ does not yet do that (stackdown, strands) fixes it as it converts
 ([plans/seat-view.md](../../../plans/seat-view.md) → What this touches).
 
 **Every gated game offers the reveal twice** — an `<ActionButton>` in the
-terminal action row and a game-menu row, both placing the same `act-reveal`
+ending action row and a game-menu row, both placing the same `act-reveal`
 binding, so the two faces cannot come apart and a player on a phone, with the
 info column off-canvas, can still reach it.
 

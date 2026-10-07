@@ -44,7 +44,7 @@ type Props = {
  *     `gameEventLog.main` column. Definable only when it's a real word: looking up
  *     something the dictionary just rejected would be a dead end.
  *   - **length / reason** — an accepted guess shows its LENGTH (wordiply's one
- *     live readout; scores stay terminal-only). A reject shows why instead.
+ *     live readout; scores wait for the end). A reject shows why instead.
  *   - **who** — the actor's `<ActorDot>`, right-aligned so the discs line up.
  *
  * **The `#N` handle**, like every other log. Its board is five rows all visible
@@ -60,7 +60,7 @@ export function GameEventLog({
     players,
     myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })

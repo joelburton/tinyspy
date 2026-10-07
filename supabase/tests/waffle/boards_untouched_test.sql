@@ -5,7 +5,7 @@
 -- ============================================================
 -- Seeing the answer is a DISPLAY decision, top to bottom: the solution
 -- arrives in game_data at the end, the FE swaps what it
--- DRAWS when a player asks (locally — docs/ui.md → Terminal results), and
+-- DRAWS when a player asks (locally — docs/ui.md → Endings), and
 -- `waffle.players.board` is never rewritten by any of it.
 --
 -- That last clause is what this file pins, and it has been false twice over.

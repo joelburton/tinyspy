@@ -18,7 +18,7 @@ type Square = { row: number; col: number; fill: string }
  * genuinely never holds it — so filling the grid means looking it up. Fine here
  * (the trust model is friends, not adversaries), and every cell below is still
  * written through the real `set_cell`, so the grid, the check marks and the
- * terminal are all the ones a player would have produced.
+ * ending are all the ones a player would have produced.
  *
  * The column is rows of cells, each cell a list of characters (a rebus square
  * holds more than one) and a BLACK square an empty list — so the flatten both
@@ -45,7 +45,7 @@ function solutionOf(gameId: string): Square[] {
  * CrossPlay (crosswords) gallery states (docs/testing.md → The screenshot gallery).
  *
  * There is no LOSS: a crossword can be abandoned but not failed, so the only
- * terminals are the solve and the neutral stop.
+ * endings are the solve and the neutral stop.
  */
 export const crosswordsGallery: GameGallery = {
   game: 'crosswords',

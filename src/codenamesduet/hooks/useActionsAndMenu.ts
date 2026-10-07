@@ -52,9 +52,9 @@ export function useActionsAndMenu({
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,
-    isTerminal: gd.ended,
+    isGameEnded: gd.ended,
     mode: 'coop',
-    isLocallyTerminal: false,
+    isPlayerEnded: false,
     localFeedbackSlot,
   })
 
@@ -73,7 +73,7 @@ export function useActionsAndMenu({
       return describeReveal({
         noun: 'key cards',
         revealed: partnerKeyReveal.revealed,
-        isTerminal: gd.ended,
+        isGameEnded: gd.ended,
       })
     },
     run: partnerKeyReveal.toggle,
@@ -111,7 +111,7 @@ export function useActionsAndMenu({
   // it) and goes straight through once the game has ended. The shared run's
   // single flight is what stops a second press sampling a second board.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.ended,
+    ended: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe: (asker) => (asker === 'button' && !gd.ended
       ? 'hidden'

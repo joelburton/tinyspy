@@ -186,7 +186,7 @@ won ring during the hold, then the yellow on the three new tiles, symbols above 
   no longer has: the frontend is stale against the 2026-09-28 common tables),
   `setgame.players` (`sets_found, hints_used`) and `setgame.events` (`kind,
   cards, board_after`), and subscribes to all three through
-  `useRealtimeRefetch`. PlayArea reads the old page props (`isTerminal`,
+  `useRealtimeRefetch`. PlayArea reads the old page props (`isGameEnded`,
   `status`, `authSession`, `isBoardInteractive`…).
 - **The convenience RLS.** No policy or view mentions `auth.uid()` or
   `ended_at`: `games_select`, `players_select` and `events_select` are each a

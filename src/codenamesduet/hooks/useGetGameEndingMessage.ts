@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from '../lib/endingMessage'
 import type { GGameData } from '../types'
 
@@ -13,7 +13,7 @@ import type { GGameData } from '../types'
  * lets the effect that shows it show it once rather than on every reload of
  * the blob, so the memo keys on the strings, not on the objects.
  */
-export function useGetGameEndingMessage(gd: GGameData): TerminalMessage | null {
+export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const outcome = gd.outcome
   const detail = gd.ending?.detail ?? null
   return useMemo(

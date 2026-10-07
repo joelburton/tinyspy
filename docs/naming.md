@@ -203,7 +203,7 @@ anchor solo play and per-user stats. They're structurally separate from regular
 
 See [`common.md`](common.md) for the full club model — invariants and lifecycle.
 The current / suspended / completed flag a club's game list draws is
-[`states.md`](states.md#suspended-vs-terminal--not-a-special-case)'s.
+[`states.md`](states.md#suspended-vs-ended--not-a-special-case)'s.
 
 ### member
 
@@ -585,7 +585,7 @@ concept is the same. A future game that names one of these differently is wrong.
 | `p_game_id` | The game-UUID parameter on every gametype's RPCs and helpers (`submit_guess(p_game_id uuid, …)`). Every parameter of a game's SQL function carries the `p_` prefix, so it never collides with a column name. |
 | `submit_guess` | The mid-game-action RPC on a gametype that records a player's guess. The guess *shape* differs (a clue + count for codenamesduet, a number for psychicnum, a 4-tile set + verdict for connections), but the RPC name is the same. |
 | `submit_word` | The mid-game-action RPC where the move is "commit a word" — the word-list / word-building games (spellingbee, wordwheel, boggle, stackdown today). Sibling to `submit_guess`; a distinct verb because the move concept genuinely differs (a whole scored word vs a single guess), but the name is identical across those games. (waffle's `submit_swap` and scrabble's `play_word` are their own distinct move verbs — don't reuse `submit_word` for a different gesture.) |
-| `submit_timeout` | The countdown-expiry RPC every timed gametype exposes. Fired by **every** connected client when the timer hits zero; idempotent on the terminal-state check (the first call ends the game, the rest raise "not in progress" which the manifest swallows). |
+| `submit_timeout` | The countdown-expiry RPC every timed gametype exposes. Fired by **every** connected client when the timer hits zero; idempotent on the game-ended check (the first call ends the game, the rest raise "not in progress" which the manifest swallows). |
 | `concede` | The per-player drop-out action in every compete game — "I quit, the rest keep racing" (a real per-player loss). It is the player's ending with reason `conceded`, on `common.game_players.player_ended_reason`, written by `common._concede` (which ends the game once everyone has conceded); each compete game exposes a `<schema>.concede(p_game_id)` that calls it. See [`common.md` → Concede](common-schema.md#concede--per-player-drop-out). |
 | `owner_id` | The **nullable** per-player-vs-shared discriminator on a table that holds both shapes: **null = the SHARED row** (one thing the whole coop table edits), **a user id = that player's OWN copy** (compete, where a shared one would leak). Used by `common.game_scratchpads` (shared pad vs private pad) and `crosswords.grids` (the shared grid vs per-player grids); both carry a `unique nulls not distinct` key over `(…, owner_id, …)` so the null row is a single value rather than many. Prefer this to a separate `is_shared` flag or two tables — one table, one RLS policy, and the mode picks which rows exist. (Written down 2026-08-01; the convention was consistent in code and recorded nowhere.) |
 | `winner_user_id` | The `clubpage_info` key naming a compete game's sole winner, null until there is one; the page compares it against `authSession.user.id`. A game whose ties are ordinary writes a list, `winner_user_ids` (setgame). No username is copied beside it: the club page has every member's name. |
@@ -614,7 +614,7 @@ name, raise it.
 | `list` | the named collection |
 | `value` | the actual semantic (`score`, `rank`, `count`) |
 | `thing` / `stuff` / `obj` | never (in wide visibility); fine as a 3-line-function local |
-| `copy` (meaning message text) | `text` or `message`. In the literary world `copy` is the right word; among programmers it means *duplicate*, so `hintCopy` reads as a copy OF a hint. **New names say `text` or `message`** — the feedback area renamed its population 2026-09-12 (`TerminalMessage` / `terminalMessage`, `buildGameEndedMessageNeutral`, `turnText`); `withCopy` and `hintCopy` remain, a rename nobody has scheduled |
+| `copy` (meaning message text) | `text` or `message`. In the literary world `copy` is the right word; among programmers it means *duplicate*, so `hintCopy` reads as a copy OF a hint. **New names say `text` or `message`** — the feedback area renamed its population 2026-09-12 (`EndingMessage` / `endingMessage`, `buildGameEndedMessageNeutral`, `turnText`); `withCopy` and `hintCopy` remain, a rename nobody has scheduled |
 
 ## What's in the rest of `docs/`
 

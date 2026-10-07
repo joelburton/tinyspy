@@ -107,7 +107,7 @@ export function GameEventLog({
     players,
     myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     label: 'Whose turns to show',
     emptyLabel: 'No turns yet.',
   })

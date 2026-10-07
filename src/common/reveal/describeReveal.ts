@@ -21,12 +21,12 @@ export function describeReveal({
   noun,
   revealed,
   impliedBySolve = false,
-  isTerminal,
+  isGameEnded,
 }: {
   noun: string
   revealed: boolean
   impliedBySolve?: boolean
-  isTerminal: boolean
+  isGameEnded: boolean
 }): Described {
   // The plain eye, not the crossed one: a solver never pressed Reveal, so there
   // is no "on" for a struck-through eye to be the "off" of.
@@ -36,7 +36,7 @@ export function describeReveal({
   // row change its words as the game ended, which is not what it says. And the
   // tooltip is why it is gray, in every game — the reveal waits for the game to
   // be over for EVERYONE, so a player who dropped out cannot spoil a live race.
-  return isTerminal
+  return isGameEnded
     ? { state: 'active', label: `Reveal ${noun}` }
     : { state: 'disabled', label: `Reveal ${noun}`, tooltip: "Can't reveal until all end" }
 }

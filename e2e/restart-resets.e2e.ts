@@ -29,16 +29,16 @@ closeContextsAfterEach()
  * play surface never unmounts. pgTAP structurally cannot see that, and only a
  * handful of games had any FE restart coverage at all.
  *
- * So this is deliberately SHALLOW and WIDE: reach terminal, reveal the answer,
+ * So this is deliberately SHALLOW and WIDE: reach the end, reveal the answer,
  * restart, and assert the two things that broke — no revealed answer left on
- * screen, and no terminal verdict left under it. It is not a replacement for a
+ * screen, and no ending verdict left under it. It is not a replacement for a
  * game's own replay test; it's the one assertion none of them were making.
  */
 
 /**
  * Stop the game from the menu, through the confirm modal.
  *
- * The confirm is unconditional — STOP_GAME_CONFIRM fires before every pre-terminal
+ * The confirm is unconditional — STOP_GAME_CONFIRM fires before every still-playing
  * `stop_game`, in every game — so this CLICKS it rather than probing first. An
  * `if (await confirm.isVisible())` guard here is a race, not defensiveness:
  * `isVisible()` is a one-shot probe, the dialog is a React state render, and
@@ -52,7 +52,7 @@ async function stopGame(page: Page) {
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 }
 
-/** Restart from the menu (no confirm at terminal — see useStandardGameActions). */
+/** Restart from the menu (no confirm once ended — see useStandardGameActions). */
 async function restart(page: Page) {
   await page.getByRole('button', { name: 'Game menu' }).click()
   await actionRow(page, 'act-restart').click()
@@ -61,7 +61,7 @@ async function restart(page: Page) {
 /**
  * Reveal the answer if this game offers it, wherever it lives. Two homes across
  * the roster: strands + wordle carry the MENU row; the others put a button in
- * the terminal action row. `count()` first, always — a zero-match locator makes
+ * the ending action row. `count()` first, always — a zero-match locator makes
  * `isEnabled()`/`click()` auto-wait to the timeout.
  *
  * By id, which is what makes one helper serve nine games: every one of them
@@ -83,7 +83,7 @@ async function revealIfOffered(page: Page) {
   else await page.keyboard.press('Escape')
 }
 
-/** Every game's terminal verdict says one of these somewhere on the surface
+/** Every game's ending verdict says one of these somewhere on the surface
  *  ("Ended: 0 words, 0 points", "Game ended", "Game over"). */
 const VERDICT = /Ended:|Game ended|Game over/
 
@@ -115,7 +115,7 @@ for (const g of GAMES) {
 
     // Playable again: the verdict is gone from the surface…
     await expect(page.getByText(VERDICT)).toHaveCount(0, { timeout: 10000 })
-    // …and so is every reveal affordance, which only exists at terminal. That's
+    // …and so is every reveal affordance, which only exists once ended. That's
     // the FE's own signal that it isn't still holding a revealed solution — the
     // shape of the crosswords bug, where the answers stayed painted on a board
     // the server had already cleared and un-revealed.

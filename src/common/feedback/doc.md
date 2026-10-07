@@ -101,8 +101,8 @@ players strip while it does, so nothing belongs there for the length of a game.
 - **`window.puppill('hey', 'hint')`** from the browser console puts a message
   into a mounted slot, the way `puptoast` does for toasts. Every real message
   needs a real event behind it, so there is no honest UI path to one on demand.
-- **The words a message says are not always written here.** A terminal
-  verdict's sentence is built in `common/terminal`, and a waiting line's in
+- **The words a message says are not always written here.** An ending
+  verdict's sentence is built in `common/ending`, and a waiting line's in
   `common/info-sheet`, because both of those have a second surface that must
   say the same thing. A game's own answers — correct, wrong, already guessed —
   are built in that game's `lib/answer.ts`, which returns an `AnswerMessage`

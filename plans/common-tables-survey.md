@@ -452,7 +452,7 @@ stackdown (coop). The rest set it once at create.
   wordiply), and bananagrams' live `bunch_remaining` / `bag_remaining`. In
   SQL, only `common.update_state` and `common.end_game` (merging) and
   crosswords' `replay_board` (`title`).
-- **`result`:** only the FE — `terminalOutcomeVerb` (`result.won`, in seven
+- **`result`:** only the FE — `endingOutcomeVerb` (`result.won`, in seven
   InfoCols) and strands' PlayArea (`result.won` three times). No SQL reads
   it.
 - **`setup`, by the FE during play:**

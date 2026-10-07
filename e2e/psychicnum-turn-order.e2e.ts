@@ -53,7 +53,7 @@ test.describe('psychicnum turn order (coop)', () => {
 
     // Bob cannot act: the waiting pill has taken the entry slot (WordEntryArea's
     // designed pill swap — same height, controls replaced), so there's no Submit
-    // to press at all. Crucially he is NOT shown the locally-terminal "out of
+    // to press at all. Crucially he is NOT shown the player-ended "out of
     // guesses" look — he's just waiting his turn.
     await expect(pageB.getByRole('button', { name: 'Submit' })).toHaveCount(0)
     await expect(pageB.getByText(/Out of guesses/i)).toHaveCount(0)

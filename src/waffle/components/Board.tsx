@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import { cls } from '@/common/utils/cls'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import shared from '@/common/game-page/playArea.module.css'

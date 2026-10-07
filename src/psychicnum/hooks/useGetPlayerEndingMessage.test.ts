@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { PlayerEndedReason } from '@/common/terminal/gameEnding'
+import type { PlayerEndedReason } from '@/common/ending/gameEnding'
 import { ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useGetPlayerEndingMessage } from './useGetPlayerEndingMessage'

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '../utils/cls'
-import type { EndOutcome } from '../terminal/gameEnding'
+import type { EndOutcome } from '../ending/gameEnding'
 import shared from './playArea.module.css'
 
 /**

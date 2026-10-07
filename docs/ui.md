@@ -29,7 +29,7 @@ a line the crossword doesn't get), and because a tile jumping when a message
 above it wraps breaks the feeling of playing a game.
 
 **The #1 offender is removing a flow element on a state change.**
-`{isTerminal ? … : <WordEntryArea/>}` looks harmless, but the board above is
+`{isGameEnded ? … : <WordEntryArea/>}` looks harmless, but the board above is
 usually `flex: 1`, so when the row vanishes the board grows into the space.
 Every time you write `{cond && <X>}` or a state ternary in a play surface, ask:
 does `<X>` take layout space, and does a sibling grow to fill? If so, keep it
@@ -99,13 +99,13 @@ they exist — it has no local slot, so "I just deleted that game" would
 otherwise fall to the header, which is other people's and costs the members'
 presence strip. [`common/toasts`](../src/common/toasts/doc.md).
 
-## Terminal results — the moment vs the record
+## Endings — the moment vs the record
 
 A finished game splits into **the record** — what the page says about it every
 time anyone opens it — and **the moment**, a win worth marking, which happens
 once. **The record is in-page**: the verdict rotates into the slot the entry
 used during play, and the info column's action row says it again beside the
-buttons, both from one `TerminalMessage` so they can't drift. **Only the
+buttons, both from one `EndingMessage` so they can't drift. **Only the
 moment gets a modal** — the celebration, for a win and for nothing else, and
 never on opening a game that was already won. **Losses stay quiet**: the red
 pill says it, and a consolation modal would be one more thing to dismiss on the
@@ -117,7 +117,7 @@ to stop. Revealing it is **personal** (my looking doesn't open my partner's),
 is always one click back) and **unpersisted** (nothing stored, and a restart
 starts blind). The one thing that opens an answer by itself is having produced
 it. **Restart is offered at every ending**, as a button once the game is over
-and a menu row all game. [`common/terminal`](../src/common/terminal/doc.md),
+and a menu row all game. [`common/ending`](../src/common/ending/doc.md),
 [`common/reveal`](../src/common/reveal/doc.md),
 [`common/game-page`](../src/common/game-page/doc.md) for Restart.
 

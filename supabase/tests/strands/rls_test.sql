@@ -122,7 +122,7 @@ select is(
 -- ============================================================
 -- Over for EVERYONE is the only thing worth protecting: whether a player is
 -- LOOKING at the answer is a display choice each makes for themselves in the FE
--- (docs/ui.md → Terminal results). What the server owes is that a compete racer
+-- (docs/ui.md → Endings). What the server owes is that a compete racer
 -- who solved early or conceded can't pull the answer while the rest are still
 -- tracing — and that is exactly this gate.
 

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -30,7 +30,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // The six words while I have them revealed, else null.
@@ -118,7 +118,7 @@ export function InfoCol({
             click). ABOVE the setup disclosure per the canonical order (the
             reveal is the payoff; the Setup options list is bookkeeping). */}
         {gd.ended && solution && (
-          <div className={cls(shared.terminalExtra, styles.reveal)}>
+          <div className={cls(shared.endingExtra, styles.reveal)}>
             <span className="muted">The words were</span>{' '}
             <strong className={styles.revealWords}>{solution.join(' · ')}</strong>
           </div>

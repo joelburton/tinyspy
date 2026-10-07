@@ -15,7 +15,7 @@ import type { Cell, GameGallery } from '../types'
  * would mean writing rows behind the RPCs' back, which the gallery's one rule
  * forbids and which would photograph a board no deal could produce.
  *
- * The terminal cells play the whole deck out — about 25 real claims. It is the
+ * The ended cells play the whole deck out — about 25 real claims. It is the
  * only way to reach the natural end, since setgame has no setup knob that
  * shortens a game the way wordle's guess budget or letterboxed's word cap do.
  * No browser is involved, so it costs a second.

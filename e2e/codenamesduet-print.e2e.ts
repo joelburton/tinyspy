@@ -16,7 +16,7 @@ import { signIn } from './helpers/session'
  *
  * This is the MID-GAME view — 25 tiles each carrying the viewer's own key, which
  * is the state the printout exists for (thinking about clues away from a
- * screen). The terminal both-keys view shares the renderer and differs only by a
+ * screen). The ended game's both-keys view shares the renderer and differs only by a
  * second inset per tile.
  */
 test.describe('codenamesduet — print board', () => {

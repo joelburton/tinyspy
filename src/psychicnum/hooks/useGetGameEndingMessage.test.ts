@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import type { GameDataRaw } from '@/common/game-page/gameData'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import { ZTest_makeGameDataRaw } from '../lib/gameData.fixture'
 import { makeGameData } from './useGame'
 import { useGetGameEndingMessage } from './useGetGameEndingMessage'

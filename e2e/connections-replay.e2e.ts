@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 import { actionButton } from './helpers/actions'
 
 /**
- * connections' "Restart" + "New game" — the terminal action row's
+ * connections' "Restart" + "New game" — the ending action row's
  * stay-here options, also reachable mid-game from the menu.
  *
  * New game is connections-specific and is what these tests mostly cover.
@@ -88,7 +88,7 @@ test.describe('connections replay + new game', () => {
 })
 
 /**
- * The ended board, and the terminal reveal — the browser half of what the unit
+ * The ended board, and the ending reveal —the browser half of what the unit
  * tests pin. connections used to hand its answer over unasked at game over, and
  * because the board swaps loose tiles for full-width bands, doing so DELETED
  * the tiles the players were still staring at: a lost game showed four bands

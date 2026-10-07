@@ -72,11 +72,11 @@ export function useActionsAndMenu({
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,
-    isTerminal: gd.ended,
+    isGameEnded: gd.ended,
     mode: gd.mode,
     // Out of the race while the game goes on; a conceder, a solver, a player
     // whose budget is spent.
-    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
+    isPlayerEnded: !gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -165,7 +165,7 @@ export function useActionsAndMenu({
       // menu row and the Help list keep it all game, grayed, because they NAME
       // the glyph (docs/ui.md → the menu is the legend).
       if (gd.me.stillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal: gd.ended })
+      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isGameEnded: gd.ended })
     },
     run: toggleSecrets,
   })
@@ -206,7 +206,7 @@ export function useActionsAndMenu({
   // straight through once the game has ended, and the shared run's single
   // flight is what stops a second press dealing a second game.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.ended,
+    ended: gd.ended,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
     // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
     // the end, where "deal another" is what you came to the row for.

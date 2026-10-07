@@ -42,8 +42,8 @@ and `timerLabel` is the sentence they both print.
 
 **`expired` is a level, not an edge**, and the distinction matters to the
 caller that fires the timeout. It is true for as long as a countdown sits at 0,
-which is what the games want — "did the clock end this?" is a fact about a
-terminal game, and it survives a reload. What it is not is a trigger: `GamePage`
+which is what the games want — "did the clock end this?" is a fact about an
+ended game, and it survives a reload. What it is not is a trigger: `GamePage`
 wants the moment, builds the edge with a ref it mutates inside an effect, and
 gates it on `paused` so a timeout that comes due as a pause engages resolves on
 resume. The edge stays there because a hook cannot hand one back safely.

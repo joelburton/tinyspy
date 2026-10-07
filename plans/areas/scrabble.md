@@ -127,7 +127,7 @@ summary_data:
   `scrabble.events` (with `seat`, gone too), and subscribes to all three
   through `useRealtimeRefetch`. The coop show-a-move Broadcast
   (`useSharedMove`) is ephemeral and stays beside `gd`. PlayArea reads the old
-  page props (`isTerminal`, `status`, `authSession`, `turnHolderId`…).
+  page props (`isGameEnded`, `status`, `authSession`, `turnHolderId`…).
 - **The convenience RLS.** `scrabble._rack_for` (definer: a rack to its owner,
   or to everyone once `ended_at` is set) and `_rack_count_for`, read through
   the `security_invoker` view `players_state`, are taken over by the seat rule

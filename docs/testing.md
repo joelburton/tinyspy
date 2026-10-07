@@ -512,7 +512,7 @@ involves a browser. Direct SQL stays available as an escape hatch (reading a
 hidden target, a private rack) but each use is commented with *why*, because
 each one is a small lie.
 
-**Terminal states come from setup where they can.** letterboxed with
+**Ended states come from setup where they can.** letterboxed with
 `extra_words: 0` is two words from a full chain; the `create<Game>Game` fixtures
 already take these parameters.
 
@@ -560,7 +560,7 @@ board under a heading saying someone won.
   column. The runner seeds that set from the DB, scoped to the **member** — each
   game gets its own club, but the invite query asks "what games am I a player
   in?" and doesn't care about clubs.
-- **Photographing the right chair.** A compete terminal hands out both verdicts
+- **Photographing the right chair.** A compete ending hands out both verdicts
   at once; `won` and `lost` are the same game from two seats.
   `seatWithVerdict()` reads `common.game_players.result` rather than assuming
   the first member won — scrabble's end-of-game rack penalty can hand the win to
@@ -691,8 +691,8 @@ A few in more detail:
   the markdown we own resolves: the file exists and a `#fragment` matches a real
   heading. A renamed heading breaks a link that still *looks* right in the
   source. Note the anchor rule it encodes: GitHub **deletes** heading
-  punctuation but keeps the spaces around it, so `## Terminal results — the
-  moment vs the record` is `#terminal-results--the-moment-vs-the-record` with
+  punctuation but keeps the spaces around it, so `## Endings — the moment vs
+  the record` is `#endings--the-moment-vs-the-record` with
   **two** hyphens. Writing one (or keeping the literal `—`) dangles silently.
 - **`src/guards/prosePointers.test.ts`** and **`prosePaths.test.ts`** (Vitest)
   — the same promise for the cross-references that aren't links. A comment's

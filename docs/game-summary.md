@@ -32,7 +32,7 @@ every formula:
    starts on the placeholder `'New game'` and rewrites it from play; a mode that
    holds the placeholder for a whole race says `'New compete'`, since that is
    the label a club list actually sits on. When the title can carry **hidden**
-   state — at terminal it may become the answer, but only once the answer is
+   state — at the end it may become the answer, but only once the answer is
    legitimately shown — the rewrite is derived, not assigned: a `_sync_title`
    helper recomputes it from state and every transition calls it, so a
    timeout, a concede, a manual end and a **replay** all land on the right

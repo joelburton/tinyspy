@@ -103,8 +103,8 @@ test.describe('presence-pause', () => {
     const target = targetOf(game.id)
     await pageA.keyboard.type(target)
     await pageA.keyboard.press('Enter')
-    // Her info column takes the locally-terminal LOOK — "Waiting for others",
-    // wordle's words for done-but-the-game-isn't. NOT the terminal verdict
+    // Her info column takes the player-ended LOOK — "Waiting for others",
+    // wordle's words for done-but-the-game-isn't. NOT the ending verdict
     // ("Solved it!"), which belongs to a game that is over for everyone, and
     // bob's board is the proof it isn't.
     await expect(pageA.getByText('Waiting for others')).toBeVisible({ timeout: 15000 })

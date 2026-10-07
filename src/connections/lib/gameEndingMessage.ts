@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What connections says once the game is over, for its ending and mode.
@@ -43,9 +43,9 @@ export function buildGameEndingMessage({
   // = `resource_exhausted`). Tells the out-of-mistakes loss from "beaten to
   // the punch".
   iWasEliminated: boolean
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makeGameEndingWords(): Pick<EndingMessage,'pillText' | 'infoColText'> {
     // A Stop is the uniform neutral ending shared with the other games — the
     // shared message owns its words.
     if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)

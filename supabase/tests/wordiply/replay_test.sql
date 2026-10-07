@@ -11,7 +11,7 @@
 -- max_word_len + the word lists) survives. Any game player may call it,
 -- mid-game or after the end; a non-player is rejected.
 --
--- OVERLAP WITH terminal_test §3, on purpose: that file replays a coop
+-- OVERLAP WITH ending_test §3, on purpose: that file replays a coop
 -- game as one of its ending paths (ended_at / guesses wiped /
 -- guesses_used / base). This file is the dedicated replay suite every
 -- other replay game has, and carries what §3 doesn't reach — the COMPETE

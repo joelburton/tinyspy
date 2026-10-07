@@ -1,11 +1,11 @@
 // cs-unmet
 
 import type { Actor } from '@/common/members/member'
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What scrabble says once the game is over, for its ending and mode.
@@ -49,9 +49,9 @@ export function buildGameEndingMessage({
   teamScore: number | null
   // Everyone ranked first — a tie shares the win; empty when nobody won.
   winners: Actor[]
-}): TerminalMessage {
+}): EndingMessage {
   /** The texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Omit<TerminalMessage, 'outcome'> {
+  function makeGameEndingWords(): Omit<EndingMessage, 'outcome'> {
     // A Stop is the uniform neutral ending shared with the other games.
     if (gameOutcome === 'neutral') return buildGameEndedMessageNeutral(mode)
 

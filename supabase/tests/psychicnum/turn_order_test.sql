@@ -6,14 +6,14 @@
 -- psychicnum is the pilot for the common turn primitive. This pins the
 -- per-game wiring: create_game seats the rotation when setup.coop_style=
 -- 'turns', and submit_guess gates on _require_turn + advances on an
--- accepted, non-terminal guess.
+-- accepted guess that doesn't end the game.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
 --   3. an accepted (budget-spending) guess advances the pointer
 --   4. a soft-rejected guess (duplicate word) does NOT advance — the
 --      same player keeps the turn
---   5. a finding-but-not-terminal guess still advances
+--   5. a finding-but-not-ending guess still advances
 --   6. create_game rejects a first_turn_user_id that isn't a player
 --   7. free-for-all (no coop_style) leaves the pointer null and ungated
 --   8. solo turn game: the pointer wraps back to the lone player
@@ -130,7 +130,7 @@ select is(
   'turns: a soft-rejected guess does NOT advance the turn'
 );
 
--- (8) A finding-but-not-terminal guess advances too (accepted move).
+-- (8) A finding-but-not-ending guess advances too (accepted move).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zalpha'),
@@ -142,7 +142,7 @@ reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from turn_g)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'turns: a correct, non-terminal guess advances the pointer'
+  'turns: a correct guess that doesn''t end the game advances the pointer'
 );
 
 -- ============================================================

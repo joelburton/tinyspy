@@ -179,10 +179,10 @@ export type MenuApi = {
   // the menu. Bound by the game page, because it is the page that knows which
   // rules to show; place it with `buildGameMenu`.
   actHelp: Action
-  // "Back to club": navigates directly for a terminal game, or opens the
+  // "Back to club": navigates directly for an ended game, or opens the
   // suspend-confirm modal mid-game. Also carries `<`, so a menu row built from
-  // it advertises the key. Place it in a menu, or as an `<ActionButton>` in a
-  // terminal row.
+  // it advertises the key. Place it in a menu, or as an `<ActionButton>` in an
+  // ending row.
   actBackToClub: Action
   // Open chat, bound at the app root rather than here — the game page only
   // passes it along so a menu can show it. Null on a page with no chat panel.

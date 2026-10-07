@@ -18,7 +18,7 @@ import type { E2EClub, E2EMember } from '../helpers/fixtures'
  * Direct SQL is available as an escape hatch for anything the RPCs genuinely
  * can't reach — comment each use with WHY, because each one is a small lie.
  *
- * ── Terminal states come from SETUP, not from playing ───────────────────────
+ * ── Ended states come from SETUP, not from playing ──────────────────────────
  * Driving wordle to a loss is six rounds of realtime waiting; creating it with
  * one guess is instant. letterboxed with `extra_words: 0` is two words from a
  * full chain. The `create<Game>Game` fixtures already take these parameters.
@@ -30,10 +30,10 @@ export type Phase =
   | 'fresh'
   /** Some moves in, nothing decided. Where a game spends its life. */
   | 'mid'
-  /** Terminal, and the players did it. */
+  /** Ended, and the players did it. */
   | 'won'
   /**
-   * Terminal, and they didn't.
+   * Ended, and they didn't.
    *
    * **One per mode, and prefer the game's OWN losing condition** — out of
    * guesses, out of time, stack not cleared. A concede or a manual stop is
@@ -48,7 +48,7 @@ export type Phase =
    */
   | 'lost'
   /**
-   * Terminal, and NEITHER — a neutral finish.
+   * Ended, and NEITHER — a neutral finish.
    *
    * Some games can only end this way. wordiply's coop spends its five guesses
    * and stops, with no verdict at all ("spending the guesses, or stopping on

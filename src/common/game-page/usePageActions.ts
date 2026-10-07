@@ -82,7 +82,7 @@ export function usePageActions({
   })
 
   useBindAction('act-new-game-from-setup', {
-    terminal: cg.ended,
+    ended: cg.ended,
     describe: () => 'active',
     run: () => navigate(`${clubPath(cg.club.handle)}?new=${manifest.gametype}`),
   })
@@ -98,7 +98,7 @@ export function usePageActions({
     }
   }
   const actStopGame = useBindAction('act-stop-game', {
-    terminal: cg.ended,
+    ended: cg.ended,
     describe: () => (pause.paused ? 'active' : 'hidden'),
     run: stopTheGameFromTheOverlay,
   })

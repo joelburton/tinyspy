@@ -27,7 +27,7 @@ type Props = {
  * The shared "you won!" celebration — confetti glyphs that bounce in, an
  * optional jingle, and the way out.
  *
- * A terminal game pops nothing else. Every game carries its verdict in-page
+ * An ended game pops nothing else. Every game carries its verdict in-page
  * (the below-board pill + the info-column outcome line) and reserves this for a
  * win worth marking, popped at the moment it happens via `useCelebration` and
  * never when opening an already-won game. Which win counts is the caller's:

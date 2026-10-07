@@ -113,7 +113,7 @@ test.describe('letterboxed', () => {
 
   test('the board never moves as pills and chain words come and go', async ({ browser }) => {
     // The repo's hard no-reflow rule (docs/ui.md → layout stability). The entry
-    // row, an own-move pill and the terminal verdict all occupy ONE
+    // row, an own-move pill and the ending verdict all occupy ONE
     // reserved-height slot, and the chain strip reserves its rows up front —
     // so the board's position is fixed for the life of the game. This asserts
     // the pixel rather than the CSS, because the CSS was right-looking and

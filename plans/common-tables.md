@@ -478,16 +478,16 @@ it once the front end lands. Before it:
       wait for stage 3** (Joel, 2026-09-27): stage 1 writes what the games
       know today — the winners `final_ranking` 1 and `won`, everyone else no
       ranking and `lost` or `neutral` — and each game's ending brings the
-      full ranking, so no game produces `near` until then. `isLocallyTerminal` →
-      `isPlayerEnded`, and every other "terminal" about a player, everywhere
-      (§3b question 1).
+      full ranking, so no game produces `near` until then. `isPlayerEnded`,
+      and every other "player-ended", is plans/endings.md's rename (§3b
+      question 1).
    2. **The game's lifecycle.** `common.games` gains the reason pair,
       `game_ended_outcome` and `mode`, and loses `play_state`,
       `is_terminal` and `paused`. `common._end_game` takes the reason pair as
       required parameters (§3b question 3); the Stop writes `stopped`, not
-      `manual`; codenamesduet works out sudden death. `isTerminal` →
-      `isGameEnded`, `TerminalOutcome` → `EndOutcome` (done), and every other
-      "terminal". Also in this stage (found 2026-09-27): the thirteen
+      `manual`; codenamesduet works out sudden death. `EndOutcome` is
+      done; `isGameEnded` and every other "ended" is plans/endings.md's
+      rename. Also in this stage (found 2026-09-27): the thirteen
       child-table SELECT policies that join `common.games` for
       `is_terminal` read `ended_at is not null`; `strands.club_game_status`
       (unread) is dropped; `src/guards/gameSummaries.test.ts`, which
@@ -529,8 +529,8 @@ readers): the generated types (`npm run types:gen`, which strips the file's
 stamp — put it back); the pgTAP that reads the columns (`play_state` is
 named in about 109 test files, `is_terminal` in 66, `result` in 46,
 `conceded` in 39, `locally_terminal` in 9, `games.mode` in 13); the e2e that
-read them (`concede`, `terminal-reveal`, `realtime-deaf-window`,
-`bananagrams`, `strands`, `psychicnum-terminal`, `e2e/helpers/fixtures.ts`, the
+read them (`concede`, `ending-reveal`, `realtime-deaf-window`,
+`bananagrams`, `strands`, `psychicnum-ending`, `e2e/helpers/fixtures.ts`, the
 gallery's `verdict` / `index` / `types` / `run` and three game files); and
 the reference docs that describe the columns — docs/states.md,
 docs/common-schema.md (The game row, Ending a game, Concede, Not playing
@@ -604,7 +604,7 @@ for the reasonless compete wins; wordiply's `complete` from a concession; a
 raise for any row the map does not cover), the path's stale step-6 item, the
 readers each stage must carry, and the players' backfill. Verified and
 holding: nothing sets `paused`; the `last_active_at` trigger fires on any
-update of the row; `TerminalOutcome` is `won` / `lost` / `neutral`; no index
+update of the row; no index
 or filter reads `is_terminal`; codenamesduet's `turns` is only a sudden-death
 miss; strands' `unsolved` is unreachable; the club page reads only
 `common.games` and already has every member's name from `get_club_page`.

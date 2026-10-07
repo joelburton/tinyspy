@@ -122,7 +122,7 @@ also passed in Step 0. **Deleted rather than moved**, which is what the register
 is for: a shipped item left in a Deferred list reads as work for three weeks.
 
 **The other item moved OUT of this game.** *"Stop HIDING the keyboard at
-terminal; dim it instead"* — reversed 2026-08-17 after a real lost game, on the
+the end; dim it instead"* — reversed 2026-08-17 after a real lost game, on the
 grounds that the keyboard is where the alphabet's state lives and hiding it
 removes that summary at the moment you want to study it. It went to
 `src/shared/onscreen-keyboard/todo.md`, not `src/wordle/todo.md`, by the sorting
@@ -137,7 +137,7 @@ earlier today:**
   folder's own `todo.md` was empty. That is the gap `deferred.md`'s sorting key
   exists to prevent, and it took a game area to find it.
 - **That area's F-2 made the deferral bite twice as hard.** wordiply used to
-  UNMOUNT its keyboard at terminal; it now passes `gameOver` and hides it, which
+  UNMOUNT its keyboard at the end; it now passes `gameOver` and hides it, which
   was the right fix for the reflow and is the wrong end state for the readout.
   The two games now share one treatment, which is exactly what the item wants
   before it is changed. The folder's `doc.md` said the withdraw was settled and
@@ -218,7 +218,7 @@ disagreed:**
   payload", lists the not-ok codes, and describes the coop-only turn wiring in
   the same sentence as the answer shapes. The new section says what an `ok`
   carries, by `result`, and nothing else.
-- The old doc's title table says a terminal game titles "the winning guess";
+- The old doc's title table says an ended game titles "the winning guess";
   read from `_sync_title`, a LOST game titles its last guess too — the answer
   appears only when the last guess was the win. The doc says that.
 - **`manifest.ts` claims the RPC enforces compete's two-player minimum**
@@ -297,8 +297,8 @@ got "warning"`; restored, green. `tsc -b` clean, lint clean over
 pgTAP suite green (181 files, 2545 tests). The e2e specs have not run for
 Steps 2–4.
 
-**Seen with the SQL open, left for pass 2:** `submit_guess`'s coop terminal
-write says *"Every terminal write states its `outcome` explicitly"* while the
+**Seen with the SQL open, left for pass 2:** `submit_guess`'s coop game-ending
+write says *"Every game-ending write states its `outcome` explicitly"* while the
 key it writes is `reason` — the status-key rename left the comment behind. A
 stale-claims item for the audit, with `manifest.ts`'s two-player claim.
 
@@ -306,7 +306,7 @@ stale-claims item for the audit, with `manifest.ts`'s two-player claim.
 
 connections' Step 5 (`e0d0d104`), copied. **The row is one `<InfoActionsRow>`
 now**, in the order `docs/playarea.md` states: Reveal · Restart · New game ·
-Concede · End | Back to club, Back to club filled only at terminal. The
+Concede · End | Back to club, Back to club filled only once the game has ended. The
 three-way fork (`over ? … : isLocallyDone ? … : …`) is gone; the only thing
 that varies is the row's line — the verdict, "You conceded" / "Waiting for
 others" while a race runs on without you, nothing while you can play. The
@@ -318,14 +318,14 @@ draws only after a button anyway — omitting the span is the same screen.
 **The conventions, per binding:** Reveal takes the button guard in front of
 the shared `describeReveal` (`showInput && asker === 'button'` → hidden, a
 grayed menu row all game, since the menu names the glyph); New game is a
-button only at terminal, `(asker) => asker === 'button' && !isTerminal ?
+button only once the game has ended, `(asker) => asker === 'button' && !isGameEnded ?
 'hidden' : 'active'`, a menu row and `+` all game; Restart's was already the
 shared hook's; Concede and End were already the shared hook's, each hidden in
 the mode that isn't its own. `createNewGame` is a plain `async function`. No
 in-flight flag existed to remove. Print's `describe` is `'active'` — it still
 read `game ? 'active' : 'hidden'`, a guard Step 2's split had made dead.
 
-**One gate hoisted:** `showInput = !isTerminal && !isLocallyDone`, declared
+**One gate hoisted:** `showInput = !isGameEnded && !isLocallyDone`, declared
 beside `isLocallyDone` because the Reveal binding reads it; InfoCol takes
 `showInput` in place of `isLocallyDone` (the help line and the row's line
 read it), as connections' does.
@@ -351,12 +351,12 @@ Verified: `tsc -b` clean, lint clean over `src/wordle/`, 381 unit tests green
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-22
 
 connections' Step 6 (`95d7872a`), copied, with Joel's rename ruling applied
-from the start: the builder is **`buildTerminalMessage`** in
+from the start: the builder is **`buildEndingMessage`** in
 `lib/terminal.ts` — Joel's word is "terminal", not "over" — the value it
-produces is `terminalMessage`, and InfoCol's `over` prop is `terminalMessage`
+produces is `endingMessage`, and InfoCol's `over` prop is `endingMessage`
 too. `<Board gameOver>` keeps its name, being the shared vocabulary backed by
 the `.gameOver*` classes. `PlayArea.tsx` no longer imports
-`gameEndedTerminalMessage` or the `TerminalMessage` type; the `useMemo` on
+`buildGameEndedMessageNeutral` or the `EndingMessage` type; the `useMemo` on
 primitives that feeds the verdict effect stays there, as planned.
 
 **A pure move, no signature change.** The builder's inputs were already
@@ -365,7 +365,7 @@ every one a primitive the component derives; none compared a count to a
 constant of the component file, so nothing had to be renamed on the way out.
 Same branches, same words.
 
-`lib/terminal.test.ts` walks the whole input space — every terminal play
+`lib/terminal.test.ts` walks the whole input space — every ended play
 state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
 modes, the clock run out and not, the caller winning on guesses or on the
 clock and losing the same two ways — and the last case is a TABLE: no cell
@@ -397,7 +397,7 @@ For wordle that is:
 2. Derived — `self`, `isCompete`, `maxGuesses`, `guessesUsed`, `mySolved`,
    `myConceded`, `solvedIds`, `myGuesses`, `summaryRows`, the reveal,
    `isLocallyDone`, `showInput`, `readOnly`
-3. The local slot — the slot, the terminal message and its winner
+3. The local slot — the slot, the ending message and its winner
    derivations, out-of-race, waiting
 4. Narration — the coop peer-guess line and the compete opponent-solve line
 5. The turn-history viewer
@@ -432,9 +432,9 @@ where connections put its own.
 **What the reorder showed:** `solvedIds` sat between the two narrations
 while three readers asked it (the compete narration, Concede's `selfSolved`,
 the print model); it is Derived now. The winner derivations (`selfWon`,
-`wonByClock`, `selfTiedWinner`) stayed beside the terminal message, being
+`wonByClock`, `selfTiedWinner`) stayed beside the ending message, being
 its inputs and nobody else's. Two orphan comments are stale and left for
-Step 8, the comment pass: the "Reveal solution — TERMINAL ONLY … No handler
+Step 8, the comment pass: the "Reveal solution — ENDED GAME ONLY … No handler
 of its own any more" block after New game, and the "verdict in the slot is
 the terse verdict ALONE" block before the JSX. `Derived`'s old header said
 "null-safe; real values after the loading guard", a sentence Step 2's split
@@ -517,7 +517,7 @@ In the working tree for Joel's read, before any finding is presented
   doc — and where the old doc and the code disagreed, the code won: the old
   doc's "Malformed … guesses are soft-rejected" (a short word is a fault), its
   `wordle.{games, players, guesses}` (the table is `events`), its title table
-  saying a terminal game titles the winning guess (a lost one titles its last
+  saying an ended game titles the winning guess (a lost one titles its last
   guess), and its `hides_solution` paragraph (nothing reads the column).
   **`docs/games/wordle.md` is deleted**; CLAUDE.md's row and the manifest's
   docstring are repointed. The frozen migration's `See docs/games/wordle.md`
@@ -675,7 +675,7 @@ reading to be checked before any wiring, and Joel ruled the same day that
 compete `ended` a loss is part of that work. **wordle's three are clean**, each
 neutral and mode-blind: `manifest.ts`'s `labelFor` answers
 `verdict('Ended', null)` with no mode branch; `lib/terminal.ts` returns
-`gameEndedTerminalMessage(mode)` before it looks at the mode, and that message
+`buildGameEndedMessageNeutral(mode)` before it looks at the mode, and that message
 is `outcome: 'neutral'` / "Game ended — no winner"; `wordle.end_game` writes
 `'ended'` with every player `{"won": false}` and `reason: 'manual'`. The game
 is ready for the sweep and contributes nothing else to it.
@@ -692,7 +692,7 @@ takes `offersEndForAll`, which grows Concede's question a second answer
 its own — bananagrams is the worked example, and wordle's `end_game` already
 writes the neutral `ended` in either mode. **The reading the todo asked to
 check first checks out**: `labelFor` reads `ended` as "Ended", mode blind,
-and `buildTerminalMessage` hands `ended` to the shared neutral message before
+and `buildEndingMessage` hands `ended` to the shared neutral message before
 it looks at the mode — nobody won is not everybody lost, on both surfaces.
 
 Options: **wire it** — `offersEndForAll: true` on this game's
@@ -704,7 +704,7 @@ at `common/game-page/todo.md`). Recommendation: wire it — but this is a
 cross-game question with a shared todo behind it, so the ruling may belong
 to `game-page` rather than here.
 
-### SHIPPED · F-wordle-3 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, not `status.reason`
+### SHIPPED · F-wordle-3 · `ending-reads-the-clock` · the ending message decides the reason from the client clock, not `status.reason`
 
 **Joel, 2026-09-22: read `status.reason`, and take connections' words.** The
 builder's inputs are `mode · playState · reason · selfWon · wonByClock ·
@@ -732,7 +732,7 @@ play states* said the verdict does not read the reason; it says the two
 surfaces name one ending, and that the clock-vs-count win is what the builder
 still works out for itself.
 
-`buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
+`buildEndingMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into
 `common.games.status.reason` (`solved` · `exhausted` · `timeout` ·
 `conceded` · `manual`), which `labelFor` already reads for the club list.
@@ -953,12 +953,12 @@ faults**: the finisher without `winner_guesses` (2 red — the new pin and
 restored. `tsc -b`, lint, 401 unit tests, pgTAP 181 files / 2554 PASS.
 
 `submit_timeout`'s compete branch builds the winner, the per-player results and
-the terminal status by hand — a duplicate of `_maybe_finish_compete`'s three
+the ended game's status by hand — a duplicate of `_maybe_finish_compete`'s three
 queries — and the duplicate is missing a key: it writes `winner_user_id` and
 `winner_username` but not **`winner_guesses`**, so the club-list label for a
 race the clock decided reads `Won by alice · dict "Wordle"` where every other
 `won_compete` reads `Won by alice · 4 guesses · …` (`labelFor` → `count(…)`
-returns null on the missing key). On the client, `buildTerminalMessage` reads
+returns null on the missing key). On the client, `buildEndingMessage` reads
 no `reason` for `won_compete`: a racer who had not finished when time ran out
 sees *Lost: beaten on guesses* / *Opponent won*, which is not what happened to
 them — they were never beaten on guesses, the clock stopped them — and the
@@ -972,7 +972,7 @@ the words and the status are what lag it.
 Options: *(a) one finisher* — `_finish_compete(target_game, reason)` builds
 the winner, the results and the whole status once, `_maybe_finish_compete`
 calls it with its computed reason and `submit_timeout` with `'timeout'`, so
-`winner_guesses` cannot be missed twice; `buildTerminalMessage` gains the
+`winner_guesses` cannot be missed twice; `buildEndingMessage` gains the
 `won_compete` + `timeout` pair on both sides (Joel's words — something like
 *Won: solved before time ran out* / *Lost: time ran out*), and
 `compete_test.sql` or `end_game_test.sql` gains the compete timeout, both the
@@ -1131,7 +1131,7 @@ Restart in the two `replay` headers, the `42501` line and the "old hardcoded"
 aside gone, the board-scope marks' comment points at `common/board-marks/doc.md`,
 and the log's docstring is a sentence and a pointer. **Left for pass 3**:
 `Board.module.css`'s two `plans/tile-feedback.md` cites, as that pass reads
-them. The terminal-flow describe's docstring was already corrected at F-6.
+them. The ending-flow describe's docstring was already corrected at F-6.
 
 Each checked against the tree:
 
@@ -1182,8 +1182,8 @@ Each checked against the tree:
   the assertion under it is PN253 and the raise text is gone.
 - `legal_guess_test.sql`: "it would have been legal under the old hardcoded
   ≤4" — archaeology.
-- `PlayArea.test.tsx` → the terminal-flow describe: "the word stays HIDDEN at
-  every terminal, win included, until THIS viewer asks" — a solver sees it
+- `PlayArea.test.tsx` → the ending-flow describe: "the word stays HIDDEN at
+  every ending, win included, until THIS viewer asks" — a solver sees it
   unasked, and the describe's own fourth case pins that.
 - `PlayArea.test.tsx` → the board-scope marks: "the vocabulary in
   plans/tile-feedback.md" — a plan cite in a durable file, the third in the
@@ -1261,7 +1261,7 @@ each restored. `doc.md`'s Tests rows name the new pins. pgTAP 181 / 2559 PASS,
 ### What checked out
 
 - **The hidden target** — the column grant, the definer helper gated on
-  `is_terminal`, the invoker view, and the re-shield on Restart; `_sync_title`
+  the game having ended, the invoker view, and the re-shield on Restart; `_sync_title`
   never spells an unearned answer, in both modes, and `reveal_test` pins the
   regression it once had.
 - **The seam** — `eventToOutcome` and `peerAnswerMessage` on one `answerMessage`;
@@ -1270,14 +1270,14 @@ each restored. `doc.md`'s Tests rows name the new pins. pgTAP 181 / 2559 PASS,
   budget; the winner is fewest guesses then earliest solve, conceders out;
   `conceded` only when every player conceded.
 - **The presence roster** — a solver or an exhausted racer is
-  `locally_terminal`, not `conceded` (F-connections-5's fix, pinned in
+  player-ended, not `conceded` (F-connections-5's fix, pinned in
   `compete_test`).
 - **The evaluator's absence** — the frontend recomputes no color; the printer's
   keyboard is derived per player from `colorRank`, never pooled.
 - **The events table** — `kind = 'guess'`, `took_turn = true`, read by `id`;
   the migration numbered the existing rows in write order and checked itself.
 - **Turn order** — seated by `create_game`, gated before the soft rejects,
-  advanced on an accepted non-terminal guess, rewound by Restart.
+  advanced on an accepted guess that does not end the game, rewound by Restart.
 - **The loader and the eight sections** — the shape `docs/playarea.md` states,
   with the standard trio, Reveal, New game and Print bound in one block and
   read in one order by the row and the menu.
@@ -1472,7 +1472,7 @@ files and their tests, the printer and its model, `PlayArea.test.tsx` and
 `SetupForm.test.tsx`, the shared `tileColors.module.css`, the repeatable SQL,
 both migrations, the eleven pgTAP files and `setup.psql`, and `doc.md`. Beside
 them: every doc anchor the folder cites, resolved against the heading it names
-(`docs/ui.md → Terminal results`, `Feedback pill`, `Layout stability`, `the menu
+(`docs/ui.md → Endings`, `Feedback pill`, `Layout stability`, `the menu
 is the legend`, `Back to club`; `docs/playarea.md → PlayArea layout`,
 `Info-column readouts`; `docs/envelopes.md → The shape of a call site`;
 `docs/common.md → Done, but not out`, `Which words a game may use`;
@@ -1513,7 +1513,7 @@ ring named by no color). Verified: the grep for each corrected phrase comes
 back empty; `tsc -b` and eslint clean; 420 unit tests green (wordle,
 `wordle-style`, the guards); the SQL re-applied and the whole pgTAP suite run.
 
-### SHIPPED · F-wordle-25 · `title-becomes-the-answer` · four RPC comments and two test labels say the title becomes the answer at terminal
+### SHIPPED · F-wordle-25 · `title-becomes-the-answer` · four RPC comments and two test labels say the title becomes the answer at the end
 
 `_sync_title`'s own header says the title NEVER spells the answer of its own
 accord — it reads the most recent guess, which is the answer only when the
@@ -1527,10 +1527,10 @@ opposite:
 - `wordle.sql` → `concede`: *"in which case the title becomes the answer"*.
 - `wordle.sql` → `submit_timeout`: *"The game is over either way — the title
   becomes the answer."*
-- `wordle.sql` → `end_game`: *"Terminal now, so the title becomes the answer
+- `wordle.sql` → `end_game`: *"Ended now, so the title becomes the answer
   (see _sync_title)"* — pointing at the function that says it does not.
-- `gameplay_test.sql`, the win: the comment *"Terminal → the title stops being
-  the latest guess and becomes the answer"* and the label `terminal: the title
+- `gameplay_test.sql`, the win: the comment *"Ended → the title stops being
+  the latest guess and becomes the answer"* and the label `ended: the title
   becomes the answer`. The parenthetical beside it ("which the solving guess
   happens to equal") knows better than the label.
 - `compete_test.sql`, the finished race: *"the title can finally say what the
@@ -1540,7 +1540,7 @@ opposite:
 
 A timeout or a manual end on a game with guesses titles the LAST GUESS; on a
 game with none, the placeholder. Options: **say what happens** — each comment
-says the title re-reads the latest guess (or, at terminal, that compete's
+says the title re-reads the latest guess (or, at the end, that compete's
 readout opens), and the two labels say "the title reads the winning guess";
 or **leave them**. Recommendation: fix — `reveal_test` and `replay_test` pin
 the opposite of what these six say, and a reader of `end_game` is sent to the
@@ -1555,7 +1555,7 @@ sentences, four of them older than F-8 and two written BY it, still name the
 old function for what the new one does:
 
 - `manifest.ts` → `labelFor`'s status shape: *"The WINNER's own count, written
-  at terminal (see _maybe_finish_compete)"*.
+  at the end (see _maybe_finish_compete)"*.
 - `manifest.ts` → `COMPETE_LOSS`'s docstring: *"Why a compete race ended with
   nobody winning (wordle._maybe_finish_compete)"* — the reason is
   `_finish_compete`'s `case`.
@@ -1569,7 +1569,7 @@ old function for what the new one does:
   carries the winner's count the way _maybe_finish_compete's does — one
   finisher writes both endings"* — the one finisher is the one it does not
   name.
-- `concede_test.sql`'s header: *"re-runs its own terminal check
+- `concede_test.sql`'s header: *"re-runs its own end-of-game check
   (_maybe_finish_compete), which counts a conceder as done and excludes them
   from the win"* — the first clause is that function's, the second is the
   finisher's query.
@@ -1699,7 +1699,7 @@ file, its twin left).
   recurs nowhere. `<Board>`'s twelve are all required and all passed.
 - **The marker rule holds in the prose written this week** — F-3, F-6, F-8,
   F-18's docstrings on functions, `//` on every field and prop, including
-  `buildTerminalMessage`'s seven inputs and `GuessAnswer`'s two arms.
+  `buildEndingMessage`'s seven inputs and `GuessAnswer`'s two arms.
 - **The reserve is composed and its four terms each resolve** (`base.css`
   declares `--guessKeyboard-height` and `--local-feedback-min-height`; the
   layout publishes `--board-col-gap`; `BoardCol.module.css` reads it).
@@ -1707,7 +1707,7 @@ file, its twin left).
   hand it the boolean; `end_game_test` pins both endings carrying
   `winner_guesses`.
 - **`GuessAnswer`'s two arms match the SQL's two `ok` shapes** — the soft
-  rejects carry `solved: false, terminal: false` and no colors, as the type
+  rejects carry `solved: false, game_ended: false` and no colors, as the type
   says; `gameplay_test` pins the nulls.
 - **`plans/tile-feedback.md`** carries wordle at tf2 with the dot exemption and
   the dims ruling under `### wordle · shape 1`; nothing in the four component

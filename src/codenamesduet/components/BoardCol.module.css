@@ -2,7 +2,7 @@
 
 /* codenamesduet's board-column bits. The board itself is <Board> (its own
  * module); this file styles only the below-board move-input REGION under it — the
- * slot that swaps between the ClueStrip, an own-action / terminal pill, and (while
+ * slot that swaps between the ClueStrip, an own-action / ending pill, and (while
  * viewing history) the banner overlay. The scaffold (.boardCol / .moveAreaOrLocal-
  * Feedback / .localFeedback) is the shared common/game-page/playArea.module.css. */
 
@@ -19,7 +19,7 @@
 
 /* codenamesduet's move controls: the ClueStrip (clue form / clue display + Pass /
  * waiting copy). `display: contents` — a naming wrapper; the strip keeps its place
- * inside the swap box, and a local/terminal pill takes its spot. */
+ * inside the swap box, and a local/ending pill takes its spot. */
 /* @@ */ .moveArea {
   display: contents;
 }

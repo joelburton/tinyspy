@@ -61,7 +61,7 @@ describe('useArrowHistory', () => {
     expect(onChange).toHaveBeenCalledWith('')
   })
 
-  it('does nothing while the entry is gone (disabled — loading / terminal)', async () => {
+  it('does nothing while the entry is gone (disabled — loading / ended)', async () => {
     const { onChange } = setup({ recall: 'crane', disabled: true })
     await press('ArrowUp')
     await press('ArrowDown')

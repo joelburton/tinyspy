@@ -46,7 +46,7 @@ describe('FeedbackPill — what it draws', () => {
     act(() => void slot.show(FeedbackMessage.result('won', 'Correct')))
     expect(cls()).toMatch(/outline/)
     expect(cls()).toMatch(/won/)
-    act(() => void slot.show(FeedbackMessage.terminalVerdict(over)))
+    act(() => void slot.show(FeedbackMessage.endingVerdict(over)))
     expect(cls()).not.toMatch(/outline/)
   })
 
@@ -71,7 +71,7 @@ describe('FeedbackPill — the ways out', () => {
     const slot = createFeedbackSlot('local')
     mount(slot)
     for (const msg of [
-      FeedbackMessage.terminalVerdict(over),
+      FeedbackMessage.endingVerdict(over),
       FeedbackMessage.waiting(moth),
       FeedbackMessage.hint('noted', 'Hint: a fruit'),
     ]) {
@@ -104,7 +104,7 @@ describe('FeedbackPill — the ways out', () => {
   it('closing a not-ok reveals the verdict under it', async () => {
     const slot = createFeedbackSlot('local')
     mount(slot)
-    act(() => void slot.show(FeedbackMessage.terminalVerdict(over)))
+    act(() => void slot.show(FeedbackMessage.endingVerdict(over)))
     act(() =>
       void slot.show(
         FeedbackMessage.notOk({

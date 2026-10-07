@@ -1,11 +1,11 @@
 // cs-unmet
 
 import type { Actor } from '@/common/members/member'
-import type { EndOutcome, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What wordiply says once the game is over, for its ending and mode.
@@ -42,9 +42,9 @@ export function buildGameEndingMessage({
   // Compete: the player ranked first and their length score; null when nobody
   // won, and in coop.
   winner: (Actor & { lengthScore: number }) | null
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText' | 'actor'> {
+  function makeGameEndingWords(): Pick<EndingMessage, 'pillText' | 'infoColText' | 'actor'> {
     if (mode === 'coop') {
       // The team's scores, written with every coop ending.
       const { lengthScore, nLetters } = teamScores!

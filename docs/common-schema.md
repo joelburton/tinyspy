@@ -311,7 +311,7 @@ and only *who may act now* changing. The mechanism is all common:
 - **`common._require_turn`**, in the move RPC right after the row lock and the
   caller check: refuses a move out of turn (a race — the pointer moved). Inert
   when the pointer is null.
-- **`common._advance_turn`**, after an **accepted, non-terminal** move only: a
+- **`common._advance_turn`**, after an **accepted, not game-ending** move only: a
   refused word must not cost the turn, and a move that ends the game has no one
   to hand it to. It skips any player who has ended.
 - **`common._reset_game`**, on Restart, rewinds a set pointer to seat 0; a null

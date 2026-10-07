@@ -144,7 +144,7 @@ FloatingPanel                  the one shell: Rnd (react-rnd) + CloseButton (but
 │                              ClubHelpCompanion (club) · crosswords' note and explain panels · codenamesduet's AI suggester
 ├── Dialog                     WordLookupDialog and WordEditDialog (definitions) · AnagramDialog (anagram-finder)
 ├── NormalModal                SetupGameModal (setup-form) · EditProfileModal (account) · CreateClubModal and EditClubModal (club)
-└── BlockingModal              the card shell: FaultModal (faults) · CelebrationBlockingModal (terminal)
+└── BlockingModal              the card shell: FaultModal (faults) · CelebrationBlockingModal (ending)
     │                          crosswords' four puzzle pickers · scrabble's blank picker
     ├── ConfirmationBlockingModal   a question — CancelButton + StandardButton (buttons)
     │     └── ConfirmationHost      at the app root (App), drawing whatever `askConfirmation` is asking

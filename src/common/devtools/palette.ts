@@ -119,19 +119,19 @@ export const FAMILIES: Family[] = [
       'from and nothing paints. The rest are the shapes an outcome takes: thin ' +
       "lines and text (ink), a filled piece (fill), that piece's border (edge), " +
       "a much lighter tint (wash), an event log's left bar (bar), and the band " +
-      'around a board that is no longer a live position (terminalFrame). `noted` ' +
+      'around a board that is no longer a live position (endingFrame). `noted` ' +
       'and `error` are anchored at INK weight rather than at the 400 the other ' +
       'five use — look for the row whose base and fill are the same color, which ' +
       'is the thing to fix.',
-    variants: ['base', 'ink', 'fill', 'edge', 'wash', 'bar', 'terminalFrame'],
+    variants: ['base', 'ink', 'fill', 'edge', 'wash', 'bar', 'endingFrame'],
     formulas: {
       base: 'chosen · never painted',
       fill: 'base',
       edge: 'base × 84%, in sRGB',
       bar: 'fill',
-      terminalFrame: 'oklch(0.45, 0.105, base hue)',
-      'won/terminalFrame': 'oklch(0.564, 0.105, base hue) — lifted: at 0.45 a green reads black',
-      'neutral/terminalFrame': 'oklch(0.45, 0, —) — achromatic on purpose',
+      endingFrame: 'oklch(0.45, 0.105, base hue)',
+      'won/endingFrame': 'oklch(0.564, 0.105, base hue) — lifted: at 0.45 a green reads black',
+      'neutral/endingFrame':'oklch(0.45, 0, —) — achromatic on purpose',
       'won/ink': 'base −0.195 L',
       'lost/ink': 'base −0.115 L',
       'near/ink': 'base −0.037 L — gold cannot go dark and stay gold',
@@ -159,7 +159,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-won-edge-color)',
           'var(--outcomes-won-wash-color)',
           'var(--outcomes-won-bar-color)',
-          'var(--outcomes-won-terminalFrame-color)',
+          'var(--outcomes-won-endingFrame-color)',
         ],
       },
       {
@@ -171,7 +171,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-lost-edge-color)',
           'var(--outcomes-lost-wash-color)',
           'var(--outcomes-lost-bar-color)',
-          'var(--outcomes-lost-terminalFrame-color)',
+          'var(--outcomes-lost-endingFrame-color)',
         ],
       },
       {
@@ -183,7 +183,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-near-edge-color)',
           'var(--outcomes-near-wash-color)',
           'var(--outcomes-near-bar-color)',
-          'var(--outcomes-near-terminalFrame-color)',
+          'var(--outcomes-near-endingFrame-color)',
         ],
       },
       {
@@ -195,7 +195,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-warning-edge-color)',
           'var(--outcomes-warning-wash-color)',
           'var(--outcomes-warning-bar-color)',
-          'var(--outcomes-warning-terminalFrame-color)',
+          'var(--outcomes-warning-endingFrame-color)',
         ],
       },
       {
@@ -207,7 +207,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-neutral-edge-color)',
           'var(--outcomes-neutral-wash-color)',
           'var(--outcomes-neutral-bar-color)',
-          'var(--outcomes-neutral-terminalFrame-color)',
+          'var(--outcomes-neutral-endingFrame-color)',
         ],
       },
       {
@@ -219,7 +219,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-noted-edge-color)',
           'var(--outcomes-noted-wash-color)',
           'var(--outcomes-noted-bar-color)',
-          'var(--outcomes-noted-terminalFrame-color)',
+          'var(--outcomes-noted-endingFrame-color)',
         ],
       },
       {
@@ -231,7 +231,7 @@ export const FAMILIES: Family[] = [
           'var(--outcomes-error-edge-color)',
           'var(--outcomes-error-wash-color)',
           'var(--outcomes-error-bar-color)',
-          'var(--outcomes-error-terminalFrame-color)',
+          'var(--outcomes-error-endingFrame-color)',
         ],
       },
     ],

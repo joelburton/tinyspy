@@ -717,7 +717,7 @@ holds the club load. The prose around them still says ClubPage:
 - `useClubGames.ts`, the not-ok branch: "Unlike the club load above" — the
   club load is in another file.
 - `useClubGames.ts`, `ListedGame`'s docstring: "ClubPage's
-  classify-into-sections logic also reads `isTerminal` to assign the right
+  classify-into-sections logic also reads `isGameEnded` to assign the right
   state for CSS treatment" — no sections (F-2), and what reads it is
   `gameState`, for the corner flag.
 - `GameEntry.tsx` (`title`), `CurrentGameCard.tsx` (`manifest`, `title`),

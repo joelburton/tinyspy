@@ -52,7 +52,7 @@ export function GameEventLog({
     players,
     myId: myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     emptyLabel: 'No turns yet.',
   })
   const shownEvents = eventLogPicker.filter(events)

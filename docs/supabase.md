@@ -273,7 +273,7 @@ model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-c
   and a `security_invoker` view
   ([code-conventions.md](code-conventions.md#security-definer-helper--security_invoker-view)).
 - **Some rows are owner-only**, and a compete game's policies narrow mid-game
-  reads to the player's own rows, opening up at terminal. A CDC payload isn't
+  reads to the player's own rows, opening up at the end. A CDC payload isn't
   filtered per column the way a query is, so a hook that could receive someone
   else's row filters it on the frontend.
 - **Trusting-commit games** deliberately ship a word list or score to the

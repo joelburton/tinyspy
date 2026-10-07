@@ -453,8 +453,8 @@ cleared tiles are gone; once the game has ended **the stack comes back only if
 it came down** — a cleared board would otherwise be blank, and an uncleared one
 stays as the players left it, since that is the whole record of how it went.
 
-**The ending**: no modal carries the verdict ([ui.md → Terminal
-results](../ui.md#terminal-results--the-moment-vs-the-record)); the pill and the
+**The ending**: no modal carries the verdict ([ui.md →
+Endings](../ui.md#endings--the-moment-vs-the-record)); the pill and the
 action row's line say it, from the server's reason and my outcome — coop "Won:
 stack cleared" / "Lost: out of time"; compete "Won: cleared it first" vs a loss
 naming the winner as the message's `actor` ("● moth cleared it first"), while
@@ -545,7 +545,7 @@ what it pins is spread across three places that only exist together in a
 document: the fifth tile not submitting, the buttons' enabled-ness, and `Enter`.
 It submits a deliberately INVALID word, which exercises the whole commit path
 without depending on which letters are on top. stackdown also has cases in
-`terminal-reveal` and `tap-targets`.
+`ending-reveal` and `tap-targets`.
 
 ## 6. Printing the board (PDF)
 

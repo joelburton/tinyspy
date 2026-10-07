@@ -200,8 +200,8 @@
              which is exactly the argument daylight's comment makes
              for role names — proven here rather than asserted.
 
-     `edge`, `bar` and `terminalFrame` keep their daylight formulas
-     unchanged except for terminalFrame's lightness (below). */
+     `edge`, `bar` and `endingFrame` keep their daylight formulas
+     unchanged except for endingFrame's lightness (below). */
 /* @@ */   --outcomes-won-base-color:      #66bb6a;
 /* @@ */   --outcomes-lost-base-color:     #ef5350;
 /* @@ */   --outcomes-near-base-color:     #d99c41;
@@ -279,13 +279,13 @@
      different — and won loses its exception, because at 0.62 a green
      no longer reads as black. The exception was a fact about a
      lightness, not about green. */
-/* @@ */   --outcomes-won-terminalFrame-color:      oklch(from var(--outcomes-won-base-color)      0.62 0.105 h);
-/* @@ */   --outcomes-lost-terminalFrame-color:     oklch(from var(--outcomes-lost-base-color)     0.62 0.105 h);
-/* @@ */   --outcomes-near-terminalFrame-color:     oklch(from var(--outcomes-near-base-color)     0.62 0.105 h);
-/* @@ */   --outcomes-warning-terminalFrame-color:  oklch(from var(--outcomes-warning-base-color)  0.62 0.105 h);
-/* @@ */   --outcomes-noted-terminalFrame-color:    oklch(from var(--outcomes-noted-base-color)    0.62 0.105 h);
-/* @@ */   --outcomes-error-terminalFrame-color:    oklch(from var(--outcomes-error-base-color)    0.62 0.105 h);
-/* @@ */   --outcomes-neutral-terminalFrame-color:  oklch(from var(--outcomes-neutral-base-color)  0.62 0    h);
+/* @@ */   --outcomes-won-endingFrame-color:        oklch(from var(--outcomes-won-base-color)      0.62 0.105 h);
+/* @@ */   --outcomes-lost-endingFrame-color:       oklch(from var(--outcomes-lost-base-color)     0.62 0.105 h);
+/* @@ */   --outcomes-near-endingFrame-color:       oklch(from var(--outcomes-near-base-color)     0.62 0.105 h);
+/* @@ */   --outcomes-warning-endingFrame-color:    oklch(from var(--outcomes-warning-base-color)  0.62 0.105 h);
+/* @@ */   --outcomes-noted-endingFrame-color:      oklch(from var(--outcomes-noted-base-color)    0.62 0.105 h);
+/* @@ */   --outcomes-error-endingFrame-color:      oklch(from var(--outcomes-error-base-color)    0.62 0.105 h);
+/* @@ */   --outcomes-neutral-endingFrame-color:    oklch(from var(--outcomes-neutral-base-color)  0.62 0    h);
 
   /* ══ PILL ═══════════════════════════════════════════════════════
      Every border still aliases an outcome ink; every tint still mixes

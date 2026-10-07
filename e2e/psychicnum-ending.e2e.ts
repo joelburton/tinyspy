@@ -6,12 +6,12 @@ import { signIn } from './helpers/session'
 import { actionButton } from './helpers/actions'
 
 /**
- * psychicnum's terminal reveal: the board becomes the answer key — but only when
+ * psychicnum's ending reveal: the board becomes the answer key — but only when
  * asked, and only for the asker. The server exposes `secrets` at game over (the
- * `psychicnum.games_state` terminal gate), and the FE holds them back until this
+ * `psychicnum.games_state` game-ended gate), and the FE holds them back until this
  * viewer presses Reveal — never on its own for a player who did not find all
  * three, because `replay_board` hunts the SAME three secrets again (docs/ui.md
- * → Terminal results; the finder's case is solved-reveal.e2e.ts). Pressing
+ * → Endings; the finder's case is solved-reveal.e2e.ts). Pressing
  * Reveal turns every secret's tile GREEN — the same green a found one wears —
  * and pressing Hide turns them back.
  *
@@ -26,7 +26,7 @@ import { actionButton } from './helpers/actions'
  *
  * Browser-only: the fills are CSS, which jsdom can't see.
  */
-test('terminal: secrets stay hidden until Reveal, go green, then hide again', async ({
+test('ending: secrets stay hidden until Reveal, go green, then hide again', async ({
   browser,
 }) => {
   const club = await createSoloClub('pnterm')
@@ -48,12 +48,12 @@ test('terminal: secrets stay hidden until Reveal, go green, then hide again', as
     GREEN)
   expect(await greenTiles()).toHaveLength(0)
 
-  // Stop the game (the neutral 'ended' terminal) — that flips is_terminal, and the
+  // Stop the game (a neutral 'ended') — that sets ended_at, and the
   // secrets arrive on the next realtime refetch.
   await page.getByRole('button', { name: 'Stop game' }).first().click()
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 
-  // The terminal row is up, and the secrets are STILL not shown: a manual end
+  // The ending row is up, and the secrets are STILL not shown: a manual end
   // isn't a win, and Restart re-hunts this very board.
   // By its exact label, not a prefix: psychicnum's tiles ARE buttons whose
   // accessible name is the word, so `/^reveal/i` or `/^hide/i` would also match
@@ -92,7 +92,7 @@ test('terminal: secrets stay hidden until Reveal, go green, then hide again', as
 })
 
 /**
- * "Restart" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the ending action row's stay-here options,
  * also reachable mid-game from the menu. Replay hunts THIS board's same three
  * secrets again (guesses cleared, budgets restored); New game deals a fresh
  * board + secrets on a NEW row and navigates to it.

@@ -4,8 +4,8 @@ import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
-import { useCelebration } from '@/common/terminal/useCelebration'
+import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -147,7 +147,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
       </InfoSheet>
 
       {acknowledgeModal}
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it is
+      {/* No modal for the verdict (docs/ui.md → Endings): it is
           carried in-page, by the below-board pill and the action row's line.
           My win's confetti — once, when it happens. */}
       {celebration.isOpen && (

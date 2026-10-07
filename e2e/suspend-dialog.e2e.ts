@@ -14,9 +14,9 @@ import { signIn } from './helpers/session'
 /**
  * The in-game confirm MODALS (docs/ui.md → Confirm modals):
  *
- *   - Suspend-back-to-club: shown ONLY for a non-terminal MULTIPLAYER game
+ *   - Suspend-back-to-club: shown ONLY for a still-playing MULTIPLAYER game
  *     (the confirm exists because suspending drags peers back to the club).
- *     A solo game suspends directly, no dialog; a terminal game navigates
+ *     A solo game suspends directly, no dialog; an ended game navigates
  *     directly, no dialog and no peer kick. The dialog is a true modal —
  *     backdrop-blocked board, dialog-owned keyboard (Enter confirms on the
  *     autofocused button, Esc cancels, Tab is trapped; regression for the
@@ -25,7 +25,7 @@ import { signIn } from './helpers/session'
  *     [data-floating-panel]).
  *
  *   - Stop-game: ALWAYS the shared ConfirmationBlockingModal (never window.confirm),
- *     even solo/coop — stopping is terminal for the whole group.
+ *     even solo/coop — stopping ends it for the whole group.
  *
  * Boggle is used for the keyboard tests precisely because it HAS a window
  * key-capture; multiplayer cases run two signed-in pages so presence-pause
@@ -190,7 +190,7 @@ test.describe('confirm modals — suspend + stop game', () => {
     // is up, the confirm's own button.)
     await alice.getByRole('grid', { name: /waffle board/i }).waitFor({ timeout: 15000 })
 
-    // Alice stops the game (through the modal) → terminal for both.
+    // Alice stops the game (through the modal) → ended for both.
     await alice.getByRole('button', { name: 'Stop game' }).first().click()
     await alice.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     await expect(alice.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })

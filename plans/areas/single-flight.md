@@ -46,7 +46,7 @@ carry the opposite in a comment beside the call, e.g. spellingbee:
 > indirection). It doesn't need one — `+` and the menu both route through this
 > same guarded handler.
 
-Fifteen games pass `startingNewGame` to the terminal `NewGameButton` only;
+Fifteen games pass `startingNewGame` to the ending-row `NewGameButton` only;
 strands alone also sets `disabled: startingNewGame` on the menu item (and pays
 for it with `startingNewGame` in the menu effect's deps). letterboxed and setgame
 have neither the comment nor the menu `disabled`.
@@ -220,7 +220,7 @@ file as their constant, so they are the same one-line fix).
 ## Notes
 
 - **Claims checked and TRUE**, so they don't recur as findings: the three New
-  game triggers (`NewGameButton` is rendered only in the terminal action row);
+  game triggers (`NewGameButton` is rendered only in the ending action row);
   `GamePage`'s dispatcher skipping a disabled item (`GamePage.tsx:468`);
   `common.create_game` clearing `is_current_view` and inserting a new current row
   (`supabase/sql/common.sql:1011–1021`); `submit_timeout` existing as the

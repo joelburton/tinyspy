@@ -494,8 +494,8 @@ sizing).
   per player in compete. See
   [common/scratchpad/doc.md](../../src/common/scratchpad/doc.md) → Intro to area
   for the architecture.
-- **Once the game has ended** — no modal carries the verdict ([ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)): the ending's
+- **Once the game has ended** — no modal carries the verdict ([ui.md →
+  Endings](../ui.md#endings--the-moment-vs-the-record)): the ending's
   terse text (`lib/gameEndingMessage.ts`, read off `gd.outcome`,
   `gd.ending.reason`, `gd.me.outcome` and `gd.ending.winner`) lands as the
   filled verdict in the active-clue bar (the local slot's `<FeedbackPill>` —
@@ -519,8 +519,7 @@ sizing).
   author's, not yours", so it marks the blanks AND the corrections and leaves
   anything they had right looking like theirs — the answer key doubles as a
   diff, for free. It's a **local, reversible** reveal (`useSolutionReveal` —
-  [ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)): my looking
+  [ui.md → Endings](../ui.md#endings--the-moment-vs-the-record)): my looking
   doesn't fill a partner's grid while they're still working out what they got
   wrong, and **"Hide solution"** puts the answers away again, leaving exactly
   the fill the solvers left — wrong letters and their marks included.

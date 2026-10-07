@@ -8,7 +8,7 @@
 -- ECONOMY has to go back to zero, or a replay would start with a bar the first
 -- attempt filled, or a hint already ringed on the board.
 --
--- terminal_test asserts what a replay does to an ENDED game (the log emptied,
+-- ending_test asserts what a replay does to an ENDED game (the log emptied,
 -- the ending cleared, the solution re-hidden); this is the mid-game path, and
 -- the players rows. What a Restart does on the client is
 -- `e2e/restart-resets.e2e.ts`'s.

@@ -44,7 +44,7 @@ this list. Created 2026-09-12, the machinery (fifteen files):
 `feedback/FeedbackMessage.tsx`, `feedback/feedbackSlotStore.ts`,
 `feedback/useFeedbackSlot.ts`, `feedback/feedbackSlotRegistry.ts`,
 `feedback/FeedbackPill.tsx` + `.module.css`, each with its test;
-`terminal/terminalMessage.ts` + test; `info-sheet/turnText.tsx` + test;
+`ending/endingMessage.ts` + test; `info-sheet/turnText.tsx` + test;
 `src/guards/feedbackNames.test.ts`.
 
 Edited by the area, owned elsewhere (stamps do not move):
@@ -58,7 +58,7 @@ and `guards/vocabularies` (allowlist lines), `shared/word-hunt/useWordSubmit.ts`
 InfoCol that creates a message — all sixteen games converted 2026-09-12, one
 commit each (the 2026-09-12 `git log` has them, one "<game> CONVERTED" each), plus
 scrabble's Controls, codenamesduet's CluePanel, bananagrams' PlayerBoard,
-and waffle's and connections' Board (their `TerminalOutcome` import). Two
+and waffle's and connections' Board (their outcome-type import). Two
 e2e specs changed where they asserted the old behavior:
 `e2e/psychicnum-turn-order.e2e.ts` (a result over the whose-turn note) and
 `e2e/letterboxed.e2e.ts` (the accepted word no longer times out). The
@@ -198,7 +198,7 @@ the answer is to give them different ranks, not to destroy one of them. So:
   the argument for why and what it fixes. `note` is then the only constructor
   left making a `standingNote`.
 
-The table the three rows leave: `notOk` 10 · `terminalVerdict` 20 ·
+The table the three rows leave: `notOk` 10 · `endingVerdict` 20 ·
 `standingState` 30 · `result` 40 · `acknowledgment` 40 · `hint` 50 ·
 **`waiting` 55** · `standingNote` 60 · `prompt` 70 · **`chat` 75** · `peer` 80
 · **`peerStatus` 85**.
@@ -264,12 +264,12 @@ off it — a future pill variant, a test — sees the wrong answer.
 
 ## F-feedback-4 · `actor-type-spelled-five-times` · `Actor` is exported from `FeedbackMessage.tsx`, and five other sites spell `Pick<Member, 'username' | 'color'>` by hand — WORKED
 
-`terminalMessage.ts` (`TerminalMessage.actor`), `turnText.tsx`
+`endingMessage.ts` (`EndingMessage.actor`), `turnText.tsx`
 (`waitingForText`'s parameter), `ActorMention.tsx` (`DotActor`'s `actor`
 prop) and psychicnum's `Board.tsx` / `BoardCol.tsx` (`decidedBy`'s value)
 each write the same two-field pick that `FeedbackMessage.tsx` names
 `Actor` — *"the person a message is about — the two identity fields of a
-`Member`"*. Two of them (`terminalMessage`, `turnText`) are imported BY
+`Member`"*. Two of them (`endingMessage`, `turnText`) are imported BY
 `FeedbackMessage.tsx`, which is presumably why they did not import the
 name back: a type-only import erases and cannot cycle, but the direction
 reads wrong.
@@ -288,7 +288,7 @@ Options:
 **DECIDED and built 2026-09-12 — option 1, with no re-export.** `Actor` now
 lives in `members/member.ts` beside `Member`, and thirteen sites import it
 from there: the five that spelled the pick by hand (`ActorMention`,
-`terminalMessage`, `turnText`, psychicnum's `Board` and `BoardCol`), the seven
+`endingMessage`, `turnText`, psychicnum's `Board` and `BoardCol`), the seven
 game PlayAreas that used to take it off `FeedbackMessage`, and
 `FeedbackMessage` itself, which now imports the name rather than owning it.
 Four of the five hand-written sites dropped their `Member` import entirely,
@@ -394,7 +394,7 @@ type Props = {
 ```
 
 Every other roster type does it the other way (`KindDefaults`,
-`TerminalMessage`, `FeedbackPill`'s `Props`, `usePeerFeedback`'s
+`EndingMessage`, `FeedbackPill`'s `Props`, `usePeerFeedback`'s
 parameter). Nothing a person can see changes; ten markers.
 
 ## F-feedback-10 · `examples-not-from-the-repo` · Two examples in docstrings are not what the repo says — WORKED
@@ -403,11 +403,11 @@ parameter). Nothing a person can see changes; ten markers.
   the effect `announceWaiting`; the nine games that write it call it
   `showWaiting`, and `docs/ui.md`'s example does too. The example is the
   one a newcomer copies.
-- `terminalMessage.ts` says boggle spends the pill on the tally
+- `endingMessage.ts` says boggle spends the pill on the tally
   *"(`Ended: 12/40`)"*; boggle's text is `` `Ended: ${tally}` `` where
   `tally` is `"12 words, 34 points"`.
 
-## F-feedback-11 · `designs-owed` · The folder's `doc.md` has no Design and a lede written before the build; `terminal/` and `info-sheet/` say nothing about their feedback file — WORKED
+## F-feedback-11 · `designs-owed` · The folder's `doc.md` has no Design and a lede written before the build; `ending/` and `info-sheet/` say nothing about their feedback file — WORKED
 
 `feedback/doc.md` is a title and one paragraph that still describes the
 folder from outside. The `INTROS_OWED` row is open. The Design to write
@@ -415,8 +415,8 @@ is the one the plan already tells in prose — a message is a kind, the kind
 decides how it looks and leaves, a slot keeps one message per rank and draws
 the lowest, a condition is an effect that retracts — for a reader who has
 never opened the folder, with the sharp specifics (the ranks, the console
-trigger, the registry) under Details. `terminal/doc.md` and
-`info-sheet/doc.md` each need the one sentence saying `terminalMessage` /
+trigger, the registry) under Details. `ending/doc.md` and
+`info-sheet/doc.md` each need the one sentence saying `endingMessage` /
 `turnText` lives there and that `feedback` owns its words — the plan's own
 rows already say so.
 
@@ -443,7 +443,7 @@ rows already say so.
   what its `buildOver` builds.
 - F-11: `feedback/doc.md` has a lede and a Design, and `common/feedback` is
   off `INTROS_OWED` in `src/guards/folderDocs.test.ts` (verified by planting:
-  renaming the heading fails the guard). `terminal/doc.md` and
+  renaming the heading fails the guard). `ending/doc.md` and
   `info-sheet/doc.md` each gained the sentence saying which file of theirs
   holds a message's words, and why it is theirs and not feedback's — two
   surfaces have to say the same thing.
@@ -692,7 +692,7 @@ contrasts the shared hook with a hand-rolled `announcePeerGuess`.
 
 Also in this sitting, at Joel's ask: `feedback/doc.md`'s lede was rewritten
 as an inventory of the folder — message, slot, peer narrator, any-key
-dismisser, registry — the way `terminal/`'s and `info-sheet/`'s ledes list
+dismisser, registry — the way `ending/`'s and `info-sheet/`'s ledes list
 theirs; and F-13's one owed test, waffle's two milestone narrations, is
 recorded in `src/waffle/todo.md` under Soon, since it is waffle's file.
 

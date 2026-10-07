@@ -9,7 +9,7 @@
  *   2. pop once when `won` flips true mid-session (the winning move arriving
  *      via the realtime refetch);
  *   3. stay dismissed after close across re-renders while still won;
- *   4. re-arm when `won` flips back false (replay-board un-terminals the
+ *   4. re-arm when `won` flips back false (replay-board reopens the
  *      game), so win → restart → win celebrates again.
  */
 
@@ -59,7 +59,7 @@ describe('useCelebration', () => {
     rerender({ won: true })
     act(() => result.current.close())
 
-    // Replay-board un-terminals the game…
+    // Replay-board reopens the game…
     rerender({ won: false })
     expect(result.current.isOpen).toBe(false)
 

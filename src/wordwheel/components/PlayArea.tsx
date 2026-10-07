@@ -2,8 +2,8 @@
 
 import { cls } from '@/common/utils/cls'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
-import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
-import { useCelebration } from '@/common/terminal/useCelebration'
+import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'

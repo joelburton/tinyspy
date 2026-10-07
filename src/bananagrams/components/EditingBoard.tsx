@@ -3,7 +3,7 @@
 import type { RefObject } from 'react'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { cls } from '@/common/utils/cls'
 import { useEditingBoard } from '../hooks/useEditingBoard'
 import type { GActions } from '../reactTypes'
@@ -43,7 +43,7 @@ export function EditingBoard({
   gd: GGameData
   actions: GActions
   // The ending that applies to me, or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   // PlayArea's below-board slot, drawn in the fixed-height slot under the
   // board so the board never reflows.
   localFeedbackSlot: FeedbackSlot

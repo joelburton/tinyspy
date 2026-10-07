@@ -163,7 +163,7 @@ takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
 
 ## Solution & trust model — where the answer lives, who validates
 
-- **Hidden server-side solution, revealed at terminal:** PN SD WN CP PP, and SS
+- **Hidden server-side solution, revealed at the end:** PN SD WN CP PP, and SS
   in compete (CP's `export_solution` hands any player the full grid at any time
   — a deliberate, member-gated exception; `reveal_cells` shows cells mid-game)
 - **FE-readable all along, but not shown ("FE-knows"; the server still
@@ -180,7 +180,7 @@ takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
 - **A column-level grant blocks the solution column on the base table; a
   `games_state` view / helper, or the game's `game_data` once it has ended,
   reveals it:** PN (`secrets`) SD SS
-  (`_solution_for`, terminal-gated in compete only) WN (`target`) CP PP
+  (`_solution_for`, gated on the end in compete only) WN (`target`) CP PP
   (`_solution_for`)
 - **Everything readable; the FE just doesn't render it mid-game:** TS (both
   key cards) WK (`board.categories`) WW (scores + the best word) SB (the seeded
@@ -189,11 +189,11 @@ takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
   solution):** MC FB MW RA MG
 - **HT is the odd one:** no solution exists to hide, yet it has the roster's
   simplest shield — a column grant on the UNDEALT DECK'S ORDER, with nothing
-  behind it. No definer helper, and no terminal reveal, because the leftover
+  behind it. No definer helper, and no reveal at the end, because the leftover
   order is of no interest once the game is over.
 
 (Orthogonal: compete games also hide *opponents'* mid-game moves via RLS on the
-events table, opening at terminal — that's about peers, not the solution. SB
+events table, opening at the end — that's about peers, not the solution. SB
 does it with a COLUMN grant instead: `players.chain` is unreadable on the base
 table and reaches the FE only through `players_state`'s per-mode mask.)
 
@@ -219,7 +219,7 @@ table and reaches the FE only through `players_state`'s per-mode mask.)
 - **A cap you can't bust:** SB (words: par 2 + extra, extra 0–5 at setup,
   default 3 — but undo REFUNDS, so it's a shape constraint, not a spendable
   budget)
-- **Unbounded — play to terminal / timer:** MC FB MW RA SD MG CP PP HT
+- **Unbounded — play to the end / timer:** MC FB MW RA SD MG CP PP HT
 
 ## Seat & information model
 
@@ -336,7 +336,7 @@ THEME words come with the puzzle, and only the hint words are looked up in
 - **Board build / secrets / hints:** PN FB MC SD SS WN MW WW SB (SB's seed pool
   and each board's playable list are both computed from it)
 
-## Reveal-at-terminal (shows the answer when done)
+## Reveal at the end (shows the answer when done)
 
 PN TS WK SD SS WN CP PP SB WW — the shared reveal control (`useSolutionReveal`
 + `act-reveal`); SB's is the seeded two-word solution, and a win opens it
@@ -348,10 +348,10 @@ display choice, not a security boundary.)
 
 ## Restart (`<gametype>.replay_board`)
 
-Every game has `replay_board`. Fifteen also offer Restart in the terminal row
+Every game has `replay_board`. Fifteen also offer Restart in the ending row
 (`act-restart`); MG offers it as a menu row only.
 
-## New game from the terminal row (`act-new-game`)
+## New game from the ending row (`act-new-game`)
 
 Everything, and all sixteen also carry it as a game-menu item. CP is the odd
 one: its button opens the club's SETUP dialog (`/c/<handle>?new=<gametype>`)

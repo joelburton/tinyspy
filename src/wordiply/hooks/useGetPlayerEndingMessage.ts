@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { buildPlayerEndingMessage } from '../lib/playerEndingMessage'
 import type { GGameData } from '../types'
 
@@ -16,7 +16,7 @@ import type { GGameData } from '../types'
  * lets the effect that shows it show it once. The memo keys on the reason and
  * outcome strings, not on `gd.me`, which is rebuilt on every reload.
  */
-export function useGetPlayerEndingMessage(gd: GGameData): TerminalMessage | null {
+export function useGetPlayerEndingMessage(gd: GGameData): EndingMessage | null {
   const reason = gd.ended ? null : (gd.me.ending?.reason ?? null)
   // Written in the same update as the reason (`common._set_player_ended`,
   // `common._concede`).

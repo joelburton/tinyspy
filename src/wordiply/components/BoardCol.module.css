@@ -25,10 +25,10 @@
 }
 
 /* The input area below the grid — the on-screen keyboard, which doubles as
- * the feedback area (a soft-reject line above the keys; the terminal verdict
+ * the feedback area (a soft-reject line above the keys; the ending verdict
  * replaces the keyboard). It CLAIMS the keyboard's full height (a fixed
  * min-height ≈ the feedback line + the 3 key rows) so the grid above it does
- * NOT shift when the keyboard gives way to the verdict at terminal. */
+ * NOT shift when the keyboard gives way to the verdict at the end. */
 /* @@ */ .inputArea {
   width: 100%;
   min-height: 12.8rem;
@@ -40,12 +40,12 @@
 
 /* The reserved line above the keyboard, for whichever pill is in it — a
  * soft-reject while playing, the verdict once the game is over. One slot for
- * both, because the keyboard below it is WITHDRAWN at terminal rather than
+ * both, because the keyboard below it is WITHDRAWN at the end rather than
  * removed, so there is no vacated area for a second slot to move into.
  *
  * The floor is about one pill's own height (a line of text plus its 0.3rem
  * padding), which is what makes showing and hiding one not shift the keys —
- * the same reserve a terminal pill lands in. */
+ * the same reserve an ending pill lands in. */
 /* @@ */ .kbFeedback {
   min-height: 2rem;
   display: flex;

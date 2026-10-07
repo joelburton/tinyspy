@@ -77,7 +77,7 @@ and not only a loss: the do-over (we lost, let us finish), the line-explorer
 (same puzzle, a different tree) and the optimizer (I won, and I want to beat my
 own count). It costs two things, both accepted: the win is wiped until the
 board is solved again, and so is the previous run's event log. Its button shows
-only at terminal; its menu row is there all game, and mid-game the registry's
+only after the end; its menu row is there all game, and mid-game the registry's
 question asks first. `<game>.replay_board` itself has no ended-game gate —
 the question is the protection — and answers `{ result: 'replayed' }`. The one
 thing that refuses it is the game having been deleted underneath the page
@@ -187,7 +187,7 @@ alone.
 **A count-up clock survives the end of the game and a countdown does not.** A
 countdown is a budget: once the game is over it can only read 0:00, which tells
 nobody anything. A count-up answers "how long did that take?", which is worth
-seeing precisely when you are done — the timer stops ticking at terminal, so it
+seeing precisely when you are done — the timer stops ticking at the end, so it
 freezes on the final figure. A stopped clock shows red either way, because red
 says "these digits are not moving" rather than passing judgment on why.
 
@@ -208,7 +208,7 @@ because that is a negotiation between the two columns.
 `useStandardGameActions` binds End, Concede and
 Restart once per game; the
 actions say when they apply, so End is hidden in a race unless the game opts
-in, Concede is hidden outside one, and both are hidden at terminal because
+in, Concede is hidden outside one, and both are hidden once it ends because
 there is no ending an ended game. `DeviceBlockNotice` is the card a game
 renders in place of its board on a device it cannot be played on, and its exit
 is the same Back to club as everywhere else.

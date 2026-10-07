@@ -18,9 +18,8 @@ its ruling in Joel's words. Line numbers rot; the file and the name are the
 handle.
 
 **The order** (common-tables.md → The path): the endings (§2), then
-placement (§5). The renames (§3) each need Joel's go, and
-"terminal" → "ended" is a slice of its own. §4 is small and fits beside any
-of them.
+placement (§5). The renames (§3) each need Joel's go, and the "ended" one
+is endings.md's. §4 is small and fits beside any of them.
 
 The rules that stay in force while this is worked: §1's naming of the
 viewing player (`my`, never `self`; a flag is `is…` / `amI…`) is in
@@ -106,19 +105,8 @@ game-local ones included, and the docs' prose.
 The stems are **`GameEnded`** and **`PlayerEnded`** (not "done", which is
 everywhere for "done sending a request"): `isGameEnded` (`isTerminal`
 retired), `isPlayerEnded` (`isLocallyTerminal` retired); `locally-terminal`
-becomes the term `player-ended`. The columns, `EndOutcome`, the reason pairs
-and `TerminalOutcome`'s removal are built. Left, about 777 hits outside the
-tests:
-
-- `isTerminal` / `isLocallyTerminal` in the shared hooks
-  (`useStandardGameActions`, `describeReveal`, `useEventLogPlayerPicker`,
-  `useClubGames`) and every game's `useActionsAndMenu`;
-- `src/common/terminal/` and what it exports (`TerminalMessage`, in about 80
-  files); `src/common/feedback`'s `terminalVerdict` kind; the info sheet's
-  `.terminalActions` / `.terminalExtra`; the outcome palette's
-  `terminalFrame`;
-- the game-local names and the prose, docs/win-lose.md's `locally-terminal`
-  among them.
+becomes the term `player-ended`. The rename is being done by
+[endings.md](endings.md).
 
 ### "Race" / "racer" in games that aren't races — decided
 
@@ -185,7 +173,7 @@ docs, and `common.words.difficulty` itself. Name each for the band it is.
   and `Tile.module.css`, wordle's `Board.module.css`, and strands'
   `Tile.module.css`, `Board.module.css` and `lib/trace.ts`.
 - **docs/win-lose.md names the blob's terms.** Its formulas (docs/win-lose.md
-  → Where a player stands — the terms, as formulas) say `isTerminal`, `isLocallyTerminal`, `isStillPlaying`,
+  → Where a player stands — the terms, as formulas) say `isGameEnded`, `isPlayerEnded`, `isStillPlaying`,
   `isOnTurn`, `isBoardInteractive`; the code reads `gd.me.stillPlaying`,
   `onTurn`, `waitingForTurn`, `conceded`, `solved`, `outcome`,
   `finalRanking` and `gd.ended`, and each BoardCol builds its own

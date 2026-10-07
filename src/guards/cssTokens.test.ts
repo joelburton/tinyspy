@@ -406,7 +406,7 @@ describe('the color families are complete rectangles', () => {
         'edge-color',
         'wash-color',
         'bar-color',
-        'terminalFrame-color',
+        'endingFrame-color',
       ],
       where: 'themes/daylight.css → OUTCOMES',
     },

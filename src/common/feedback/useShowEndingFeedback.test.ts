@@ -2,13 +2,13 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { TerminalMessage } from '../terminal/terminalMessage'
+import type { EndingMessage } from '../ending/endingMessage'
 import { createFeedbackSlot } from './feedbackSlotStore'
 import { useShowEndingFeedback } from './useShowEndingFeedback'
 
 type Props = {
-  gameEndingMessage: TerminalMessage | null
-  playerEndingMessage: TerminalMessage | null
+  gameEndingMessage: EndingMessage | null
+  playerEndingMessage: EndingMessage | null
 }
 
 const NO_ENDING: Props = { gameEndingMessage: null, playerEndingMessage: null }
@@ -26,8 +26,8 @@ function setup(initial: Props) {
   return { slot, shown, retracted, rerender, unmount }
 }
 
-const WON: TerminalMessage = { pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' }
-const CONCEDED: TerminalMessage = {
+const WON: EndingMessage = { pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' }
+const CONCEDED: EndingMessage = {
   pillText: 'Conceded — race continues',
   infoColText: 'You conceded',
   outcome: 'neutral',
@@ -42,7 +42,7 @@ describe('useShowEndingFeedback — the game ending', () => {
   it('shows the message as a verdict once the game has ended', () => {
     const { shown } = setup({ ...NO_ENDING, gameEndingMessage: WON })
     expect(shown).toHaveBeenCalledTimes(1)
-    expect(shown.mock.calls[0][0].kind).toBe('terminalVerdict')
+    expect(shown.mock.calls[0][0].kind).toBe('endingVerdict')
   })
 
   it('does not show it again while the message keeps its identity', () => {
@@ -78,6 +78,6 @@ describe('useShowEndingFeedback — the player ending', () => {
     const { rerender, shown, retracted } = setup({ ...NO_ENDING, playerEndingMessage: CONCEDED })
     rerender({ gameEndingMessage: WON, playerEndingMessage: null })
     expect(retracted).toHaveBeenCalledTimes(1)
-    expect(shown.mock.calls.at(-1)?.[0].kind).toBe('terminalVerdict')
+    expect(shown.mock.calls.at(-1)?.[0].kind).toBe('endingVerdict')
   })
 })

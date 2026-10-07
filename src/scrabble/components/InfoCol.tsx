@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import {
@@ -34,7 +34,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // Coop's suggester: its panel's state, and the way a picked move is staged.

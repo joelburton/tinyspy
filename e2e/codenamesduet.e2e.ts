@@ -182,7 +182,7 @@ test.describe('codenamesduet below-board layout stability', () => {
 })
 
 /**
- * "New game" — the terminal action row's one stay-here option, also reachable
+ * "New game" — the ending action row's one stay-here option, also reachable
  * mid-game from the menu. Deals a FRESH board with this game's setup + roster
  * on a NEW row and navigates to it.
  *

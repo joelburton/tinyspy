@@ -245,7 +245,7 @@
   );
 }
 
-/* The LOCAL feedback area — centers a lone <FeedbackPill> (or terminal message)
+/* The LOCAL feedback area — centers a lone <FeedbackPill> (or ending message)
  * in the below-board slot, the universal "local feedback is centered" look
  * (docs/ui.md → Feedback pill; the global header pill is
  * left-justified instead). `flex: 1` fills its slot so it centers regardless of
@@ -270,7 +270,7 @@
 
 /* The reserved-height box that holds EITHER a game's `.moveArea` (its below-board
  * move controls) OR the `.localFeedback` pill, in the games where the two swap in
- * one spot (an own-move result / terminal pill replaces the controls). The fixed
+ * one spot (an own-move result / ending pill replaces the controls). The fixed
  * min-height is what keeps the board above from reflowing as the content swaps,
  * so the box is drawn even when it holds nothing: without it the flex:1 board
  * would grow into the space (docs/playarea.md → PlayArea layout; docs/ui.md → Layout
@@ -612,7 +612,7 @@
 /* @@ */ .endingFrame {
   /* Neutral unless an outcome class below re-sets it — an ending nobody won or
    * lost keeps the plain gray. */
-/* @@ */   --ending-frame: var(--outcomes-neutral-terminalFrame-color);
+/* @@ */   --ending-frame: var(--outcomes-neutral-endingFrame-color);
   outline: 4px solid var(--ending-frame);
   outline-offset: 3px;
 }
@@ -623,15 +623,15 @@
  * WHICH. Declared after `.endingFrame` — they land on the same element, so
  * same-file order settles it. */
 /* @@ */ .endingFrame_won {
-/* @@ */   --ending-frame: var(--outcomes-won-terminalFrame-color);
+/* @@ */   --ending-frame: var(--outcomes-won-endingFrame-color);
 }
 
 /* @@ */ .endingFrame_lost {
-/* @@ */   --ending-frame: var(--outcomes-lost-terminalFrame-color);
+/* @@ */   --ending-frame: var(--outcomes-lost-endingFrame-color);
 }
 
 /* @@ */ .endingFrame_neutral {
-/* @@ */   --ending-frame: var(--outcomes-neutral-terminalFrame-color);
+/* @@ */   --ending-frame: var(--outcomes-neutral-endingFrame-color);
 }
 
 /* ATTENTION — this changed, look here.

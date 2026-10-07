@@ -68,5 +68,5 @@ nothing and every cap stays neutral.
   holds what a caller is promised — the tap, what can be pressed, which class a
   key color lands, the focus refusal. Their paint is in a browser, where a
   fill and an ink can be read. The game-over withdraw is pinned by each
-  consumer, being a fact about a game's terminal frame rather than this
+  consumer, being a fact about a game's ending frame rather than this
   component's contract.

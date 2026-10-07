@@ -1,4 +1,4 @@
-# terminal — todo
+# ending — todo
 
 ## Bugs
 

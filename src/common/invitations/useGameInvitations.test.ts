@@ -58,7 +58,7 @@ vi.mock('../manifest/unknownGametype', () => ({
 const GID = '11111111-1111-1111-1111-111111111111'
 
 // Per-table db results. `load()` runs two queries: game_players (with
-// an `!inner` embed of the game, filtered to non-terminal) → profiles. Each
+// an `!inner` embed of the game, filtered to not ended) → profiles. Each
 // builder is a thenable resolving to its table's rows. The game_players rows
 // carry the embedded `games` object (to-one), matching the query shape.
 const dbData: Record<string, unknown[]> = {

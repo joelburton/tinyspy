@@ -46,7 +46,7 @@ export class GuardianConvertError extends Error {
  *
  * Requires published answers: a puzzle whose solutions are still withheld
  * (`solutionAvailable === false`, or any entry missing its `solution`) can't
- * back a playable game (our check/reveal/terminal flow needs the answer key),
+ * back a playable game (our check/reveal/ending flow needs the answer key),
  * so it throws rather than seeding an unsolvable board.
  */
 export function convertGuardianPuzzle(data: GGuardianData): {

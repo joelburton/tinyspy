@@ -138,7 +138,7 @@ From `todo.md` → Soon: `doc.md` says `hidden` is "not here at this moment"
 and `disabled` is "here, and not right now", yet psychicnum, letterboxed,
 connections, stackdown, scrabble and codenamesduet answer `disabled` for
 Hint, Spoiler and Reveal outside their moment, on purpose — the menu row is
-the legend that teaches the glyph, and the terminal-row slot keeps its shape.
+the legend that teaches the glyph, and the ending-row slot keeps its shape.
 Either `doc.md` states that exception and its reason, or the games conform
 when their areas open. This area owns the doc, so it is where the ruling gets
 written.

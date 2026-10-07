@@ -108,7 +108,7 @@ as its second argument, and eight of the eleven log games' move RPCs pass one:
 | letterboxed | word `won`; undo, clear `neutral`; `log_help` says nothing | no — every pill is a literal |
 | strands | theme, spangram, **hint_word `won`**; dup, too_short `warning`; invalid `lost`; spent hint `warning` | no — `resultFor` is a literal switch |
 | setgame | claim `won`; hint says nothing | no |
-| codenamesduet | guess agent `won` / bystander `lost` / terminal `won`·`lost` | no — the pill branches `return` nothing |
+| codenamesduet | guess agent `won` / bystander `lost` / ending `won`·`lost` | no — the pill branches `return` nothing |
 | scrabble | word `won` / invalid `lost`; exchange `won`; pass `neutral` | no — three literals |
 | connections | **in `data.result`** (`won`/`near`/`lost`), `outcome` left null | branched on, then re-typed as three literals |
 | waffle | nothing — a swap has no verdict | (nothing to read; the log's `neutral` is right) |
@@ -140,7 +140,7 @@ server and the frontend disagreeing on the word itself:
 | strands · dup, too_short | `warning` | `warning` | `lost` | PDF `no` |
 | strands · spent hint | `warning` | (none) | `neutral` | — |
 | scrabble · exchange | `won` | `won` (literal) | `neutral` | peer `neutral` |
-| scrabble · forfeit | — | terminal | `lost` | peer `neutral` |
+| scrabble · forfeit | — | ending | `lost` | peer `neutral` |
 | letterboxed · hint, spoiler | (none) | `noted` | `near` | — |
 | letterboxed · undo, clear | `neutral` | (none) | `neutral` | peer `noted` |
 | codenamesduet · a guess | `won` / `lost` | (none) | a per-TURN fold, `near` for mixed | board: the G/N/A palette |
@@ -533,7 +533,7 @@ table and says why wordiply's differs.
 log's bar is `neutral` and that is the only word it has; `submit_swap`
 deliberately carries no outcome and no message, because the colors reach
 everyone together over realtime; no pill reports a swap at all. The board's
-g/y/x tile colors and the terminal frame are other vocabularies. No
+g/y/x tile colors and the ending frame are other vocabularies. No
 `lib/answer.ts` — one move, one word, one reader — and the log's docstring now
 says so rather than leaving the absence to be rediscovered. The two
 `peerMilestone` lines ("solved it", "out of swaps") are news about a player's
@@ -680,8 +680,8 @@ with it.
   a paragraph that is stale anyway (F-12).
 - `psychicnum/components/Board.module.css` *"SATURATED outcome tones"* (and
   the token name beside it was wrong too — F-12).
-- Docs — **FIXED**: spellingbee's terminal table (*"→ tone won"* ×7 — a
-  `TerminalOutcome`, but the vocabulary rule holds), wordiply's *"neutral
+- Docs — **FIXED**: spellingbee's ending table (*"→ tone won"* ×7 — an
+  `EndOutcome`, but the vocabulary rule holds), wordiply's *"neutral
   tone"*, waffle's `tone:'neutral'` and *"reads as `success` … (tone follows
   the event)"* (`success` is not a word in the list; it is `won`), connections'
   *"PILL's tone"* ×2. `docs/games/stackdown.md`'s Deferred item *"the `lost`

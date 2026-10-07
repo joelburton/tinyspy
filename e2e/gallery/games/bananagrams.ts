@@ -57,7 +57,7 @@ function buildBoard(tiles: string, layEverything = false): string {
  * a winning peel validates GEOMETRY only, so laying the whole hand in one
  * connected mass, draining the bunch (`drainBananagramsPool`, the same
  * documented psql escape hatch the win e2e uses), and peeling dry IS the win —
- * the game's one intrinsic terminal, produced by its own RPC.
+ * the game's one intrinsic ending, produced by its own RPC.
  */
 export const bananagramsGallery: GameGallery = {
   game: 'bananagrams',

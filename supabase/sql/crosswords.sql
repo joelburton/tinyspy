@@ -1349,7 +1349,7 @@ drop function if exists crosswords.replay_board(uuid);
 -- ============================================================
 -- crosswords.replay_board — solve this puzzle again from scratch
 -- ============================================================
--- The "Restart" game-menu item / terminal-row Restart, and the only
+-- The "Restart" game-menu item / ending-row Restart, and the only
 -- board-clearing action. Puts EVERY owner's grid back exactly as the game
 -- started it (`_make_starting_cells`: an upload's saved fills and an NYT
 -- overlay's bars come back; everything the players did goes), then hands the

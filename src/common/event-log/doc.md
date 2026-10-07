@@ -39,7 +39,7 @@ number and the link are different values. The number is the row's place in the
 list you are looking at — it counts 1, 2, 3 under whatever filter is applied,
 which from your seat is honest. The link is the row's own id, resolved by the
 builder against the list it is folding. Two lists, two lookups, and a filter can
-move one without touching the other — which is what lets a compete terminal open
+move one without touching the other — which is what lets an ended compete game open
 an opponent's row and replay THEIR board, and what makes the number something
 the log has to hand over rather than a thing the board can work out.
 
@@ -83,7 +83,7 @@ travels up with the row's id when a handle is pressed — `showHistory(id, n)`,
 back out of the hook as `historyN` — because only the log knows what number it
 printed; a game's label builder is folding the other list and would count a
 different one. Beside it, `<HistoryBanner>`'s optional `actor` names the player
-when the board on screen is not the viewer's own, which only a compete terminal
+when the board on screen is not the viewer's own, which only an ended compete game
 can be: coop is one shared board, and naming a teammate there would claim it
 belonged to them.
 

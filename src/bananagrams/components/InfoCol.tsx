@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { ActionButton } from '@/common/actions/ActionButton'
 import {
   InfoActionsRow,
@@ -36,7 +36,7 @@ export function InfoCol({
   actions: GActions
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
 }) {
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }

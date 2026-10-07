@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, not started.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; step 1, the rename, is done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, both page blobs can hold several
 winners, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -94,7 +94,7 @@ Also:
 
 - `playArea.module.css` has no `.endingFrame_near`, so a `near` player's frame
   falls back to the neutral gray.
-- `terminalOutcomeVerb` has no callers; each of the seven strips writes its
+- `endingOutcomeVerb` has no callers; each of the seven strips writes its
   own two-way verb.
 - crosswords celebrates only a coop win (`gd.coop && gd.outcome === 'won'`);
   a compete winner gets none.
@@ -113,30 +113,31 @@ Also:
    `timeout-result` line names no tie, where letterboxed's, scrabble's and
    setgame's do.
 
-## The work — proposed order, not yet agreed
+## The work
 
-1. **Common SQL.** `common._make_json_ending` writes `winners`;
+1. **"Terminal" out.** Common (the folder becomes `common/ending/`;
+   `TerminalMessage`, `terminalFrame`,
+   `terminalVerdict`, `isTerminal`, `isLocallyTerminal`), every game, the
+   docs and `plans/areas`.
+2. **Common SQL.** `common._make_json_ending` writes `winners`;
    `common._make_json_summary_data` adds the player list; scrabble's and
    setgame's `winnerIds` go. Every game's `_rebuild_data_cols_for_all()` on
    deploy.
-2. **Common front end.** The types follow; `summaryFor` takes the viewer;
+3. **Common front end.** The types follow; `summaryFor` takes the viewer;
    `.endingFrame_near`; one shared verb for the strips, with `near` and the
    place.
-3. **Each game.** Its message colored by mine and naming every winner; "2nd
+4. **Each game.** Its message colored by mine and naming every winner; "2nd
    place"; the frame; its strip on the shared verb; its `summaryFor` on
    `winners`. boggle, spellingbee and wordwheel's hard-coded `'lost'` first:
-   they color a `near` player red today.
-4. **"Terminal" out.** Common first (`src/common/terminal/` becomes
-   `common/ending/`; `TerminalMessage`, `terminalFrame`,
-   `terminalVerdict`, `isTerminal`, `isLocallyTerminal`), then every game,
-   the docs and `plans/areas`. Last, so it doesn't rename code steps 1–3 are
-   about to rewrite.
+   they color a `near` player red today. Each game also closes its gaps
+   against `plans/game-cards.md` and answers "what should the club-page
+   summary be?".
 
 ## Overlaps
 
-cross-game-consistency holds two items this plan covers:
-→ Endings → "A ranking below first shows as `near`, never 'Lost'", and
-→ Renames → "Terminal" → "ended". Each wants one home.
+cross-game-consistency holds an item this plan covers:
+→ Endings → "A ranking below first shows as `near`, never 'Lost'". It wants
+one home. Its → Renames → "Terminal" → "ended" points here.
 
 ## Open
 

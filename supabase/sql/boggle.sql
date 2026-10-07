@@ -881,7 +881,7 @@ drop function if exists boggle.replay_board(uuid);
 -- ============================================================
 -- boggle.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal Restart. Restarts the SAME
+-- The "Replay board" game-menu item / ending-row Restart. Restarts the SAME
 -- board — same faces + word lists — for everyone: the found-words log (the
 -- game's only working state) is cleared, and common._reset_game clears the
 -- ending, each player's ending and result, and zeroes the shared timer. Any

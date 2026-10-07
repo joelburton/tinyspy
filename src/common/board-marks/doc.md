@@ -17,7 +17,7 @@ for that, and it answers three questions.
 
 The first is which pieces just changed — and, harder, whether a move is what
 changed them. A diff cannot tell: a board also changes when a restart deals a
-fresh one, when a terminal reveal swaps the solution in, and when you open a
+fresh one, when an ending reveal swaps the solution in, and when you open a
 finished game and arrive at a board full of history. A diff sees only that
 things differ, so left alone it lights the whole board up at exactly the
 moments nothing has happened. The rule is to read the cause rather than infer
@@ -99,7 +99,7 @@ announced is never marked.
 `common.games.restarts`, which the page keys its play surface on, so the whole
 surface unmounts and every hook in it — this one included — starts again against
 the new board and says nothing. What the cause gating is really for is the change
-that arrives WITHOUT a remount: a terminal reveal swapping the solution in, which
+that arrives WITHOUT a remount: an ending reveal swapping the solution in, which
 would otherwise light the whole board at the moment nothing happened.
 
 **The cause check runs during render**, not in an effect, so that the caller

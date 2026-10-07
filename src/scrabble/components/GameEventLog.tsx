@@ -47,7 +47,7 @@ export function GameEventLog({
     myId,
     mode,
     // Every row is public, so a filtered-empty log is never "hidden".
-    isTerminal: true,
+    isGameEnded: true,
     competeSharesOneGame: true,
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',

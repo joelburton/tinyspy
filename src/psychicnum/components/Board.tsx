@@ -1,7 +1,7 @@
 // cs-blessed-psychicnum
 
 import { cls } from '@/common/utils/cls'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import shared from '@/common/game-page/playArea.module.css'
 import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'

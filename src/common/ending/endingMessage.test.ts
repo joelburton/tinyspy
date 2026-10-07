@@ -1,7 +1,7 @@
 // cs-blessed-feedback
 
 import { describe, expect, it } from 'vitest'
-import { buildGameEndedMessageNeutral } from './terminalMessage'
+import { buildGameEndedMessageNeutral } from './endingMessage'
 
 describe('buildGameEndedMessageNeutral', () => {
   it('is neutral, names no winner, and says so in compete', () => {

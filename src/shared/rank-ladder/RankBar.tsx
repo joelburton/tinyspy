@@ -49,7 +49,7 @@ export function RankBar({ rankIdx, rankName, total, targetIdx = null }: Props) {
           // The goal square keeps its outline after it fills — the fill and
           // the outline style different properties, so neither replaces the
           // other — and the bar still reads "this is what we were playing to"
-          // at terminal. Ranks BEYOND the target stay on the track rather than
+          // at the end. Ranks BEYOND the target stay on the track rather than
           // being cropped, since a single big word can carry the score past
           // the goal that ended the game.
           const isTarget = i === targetIdx

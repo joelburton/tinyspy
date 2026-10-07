@@ -23,7 +23,7 @@ export type WordSection = {
  * roster order — a player who found nothing still gets one — with the per-row
  * finder dropped (the heading says whose it is) and the tally summed from the
  * rows, so the score and the words cannot disagree. Words nobody found (the
- * terminal reveal, arriving as `found: null` rows) go last under "Not found",
+ * ending reveal, arriving as `found: null` rows) go last under "Not found",
  * credited to no one.
  */
 export function buildWordSections(

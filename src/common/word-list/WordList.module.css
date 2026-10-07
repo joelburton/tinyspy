@@ -5,8 +5,8 @@
  * run past the columns its width admits.
  *
  * Each row leads with a circle marker carrying the attribution — a filled ● in
- * the finder's color for found words, a hollow ○ in gray for post-terminal missed
- * words — while the word text stays black (found) / gray (missed). A recently
+ * the finder's color for found words, a hollow ○ in gray for the missed words
+ * revealed at the end — while the word text stays black (found) / gray (missed). A recently
  * found word adds a thick finder-color underline for its beat. */
 
 /* THE THREE LEVELS, outermost first — panel ⊃ card ⊃ grid, which is the order
@@ -93,7 +93,7 @@
   margin-right: 7px;
 }
 
-/* Missed words (post-terminal reveal) swap in the hollow variant — the ring,
+/* Missed words (the ending reveal) swap in the hollow variant — the ring,
  * not the text color, is the "missed" signal. Lighter than the muted word text
  * beside it, so the ring reads as a faint marker rather than a second emphasis.
  * `<Dot hollow>` invites this override by design; the color is the word list's
@@ -151,7 +151,7 @@
   overflow: hidden;
 }
 
-/* Unfound words (the post-terminal reveal — what the team / field missed, from
+/* Unfound words (the ending reveal — what the team / field missed, from
  * both shipped lists). The hollow ○ ring (.dotUnfound) is the primary signal;
  * the word also goes medium gray to stay de-emphasized next to the black found
  * words. */

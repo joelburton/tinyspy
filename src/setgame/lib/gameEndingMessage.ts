@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What setgame says once the game is over, for its ending and mode.
@@ -50,11 +50,11 @@ export function buildGameEndingMessage({
   winnerNames: string[]
   // The sets the winners share, or null when nobody won.
   nWinnerSets: number | null
-}): TerminalMessage {
+}): EndingMessage {
   const sets = `${nSetsFound} ${nSetsFound === 1 ? 'set' : 'sets'}`
 
   /** The texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Omit<TerminalMessage, 'outcome'> {
+  function makeGameEndingWords(): Omit<EndingMessage, 'outcome'> {
     if (mode === 'coop') {
       if (gameOutcome === 'won') {
         return nTilesLeft === 0

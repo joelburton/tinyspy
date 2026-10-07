@@ -52,10 +52,10 @@ function markdownFiles(): string[] {
  * bites us: punctuation is DELETED rather than replaced, but the spaces
  * around it survive and each become a hyphen. So
  *
- *   ## Terminal results — the moment vs the record
- *        → `#terminal-results--the-moment-vs-the-record`   (two hyphens)
+ *   ## Endings — the moment vs the record
+ *        → `#endings--the-moment-vs-the-record`   (two hyphens)
  *
- * Writing `#terminal-results-the-moment…` (one) or keeping the literal `—`
+ * Writing `#endings-the-moment…` (one) or keeping the literal `—`
  * both dangle. Numbered headings keep their digits: `## 9. Deferred` →
  * `#9-deferred`.
  */

@@ -22,5 +22,5 @@
   the identical thing for the five typing games. **What would reopen it:** the
   below-board classes leaving `playArea.module.css` for a sheet of their own,
   which is `game-page/todo.md`'s subdivision item — this folder follows them
-  wherever they land. The same question in `terminal` and `info-sheet` is about
+  wherever they land. The same question in `ending` and `info-sheet` is about
   different classes and answers for itself.

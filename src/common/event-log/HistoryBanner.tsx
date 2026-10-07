@@ -16,7 +16,7 @@ import styles from './historyViewer.module.css'
  * rather than wrapping, so the banner is always one line and the ✕ never moves.
  *
  * `actor` names WHOSE board is on screen, and is passed only when that is not
- * the viewer's own: at terminal a compete log opens up, and a `#N` there
+ * the viewer's own: once it ends a compete log opens up, and a `#N` there
  * replays the board of the player who made that move. It reads
  * "● moth: GUESS 3" — the dot and the name, then the game's own label. Not
  * "moth's board": player names are never apostrophized anywhere in the app.

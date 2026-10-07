@@ -1,7 +1,7 @@
 // cs-blessed-codenamesduet
 
 import { cls } from '@/common/utils/cls'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import { positionAt } from '@/common/board-cursor/boardPosition'
 import shared from '@/common/game-page/playArea.module.css'
 import {

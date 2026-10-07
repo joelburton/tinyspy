@@ -188,7 +188,7 @@ made.
   (`endGame:       makeRpcDispatcher`) — fine in a docstring, noted only
   because the game manifests do not align them.
 - `gameManifest.ts`'s header lists "who someone is" as two files
-  (`member.ts` · `terminalOutcomeVerb.ts`); the second is a verb for an
+  (`member.ts` · `endingOutcomeVerb.ts`); the second is a verb for an
   outcome, not who someone is. Either the label or the pairing is off.
 
 ### The decision group — each waits for Joel
@@ -209,7 +209,7 @@ for it — and Concede is the wrong instrument, since it is a loss on a player's
 record. So `crosswords.end_game` now runs in either mode (PN487 deleted and
 retired), `crosswordsCompeteGame` supplies `endGame`, and the reading was
 verified rather than assumed: `competeLabel` already answered `'ended'`,
-`buildOver` already handed it to `gameEndedTerminalMessage('compete')` at
+`buildOver` already handed it to `buildGameEndedMessageNeutral('compete')` at
 `outcome: 'neutral'`, and the generated status-label table already carried the
 row. **No UI was added** — `offersEndForAll` in the PlayArea is the board
 control, and `src/crosswords/todo.md` holds it.

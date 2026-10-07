@@ -359,8 +359,8 @@ export type GSetup = SetupOf<GSetupValues>
  * feedback.
  *
  * A guess of mine has no answer here: the tile turning over says it, and a
- * pill would only repeat the board. The terminal verdicts are not answers
- * either — they are the shared shape every game's `buildTerminalMessage` returns.
+ * pill would only repeat the board. The ending verdicts are not answers
+ * either — they are the shared shape every game's `buildEndingMessage` returns.
  */
 export type GAnswer =
   // Where the turn stands after my partner's latest move, or mine: what my

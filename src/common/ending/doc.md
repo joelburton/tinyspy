@@ -1,4 +1,4 @@
-# terminal
+# ending
 
 A game's ending: when to celebrate it, the celebration itself, and the words a
 finished game is described with — the verdict each game writes, and the one-word
@@ -17,7 +17,7 @@ record is made of; the surfaces that carry the record — the below-board pill,
 the info column's action row, the compete strip — belong to the folders that
 draw them.
 
-The moment is `<CelebrationBlockingModal>`, and a terminal game pops nothing
+The moment is `<CelebrationBlockingModal>`, and an ended game pops nothing
 else — everything a finished game has to say, it says in the page. Only a win
 gets a moment at all. Losses land through the red pill instead, which is a
 decision rather than an omission: a consolation dialog is a dialog you have to
@@ -33,10 +33,10 @@ cannot tell the difference. Which flip counts is the game's own business — a
 coop solve, a compete win off its own row, both — but that one requirement is not.
 
 The words split the same way the surfaces do. A game's own builder returns
-a `TerminalMessage`, which is what the GAME says about how it ended, in two
-lengths because two surfaces of different width have to agree; `terminalMessage`
+an `EndingMessage`, which is what the GAME says about how it ended, in two
+lengths because two surfaces of different width have to agree; `endingMessage`
 holds that shape and the one message every game shares, the neutral "the friends
-agreed to stop". `terminalOutcomeVerb` answers a different question — how did
+agreed to stop". `endingOutcomeVerb` answers a different question — how did
 THIS PLAYER come out — in a single word for a cell in a compete strip, which is
 why the two live side by side here and neither is written in terms of the other.
 
@@ -51,11 +51,11 @@ why the two live side by side here and neither is written in terms of the other.
 │                      ├── <div .content role="dialog" aria-label={title}>
 │                      │     └── confetti row · <h2 .title> at h1's size · sub-line
 │                      └── actions slot: "Nice!"
-├── the game's builder → TerminalMessage   its own words, written per game
-│     ├── FeedbackMessage.terminalVerdict(over) → <FeedbackPill>   feedback/
+├── the game's builder → EndingMessage   its own words, written per game
+│     ├── FeedbackMessage.endingVerdict(over) → <FeedbackPill>   feedback/
 │     └── <InfoActionsRow message={{text, outcome}}>   info-sheet/
 └── <OpponentStrip metricFor>  info-sheet/ — a compete cell per player, whose
-                               word is terminalOutcomeVerb(player)
+                               word is endingOutcomeVerb(player)
 ```
 
 **The gate is the caller's; the hook only watches.** `useCelebration` is handed a
@@ -76,10 +76,10 @@ breaks them all at once.
 
 **Closing it is not re-arming it.** Dismissed, it stays dismissed for as long as
 the game stays won; what re-arms it is the flip back to false — which is what a
-replay-board does when it un-terminals the game — so win → restart → win
+replay-board does when it reopens the game — so win → restart → win
 celebrates both times.
 
-**`terminalMessage.ts` sits here, but the verdict's vocabulary is
+**`endingMessage.ts` sits here, but the verdict's vocabulary is
 [`common/feedback`](../feedback/doc.md)'s.** The file lives in this folder
 because a verdict is a game's ending; what a verdict may SAY — the terse pill
 label, the shorter info-column line, the outcome that colors both — is the same

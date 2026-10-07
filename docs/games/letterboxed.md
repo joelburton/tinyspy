@@ -102,7 +102,7 @@ Three different trust postures coexist here, each for its own reason:
   bad word instantly. **The seeded pair arrives when the game ends** — the
   builder writes `puzzle.solution` null until then — and even then stays
   covered until a player presses Reveal, a local, reversible display toggle
-  (docs/ui.md → Terminal results) that is **never automatic, a win included**.
+  (docs/ui.md → Endings) that is **never automatic, a win included**.
   Winning is covering the twelve with *any* chain inside the cap, so unlike
   waffle (the solved grid is the answer) or wordle (you typed the target) a win
   does **not** put the seeded pair on screen. The pair is stored because it's

@@ -103,7 +103,7 @@ area file's closing summary.
 | 21 | `menu` | `menu` | closed 09-11 · the one menu |
 | 22 | `common-hosts` | `toasts` · `tooltips` · `faults` · `invitations` | closed 09-11 · the root hosts |
 | | **The feedback system** | | |
-| 23 | `feedback` | `feedback` · `terminalMessage` (in `terminal`) · `turnText` (in `info-sheet`) | closed 09-12 · everything between an envelope and a player reading words |
+| 23 | `feedback` | `feedback` · `endingMessage` (in `ending`) · `turnText` (in `info-sheet`) | closed 09-12 · everything between an envelope and a player reading words |
 | | **Page furniture** | | |
 | 24 | `page-header` | `page-header` | closed 09-12 · the top strip and its marks |
 | 25 | `definitions` | `definitions` · `anagram-finder` | closed 09-12 · click-a-word lookup, curation, anagrams |
@@ -127,7 +127,7 @@ area file's closing summary.
 | 41 | `z-index` | no folder — a task | closed 09-18, nothing stamped · the z- layers |
 | 42 | `word-list` | `word-list` | closed 09-21 · the found-words list |
 | 43 | `word-entry` | `word-entry` | closed 09-18 · the typed-word box and its row |
-| 44 | `terminal` | `terminal` | closed 09-18 · a game's ending, and the celebration |
+| 44 | `terminal` | `ending` | closed 09-18 · a game's ending, and the celebration |
 | 45 | `reveal` | `reveal` | closed 09-18 · showing the answer |
 | 46 | `info-sheet` | `info-sheet` | closed 09-19 · the info column and its phone page |
 | 47 | `pdf` | `pdf` · `shared/wordle-style/pdfTiles.ts` | closed 09-19 · printing a board |

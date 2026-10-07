@@ -1492,7 +1492,7 @@ drop function if exists codenamesduet.replay_board(uuid);
 -- ============================================================
 -- codenamesduet.replay_board — run this board back from scratch
 -- ============================================================
--- The "Restart" game-menu item / terminal-row Restart: reset the working state
+-- The "Restart" game-menu item / ending-row Restart: reset the working state
 -- on the SAME game row. The frozen puzzle stays — the same 25 words and the
 -- same two key cards — with every reveal, neutral and event wiped, the
 -- turn counter back to 1 (so the whole budget is left) and seat A clueing

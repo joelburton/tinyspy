@@ -12,8 +12,8 @@ blessed and close it"*): fifty-six files `cs-blessed-connections` — the
 fifty-one on the roster (every stamped file in `src/connections/`, its three
 SQL files, its ten pgTAP files and `setup.psql`) and the five this area
 stamped `cs-met-connections` as it worked: `e2e/presence-pause.e2e.ts` and
-`supabase/tests/common/locally_terminal_test.sql` (F-5), the two migrations
-(F-5's `locally_terminal`, F-22's `status_outcome_to_reason`), and the puzzle
+`supabase/tests/common/player_ended_test.sql` (F-5), the two migrations
+(F-5's player-ended column, F-22's `status_outcome_to_reason`), and the puzzle
 importer. The second game area closed. The full e2e suite did NOT run before
 this blessing (it has not run since the status-key rename, the shared CSS
 change or the one-noun label change); Joel closed without it.
@@ -67,7 +67,7 @@ markdown and the logo none.
   `StrikeMarks.tsx` + `.module.css`. hooks: `useGame.ts` + `.test.ts`. lib:
   `answer.ts` + `.test.ts`, `board.ts`, `evaluate.ts` + `.test.ts`,
   `history.ts` + `.test.ts`, `localOrder.ts` + `.test.ts`, `rankColors.ts`,
-  `setup.ts`, `setupSummary.ts`, **`terminal.ts` + `.test.ts` (created by
+  `setup.ts`, `setupSummary.ts`, **`gameEndingMessage.ts` + `.test.ts` (created by
   Step 6, 2026-09-19)**. pdf: `model.ts` + `.test.ts`,
   `printConnectionsPdf.ts`. root: `db.ts`, `manifest.ts` + `.test.ts`,
   `theme.css`, `logo.svg`, `todo.md`, and **`doc.md`, written at Step 3**
@@ -93,7 +93,7 @@ markdown and the logo none.
 - **Created here but NOT this game's** (F-5, 2026-09-19, which fixed a
   `common` defect from this area):
   `supabase/migrations/20260919000001_game_players_locally_terminal.sql` and
-  `supabase/tests/common/locally_terminal_test.sql`, and
+  `supabase/tests/common/player_ended_test.sql`, and
   `e2e/presence-pause.e2e.ts`. All stamped
   `cs-met-connections` because this pass wrote them; they belong to whichever
   common area covers the pause roster.
@@ -301,7 +301,7 @@ specs have not run for Steps 2–4.
 psychicnum's Step 3, copied. **The row is one `<InfoActionsRow>` now**, in the
 order `docs/playarea.md` states: Hints | Reveal · Restart · New game ·
 Concede · End | Back to club, the divider after Hints, Back to club filled
-only at terminal. The three-way fork (`over ? … : !showInput ? … : …`) is
+only once the game has ended. The three-way fork (`over ? … : !showInput ? … : …`) is
 gone; the only thing that varies is the row's line — the verdict, "You
 conceded" / "You're out" while a race runs on without you, nothing while you
 can play. The InfoCol's destructure, its prop-type block and the PlayArea's
@@ -311,8 +311,8 @@ prop list read in that same order, and so does the menu.
 once you can no longer submit (the todo Bug); Reveal takes the button guard
 in front of the shared `describeReveal` (`showInput && asker === 'button'` →
 hidden, a grayed menu row all game, since the menu names the glyph); New
-game is a button only at terminal, `(asker) => asker === 'button' &&
-!isTerminal ? 'hidden' : 'active'`, a menu row and `+` all game; Restart's
+game is a button only once the game has ended, `(asker) => asker === 'button' &&
+!isGameEnded ? 'hidden' : 'active'`, a menu row and `+` all game; Restart's
 was already the shared hook's. `createNewGame` is a plain `async function`.
 No in-flight flag existed to remove. The bindings gather in one order: the
 shared trio, Hint, Reveal, New game, Print — with `boardView` still sitting
@@ -332,7 +332,7 @@ was open); `lib/localOrder.ts` keeps `reconcileLocalOrder` alone, its three
 shuffle cases gone with the function.
 
 **Two behavior changes, stated now.** *Reveal joins the game menu* — today
-it was a terminal-row button with no menu twin; the row's order puts it
+it was an ending-row button with no menu twin; the row's order puts it
 beside Restart and New game, grayed until the game is over. *An out-of-race
 compete player sees a grayed Reveal button* where before they saw none:
 the state rule's "possible here, not right now" with the tooltip, as
@@ -351,12 +351,12 @@ the guards). The e2e specs have not run for Steps 2–5.
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-19
 
 psychicnum's Step 4, copied, with its rename ruling applied from the start:
-the builder is **`buildTerminalMessage`** in `lib/terminal.ts` — Joel's word
-is "terminal", not "over" — the value it produces is `terminalMessage`, and
-InfoCol's `over` prop is `terminalMessage` too. `<Board gameOver>` keeps its
+the builder is **`buildEndingMessage`** in `lib/gameEndingMessage.ts` — Joel's
+word is "ending", not "over" — the value it produces is `endingMessage`, and
+InfoCol's `over` prop is `endingMessage` too. `<Board gameOver>` keeps its
 name, being the shared vocabulary backed by the `.gameOver*` classes.
-`PlayArea.tsx` no longer imports `gameEndedTerminalMessage` or the
-`TerminalMessage` type; the `useMemo` on primitives that feeds the verdict
+`PlayArea.tsx` no longer imports the game-ended message builder or the
+`EndingMessage` type; the `useMemo` on primitives that feeds the verdict
 effect stays there, as planned.
 
 **A no-op with one signature change**: the builder took `selfMatched` and
@@ -364,8 +364,8 @@ compared it to `CATEGORY_COUNT`, a constant of the component file; it takes
 `selfWon` now, which the PlayArea computes from the `iMatchedThemAll` it
 already had for the reveal. Same branches, same words.
 
-`lib/terminal.test.ts` walks the whole input space — every terminal play
-state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
+`lib/gameEndingMessage.test.ts` walks the whole input space — every ended
+play state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
 modes, the clock run out and not, the caller eliminated and not — and the
 last case is a TABLE: no cell pairs a winning sentence with a losing outcome,
 both texts are filled, neither is punctuated. Both files join the roster at
@@ -394,7 +394,7 @@ board's display order · Render). For connections that is:
    `useCelebration`, `useTurnStartFlash`
 2. Derived — `myConceded`, `locallyDone`, `showInput`, `iMatchedThemAll` and
    the reveal, `summaryRows`, `boardView`
-3. The local slot — the slot and its any-key dismiss, the terminal message,
+3. The local slot — the slot and its any-key dismiss, the ending message,
    out-of-race, waiting
 4. Narration — the coop peer effect
 5. The turn-history viewer
@@ -462,7 +462,7 @@ archaeology cut. Four files: `PlayArea.tsx`, `BoardCol.tsx`, `Board.tsx`,
 **The surface's docstring is rewritten around the decomposition** — it
 described the pre-split file: a five-bullet mode table whose surfaces had
 moved out (the OpponentStrip is InfoCol's, the eliminated look is the row's,
-the "terminal copy" is `lib/terminal.ts`'s), a five-step submission flow that
+the "ending copy" is `lib/gameEndingMessage.ts`'s), a five-step submission flow that
 is `BoardCol`'s, and a pointer at `docs/deferred.md → Feedback channels`. It
 says now what psychicnum's says: holds no board, draws no control; `mode` is
 what differs and where; what a guess is worth is `lib/answer.ts`'s.
@@ -574,7 +574,7 @@ choice with a comment that says it is one. Recommendation: the same here; a
 race's winner has more to celebrate than a team, and the pill alone says
 "Won: the race" in the corner.
 
-### SHIPPED · F-connections-2 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+### SHIPPED · F-connections-2 · `ending-reads-the-clock` · the ending message decides the reason from the client clock, and cannot say "all conceded"
 
 **Joel, 2026-09-19: "do it."** The builder's inputs are `mode · playState ·
 reason · selfWon · selfEliminated`, `reason` being `status.outcome`; the call
@@ -582,7 +582,7 @@ site reads `status` off the context (the prop it never destructured) and the
 `timer` prop is gone from this component. `lost_compete` gained *All conceded
 — no winner* / *All conceded*; a MIXED table stays "Everyone eliminated",
 which is the server's own call in `connections.concede` and what the
-club-list label says from the same word. `lib/terminal.test.ts` walks every
+club-list label says from the same word. `lib/gameEndingMessage.test.ts` walks every
 word `status.outcome` can hold (plus `undefined`) instead of a boolean, and
 `PlayArea.test.tsx` gained the WIRE: an all-conceded race whose clock never
 ran out reads the server's word. **Verified by planting two faults**: the
@@ -591,7 +591,7 @@ builder blind to `conceded` (2 red) and the call site back on
 paragraph said the club-list label reads the column; both now name the pill
 beside it.
 
-`buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
+`buildEndingMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into
 `common.games.status.outcome` (`solved` · `mistakes` · `timeout` · `conceded`
 · `manual`), which the club-list label already reads. Two consequences: a
@@ -663,10 +663,10 @@ it; the field is what makes the seam a seam.
 ### SHIPPED · F-connections-5 · `eliminated-racer-pauses-survivors` · an eliminated racer still pauses the game for the survivors
 
 **Joel, 2026-09-19: "do all now."** Option (b), and it is a `common` fix:
-`common.game_players.locally_terminal` (a new migration), written by
-`common._set_locally_terminal` and cleared by `common.reset_game` with
-`conceded`; the roster is now `not conceded and not locally_terminal and not
-ai_member`.
+a player-ended column on `common.game_players` (a new migration), written by
+`common._set_player_ended` and cleared by `common.reset_game` with
+`conceded`; the roster is now every player not conceded, not player-ended and
+not an `ai_member`.
 
 **It was never a connections bug.** Asked whether the other games have it, the
 survey found five more, and the taxonomy in `docs/win-lose.md` says the same
@@ -678,7 +678,7 @@ game (crosswords, letterboxed), or the active set really is "not conceded",
 which each of those games' `concede` header states outright.
 
 **That also killed option (a).** In wordle, waffle and strands the first
-player to go locally terminal is the one who SOLVED, and `conceded` forfeits
+player to end is the one who SOLVED, and `conceded` forfeits
 the win — so the cheap overload would have cost the winner their win. Recorded
 here because the finding recommended (a) before the sibling check was done.
 
@@ -696,7 +696,7 @@ came out of writing it — a compete solver sees *Waiting for others*, not the
 coop verdict *Solved it!*, and `e2e/` is outside both tsconfig projects, so
 nothing type-checks it.
 
-**Tests**: a new `supabase/tests/common/locally_terminal_test.sql` (the helper
+**Tests**: a new `supabase/tests/common/player_ended_test.sql` (the helper
 marks one player and leaves `conceded` alone, idempotent, cleared by
 `reset_game`), two assertions in each of the six games' own compete tests, and
 a case in `useCommonGame.test.ts` where the missing player is done rather than
@@ -938,7 +938,7 @@ What stayed a literal: the player-facing words ("Pick 4 tiles that share a
 category", "Mistakes (lose at 4)"), which are text and not arithmetic.
 
 `CATEGORY_COUNT` and `MISTAKE_BUDGET` live in `PlayArea.tsx`, which is why
-`lib/terminal.ts` had to take `selfWon` rather than a count (Step 6);
+`lib/gameEndingMessage.ts` had to take `selfWon` rather than a count (Step 6);
 `useGame.ts` writes the budget as `mistakeCount >= 4` for `isEliminated`,
 with "4-mistake" in three comments. psychicnum's F-19 gave `SECRET_COUNT` one
 home in `lib/setup.ts`. The same here: both constants beside the wire types
@@ -1052,7 +1052,7 @@ Joel this pass can ask; the animation Maybe is pass 3's.
 ### SHIPPED · F-connections-21 · `ellipsize` · the `-ise` spelling of it, in fifteen places
 
 **Joel, 2026-09-19: "do it"** — fix and guard. Found while reading
-psychicnum's `lib/terminal.ts` beside connections' (F-2's verification): its
+psychicnum's `lib/gameEndingMessage.ts` beside connections' (F-2's verification): its
 docstring called the pill a "fixed-height, `-ise`-spelled" row, where
 connections' own says *ellipsizing* and is right. Every one is the same
 sentence about the feedback pill, copied outward from whichever game wrote it
@@ -1062,7 +1062,7 @@ first — seven games, `docs/ui.md`, a faults stylesheet and its `doc.md`, and
 **The guard found six the grep did not.** Nine came back for the `-ing`/`-ed`
 forms; adding the pair to `americanSpelling.test.ts` turned up the `-es`
 inflection too (`src/common/faults/FaultModal.module.css` and its doc,
-spellingbee, stackdown, wordwheel, and psychicnum's `terminal.test.ts`) —
+spellingbee, stackdown, wordwheel, and psychicnum's `gameEndingMessage.test.ts`) —
 which is the lesson its own map already carries in a comment: `\b` ends a
 match at the stem, so a listed stem never matches its inflections. All four
 forms are listed now.
@@ -1088,20 +1088,20 @@ envelope's own `outcome` field holds exactly those, and the blob MERGES, so an
 inherited key read as data. `docs/states.md` had already been calling it the
 other thing for months: its table header reads "the cause it names" and the
 paragraph under it asks for "a reason noun". 63 writer lines across every
-game's SQL, every `labelFor`, the terminal builders, 40 pgTAP files, 13 docs.
+game's SQL, every `labelFor`, the ending builders, 40 pgTAP files, 13 docs.
 
 **The FE's `outcome(word, reason)` label helper → `verdict(word, reason)`**,
 in `common/manifest/statusLabel.ts` and its 113 call sites: it builds
 `Lost (out of time)` for the club-list line, and `Playing`/`Won`/`Lost`/`Ended`
 are verdicts, not outcomes. `verdict` is the repo's own word for that
-(`FeedbackMessage.terminalVerdict`), so it is not a new synonym.
+(`FeedbackMessage.endingVerdict`), so it is not a new synonym.
 
 **Five SQL parameters and locals came with it**, since they hold the reason:
 `boggle._finish`, `scrabble._finish`, `setgame._finish` and wordiply's two
 `_finish_*` took an `outcome text` / `outcome_label text` parameter — renamed
 behind a `drop function`, because `create or replace` cannot rename an input
-parameter — and `terminal_outcome` / `v_outcome` became `terminal_reason` /
-`v_reason`. What KEPT the word: `common.ok_envelope` and
+parameter — and the `v_outcome` locals and their siblings became `v_reason`
+and its siblings. What KEPT the word: `common.ok_envelope` and
 `common.raised_envelope`, whose `outcome` is the real one.
 
 **Prod data**: `supabase/migrations/20260919000002_status_outcome_to_reason.sql`
@@ -1132,7 +1132,7 @@ what runs it), **F-17** (the test headers, and `end_game_test.sql`'s four
 psychicnum's did — blessed there), **F-18** (the SQL's essays cut to the
 contract: `next_puzzle_for_club`'s header from forty lines to twenty-three,
 `submit_guess`'s header rewritten to what the function does today, the
-orphaned "Register with common.gametypes" and "Terminal-transition cleanup"
+orphaned "Register with common.gametypes" and end-of-game cleanup
 paragraphs deleted, since the rows are the migration's and the sentence is
 `doc.md`'s), and **F-19** — `doc.md` has its Intro's last paragraph, Game
 rules (with a Vocabulary table, Coop, Compete, The play states), Schema,
@@ -1313,7 +1313,7 @@ nits below.** Listed as found; what each got follows the list.
 5. `four-false-onlys` — `Board.tsx`'s "the only two optional props here" (there
    are three), `lib/answer.ts`'s "the only place in the frontend that names
    them" (four other files do), `answer.test.ts`'s "the only place the outcome
-   lives" (`terminal.ts` decides one too), `next_puzzle_test.sql`'s "the FIRST
+   lives" (`gameEndingMessage.ts` decides one too), `next_puzzle_test.sql`'s "the FIRST
    RPCs in the roster that answer a question".
 6. `mistakes-readout-prose` — `PlayArea.module.css` quotes a label that does not
    exist ("Mistakes remaining ●●●○"; it reads "Mistakes (lose at 4)", in squares
@@ -1369,7 +1369,7 @@ with it; (12) `manifest.ts` reads `CATEGORY_COUNT` and `MISTAKE_BUDGET`
 are free of obvious things, explanation of obvious 'why's and other things we
 pruned from psychicnum's comments"*), against the rules psychicnum settled —
 no "why this lives here", no "why Joel decided this", no game rule on a type,
-no archaeology, no naming rationale: `PlayArea.tsx` (the terminal-message
+no archaeology, no naming rationale: `PlayArea.tsx` (the ending-message
 rationale matches psychicnum's; the peer line no longer argues why it omits
 the category; Hints no longer says why it hides), `BoardCol.tsx` (the
 teammate-mark, dup-detection, selection-not-drawn and one-branch comments
@@ -1429,4 +1429,4 @@ each on 2026-10-02:
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**`connections` is CLOSED 2026-09-19, blessed** (Joel: *"mark all files in this area blessed and close it"*): fifty-six files `cs-blessed-connections` — the roster's fifty-one and five the area stamped as it worked (the presence-pause spec, F-5's and F-22's migrations, common's locally-terminal test, the importer). The second game, in psychicnum's shape and one day: the restructure in eight steps (the doc's RPC and FE-submission sections and the AnswerMessage conversion moved earlier, from psychicnum's commit history), the audit (twenty-two findings in `plans/areas/connections.md`, all shipped one commit apiece), tile-feedback to tf2 (confirmed, not converted), then the closing re-read (eighteen: five ruled, thirteen prose) and a comment pass against what psychicnum settled. `docs/games/connections.md` deleted into `src/connections/doc.md`, which carries the components diagram. Closed without an e2e run. **The stylesheet split landed 2026-09-22, after the close** — the board and the commit row came out of `PlayArea.module.css` into `Board.module.css` and `BoardCol.module.css` — and it is where the restructure's split rule above came from, Joel having asked for it at every game.
+**`connections` is CLOSED 2026-09-19, blessed** (Joel: *"mark all files in this area blessed and close it"*): fifty-six files `cs-blessed-connections` — the roster's fifty-one and five the area stamped as it worked (the presence-pause spec, F-5's and F-22's migrations, common's player-ended test, the importer). The second game, in psychicnum's shape and one day: the restructure in eight steps (the doc's RPC and FE-submission sections and the AnswerMessage conversion moved earlier, from psychicnum's commit history), the audit (twenty-two findings in `plans/areas/connections.md`, all shipped one commit apiece), tile-feedback to tf2 (confirmed, not converted), then the closing re-read (eighteen: five ruled, thirteen prose) and a comment pass against what psychicnum settled. `docs/games/connections.md` deleted into `src/connections/doc.md`, which carries the components diagram. Closed without an e2e run. **The stylesheet split landed 2026-09-22, after the close** — the board and the commit row came out of `PlayArea.module.css` into `Board.module.css` and `BoardCol.module.css` — and it is where the restructure's split rule above came from, Joel having asked for it at every game.

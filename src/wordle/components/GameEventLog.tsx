@@ -51,7 +51,7 @@ export function GameEventLog({
     players,
     myId: myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     label: 'Whose guesses to show',
     emptyLabel: 'No guesses yet.',
   })

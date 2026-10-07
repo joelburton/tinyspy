@@ -104,8 +104,8 @@ describe('useBindAction — the shared run', () => {
     view.unmount()
   })
 
-  it('skips the question at terminal — there is nothing left to interrupt', async () => {
-    const { run, view } = bind('act-new-game', { terminal: true })
+  it('skips the question once the game has ended — there is nothing left to interrupt', async () => {
+    const { run, view } = bind('act-new-game', { ended: true })
     await act(async () => view.result.current.run())
     expect(askConfirmation).not.toHaveBeenCalled()
     expect(run).toHaveBeenCalledTimes(1)

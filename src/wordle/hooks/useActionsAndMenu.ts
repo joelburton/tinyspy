@@ -51,11 +51,11 @@ export function useActionsAndMenu({
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,
-    isTerminal: gd.ended,
+    isGameEnded: gd.ended,
     mode: gd.mode,
     // Out of the race while the game goes on: a solver, a player whose budget
     // is spent, a conceder.
-    isLocallyTerminal: !gd.me.stillPlaying && !gd.ended,
+    isPlayerEnded: !gd.me.stillPlaying && !gd.ended,
     localFeedbackSlot,
   })
 
@@ -80,7 +80,7 @@ export function useActionsAndMenu({
       // (docs/ui.md → the menu is the legend).
       if (gd.me.stillPlaying && asker === 'button') return 'hidden'
       return describeReveal({
-        noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal: gd.ended,
+        noun: 'solution', revealed: answerShown, impliedBySolve, isGameEnded: gd.ended,
       })
     },
     run: toggleAnswer,
@@ -120,7 +120,7 @@ export function useActionsAndMenu({
   // the game has ended; the shared run's single flight stops a second press
   // dealing a second word.
   const actNewGame = useBindAction('act-new-game', {
-    terminal: gd.ended,
+    ended: gd.ended,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
     describe:
         (asker) => (asker === 'button' && !gd.ended ? 'hidden' : 'active'),

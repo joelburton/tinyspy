@@ -21,7 +21,7 @@ marks each recommendation as it stands now: still open, done, or new.
 Joel has been making the app more human-understandable. The per-game
 `PlayArea.tsx` files are large and mix concerns: the data hook and its gates,
 the derivations, the below-board feedback, the input engine, the
-actions, the menu, narration, and a terminal-text builder. What would improve
+actions, the menu, narration, and an ending-text builder. What would improve
 readability and understanding — and now that the pieces a PlayArea composes
 are shared, what shape should the composition itself have?
 
@@ -41,7 +41,7 @@ what is the game:
 |---|---|---|
 | `useGame` + three gates (loading / failure / not found) | 16 | the data hook and the early returns |
 | `useTabRing([])`, `useInfoSheet()` | 15 | the empty tab ring; the mobile info sheet |
-| `useFeedbackSlot('local')` + `showTerminalVerdict` | 16 | the below-board slot and its verdict effect |
+| `useFeedbackSlot('local')` + `showEndingVerdict` | 16 | the below-board slot and its verdict effect |
 | `showOutOfRace` / `showWaiting` effects | 15 / 9 | the other standing conditions of the slot |
 | `useStandardGameActions` (End, Concede, Restart) | 16 | the shared trio, bound |
 | `act-new-game`, `act-print-board`, bound in the file | 16 | the two every game binds itself |
@@ -51,7 +51,7 @@ what is the game:
 | `useHistoryViewer` | 9 (+ scrabble's own) | the turn-history viewer |
 | `summaryRows` via `setupRows` | 15 | the setup rows, built once for the column and the paper |
 | `publishGameMenu` effect via `buildGameMenu` | 16 | the menu, pushed from the actions |
-| a pure `buildOver` tail | 15 | the terminal message per play state |
+| a pure `buildOver` tail | 15 | the ending message per play state |
 
 **Still true from the first survey:**
 
@@ -127,7 +127,7 @@ Suggest a move are button-only. Each may be right; neither says so.
   the menu row for the same flight (`common/actions/doc.md`). Where the action
   is the only caller, the flag is the old system's leftover.
 - **The standing conditions of the slot are copied per game.** The
-  `showTerminalVerdict` effect is five identical lines in sixteen files;
+  `showEndingVerdict` effect is five identical lines in sixteen files;
   `showWaiting` is a dozen identical lines in nine; `showOutOfRace` varies in
   its sentence and its gate.
 
@@ -284,7 +284,7 @@ todo entry predates and the `reveal` area added:
   Reveal button appears mid-game — and NOT a bare `'hidden'`, which also drops
   the row from the menu and from Help, where the glyph is taught.
 - **The gate variable is usually a fold.** psychicnum's `canGuess` hid
-  "terminal" inside "out of guesses" and had to become `isStillPlaying` before
+  "game ended" inside "out of guesses" and had to become `isStillPlaying` before
   its actions could answer honestly; expect the same split in each game.
 
 ### 3.7 The actions — NEW: three per-game conventions to settle at psychicnum
@@ -307,9 +307,9 @@ todo entry predates and the `reveal` area added:
 
 ### 3.8 The standing conditions of the slot — NEW, weigh before building
 
-`showTerminalVerdict` is the same five lines in sixteen files, `showWaiting`
+`showEndingVerdict` is the same five lines in sixteen files, `showWaiting`
 the same dozen in nine. The smallest cut is a shared
-`useTerminalVerdict(localFeedbackSlot, over)` in `common/feedback/` that owns
+`useEndingVerdict(localFeedbackSlot, over)` in `common/feedback/` that owns
 the show-on-edge / retract-in-cleanup effect, and a `useWaitingForTurn` beside
 it taking the holder as two primitives. `showOutOfRace` stays per game: its
 gate and its sentence differ. A caution from `docs/playarea.md` applies —

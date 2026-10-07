@@ -378,7 +378,7 @@ export async function createBoggleGame(
   /** Percentage of the required-words score that WINS. Omitted, boggle has no
    *  win condition at all — its SQL says so ("there's nothing to fail, so any
    *  ending is the neutral 'ended'"), which also means no loss. The screenshot
-   *  gallery needs one to photograph either terminal. */
+   *  gallery needs one to photograph either ending. */
   winPercent?: number,
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
@@ -784,7 +784,7 @@ export async function createWordleGame(
  * submits each through `wordle.submit_guess` as the player (the same path the FE
  * uses, so the rows + colors are real). Returns the guessed words (upper-cased), in
  * order, for assertions. Reads the target + word list via the admin client (service
- * role bypasses RLS; the target is otherwise hidden until terminal).
+ * role bypasses RLS; the target is otherwise hidden until the end).
  */
 export async function seedWordleGuesses(
   member: E2EMember,
@@ -794,7 +794,7 @@ export async function seedWordleGuesses(
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   // The wordle schema isn't exposed to PostgREST (its tables are reached only via
   // SECURITY DEFINER RPCs, and the page reads the blobs on common.games), and
-  // the hidden `target` is gated until terminal — so read the target + n legal
+  // the hidden `target` is gated until the end — so read the target + n legal
   // words as the local superuser via psql, the same test-only pattern as
   // drainBananagramsPool.
   const q = (sql: string): string[] =>

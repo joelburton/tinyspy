@@ -254,7 +254,7 @@ There is nothing to derive twice.
 
 **A different vocabulary is not a disagreement.** wordle's and waffle's tile
 colors, codenamesduet's key card, setgame's card fills, strands' printed glyphs,
-the terminal frame: these are games saying their own thing, deliberately outside
+the ending frame: these are games saying their own thing, deliberately outside
 `--outcomes-*`. Don't route them through this list, and don't name a field
 `outcome` when it holds one of them.
 
@@ -285,7 +285,7 @@ Seven roles, each answering "what is this family painting here":
 | `edge` | a border — the base mixed toward black |
 | `wash` | the family laid over the page as a tint |
 | `bar` | the event-log row's outcome bar |
-| `terminalFrame` | the frame around a board that is no longer a live position |
+| `endingFrame` | the frame around a board that is no longer a live position |
 
 **The grid is rectangular, and that is enforced.** Every family carries every
 role in **both** themes, whether or not anything reads the cell yet;
@@ -314,7 +314,7 @@ So when an audit meets one, the question is not "is this list right today?" but
 
 **`EndOutcome`** (`won` / `lost` / `near` / `neutral`) is the one that answers
 it cleanly, and its reason is written where it is declared
-(`common/terminal/gameEnding.ts`): an ending is won, lost, ranked below first,
+(`common/ending/gameEnding.ts`): an ending is won, lost, ranked below first,
 or neither. `warning` and `noted` judge a MOVE and `error` a fault, and an
 ending is none of those.
 

@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What strands says once the game is over, for its ending and mode.
@@ -46,9 +46,9 @@ export function buildGameEndingMessage({
   nMyHints: number
   // The hints a race was won on, or null when nobody won.
   nWinnerHints: number | null
-}): TerminalMessage {
+}): EndingMessage {
   /** The texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Omit<TerminalMessage, 'outcome'> {
+  function makeGameEndingWords(): Omit<EndingMessage, 'outcome'> {
     // A Stop is the uniform neutral ending shared with the other games — the
     // shared message owns its words.
     if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)

@@ -17,7 +17,7 @@ export type ArrowHistoryOptions = {
   recall?: string
   // Set the pending text — ArrowUp restores `recall` into it, ArrowDown clears it.
   onChange: (next: string) => void
-  // Hard-off: the entry is not here at all (loading / terminal). Both arrows
+  // Hard-off: the entry is not here at all (loading / ended). Both arrows
   // stay listed and gray — they are still this game's keys. Default false.
   disabled?: boolean
   // Soft-busy: mid-submit. Same answer as `disabled` for these two; the props

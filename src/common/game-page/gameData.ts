@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../terminal/gameEnding.ts'
+import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '../ending/gameEnding.ts'
 import type { TimerMode } from '../manifest/types.ts'
 import type { Player } from '../members/member.ts'
 

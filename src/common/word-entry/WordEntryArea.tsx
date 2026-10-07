@@ -24,7 +24,7 @@ type Props = {
   children?: ReactNode
   // The game's below-board slot. While it holds a message, the pill
   // **replaces** the input controls in the same slot — an own-move result,
-  // the whose-turn note, the terminal verdict, a not-ok, whatever is on top.
+  // the whose-turn note, the ending verdict, a not-ok, whatever is on top.
   // A message leaves the way its KIND says and no other way: a ×-only
   // message stays over the controls however much is typed, and only a
   // gesture-cleared result yields to typing — because the keystroke
@@ -32,8 +32,8 @@ type Props = {
   // through the swap is what lets that keystroke reach the slot: the
   // capture hook below stays live and `onAnyKey` is its `dismiss`.
   localFeedbackSlot: FeedbackSlot
-  // Hard-off, for loading / terminal: capture is a no-op, and the buttons gray.
-  // It also stops the any-key feedback dismissal, so a terminal pill isn't
+  // Hard-off, for loading / ended: capture is a no-op, and the buttons gray.
+  // It also stops the any-key feedback dismissal, so an ending pill isn't
   // wiped by a stray key — which `busy` does not.
   disabled?: boolean
   // Mid-submit: capture blocks edits and submits and the buttons gray, but a

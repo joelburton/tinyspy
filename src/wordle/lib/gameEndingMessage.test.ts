@@ -13,7 +13,7 @@
  * reading as neutral.
  */
 import { describe, expect, it } from 'vitest'
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
 /** The message for one ending, with the compete flags off unless a case sets

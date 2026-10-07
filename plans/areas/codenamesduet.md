@@ -114,8 +114,8 @@ false findings hold here too, and four more come from the older slice:
   surface is keyed on `restarts`, and `GamePageGate` unmounts the subtree on a
   new `gameId` (`e3d8f969`).
 - *"A finished player wedges the pause"* — `activePlayers` drops conceded,
-  `locally_terminal` and `ai_member` players (`624c8dc2`). **Nothing owed:**
-  codenamesduet's SQL sets no `locally_terminal`, and rightly — a player whose
+  player-ended and `ai_member` players (`624c8dc2`). **Nothing owed:**
+  codenamesduet's SQL sets no `player_ended_at`, and rightly — a player whose
   agents are all found keeps guessing, so they are still in the game.
 - *"`computePause` answers who is absent"* — it answers a boolean
   (`197d455a`); the suspend confirm is `askConfirmation(…)` (`b5f21539`).
@@ -172,7 +172,7 @@ Run on the untouched tree with the roster stamped `cs-met-codenamesduet`
 e2e plays a game through to a win or a loss, and none restarts. The AI clue
 suggester is reached only through a STUBBED edge function (`codenamesduet.e2e.ts`
 routes it to a refusal and a fault), so no run calls the real one. The restart
-and the terminal paths are pinned only by pgTAP on the server side and the unit
+and the ending paths are pinned only by pgTAP on the server side and the unit
 specs on the client.
 
 **A second candidate for the prose pass:** `codenamesduet.e2e.ts` → the New
@@ -308,8 +308,8 @@ three was missing (`rows=… key=seated|none words=…`).
   `<Loading>` nothing holds Tab on the page.
 
 **Every effect's edge, read as it moved** (readability §4): the menu, the
-turn status, the terminal verdict and the celebration now first run on a
-LOADED surface. The verdict is keyed on `isTerminal` / `playState`, which the
+turn status, the ending verdict and the celebration now first run on a
+LOADED surface. The verdict is keyed on `isGameEnded` / `playState`, which the
 shell already had, so it lands a beat later on an already-finished game, not
 differently. `useCelebration` never pops on mount, so an already-won game is
 still quiet.
@@ -336,7 +336,7 @@ not reach this game because "your turn" is a clue arriving, not
 (club `joel-moth`, the two `deadbeef-…` seed players, 9 turns, no timer): its
 one clue (`WORD` · 2, seat A, turn 1) and B's two guesses in order — SMOKE, an
 agent on A's key, then PAGE, a bystander that ended the turn at 2 / 8 with B
-to clue. Where no real row exists — the three terminal answers, a pass — the
+to clue. Where no real row exists — the three ending answers, a pass — the
 doc shows the keys with `…` rather than invented numbers.
 
 **This game's own question, answered in the FE-submissions section:** there is
@@ -344,7 +344,7 @@ nothing for the frontend to decide, so the section is short. Every sentence a
 player reads about their own move is the server's — ten refusal lines, all
 races, all `warning` — and the table lists each with the RPC that writes it.
 The only words the frontend writes are the header's four peer phrases
-(`useTurnStatus`) and the terminal verdicts, which are a standing condition,
+(`useTurnStatus`) and the ending verdicts, which are a standing condition,
 not an answer. **Step 4 therefore has less to convert here than at any game
 so far** — a finding for that step to confirm, not a conclusion.
 
@@ -403,7 +403,7 @@ wordle's followed: an `ok` that is one of the game's answers states the fact
 and carries no outcome. `submit_guess` still passed one on every `ok` — `won`
 for an agent and the win, `lost` for a bystander and both losses — which
 outcome-fix had confirmed and left, since nothing read it. The three
-`ok_envelope` calls dropped the argument, and the terminal branch's comment
+`ok_envelope` calls dropped the argument, and the ending branch's comment
 now says why the answer carries none. `pass_turn` already carried none and
 already pinned it.
 
@@ -468,7 +468,7 @@ game is over. Back to club keeps `weight={over ? 'primary' : 'secondary'}`.
 **The per-asker rules:** Reveal gets the button guard readability 3.6 calls
 for — no button while the game runs, the menu row all game (grayed), because
 `describeReveal` has no hidden case; New game is a button only at the end,
-`(asker) => asker === 'button' && !isTerminal ? 'hidden' : 'active'`, the menu
+`(asker) => asker === 'button' && !isGameEnded ? 'hidden' : 'active'`, the menu
 and `+` all game. Restart, Concede and End were already the shared hook's.
 
 **Every binding in one section, in one order:** the shared trio, then Reveal
@@ -494,15 +494,15 @@ restored from scratchpad copies, green. `tsc -b` and eslint clean; the game's
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-23
 
 wordle's and spellingbee's Step 6, names and all: `buildOver` is
-**`buildTerminalMessage`** in `lib/terminal.ts`, the value it produces is
-`terminalMessage`, and InfoCol's `over` prop is `terminalMessage` too.
-`PlayArea.tsx` no longer imports `gameEndedTerminalMessage` or the
-`TerminalMessage` type; the `useMemo` that feeds the verdict effect stays there.
+**`buildEndingMessage`** in `lib/endingMessage.ts`, the value it produces is
+`endingMessage`, and InfoCol's `over` prop is `endingMessage` too.
+`PlayArea.tsx` no longer imports `buildGameEndedMessageNeutral` or the
+`EndingMessage` type; the `useMemo` that feeds the verdict effect stays there.
 The body moved unchanged — same branches, same words — its docstring with it.
 duet's builder takes the play state alone: the game is coop-only and its
 verdicts name no one.
 
-`lib/terminal.test.ts` walks the whole input space — the five play states a duet
+`lib/endingMessage.test.ts` walks the whole input space — the five play states a duet
 game ends in — as a table, pins the manual end to the shared neutral ending,
 and checks that every case fills both texts and says "Lost" only beside a loss.
 **Planted** a `neutral` outcome on the timeout loss: two of the three cases
@@ -511,7 +511,7 @@ red; restored, green. Both files join the roster at `cs-met-codenamesduet`.
 **The mentions that named the old function** — `lib/answer.ts`'s docstring and
 the old game doc's manual-end paragraph — name the new one. **Two lines of
 PlayArea's surface docstring** named `over.pillText` / `over.infoColText` and
-described the Step 5 fork's button swap; they now name `terminalMessage` and say
+described the Step 5 fork's button swap; they now name `endingMessage` and say
 the row carries the line. The rest of that docstring is Step 8's.
 
 Verified: `tsc -b` clean, lint clean over `src/codenamesduet/`, 396 unit tests
@@ -529,7 +529,7 @@ two files read alike. `PlayArea.tsx` reads in the eight sections
 2. **Derived** — the clues and worded guesses, the setup recap, `gameOver`, the
    seat and roster derivations, the current turn's clue and `derivePhase`
 3. **The local slot, and its standing condition** — the slot, and the
-   terminal verdict (duet has one condition, not spellingbee's two)
+   ending verdict (duet has one condition, not spellingbee's two)
 4. **Narration — what my PARTNER is doing, in the header slot** — the turn
    status and the partner's hint
 5. **The turn-history viewer** — the hook and the fold
@@ -583,7 +583,7 @@ named an order with no key-card disclosure and said "PlayArea owns the RPCs"
 events table. `CluePanel.tsx`'s docstring put the slot in "PlayArea's
 `.belowBoard`" (BoardCol's), and `peer` "may be undefined briefly during the
 initial roster fetch" (the loader waits for the roster). In `PlayArea.tsx`: the
-surface docstring's "Action row: End game while playing; at terminal … a
+surface docstring's "Action row: End game while playing; at the end … a
 compact Back-to-club button" and "GameEventLog: the shared EventLog table";
 the history comment's "the effect below re-arms" (no effect); the phase
 comment's `src/lib/phase.test.ts` (it is `lib/phase.ts`, whose docstring now
@@ -696,7 +696,7 @@ In the working tree for Joel's read, before any finding is presented:
   old doc's two-stripe peer reveal (the board draws corner squares), its
   "every game starts with 9 turns" (9, 10 or 11), its "your own key hidden
   mid-guess, always printed" (hidden only while I am guessing), its
-  "`status.outcome`" and "friends-alpha", and its claim that every terminal
+  "`status.outcome`" and "friends-alpha", and its claim that every ending
   states `greens_found` (the three a guess causes do). **`docs/games/codenamesduet.md`
   is deleted**; CLAUDE.md's row, `docs/ui.md`'s tile-color link and
   `docs/code-conventions.md`'s pointer are repointed or dropped, and
@@ -705,7 +705,7 @@ In the working tree for Joel's read, before any finding is presented:
   `todo.md` → Someday.
 - **Two docs outside the folder:** `docs/ui.md`'s *"no replay to protect"* now
   says Restart is a mulligan that keeps both key cards; `docs/common.md`'s
-  `common.end_game` row said every terminal "should state its own `outcome`" —
+  `common.end_game` row said every ending "should state its own `outcome`" —
   it is `reason`.
 - **`todo.md`:** the monospace item said the board is set in monospace; it is
   `.tileKey`, the pending "…", alone.
@@ -1070,7 +1070,7 @@ frame); or leave it. Recommendation: drop.
 ### SHIPPED · F-codenamesduet-7 · `phase-status-type` · two definitions of "over", reached through casts
 
 **Joel, 2026-09-23: "do it."** `derivePhase` takes `gameOver` (the shell's
-`isTerminal`) and `inSuddenDeath` (`playState === 'sudden_death'`) as inputs
+`isGameEnded`) and `inSuddenDeath` (`playState === 'sudden_death'`) as inputs
 and returns only `isGuessPhase`, `isClueGiver` and `cellsClickable`;
 `GameStatus`, both casts and the dead `status === 'playing'` term are gone.
 `useTurnStatus` takes the body's phase and no longer calls `derivePhase`, so
@@ -1086,13 +1086,13 @@ over), each re-planted red. `tsc -b` and eslint clean; 45 files, 400 tests.
 `lib/phase.ts`'s `GameStatus` has no `ended`, and `PlayArea` casts
 `playState as GameStatus` twice. `derivePhase` works it out as
 `gameOver = status !== 'playing' && status !== 'sudden_death'`, which no
-caller reads — both take the shell's `isTerminal` instead — and its
+caller reads — both take the shell's `isGameEnded` instead — and its
 `status === 'playing' && isGuessPhase` term is dead (planted out, 396 green).
 `useTurnStatus` runs `derivePhase` a second time on the body's inputs.
-Options: **take `gameOver` from `isTerminal`** and `inSuddenDeath` from the
+Options: **take `gameOver` from `isGameEnded`** and `inSuddenDeath` from the
 play state, dropping `GameStatus`, both casts and the dead term, with
 `useTurnStatus` reading the one derived phase; or **add `'ended'`** and keep
-the rest. Recommendation: `isTerminal`, the shell's one answer.
+the rest. Recommendation: `isGameEnded`, the shell's one answer.
 
 ### SHIPPED · F-codenamesduet-8 · `profiles-read-twice` · `useGame` fetches the profiles the shell already hands over
 
@@ -1166,7 +1166,7 @@ null`. Each gate refuses sudden death first, as a race, in its own words:
 `submit_clue` **PN502** and `_require_clue_giver` **PN504** *"Sudden death — no
 more clues"* (word for word, as the gate's comment requires), `pass_turn`
 **PN503** *"Sudden death — no turn to pass"*; *"Game over"* is left to the
-terminal states. `_require_clue_giver` now admits ordinary play only, and its
+ended states. `_require_clue_giver` now admits ordinary play only, and its
 header says so. **`sudden_death_test.sql` reaches sudden death the real way**:
 the budget set to turn 9 of 9, then a clue and a pass, with three new
 assertions on the entry (the answer, the play state, the null seat) and three
@@ -1302,7 +1302,7 @@ both migrations, `setup.psql` and all twelve pgTAP files; the edge function.
 this area's own steps and the tab-ring fix it caused); what `common.end_game`
 (merges), `update_state`, `reset_game`, `_raise_game_over` and
 `_raise_game_deleted` do, against every call site; the siblings' answers to the
-same questions (the setup picker, `replay_board`'s lock, the terminal builder,
+same questions (the setup picker, `replay_board`'s lock, the ending builder,
 the club label's lead); the remount on `restarts` (nothing written for a
 restart is dead); the shared hooks' contracts (`useRealtimeRefetch`,
 `readRows`, the loader's gates); every token's reader; and **the edge function
@@ -1314,7 +1314,7 @@ What the game IS, for the record: the rules are right and pinned where they
 are subtle. The finished-player hand-off holds from both seats (the two cards'
 agents total fifteen, so "both finished" can only be a win); the key-card
 table and shuffle are exact; `took_turn` matches the rule everywhere; every
-terminal status write states what it adds; the race hints are right for how a
+ending status write states what it adds; the race hints are right for how a
 player reaches them; the below-board slot is one fixed-height swap; RLS is the
 documented trust model. What the read found is: a lock the siblings take and
 this game does not (F-15), two raw errors that escape the envelope (F-16,
@@ -1451,16 +1451,16 @@ table and `submit_guess` section say *"anything but an agent"* is `lost_clock`.
 Options: **fix the doc** and pin the ending (F-27); or change the code.
 Recommendation: fix the doc — an assassin is an assassin.
 
-### SHIPPED · F-codenamesduet-23 · `terminal-default-is-timeout` · any unnamed ending reads "Lost: out of time"
+### SHIPPED · F-codenamesduet-23 · `ending-default-is-timeout` · any unnamed ending reads "Lost: out of time"
 
-**Joel, 2026-09-23: "i'll take your rec."** `buildTerminalMessage` is a
+**Joel, 2026-09-23: "i'll take your rec."** `buildEndingMessage` is a
 `switch` over the five endings, `lost_timeout` named; its `default` reads
 *"Game over: <state>"* / *"Game over"*, neutral — naming the state, as the
-club labels' default does, rather than a win or a loss. A `terminal.test.ts`
+club labels' default does, rather than a win or a loss. An `endingMessage.test.ts`
 case pins it; **planted** the old fallthrough — red. 48 files, 418 tests.
 
-`buildTerminalMessage` reaches `lost_timeout` by fallthrough, *"and any future
-terminal state"*. All five are known. Options: **name it**, as a `switch`
+`buildEndingMessage` reaches `lost_timeout` by fallthrough, *"and any future
+ended state"*. All five are known. Options: **name it**, as a `switch`
 over the five; or leave it. Recommendation: name it.
 
 ### RULED — NO CHANGE · F-codenamesduet-24 · `print-legend-omits-triangles` · the printed legend leaves out the triangles
@@ -1547,7 +1547,7 @@ Options: **a case for each**, planted again after it is written; or only those
 a player would see. Recommendation: each — spellingbee's F-17 found that a
 case list written without re-planting passes the plant.
 
-### SHIPPED · F-codenamesduet-28 · `terminal-turns-over-budget` · a game that ended in sudden death reads "11/9 turns spent"
+### SHIPPED · F-codenamesduet-28 · `ended-turns-over-budget` · a game that ended in sudden death reads "11/9 turns spent"
 
 **Joel, 2026-09-23: "fix f28 with 'sudden death' label."** `StateLine` decides
 by the turn count, `isSuddenDeathTurn(turnNumber, turns)` — the rule the log
@@ -1557,7 +1557,7 @@ passing one. The printout uses the same rule, so F-19's `inSuddenDeath` input
 is gone again. The phase's `inSuddenDeath` (clicks, the strip, the banners, the
 bell) is untouched: a finished game is already over. **`StateLine.test.tsx` is
 new** (the spent count through the last ordinary turn; sudden death at and far
-past the budget), and `model.test.ts` adds a terminal-after-sudden-death case
+past the budget), and `model.test.ts` adds an ended-after-sudden-death case
 and the last-ordinary-turn boundary. **Planted** the screen ignoring the count
 and the print deciding only while live — each red. 48 files, 417 tests.
 
@@ -1568,7 +1568,7 @@ budget — past it, since every sudden-death guess is a turn — so the finished
 game's info column reads e.g. *"12/15 agents · 11/9 turns spent"*, and the
 printout, which now copies the screen, says the same. Options: **sudden death
 by the turn count** — `StateLine` (and the print) say "sudden death" whenever
-the turn number is past the budget (`isSuddenDeathTurn`), terminal or not;
+the turn number is past the budget (`isSuddenDeathTurn`), ended or not;
 cap the count at the budget (*"9/9 turns spent"*); or leave it.
 Recommendation: by the turn count — the game did reach sudden death, and the
 line should keep saying so.
@@ -1598,7 +1598,7 @@ in-flight dim, no attention, no game-over frame.
   (`cluesStillGiven && (myClueToGive || myClueToGuess)`), so frame and bell land
   together. NOT dimmed while I write the clue: the move is the form's, and the
   giver has to read the board's key squares to write it. Neither in sudden
-  death (no turn) nor at terminal. The in-flight dim can compound with it (my
+  death (no turn) nor at the end. The in-flight dim can compound with it (my
   bystander passes the turn while its reply is out); the shared values are
   already chosen as a pair.
 - **P-2 · the in-flight dim.** `.tilePending` and the "…" `.tileKey` go;
@@ -1614,10 +1614,10 @@ in-flight dim, no attention, no game-over frame.
   history. Self-attention ON (the app-wide default): my own guess flashes too,
   its answer arriving in the tile I am watching. The tile word (and the corner
   squares / triangles) need `z-index: 1` so the flash lightens under them.
-  The partner-key reveal at terminal is a state change, not a move — it has no
+  The partner-key reveal at the end is a state change, not a move — it has no
   guess row behind it, so it cannot flash.
 - **P-4 · the game-over frame.** `gameOverFrame` with `gameOverWon` /
-  `gameOverLost` by the terminal outcome (neutral for `ended`), dropped while
+  `gameOverLost` by the ending outcome (neutral for `ended`), dropped while
   the history viewer is open — psychicnum's three lines.
 - **P-5 · the history ring outside the tile.** `outline-offset: -3px` →
   `+2px`, same 3px weight — psychicnum's ruling (2026-08-20): the ring only
@@ -1679,7 +1679,7 @@ in-flight dim, no attention, no game-over frame.
   `useMark` shakes the flashed tiles that are not agents, `ATTENTION_FADE_MS`
   after, keyed on the positions. The key squares and triangles lift to
   `z-index: 1` above the flash, as psychicnum's dot does.
-- **P-4:** the game-over frame from `terminalMessage.outcome`, given up to the
+- **P-4:** the game-over frame from `endingMessage.outcome`, given up to the
   viewer.
 - **P-6:** the tan joins `tile-feedback.md`'s floor-exceptions table.
 - **P-7:** `theme.css` says the agent tokens stay separate, and why.
@@ -1820,9 +1820,9 @@ or leave them. Recommendation: one noun.
 
 ### SHIPPED · R-codenamesduet-9 · `restart-retract-comment` · the verdict "retracted by its owner on Restart"
 
-`PlayArea.tsx`'s `terminalMessage` comment says the verdict is *"retracted by
-its owner on Restart (a Duet mulligan un-terminals the game)"*. A restart
-REMOUNTS the surface (`<PlayArea key={restarts}>`), so nothing un-terminals
+`PlayArea.tsx`'s `endingMessage` comment says the verdict is *"retracted by
+its owner on Restart (a Duet mulligan reopens the game)"*. A restart
+REMOUNTS the surface (`<PlayArea key={restarts}>`), so nothing reopens
 inside a mounted one; the effect's cleanup runs on unmount, as every effect's
 does. Written in step 7 of this area; psychicnum's twin carries no such
 sentence. Options: **drop the clause**; or leave it. Recommendation: drop it.
@@ -1873,9 +1873,9 @@ Recommendation: a single word.
 
 ### SHIPPED · R-codenamesduet-15 · `invented-play-state` · four spec cases end the game in `lost`
 
-`PlayArea.test.tsx` renders four terminal cases with `playState: 'lost'`, a
+`PlayArea.test.tsx` renders four ended cases with `playState: 'lost'`, a
 state this game never writes; since F-23 it reaches the builder's default arm
-("Game over: lost"). The cases only need `isTerminal`, so they pass. Options:
+("Game over: lost"). The cases only need `isGameEnded`, so they pass. Options:
 **a real ending** (`lost_assassin`); or leave it. Recommendation: a real one.
 
 ### SHIPPED · R-codenamesduet-16 · `pgtap-description` · "raises 42501"
@@ -1930,7 +1930,7 @@ by the standing rule.
   `.tileKey`, `GameStatus` or retired code anywhere in `src/`, `docs/` or
   `supabase/`.
 - **Doc anchors.** Every heading the folder cites resolves (`Avoid SELECT *`,
-  `Page-height fits the viewport`, `Terminal results`, `Layout stability`,
+  `Page-height fits the viewport`, `Endings`, `Layout stability`,
   `Real forms`, `Faults`, `Feedback pill`, `Floating panels`, `Info-column
   readouts`, `Prop conventions`, `Board sizing`, `Turn-history viewer`,
   `Per-game player counts`, `Setup rows`, `Every game's log`) but R-13's. The

@@ -271,7 +271,7 @@ describe('navigation keys', () => {
   })
 })
 
-describe('an inert board (terminal): navigation works, writes are ignored', () => {
+describe('an inert board (game ended): navigation works, writes are ignored', () => {
   it('ignores a letter, ⌫, the rebus and the marks', async () => {
     const s = setup({ isBoardInteractive: false })
     await press({ key: 'a' })

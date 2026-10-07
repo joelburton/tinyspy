@@ -107,7 +107,7 @@ describe('buildWordSections', () => {
     { word: 'CAT', found: { points: 1, who: 'joel' } },
     { word: 'DOGS', found: { points: 2, who: 'moth' } },
     { word: 'EMU', found: { points: 1, who: 'joel' } },
-    { word: 'FOX', found: null }, // nobody found it — the terminal reveal
+    { word: 'FOX', found: null }, // nobody found it — the ending reveal
   ]
 
   it('coop is ONE unattributed section, rows untouched', () => {

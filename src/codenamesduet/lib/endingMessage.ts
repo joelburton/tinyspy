@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * The ending's message for codenamesduet: `pillText` + `outcome` are the
@@ -26,7 +26,7 @@ export function buildGameEndingMessage({
 }: {
   outcome: EndOutcome
   detail: string
-}): TerminalMessage {
+}): EndingMessage {
   switch (outcome) {
     case 'won':
       return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }

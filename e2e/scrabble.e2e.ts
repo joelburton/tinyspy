@@ -62,7 +62,7 @@ test.describe('scrabble — play a turn', () => {
 })
 
 /**
- * "Restart" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the ending action row's stay-here options,
  * also reachable mid-game from the menu.
  *
  * scrabble's 15×15 grid is the standard layout, not a generated puzzle, so a

@@ -376,7 +376,7 @@ export type GGridKeysOptions = {
   // leaves the keystroke for whoever else wants it.
   enabled: boolean
   // The board responds to me (the page's `isBoardInteractive`). When false
-  // but `enabled` (terminal), the board is still navigable: the movement keys
+  // but `enabled` (game ended), the board is still navigable: the movement keys
   // work so the solver can walk the revealed grid, while anything that would
   // WRITE (letters, ⌫, rebus, edge marks) is disabled.
   isBoardInteractive: boolean

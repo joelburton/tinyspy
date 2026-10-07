@@ -18,7 +18,7 @@ closeContextsAfterEach()
 /**
  * Smoke test for the CrossPlay (crosswords) coop play loop on screen: the
  * grid renders, clicking a cell + typing fills it, and completing the whole
- * 2×2 grid (answers C A / T S) solves the puzzle → the terminal modal shows.
+ * 2×2 grid (answers C A / T S) solves the puzzle → the ending modal shows.
  * Solo club so the game doesn't presence-pause with a single viewer.
  */
 test.describe('crosswords play loop', () => {
@@ -48,7 +48,7 @@ test.describe('crosswords play loop', () => {
     await fill(1, 0, 't')
     await fill(1, 1, 's')
 
-    // Solving flips the game terminal → the coop celebration pops (crosswords
+    // Solving ends the game → the coop celebration pops (crosswords
     // renders no game-over modal) and the verdict lands in the local pill.
     await expect(page.getByText('Solved! 🎉').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Won: grid complete').first()).toBeVisible({ timeout: 10000 })
@@ -97,7 +97,7 @@ test.describe('crosswords play loop', () => {
     await expect(actionRow(page, 'act-reveal')).toBeDisabled()
     await page.keyboard.press('Escape')
 
-    // Give up (coop Stop) → terminal, but the blanks do NOT auto-fill; the
+    // Give up (coop Stop) → ended, but the blanks do NOT auto-fill; the
     // answers wait behind the "Reveal solution" menu item.
     const cell11 = page.locator('[data-xw-cell][data-row="1"][data-col="1"]')
     await page.getByRole('button', { name: 'Stop game' }).first().click()
@@ -142,14 +142,14 @@ test.describe('crosswords play loop', () => {
     // answer into any EMPTY cell that has one. So a restart wiped every fill and
     // instantly painted the whole solution into the space it just cleared — it
     // read as "Restart did nothing", because the letters on screen didn't
-    // change, they only stopped being the player's. Restart needs no confirm at
-    // terminal (see handleRestart).
+    // change, they only stopped being the player's. Restart needs no confirm once
+    // the game has ended (see handleRestart).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
     await expect(cell11).toHaveAttribute('data-fill', '', { timeout: 8000 })
     // cell00 is the one the player typed into AND later revealed — blank now too.
     await expect(cell00).toHaveAttribute('data-fill', '', { timeout: 8000 })
-    // The board is playable again, not stuck terminal.
+    // The board is playable again, not stuck ended.
     await expect(page.getByText('Game ended')).toHaveCount(0)
   })
 

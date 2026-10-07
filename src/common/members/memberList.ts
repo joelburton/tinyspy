@@ -9,7 +9,7 @@
  * gameplay — nothing here is aware of a board, a turn or a channel. Keeping
  * them out of `member.ts` itself is deliberate: that module is TYPES ONLY so
  * its imports erase at runtime, and a value module cannot make that promise
- * (see `terminalOutcomeVerb.ts`, split out for the same reason).
+ * (see `endingOutcomeVerb.ts`, split out for the same reason).
  */
 
 /**

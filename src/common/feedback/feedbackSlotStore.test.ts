@@ -28,7 +28,7 @@ describe('createFeedbackSlot — which message shows', () => {
   it('draws the lowest rank, whatever order they arrived in', () => {
     const slot = createFeedbackSlot('local')
     const waiting = FeedbackMessage.waiting(moth)
-    const verdict = FeedbackMessage.terminalVerdict(over)
+    const verdict = FeedbackMessage.endingVerdict(over)
     slot.show(waiting)
     slot.show(verdict)
     expect(slot.getTop()).toBe(verdict)
@@ -38,7 +38,7 @@ describe('createFeedbackSlot — which message shows', () => {
 
   it('a not-ok shows over the verdict, and the verdict is back when it is closed', () => {
     const slot = createFeedbackSlot('local')
-    const verdict = FeedbackMessage.terminalVerdict(over)
+    const verdict = FeedbackMessage.endingVerdict(over)
     slot.show(verdict)
     const notOk = FeedbackMessage.result('warning', 'Someone got there first', { ...KINDS.notOk })
     slot.show(notOk)
@@ -181,7 +181,7 @@ describe('createFeedbackSlot — the subscription', () => {
     const slot = createFeedbackSlot('local')
     const listener = vi.fn()
     slot.subscribe(listener)
-    const verdict = FeedbackMessage.terminalVerdict(over)
+    const verdict = FeedbackMessage.endingVerdict(over)
     slot.show(verdict)
     expect(listener).toHaveBeenCalledTimes(1)
     // A lower-priority message arriving underneath changes nothing on top.

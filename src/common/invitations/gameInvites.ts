@@ -18,7 +18,7 @@ import { readStored, writeStored } from '../web-storage/storage'
  * not a re-nag.
  */
 
-/** A non-terminal game the caller is a player in, as fetched for the
+/** A not-ended game the caller is a player in, as fetched for the
  *  invitation check (before inviter-name / display-name resolution). */
 export type InviteCandidate = {
   id: string

@@ -11,7 +11,7 @@
  *
  * Two things are deliberately NOT here. The key colors' paint belongs in a
  * browser, where a fill and an ink can be read; this checks only that the right class
- * lands. And the game-over withdraw is a game's terminal frame rather than this
+ * lands. And the game-over withdraw is a game's ending frame rather than this
  * component's contract, so each consumer pins its own.
  */
 import { render, screen } from '@testing-library/react'

@@ -263,7 +263,7 @@ readers killed that:
 
 | class | readers |
 |---|---|
-| `.infoActions` | 17 — every game's `InfoCol`, plus both terminal rows |
+| `.infoActions` | 17 — every game's `InfoCol`, plus both ending rows |
 | `.infoHelp` | 11 games' `InfoCol` |
 | `.infoState` | 11 — ten games plus `TurnStatusLine` |
 | `.infoSetup` | **1 — `SetupDisclosure`** |

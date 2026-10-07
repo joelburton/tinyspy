@@ -4,7 +4,7 @@
 -- Drop the shared reveal machinery: solution_revealed + hides_solution
 -- ============================================================
 -- Seeing the solution is now a LOCAL, per-player display choice, made in the FE
--- (docs/ui.md → Terminal results). Every game with an answer to show has a
+-- (docs/ui.md → Endings). Every game with an answer to show has a
 -- Reveal/Hide toggle each player works for themselves: one player looking
 -- doesn't open it on a partner who is still thinking, and the board they
 -- actually finished with is always one click away — which matters most for the

@@ -115,7 +115,7 @@ function listed(over: Partial<ListedGame> & { gameId: string; manifest: GameMani
   return {
     title: `Game ${over.gameId}`,
     statusChangedAt: '2026-09-01T00:00:00Z',
-    isTerminal: false,
+    isGameEnded: false,
     isCurrent: false,
     summary: 'playing',
     ...over,

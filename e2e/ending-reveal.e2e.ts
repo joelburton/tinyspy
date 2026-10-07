@@ -10,18 +10,18 @@ import { signIn } from './helpers/session'
 import { actionButton, actionRow } from './helpers/actions'
 
 /**
- * The terminal solution reveal (docs/ui.md → Terminal results): **local to each
+ * The ending's solution reveal (docs/ui.md → Endings): **local to each
  * player, reversible, and never automatic for a player who did not solve it**
  * (the solver's case is solved-reveal.e2e.ts).
  *
  * A finished game keeps its answer covered until someone asks — a loss and a
  * manual end alike, and here especially, since `replay_board` re-runs the very
  * same board and an answer left on screen would make Restart theater. Reveal is
- * offered twice (the terminal action row and the game menu), both wearing the
+ * offered twice (the ending action row and the game menu), both wearing the
  * same two faces, and pressing Hide puts it away again.
  *
  * stackdown stands in for the family (psychicnum's tile-ring half is covered by
- * psychicnum-terminal.e2e.ts): its six words are a text region, so "is the
+ * psychicnum-ending.e2e.ts): its six words are a text region, so "is the
  * solution on screen?" is directly assertable.
  *
  * Browser-only, and more so than before: the claim is now about what TWO
@@ -49,9 +49,9 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(revealRow).toHaveCount(0)
   await expect(actionButton(page, 'act-spoiler')).toBeVisible()
 
-  // The menu item exists all along but is inert until terminal — the words
-  // don't even reach this client before then (stackdown._solution_for gates on
-  // is_terminal), so there is nothing it could show.
+  // The menu item exists all along but is inert until the game ends — the
+  // words don't even reach this client before then (stackdown._solution_for
+  // gates on ended_at), so there is nothing it could show.
   const openMenu = () => page.getByRole('button', { name: /menu/i }).first().click()
   await openMenu()
   const revealItem = actionRow(page, 'act-reveal')
@@ -64,7 +64,7 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
   await expect(revealRow).toBeVisible({ timeout: 8000 })
 
-  // Terminal, but the words are still covered.
+  // Ended, but the words are still covered.
   await expect(words).toHaveCount(0)
 
   // Asking opens them, and both controls turn into their other face rather than
@@ -161,7 +161,7 @@ test('stackdown: one player revealing does NOT open the words for the other', as
  * is a better answer than a control that silently vanished.
  *
  * The FE gate mirrors the shield: `stackdown._solution_for` hands the words over
- * only at `is_terminal` — ended for EVERYONE — so a conceder has nothing to
+ * only at `ended_at` — ended for EVERYONE — so a conceder has nothing to
  * show even if the control were live. That is the one piece of this the server
  * still owns, and the reason it can't key on any per-player doneness.
  */

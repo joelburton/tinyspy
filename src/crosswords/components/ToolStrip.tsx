@@ -2,7 +2,7 @@
 
 import { ActionButton } from '@/common/actions/ActionButton'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import type { GActions } from '../reactTypes'
 import type { GGameData } from '../types'
 import { Controls } from './Controls'
@@ -13,7 +13,7 @@ type Props = {
   actions: GActions
   pencil: boolean
   // Mine while I have conceded and the others race on; null otherwise.
-  playerEndingMessage: TerminalMessage | null
+  playerEndingMessage: EndingMessage | null
 }
 
 /**

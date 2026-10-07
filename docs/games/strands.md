@@ -63,7 +63,7 @@ Consequences the code leans on rather than re-deriving:
 
 - **Winning IS consuming the board.** "Every puzzle word found" and "every cell
   used" are the same statement, so `submit_path` counts words (the cheaper half)
-  and `terminal_test` checks the other half actually holds.
+  and `ending_test` checks the other half actually holds.
 - **Found tiles lock**, so the pool of remaining hint words shrinks as you
   progress — a difficulty curve that falls out of the geometry rather than a
   knob.
@@ -94,8 +94,8 @@ worth protecting server-side, and compete is where that bites: a racer who has
 solved or conceded has ended their own race while the rest are still tracing,
 and could read the answer out — so the gate can't key on any per-player
 doneness (`compete_test.sql` pins both halves). Whether a player is *looking*
-at the answer is their own display choice in the FE ([ui.md → Terminal
-results](../ui.md#terminal-results--the-moment-vs-the-record)): a local,
+at the answer is their own display choice in the FE ([ui.md →
+Endings](../ui.md#endings--the-moment-vs-the-record)): a local,
 reversible reveal (`act-reveal`, one action carrying both faces and placed in
 the action row AND the menu), nothing shared, and nothing autorevealed to a
 player who did not solve it. The reveal has **two halves, one toggle**: the
@@ -107,7 +107,7 @@ so without it a reveal makes you read the answer off the grid letter by letter.
 > **Recorded as provisional.** If the verdict ever feels laggy, the fallback is
 > trusting-commit: ship the solution + legal words and let the RPC record the
 > FE's verdict, as `connections.submit_guess` does. `submit_path` already owns
-> the row lock, counters, terminal check and turn advance — none of which move —
+> the row lock, counters, ending check and turn advance — none of which move —
 > so the flip is adding a `result` parameter. What does *not* survive it is the
 > shielding, and that is a schema edit.
 
@@ -789,7 +789,7 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 | `compete_test.sql` | the race: per-player boards, what the blob carries of a rival, fewest-hints ranking, concede-with-a-solver |
 | `conceded_test.sql` | a conceder gets no more moves; a solver's concede is refused and her solve stays ranked; all-conceded → `conceded`; a racer's hint rings her own board alone |
 | `timeout_test.sql` | the timer in both modes: coop a `timeout` loss, compete ranks whoever had solved; the log holds the whole race |
-| `terminal_test.sql` | the endings + the reveal gate |
+| `ending_test.sql` | the endings + the reveal gate |
 | `game_data_test.sql` | the page blobs: a fresh game whole, mid-game coop and compete, the endings, a Restart, a rebuild of every game without re-dating it |
 | `rls_test.sql` | the solution shield, and the member gate |
 

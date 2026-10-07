@@ -69,7 +69,7 @@ export const wordiplyGallery: GameGallery = {
     if (cell.mode === 'compete' && (cell.phase === 'won' || cell.phase === 'lost')) {
       await play(me, id, LONGEST)
       await play(rival, id, SHORT)
-      // Both verdicts come out of the same terminal — which one you see is
+      // Both verdicts come out of the same ending — which one you see is
       // purely which chair you're in, so ask the game rather than assume.
       return { gametype, id, viewer: seatWithVerdict(club, id, cell.phase === 'won') }
     }
@@ -78,7 +78,7 @@ export const wordiplyGallery: GameGallery = {
     // thing, and a win.
     if (cell.phase === 'won' && cell.mode === 'coop') await play(me, id, LONGEST)
 
-    // The clock, played a little first so the terminal has something to report.
+    // The clock, played a little first so the ending has something to report.
     // It's the only way a coop table can lose.
     if (cell.phase === 'lost' && cell.mode === 'coop') {
       await play(me, id, ['bar', 'scar'])

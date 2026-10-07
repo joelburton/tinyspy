@@ -1,11 +1,11 @@
 // cs-unmet
 
 import type { Actor } from '@/common/members/member'
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What bananagrams says once the game is over, for its ending.
@@ -35,9 +35,9 @@ export function buildGameEndingMessage({
   playerOutcome: EndOutcome
   // The player who went out; null when nobody did.
   winner: Actor | null
-}): TerminalMessage {
+}): EndingMessage {
   /** The texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Omit<TerminalMessage, 'outcome'> {
+  function makeGameEndingWords(): Omit<EndingMessage, 'outcome'> {
     if (gameOutcome ===
       'neutral') return buildGameEndedMessageNeutral('compete')
 

@@ -49,8 +49,8 @@ declare global {
 
 const CANNED: Record<Kind, (text: string) => FeedbackMessage> = {
   notOk: (text) => FeedbackMessage.result('error', text, { ...KINDS.notOk }),
-  terminalVerdict: (text) =>
-    FeedbackMessage.terminalVerdict({ pillText: text, infoColText: text, outcome: 'won' }),
+  endingVerdict: (text) =>
+    FeedbackMessage.endingVerdict({ pillText: text, infoColText: text, outcome: 'won' }),
   standingState: (text) => FeedbackMessage.standingState('lost', text),
   result: (text) => FeedbackMessage.result('lost', text),
   acknowledgment: (text) => FeedbackMessage.acknowledgment('neutral', text),

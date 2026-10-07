@@ -46,14 +46,14 @@ describe('FeedbackMessage — each constructor and its kind', () => {
     expect(FeedbackMessage.notOk({ ...race, severity: 'fault' }).outcome).toBe('error')
   })
 
-  it('terminalVerdict: the pill text, the outcome and the actor come from the terminal message', () => {
-    const msg = FeedbackMessage.terminalVerdict({
+  it('endingVerdict: the pill text, the outcome and the actor come from the ending message', () => {
+    const msg = FeedbackMessage.endingVerdict({
       pillText: 'Won: all found',
       infoColText: 'You won!',
       outcome: 'won',
       actor: moth,
     })
-    expectRow(msg, 'terminalVerdict')
+    expectRow(msg, 'endingVerdict')
     expect(msg.text).toBe('Won: all found')
     expect(msg.outcome).toBe('won')
     expect(msg.actor).toBe(moth)
@@ -188,6 +188,6 @@ describe('KINDS — the table’s own invariants', () => {
 
   it('only the two final states wear the fill', () => {
     const filled = Object.entries(KINDS).filter(([, r]) => r.fill).map(([k]) => k)
-    expect(filled.sort()).toEqual(['standingState', 'terminalVerdict'])
+    expect(filled.sort()).toEqual(['endingVerdict', 'standingState'])
   })
 })

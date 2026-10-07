@@ -1,7 +1,7 @@
 # found-words
 
 What spellingbee, wordwheel and boggle share as games that accumulate a list of
-found words: the submit engine, the terminal reveal, the rows the word-list
+found words: the submit engine, the ending reveal, the rows the word-list
 panel draws, the two data shapes behind them, the typed word's illegal-letter
 dim, and the play-surface scaffolding all three compose. Wordiply takes the
 submit engine alone — its guesses are the found set, though it keeps no
@@ -94,7 +94,7 @@ list that draws the result.
 **Sizing, measured against the local dictionary at the default bands** (required
 3 / legal 5): the bonus set is roughly the **same size** as the required set, not
 the multiple it looks like — band 3→5 is a narrow widening, and what really
-separates the two is the `american / not slang / clean` filter. So the terminal
+separates the two is the `american / not slang / clean` filter. So the ending
 list roughly doubles. The grid it lands in is column-major and takes its height
 from its column, so that reads as *more columns*, never a taller panel.
 

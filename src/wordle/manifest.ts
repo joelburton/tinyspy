@@ -8,7 +8,7 @@ import { count, dictLabel, verdict, statusLine, tally, wonBy } from '@/common/ma
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import type { GameEndedReason } from '@/common/terminal/gameEnding'
+import type { GameEndedReason } from '@/common/ending/gameEnding'
 import { DEFAULT_WORDLE_SETUP, legalError } from './lib/setup'
 import logoUrl from './logo.svg?url'
 import type { GSetup, GSummaryData } from './types'

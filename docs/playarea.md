@@ -78,9 +78,9 @@ an empty `.moveArea` (`display: contents`) with a comment saying why.
 ## Info-column readouts
 
 The readouts above the log follow one order in every game — state, opponent
-strip, action row, help, terminal extra, setup disclosure, then the log — and
+strip, action row, help, ending extra, setup disclosure, then the log — and
 each kind is drawn the same way everywhere. The order, what each row is for, how
-each behaves at terminal, and the two allowed kinds of growth are
+each behaves at the end, and the two allowed kinds of growth are
 [src/common/info-sheet/doc.md](../src/common/info-sheet/doc.md)'s; the setup
 rows are
 [setup-form/doc.md → Setup rows](../src/common/setup-form/doc.md#setup-rows).
@@ -341,11 +341,12 @@ row. A menu is easy to reorder, so this is a starting order, not a lock.
 
 ### What leaves the component file
 
-**The terminal message.** A pure `buildTerminalMessage(...)` returning a
-`TerminalMessage`, in `lib/endingMessage.ts` beside the game's other decisions about
-what a move meant — except for spellingbee and wordwheel, whose endings read
-alike and share one in `shared/bee-games/endingMessage.ts`. The `useMemo` that feeds
-the verdict effect stays in the component. Its test walks every terminal play
+**The ending message.** A pure `buildGameEndingMessage(...)` returning an
+`EndingMessage`, in `lib/gameEndingMessage.ts`, and `buildPlayerEndingMessage`
+for a player's own end in `lib/playerEndingMessage.ts`, beside the game's other
+decisions about what a move meant — except for spellingbee and wordwheel, whose
+endings read alike and share one in `shared/bee-games/endingMessage.ts`. The `useMemo` that feeds
+the verdict effect stays in the component. Its test walks every ended play
 state in every mode for every reason the server writes — a small, closed space
 worth exhausting.
 
@@ -362,11 +363,11 @@ the same in both, or reading the second game means re-deriving the first.
   the same order. There is no `React.memo` in the app, so grouping props into
   objects buys nothing. Use a real object only for a cluster that always travels
   together to one child, such as the OpponentStrip's inputs.
-- **One vocabulary.** The standing terms — `isTerminal`,
-  `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isOnTurn`,
+- **One vocabulary.** The standing terms — `isGameEnded`,
+  `isConceded`, `isPlayerEnded`, `isStillPlaying`, `isOnTurn`,
   `isWaitingForTurn`, `isBoardInteractive` — mean what [win-lose.md → Where a player
   stands](win-lose.md#where-a-player-stands--the-terms-as-formulas) defines, and
-  nothing else. Beside them: `terminalMessage`, `isCompete`, `historyLabel`, `onExitHistory`,
+  nothing else. Beside them: `endingMessage`, `isCompete`, `historyLabel`, `onExitHistory`,
   `onShowHistory`, `players`, `myId`, `playerStates`, `concededIds`, `setup`,
   `solution`, `actStopGame`, `actConcede`, `actBackToClub`, … When a new column needs a prop an earlier one
   already has, reuse the name; diverge only when the meaning differs, and say
@@ -394,7 +395,7 @@ Where the four-layer table is too clean:
   editing primitives down and `BoardCol` emits the finished word up. "BoardCol
   owns editing" means the gesture → word, not the word's state.
 - **The below-board slot belongs to the coordinator.** Things other than the
-  board column show into it — the terminal verdict, and results from info-column
+  board column show into it — the ending verdict, and results from info-column
   actions like Hint or Reveal — so `PlayArea` makes the slot and passes it down,
   and `BoardCol` draws it and shows its own input results.
 - **Split state by its trigger, not by where it renders.** A flash drawn inside

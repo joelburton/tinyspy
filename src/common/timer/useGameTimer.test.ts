@@ -113,7 +113,7 @@ describe('useGameTimer', () => {
     expect(rpcMock).not.toHaveBeenCalled() // paused → driver off
   })
 
-  it('does not drive while not running (terminal / loading)', async () => {
+  it('does not drive while not running (ended / loading)', async () => {
     const { result } = renderHook(() =>
       useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: false }),
     )

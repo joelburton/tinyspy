@@ -24,8 +24,8 @@ Two rulings at the opening, both Joel's:
   later."* It is still read as evidence here, and findings ABOUT it are
   recorded below, because half of what this vocabulary claims about itself is
   written there rather than in the type.
-- **`terminalOutcomeVerb.ts` and `turnOutcome.ts` stay where they are** —
-  *"don't move those; they're in the right place."* They belong to `terminal`
+- **`endingOutcomeVerb.ts` and `turnOutcome.ts` stay where they are** —
+  *"don't move those; they're in the right place."* They belong to `ending`
   and `codenamesduet`.
 
 ## Findings
@@ -117,12 +117,12 @@ The bucket carries **seven** variants, and `cssTokens.test.ts` enforces the
 grid as a rectangle — 7 families × 7 variants, in both themes:
 
 ```
-base · ink · fill · edge · wash · bar · terminalFrame
+base · ink · fill · edge · wash · bar · endingFrame
 ```
 
 So the recipe is not merely understated: somebody who adds an outcome by
 following it ships three missing cells and the guard fails on a step the doc
-never told them to take. `wash`, `bar` and `terminalFrame` all postdate the
+never told them to take. `wash`, `bar` and `endingFrame` all postdate the
 prose.
 
 ### RESOLVED · F-outcomes-4 · `hand-cut-subsets` · A subset of `Outcome` is retyped by hand wherever one is wanted, and the repo already has the right idiom
@@ -149,14 +149,14 @@ retyped — and hand each conversion to the owning folder's `todo.md`.
 
 **Joel's rulings:**
 
-- **The terminal three is real**, unlike `TurnOutcome`'s four: *"`OutcomeTone`
+- **The ended-game three is real**, unlike `TurnOutcome`'s four: *"`OutcomeTone`
   is valid limited to those three."* A finished game is won, lost, or neither,
   and that is a genuine closed set rather than a ceiling nobody revisited.
 - **It is called `TerminalOutcome`.** `OutcomeTone` says the same thing twice
   — an outcome IS a tone — and omits the only part that distinguishes it,
   which is that the game is over.
 - **stackdown's `WordFlash` stays hardcoded** as `'won' | 'lost'`. Its flash
-  has no neutral and is not a terminal verdict; it is two states of a letter
+  has no neutral and is not an ending verdict; it is two states of a letter
   slot, not a member of this family.
 - **It lives in `common/terminal/terminalCopy.ts`**, beside the `TerminalCopy`
   whose `tone` it is, rather than in the vocabulary file.
@@ -172,7 +172,7 @@ which are a `TerminalCopy` with a `verdictNode` added. `tsc -b` clean, 2586
 tests green, lint clean. Per the sweep rule the eleven consumer files keep
 their stamps.
 
-**One thing this cost, said plainly:** `feedback` now imports from `terminal`,
+**One thing this cost, said plainly:** `feedback` now imports from `ending`,
 which sits above it in the folder depth order — `localPills.ts` needs the type
 for `terminalPill`. It is `import type`, so nothing survives to runtime and no
 cycle exists in either direction, but it is a real edge in the wrong direction
@@ -277,7 +277,7 @@ a vocabulary earns a folder, the unusually sharp boundary (the folder owns the
 WORDS: not the colors, not the text, not which word a situation picks, and so
 no logic and no local test), and the rule this area established that a subset
 is `Extract`ed and declared with its consumer rather than collected here. The
-`Extract` rule closes with the test a subset has to pass: the terminal three
+`Extract` rule closes with the test a subset has to pass: the ended-game three
 are genuinely narrower because `near` and `warning` judge a move and a finished
 game has none, while "how a turn reads" was never narrower at all.
 
@@ -340,8 +340,8 @@ itself held up; what had drifted was every sentence about it. The file claiming
 the code beside the wrong word. The palette had grown from four roles to seven
 without the prose noticing, so the recipe for adding an outcome told a reader to
 ship three missing cells. And one concept — how a finished game reads — was
-retyped by hand in twelve places under three spellings; it is `TerminalOutcome`
-now, `Extract`ed from the list so a rename breaks it instead of leaving it
+retyped by hand in twelve places under three spellings; it is one named subset
+now (`EndOutcome`), `Extract`ed from the list so a rename breaks it instead of leaving it
 behind, and the rule that a subset lives with its consumer is written in the
 folder's `doc.md`. Two things found and handed on, both to `turn-log`:
 `TurnOutcome` is a second name for `Outcome` with three words missing, and the

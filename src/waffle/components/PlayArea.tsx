@@ -7,8 +7,8 @@ import type {
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import {
   CelebrationBlockingModal,
-} from '@/common/terminal/CelebrationBlockingModal'
-import { useCelebration } from '@/common/terminal/useCelebration'
+} from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
@@ -166,7 +166,7 @@ function PlayArea({
         />
       </InfoSheet>
 
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it is
+      {/* No modal for the verdict (docs/ui.md → Endings): it is
           carried in-page, by the below-board pill and the action row's line.
           My win's confetti — once, when it happens. */}
       {celebration.isOpen && (

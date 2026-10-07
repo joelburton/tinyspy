@@ -82,7 +82,7 @@ export function buildPrintModel(o: {
   target: string | null
   // Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
   // merely an ended game. wordle hides the answer on a loss so a Restart is a
-  // real second try (docs/ui.md → Terminal results), and a printout that
+  // real second try (docs/ui.md → Endings), and a printout that
   // spelled it out would undo that from the outside.
   answerShown: boolean
   setupRows: SetupRow[]

@@ -54,7 +54,7 @@ export function GameEventLog({
     players,
     myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })

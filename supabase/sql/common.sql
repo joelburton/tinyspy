@@ -721,8 +721,8 @@ revoke execute on function common._color_for_username(text) from public;
 -- Per-game RPCs share a few load-bearing patterns: auth + club-
 -- membership gating, canonical timer-setup validation, the
 -- two-write coordination of "header in common.games + detail in
--- <gametype>.games" at create-game time, and the terminal-
--- transition writes at game-end. Lifting these into common keeps
+-- <gametype>.games" at create-game time, and the ending
+-- writes at game-end. Lifting these into common keeps
 -- the per-game RPCs focused on game-specific mechanics and ensures
 -- the canonical error messages and behavior stay identical across
 -- gametypes.
@@ -1269,7 +1269,7 @@ begin
   -- the partial unique index would reject the new
   -- is_current_view=true row otherwise. The previously-current
   -- game stays in common.games with is_current_view=false;
-  -- it's now a suspended game (non-current, non-terminal). Pure
+  -- it's now a suspended game (non-current, not ended). Pure
   -- pointer flip — no timer bookkeeping (see common.timers).
   update common.games
      set is_current_view = false
@@ -1383,9 +1383,9 @@ revoke execute on function common._require_game_player(uuid) from public;
 -- Free-for-all is the default and unchanged: common.games.current_turn_user_id
 -- stays NULL and all three helpers below are inert. A game that opts in (a coop
 -- game's setup coop_style='turns', or a game that always takes turns) seats
--- the rotation once at create-time; each ACCEPTED, non-terminal move then
--- calls _advance_turn; and each move RPC gates on _require_turn right after it
--- locks the game row + resolves the caller.
+-- the rotation once at create-time; each ACCEPTED move that doesn't end the
+-- game then calls _advance_turn; and each move RPC gates on _require_turn
+-- right after it locks the game row + resolves the caller.
 --
 -- The whole rotation lives on the COMMON tables (game_players.turn_seat +
 -- games.current_turn_user_id), so every gametype inherits it without a per-game
@@ -1622,7 +1622,7 @@ revoke execute on function common._end_game(uuid, text, text, uuid, boolean, jso
 
 -- ─── common.reveal_solution — REMOVED 2026-08-15 ───────────
 -- Seeing the solution is a LOCAL, per-player display choice now, made in the FE
--- (docs/ui.md → Terminal results): a Reveal/Hide toggle each player works for
+-- (docs/ui.md → Endings): a Reveal/Hide toggle each player works for
 -- themselves, so one player looking doesn't open the answer on a partner who is
 -- still thinking, and the board they actually finished with is always one click
 -- away. Nothing is written, so there is no RPC and no flag — the whole

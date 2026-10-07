@@ -767,7 +767,7 @@ filed in `game-page/todo.md`.
 
 ### WORKED · F-corecss-23 · `counts-from-five-families` · Three counts written when outcomes had five families
 
-`daylight.css`: EDGE "derives exactly, for all five" (seven); TERMINALFRAME
+`daylight.css`: EDGE "derives exactly, for all five" (seven); ENDINGFRAME
 "four hues plus the achromatic neutral" (six); VIEW "a dead gray and four dark
 outcome tints". `noted` and `error` made it seven and the prose around them
 was written first. Fixed, the third as "the dark outcome tints".
@@ -779,7 +779,7 @@ had no page structure" (and its `.frame` claim was half wrong — `.frame` is
 still the club page's width holder and the game page's wrapper, and the
 history viewer's rectangle), plus "the homepage used to shrink to its card".
 `daylight.css`: the pill block's "it got there by promoting the two the pill
-used to own", "no pixel moved", TERMINALFRAME's before/after byte table for
+used to own", "no pixel moved", ENDINGFRAME's before/after byte table for
 hexes that no longer exist, "not the amber it used to be", GAMELIST's "the
 overload these tokens used to commit", TILE's "it was called `disabled`", and
 the placeholder's "arrived at the identical recipe independently".

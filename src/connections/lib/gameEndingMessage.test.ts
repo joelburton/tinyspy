@@ -12,7 +12,7 @@
  * says "won" beside an outcome of `lost`, or leaves a loss reading as neutral.
  */
 import { describe, expect, it } from 'vitest'
-import type { EndOutcome, GameEndedReason } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
 /** The message for one ending, with the elimination flag off unless a case

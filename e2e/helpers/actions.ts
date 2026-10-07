@@ -20,7 +20,7 @@ import type { Locator, Page } from '@playwright/test'
  */
 
 /**
- * The button that fires an action — a game's action row, a terminal row, the
+ * The button that fires an action — a game's action row, an ending row, the
  * pause overlay.
  *
  * The ROLE half of this is load-bearing twice over: it excludes the menu's row

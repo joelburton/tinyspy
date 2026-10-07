@@ -418,8 +418,8 @@ every move and ending rewrites them.
   [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
   pgTAP: `concede_test.sql`.
 - **`replay_board`** — `act-restart`, placed as both the **"Restart"** menu row
-  and a button once the game has ended (spellingbee's twin — [ui.md → Terminal
-  results](../ui.md#terminal-results--the-moment-vs-the-record)): restart the
+  and a button once the game has ended (spellingbee's twin — [ui.md →
+  Endings](../ui.md#endings--the-moment-vs-the-record)): restart the
   SAME board (same faces + word lists) for everyone. Clears `boggle.found_words`
   (the only working state), then `common._reset_game` clears the ending and
   zeroes the shared timer, and the page blobs are rebuilt. Confirmed mid-game;

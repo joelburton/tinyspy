@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { EndOutcome, PlayerEndedReason } from '@/common/terminal/gameEnding'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndOutcome, PlayerEndedReason } from '@/common/ending/gameEnding'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 
 /**
  * What connections says to a racer who is out while the others play on, for
@@ -24,9 +24,9 @@ export function buildPlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`common.game_players.outcome`).
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for why I ended. */
-  function makePlayerEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makePlayerEndingWords(): Pick<EndingMessage,'pillText' | 'infoColText'> {
     // Only compete reaches here: a coop player does not end on their own.
     if (reason === 'resource_exhausted') {
       return { pillText: 'Lost — race continues', infoColText: 'You’re out' }

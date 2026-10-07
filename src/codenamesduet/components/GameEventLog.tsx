@@ -99,7 +99,7 @@ export function GameEventLog({
     mode: 'coop',
     // Coop: every clue and guess is shared, so nothing is ever RLS-hidden and
     // the honest-hidden empty text can't apply.
-    isTerminal: true,
+    isGameEnded: true,
     label: 'Whose clues to show',
     emptyLabel: 'No clues yet.',
   })

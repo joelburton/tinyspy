@@ -8,7 +8,7 @@ import {
   useDismissLocalFeedbackOnKey,
 } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'

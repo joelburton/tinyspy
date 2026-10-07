@@ -1,6 +1,6 @@
 // cs-blessed-psychicnum
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -27,7 +27,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine —
   // or null while I can still play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
 }) {

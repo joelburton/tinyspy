@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
@@ -37,7 +37,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // The seeded pair while I have it revealed, else null.
@@ -120,14 +120,14 @@ export function InfoCol({
         {/* The seeded pair — GATED behind the Reveal button above, and never
             automatic (a win covers the twelve letters with SOME chain; the pair
             is a different, shorter answer nobody saw), so it waits to be asked
-            for, and goes away again when the asker is done. `terminalExtra`: a
+            for, and goes away again when the asker is done. `endingExtra`: a
             region allowed to grow when the viewer opens it and to give the
             space back when they close it (a blessed exception to docs/ui.md →
             Layout stability), ABOVE the setup disclosure per the canonical
             order (the reveal is the payoff; the Setup options list is
             bookkeeping). */}
         {solution !== null && (
-          <div className={cls(shared.terminalExtra, styles.chainBlock)}>
+          <div className={cls(shared.endingExtra, styles.chainBlock)}>
             <div className={styles.blockTitle}>Solvable in two</div>
             <div className={styles.solution}>
               {solution.map((w, i) => (

@@ -43,7 +43,7 @@ export function YourGamesCol({
 }: Props) {
   function getGameState(g: ListedGame): ClubGameState {
     if (g.isCurrent) return 'current'
-    if (g.isTerminal) return 'completed'
+    if (g.isGameEnded) return 'completed'
     return 'suspended'
   }
 

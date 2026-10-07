@@ -88,10 +88,10 @@ docstring sits on `export function useScratchpad`; the KNOWN row goes. (The
 - `ScratchpadApi`'s four field notes (`canEdit`, `editingBy`, `canTakeOver`)
   are `/**`; a field note takes `//`. The type's own docstring is missing —
   it is what a caller reads, and it has none.
-- `GameScratchpadCompanion`'s props block: `ownerId` and `isTerminal` carry
+- `GameScratchpadCompanion`'s props block: `ownerId` and `isGameEnded` carry
   `/**`.
 - ~~`editingDisabled: boolean, // e.g. terminal — read-only`~~ — the
-  parameter is gone (F-scratchpad-9, the pad stays editable at terminal).
+  parameter is gone (F-scratchpad-9, the pad stays editable after the end).
 
 ### WORKED · F-scratchpad-3 · `archaeology` · a review date, a finding code, and four "crossplay:" quotes
 
@@ -230,7 +230,7 @@ are read back more than a chat line is.
 ### WORKED · F-scratchpad-9 · `field-paint` · the textarea wears the page ground while its own button wears the field tokens
 
 **WORKED 2026-09-12 — Joel's four decisions**, after asking when the pad is
-read-only (at terminal, or while another player holds the shared lock):
+read-only (after the end, or while another player holds the shared lock):
 
 1. **Read-only never mutes the text** — everyone wants to read the notes
    while someone else types. The `:read-only` rule is gone entirely.
@@ -242,7 +242,7 @@ read-only (at terminal, or while another player holds the shared lock):
    text. `editingBy` now carries `{ userId, username }` and the companion
    takes the club `members` to resolve the disc.
 3. **The pad stays editable after the game ends.** The whole slice: the
-   companion's `isTerminal` prop and the hook's `editingDisabled` parameter
+   companion's `isGameEnded` prop and the hook's `editingDisabled` parameter
    are gone (GamePage no longer passes the flag); `set_scratchpad`'s
    play-state guard and its PN305 race arm are deleted, so the RPC guards on
    membership only; the pgTAP race case became "a write after the game ended
@@ -489,7 +489,7 @@ the areas table) when that file was trimmed to the process, 2026-09-23.
 **`scratchpad` is closed** (2026-09-12): eight files `cs-blessed-scratchpad`,
 sixteen findings — fifteen worked, one closed by another's decision. What
 changed the app: the pad stays writable after the game ends, a whole vertical
-slice — the companion's terminal flag, the hook's parameter, the RPC's
+slice — the companion's game-ended flag, the hook's parameter, the RPC's
 play-state guard and its race arm, the pgTAP case, the read-only status text —
 gone on the ruling that the notes are the players', not the game's. The two
 one-second intervals that ran for the life of every coop game page run only

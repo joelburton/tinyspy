@@ -6,7 +6,7 @@ import type { NotOkEnvelope } from '../supabase/envelope'
 import { notOkOutcome } from '../supabase/dbResult'
 import type { Actor, Player } from '../members/member'
 import { DotActor } from '../members/ActorMention'
-import type { TerminalMessage } from '../terminal/terminalMessage'
+import type { EndingMessage } from '../ending/endingMessage'
 import { waitingForText } from '../info-sheet/turnText'
 
 /**
@@ -42,7 +42,7 @@ export type LeavesBy =
  */
 export type Kind =
   | 'notOk'
-  | 'terminalVerdict'
+  | 'endingVerdict'
   | 'standingState'
   | 'result'
   | 'acknowledgment'
@@ -83,7 +83,7 @@ export const KINDS: Record<Kind, KindDefaults> = {
   // the × then shows the "Lost" it lost to.
   notOk:           { fill: false, rank: 10, leavesBy: 'close',   ms: null, outcome: null },
   // The game is over, and this is how it ended.
-  terminalVerdict: { fill: true,  rank: 20, leavesBy: 'owner',   ms: null, outcome: null },
+  endingVerdict:   { fill: true,  rank: 20, leavesBy: 'owner',   ms: null, outcome: null },
   // A state you are in for the rest of the game — out of the race while the
   // others play on.
   standingState:   { fill: true,  rank: 30, leavesBy: 'owner',   ms: null, outcome: null },
@@ -139,7 +139,7 @@ function defaultsFor(kind: Kind, outcome: Outcome | null, overrides: Overrides |
  *
  * Reach for a static constructor, never a literal: `FeedbackMessage.notOk(res)`
  * when the server said no, `.result('lost', 'Not a word')` for the FE's own
- * verdict on a move, `.terminalVerdict(over)` when the game ends, `.waiting(m)`
+ * verdict on a move, `.endingVerdict(over)` when the game ends, `.waiting(m)`
  * while it is a teammate's turn, `.peer(m, 'won', 'found APPLE')` to narrate
  * someone else. Each names a KIND, and the kind is what decides how the message
  * looks and leaves — see `KINDS` above. Hand it to a slot:
@@ -183,9 +183,9 @@ export class FeedbackMessage {
 
   // ── rank 20: the game is over ──
 
-  /** The below-board verdict, from the game's terminal-message builder. */
-  static terminalVerdict(over: TerminalMessage, overrides?: Overrides): FeedbackMessage {
-    return new FeedbackMessage('terminalVerdict', over.pillText, over.actor, defaultsFor('terminalVerdict', over.outcome, overrides))
+  /** The below-board verdict, from the game's ending-message builder. */
+  static endingVerdict(over: EndingMessage, overrides?: Overrides): FeedbackMessage {
+    return new FeedbackMessage('endingVerdict', over.pillText, over.actor, defaultsFor('endingVerdict', over.outcome, overrides))
   }
 
   // ── rank 30: a standing state, with the fill ──

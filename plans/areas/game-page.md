@@ -27,7 +27,7 @@ and nothing else:
 - `GamePage.tsx` + `.module.css` + `.test.tsx` — the shell, drawn from props
 - `NoSuchGamePage.tsx` — `<ErrorPage>` in its Not-Found shape
 - ~~`InfoActionsRow.tsx` + `.test.tsx`~~ — the info column's action row, every
-  state (arrived from `common/terminal/` as F-11.3; moved on to
+  state (arrived from `common/ending/` as F-11.3; moved on to
   `common/info-sheet/` 2026-09-15 at Joel's ask, with the outcome line's six
   rules as its own `InfoActionsRow.module.css` — the row classes stay in
   `playArea.module.css` because bananagrams composes them directly. Both files
@@ -261,7 +261,7 @@ Kept, because it is a decision and not history: `.boardCol`'s debug tint
 - `GamePage.test.tsx` header: "the three actions the game shell binds for
   every game" — it binds four (`act-help` too); the file tests three.
 - `useStandardGameActions.test.ts` header: "every action here has one" (a
-  question) — Restart at terminal goes straight through, and the file's own
+  question) — Restart after the end goes straight through, and the file's own
   case says so.
 - `PlayArea.module.css` header: "Three things live here" — the shell, the
   readouts, the tile. The file also holds the local-feedback / swap boxes,
@@ -367,13 +367,13 @@ Four edits, because one rule was load-bearing in three other places:
 - `todo.md`'s five-concerns list, and one comment in `cssTokens.test.ts` that
   used the deleted token as its camelCase naming example.
 
-### F-game-page-9 · `go-to-club-mid-game` · The device block exited through `goToClub`, which says it is terminal-only — WORKED
+### F-game-page-9 · `go-to-club-mid-game` · The device block exited through `goToClub`, which says it is for an ended game only — WORKED
 
 `ctx.goToClub`'s note: "Only valid to call when the game is terminal — for
 non-terminal back-to-club, use the menu (which fires the suspend-confirm
 flow)." `bananagrams/PlayArea.tsx` handed it to `DeviceBlockNotice` as the
-blocked player's exit, and that branch fires on `isTouch` before any terminal
-check, so a phone leaving a LIVE game did so with no suspend and no broadcast.
+blocked player's exit, and that branch fires on `isTouch` before any
+has-it-ended check, so a phone leaving a LIVE game did so with no suspend and no broadcast.
 
 I first argued the finding's own fix was wrong — that suspending on behalf of
 the group was worse than leaving quietly. **Joel: "That's no 'strictly worse'.
@@ -389,9 +389,9 @@ game — the game is shelved and everyone goes back to the club. we have an
 action for this."*
 
 Done: `DeviceBlockNotice` takes `actBackToClub: BoundAction` and places it as an
-`<ActionButton>`, the way codenamesduet's terminal row already does; bananagrams
+`<ActionButton>`, the way codenamesduet's ending row already does; bananagrams
 passes `ctx.menu.actBackToClub`. All three shapes now come free — solo suspends
-with no dialog, multiplayer asks, terminal navigates straight through.
+with no dialog, multiplayer asks, an ended game navigates straight through.
 
 **The premise that justified the callback was a false claim in a blessed file.**
 `BackToClubButton`'s docstring said it served "the two surfaces that cannot
@@ -433,8 +433,8 @@ is rewritten.
 
 **`ctx.goToClub` went with it.** The block card was its last production caller.
 Its own docstring said it served "the PlayArea terminal action row's Back to
-club button" — no terminal row called it; they all place `<ActionButton
-action={actBackToClub}>`, and at terminal that navigates straight through with
+club button" — no ending row called it; they all place `<ActionButton
+action={actBackToClub}>`, and after the end that navigates straight through with
 no dialog, so the stated purpose was already served. The only behavior it
 uniquely offered was *navigate mid-game, without asking*, which is the one this
 finding ruled wrong. Joel: *"is there a reason not to remove ctx.goToClub?"* —
@@ -668,7 +668,7 @@ Measured while deciding, and worth having when it is picked up — consumers per
 concern: shell 16 games (`.layout`, `.boardCol`), info-column readouts 19 files,
 below-board feedback 8, tile chrome 5, the marks 4.
 
-### F-11.3 · the info column's action row — ONE component, arrived from `terminal/`
+### F-11.3 · the info column's action row — ONE component, arrived from `ending/`
 
 The recorded item was *"the action box does not reserve its height ... decide
 whether to build the reserved box or record that the per-game `over ?` split is
@@ -677,7 +677,7 @@ the shape."* Re-verifying it turned up two things.
 **Its premise named the wrong class.** `.infoActions` reserves nothing, true,
 but the container is `.noShrinkRow` and it has `min-height: 6rem` — a floor. So
 the rule holds while both states fit under it, and the thing that could break it
-is the help line vanishing at terminal (`shared.infoHelp` is play-only in eight
+is the help line vanishing at the end (`shared.infoHelp` is play-only in eight
 games), which removes a flow element plus a 1rem gap. Whether any game exceeds
 6rem is a measurement nobody has taken.
 
@@ -687,16 +687,16 @@ terminal games also show a brief terminal message to the left of the buttons."*
 Which is the answer to the layout question too: if the row is the same row
 throughout, there is nothing to reserve.
 
-What existed: `terminal/TerminalActionRow` (message from `over`) and
-`terminal/LocalTerminalRow` (a hand-written neutral label), two near-identical
-files, plus a bare `<div className={shared.infoActions}>` for the playing
+What existed: two rows in `ending/`, one for the game's end (message from
+`over`) and one for a player's end (a hand-written neutral label), two
+near-identical files, plus a bare `<div className={shared.infoActions}>` for the playing
 branch — three branches, two components, in a folder that is not the one owning
 the stylesheet all three wore.
 
 Now: **`game-page/InfoActionsRow`**, `message?: InfoActionsMessage` and
 children. Joel named it — *"it's helpful to clarify that it's in the InfoCol"* —
 and set its type: the message is its own (`InfoActionsMessage`), not a
-`TerminalMessage`, and takes **any** outcome rather than a terminal one, since a
+`EndingMessage`, and takes **any** outcome rather than an ending one, since a
 live game may want a line too. `error` is the one member excluded, because
 docs/outcomes.md says it is never an outcome. That required three new rules in
 `playArea.module.css` (`.outcome_near`, `.outcome_warning`, `.outcome_noted`) —
@@ -705,7 +705,7 @@ class per member, because the class is INDEXED into and a missing rule renders
 unstyled rather than failing.
 
 **The message is passed, never derived**, which was Joel's open question
-("or calculate it, which makes more sense"). `terminalMessage.ts` already draws
+("or calculate it, which makes more sense"). `endingMessage.ts` already draws
 that boundary in its own words: the one message common code can write is "the
 friends agreed to stop", *"because nothing about that outcome is game-specific"*.
 "Out of guesses" needs the game's rules.
@@ -713,7 +713,7 @@ friends agreed to stop", *"because nothing about that outcome is game-specific"*
 19 call sites across 16 games. **crosswords is deliberately untouched** (Joel:
 its buttons are not normal action buttons — its own area's call).
 
-**It also closes an item in `terminal/todo.md`**, which asked whether those two
+**It also closes an item in `ending/todo.md`**, which asked whether those two
 components belonged there at all given they wore another folder's stylesheet.
 They did not, and now they do not.
 
@@ -753,19 +753,19 @@ read takes.
 
 **Joel's state rule**, which the vocabulary already documented and the games had
 drifted from: `hidden` is *not even possible in this state*; `disabled` is
-*possible here, not right now*, with a tooltip. So End and Concede are hidden at
-terminal rather than gray — there is no ending an ended game — while a conceder
+*possible here, not right now*, with a tooltip. So End and Concede are hidden once
+the game has ended rather than gray — there is no ending an ended game — while a conceder
 keeps End, because conceding is not ending.
 
 **What psychicnum came to.** One row, eight actions listed once, the only branch
-being the message. Playing and terminal draw exactly what they drew before; the
+being the message. Playing and ended draw exactly what they drew before; the
 locally-done row gains the back-to-club it never had. Two actions answer their
-asker differently (Restart, New game: a button only at terminal, menu and key
+asker differently (Restart, New game: a button only after the end, menu and key
 all game) and that is the whole of the placement knowledge.
 
 Three things the collapse would have destroyed silently, all now recorded in the
-todos: back-to-club's `weight="primary"` belonged to the terminal branch and
-became every state's when hoisted; `canGuess` hid "terminal" inside "out of
+todos: back-to-club's `weight="primary"` belonged to the ended branch and
+became every state's when hoisted; `canGuess` hid "ended" inside "out of
 guesses", which is how the hint bug was written in the first place (renamed
 `isStillPlaying` — Joel: *"that's a poor variable name, since i'd assume it also
 would be true for 'not your turn'"*); and the row needs a divider between the
@@ -859,7 +859,7 @@ claims standing. `SuspendEvent`'s docstring also mis-described the cleanup
 ref BEFORE untrack, and doc.md already had it right). The three comments now
 say who receives what; the type docstring is a pointer at the cleanup.
 
-### F-game-page-15 · `disabled-at-terminal` · The asker commit made End and Concede HIDDEN at terminal and left "disabled" in four places — WORKED
+### F-game-page-15 · `disabled-at-the-end` · The asker commit made End and Concede HIDDEN at the end and left "disabled" in four places — WORKED
 
 `useStandardGameActions`'s docstring ("both go disabled once the game is
 over"), its test's header ("both go disabled at terminal" — while the file's
@@ -896,12 +896,12 @@ still gave Help's "Got it" as its example. All corrected.
 An entire orphaned comment block sat directly above `.noShrinkRow`'s own,
 claiming the region is "same height whether the game is in play or terminal" —
 the reservation the rename had just refused, two blocks apart. "Action slot"
-survived in `.responsiveInfoCol`, `.infoCol` (twice) and `.terminalExtra`;
+survived in `.responsiveInfoCol`, `.infoCol` (twice) and `.endingExtra`;
 `.infoActions` and `.outcome` still described the pre-`InfoActionsRow`
-terminal swap ("the play buttons are replaced by the bold outcome line + a
-compact back-to-club button"); `.terminalExtra` called itself "the one
+end-of-game swap ("the play buttons are replaced by the bold outcome line + a
+compact back-to-club button"); `.endingExtra` called itself "the one
 info-column region that GROWS" on the transition, when the help line leaves at
-terminal in eight games. Deleted, renamed and reworded.
+the end in eight games. Deleted, renamed and reworded.
 
 ### F-game-page-19 · `stale-cites` · Six pointers at things that moved or went — WORKED
 
@@ -987,7 +987,7 @@ rules, `DeviceBlockNotice`), and the row-by-row don't-move rule.
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-15, blessed.** the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them. Twenty-four findings in `plans/areas/game-page.md`: eleven from the reading, thirteen from the re-read, plus the seven decisions `todo.md` handed it. What changed the app: the route is three components (`GamePageGate` → `GamePageLoader` → `GamePage`), and the page builds its own play surface — `App.tsx` passes the URL's two parts and the session and nothing else; one Back to club from every surface, the pause overlay and the device-block card included (`BackToClubButton` and `ctx.goToClub` deleted); `InfoActionsRow` is the info column's action row in every state, absorbing `terminal/`'s two (moved on to `info-sheet/` at the close, Joel's call); `describe()` takes its asker; `.noShrinkRow` reserves no height, by Joel's row-by-row rule; `--game-chrome-height` is composed and the shell no longer overflows by 1px; Help closes by its ✕. The re-read's lesson, for the fifth area running: eight of its thirteen were the area's own findings next door or written by its own fixes — and forty-three lines in twenty-three files dated the work to a day that had not happened yet. Open in its `todo.md`: the concern split of `playArea.module.css`, which waits for the first game area (Joel). Unrun: `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed
+**CLOSED 2026-09-15, blessed.** the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them. Twenty-four findings in `plans/areas/game-page.md`: eleven from the reading, thirteen from the re-read, plus the seven decisions `todo.md` handed it. What changed the app: the route is three components (`GamePageGate` → `GamePageLoader` → `GamePage`), and the page builds its own play surface — `App.tsx` passes the URL's two parts and the session and nothing else; one Back to club from every surface, the pause overlay and the device-block card included (`BackToClubButton` and `ctx.goToClub` deleted); `InfoActionsRow` is the info column's action row in every state, absorbing `ending/`'s two (moved on to `info-sheet/` at the close, Joel's call); `describe()` takes its asker; `.noShrinkRow` reserves no height, by Joel's row-by-row rule; `--game-chrome-height` is composed and the shell no longer overflows by 1px; Help closes by its ✕. The re-read's lesson, for the fifth area running: eight of its thirteen were the area's own findings next door or written by its own fixes — and forty-three lines in twenty-three files dated the work to a day that had not happened yet. Open in its `todo.md`: the concern split of `playArea.module.css`, which waits for the first game area (Joel). Unrun: `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed
 
 **Closed-area doc passes — render trees, DONE 2026-09-15.** The render-tree
 rule (§4 → "Harvest the folder's `doc.md`") arrived at `game-page` on

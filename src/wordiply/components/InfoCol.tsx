@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import {
   InfoActionsRow,
   type InfoActionsMessage,
@@ -36,7 +36,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others play on — for the action row's line; null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // The best possible word to DISPLAY, or null while it stays hidden.

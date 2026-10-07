@@ -45,7 +45,7 @@ Evidence, read and left:
   `actions/boundAction.fixture.ts`, `floating-panels/ConfirmationBlockingModal.tsx`.
 - `realtime/useRealtimeReconnect.ts` — "the deadlock note", which the overlay's
   `actBackToClub` note now names (F-3).
-- `docs/states.md` → paused, Suspended vs terminal, Leaving the game page;
+- `docs/states.md` → paused, Suspended vs ended, Leaving the game page;
   `docs/ui.md` → the no-reflow rule (the overlay is its canonical example),
   Confirm modals, Back to club, `<PauseButton>`; `docs/common.md` → the
   `paused` column and the End-game placements; `docs/games/connections.md` →
@@ -74,7 +74,7 @@ them through `askConfirmation` like every other question in the app (F-11; it
 was a component rendered from a page flag when the area opened).
 `useCommonGame` decides who counts (players minus conceders), unions presence
 with the manual pause, and forces the flag false once the game has ended so
-the terminal result can render.
+the ending can render.
 
 ## Findings
 
@@ -463,7 +463,7 @@ touched:
 - `docs/ui.md` → Consistency across games, the "Back-to-club +
   suspend-confirm" bullet: *"Non-terminal games show the suspend-confirm modal
   first; terminal is a single-click back"* — predates the area, but a solo
-  non-terminal game shows nothing, and the three shapes are written twice
+  game still playing shows nothing, and the three shapes are written twice
   elsewhere in the same doc.
 
 Options: (1) fix all three — the docstring lists chat, the scratchpad and
@@ -497,7 +497,7 @@ clock section and `timer/doc.md`.
 `docs/naming.md` → Clubs: *"See `common.md` for the full club model —
 invariants, lifecycle, three-state (active/paused/completed) semantics."*
 `common.md` has no such three-state. The club list's per-row flag is current /
-suspended / completed (`states.md` → Suspended vs terminal), "active" is the
+suspended / completed (`states.md` → Suspended vs ended), "active" is the
 word `states.md` bans for a state, and "paused" is the transient stop this
 folder implements, not a shelf. Options: (1) the sentence ends at "lifecycle",
 or says "the current / suspended / completed flag"; (2) leave. Recommend (1).
@@ -505,7 +505,7 @@ or says "the current / suspended / completed flag"; (2) leave. Recommend (1).
 **WORKED 2026-09-16, as option (1), with one deviation said at the time**: the
 option as offered pointed at `common.md` for the flag, and `common.md` only
 derives "suspended" in passing — the three-way flag is written in `states.md` →
-Suspended vs terminal. So the sentence points at `common.md` for invariants and
+Suspended vs ended. So the sentence points at `common.md` for invariants and
 lifecycle, and at `states.md` for the flag.
 
 ### F-pause-suspend-18 · `connections-eliminated-pointer` · `docs/games/connections.md` files a pause defect in a memory file

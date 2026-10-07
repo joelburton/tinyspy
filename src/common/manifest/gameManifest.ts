@@ -30,7 +30,7 @@ import type { Member } from '../members/member'
  * The smaller contracts a game also meets, and where each one lives:
  *
  *   - who someone is ......... `common/members/member.ts`
- *   - how an ending is said ... `common/terminal/terminalOutcomeVerb.ts`
+ *   - how an ending is said ... `common/ending/endingOutcomeVerb.ts`
  *   - what a setup form is ... `common/setup-form/setupForm.ts`
  *   - what a message is ...... `common/feedback/FeedbackMessage.tsx`
  *   - what a menu is ......... `common/menu/menuModel.ts`

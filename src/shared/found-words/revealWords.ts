@@ -3,7 +3,7 @@
 import type { FoundWordsWord } from './foundWords'
 
 /**
- * The terminal **missed-word reveal**, for the games that keep a list of what
+ * The ending **missed-word reveal**, for the games that keep a list of what
  * was found and can therefore say what was not.
  *
  * Every legal word ships to the client at game start (the FE validates and

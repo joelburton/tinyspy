@@ -2,7 +2,7 @@
 
 import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import {
   InfoActionsRow,
   type InfoActionsMessage,
@@ -34,7 +34,7 @@ export function InfoCol({
 }: {
   gd: GGameData
   // The ending's verdict once the game is over — the action row's line — else null.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   // The event log's `#N` opens a turn in it, and wears the ring while open.
   historyView: GHistoryView

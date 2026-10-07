@@ -13,7 +13,7 @@
  * leaves a loss reading as neutral.
  */
 import { describe, expect, it } from 'vitest'
-import type { EndOutcome, GameEndedReason, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEndedReason, GameEnding } from '@/common/ending/gameEnding'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
 /** A game's ending with the given outcome and reason; the rest does not

@@ -30,7 +30,7 @@ const setup = (over: Partial<Parameters<typeof useEventLogPlayerPicker>[0]> = {}
       players: two,
       myId: 'u1',
       mode: 'compete',
-      isTerminal: false,
+      isGameEnded: false,
       ...over,
     }),
   )
@@ -98,7 +98,7 @@ describe('useEventLogPlayerPicker — the default selection', () => {
     // landed. (The codenamesduet-history.e2e flake this was found by.)
     function Probe({ players }: { players: typeof two }) {
       const picker = useEventLogPlayerPicker<Row>({
-        players, myId: 'u1', mode: 'coop', isTerminal: false,
+        players, myId: 'u1', mode: 'coop', isGameEnded: false,
       })
       return <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',') || 'none'}</p>
     }
@@ -113,7 +113,7 @@ describe('useEventLogPlayerPicker — the default selection', () => {
   it('falls back when the picked player stops being offered', async () => {
     function Probe({ players }: { players: typeof two }) {
       const picker = useEventLogPlayerPicker<Row>({
-        players, myId: 'u1', mode: 'coop', isTerminal: false,
+        players, myId: 'u1', mode: 'coop', isGameEnded: false,
       })
       return (
         <>
@@ -138,32 +138,32 @@ describe('useEventLogPlayerPicker — the default selection', () => {
 })
 
 describe('useEventLogPlayerPicker — the honest empty line', () => {
-  function Probe({ isTerminal }: { isTerminal: boolean }) {
+  function Probe({ isGameEnded }: { isGameEnded: boolean }) {
     const picker = useEventLogPlayerPicker<Row>({
       players: two,
       myId: 'u1',
       mode: 'compete',
-      isTerminal,
+      isGameEnded,
       emptyLabel: 'No guesses yet.',
     })
     return (<>{picker.dropdown}<p data-testid="empty">{picker.emptyText}</p></>)
   }
 
-  it("says an opponent's empty log is HIDDEN mid-game, and empty at terminal", async () => {
-    const { rerender } = render(<Probe isTerminal={false} />)
+  it("says an opponent's empty log is HIDDEN mid-game, and empty once the game ends", async () => {
+    const { rerender } = render(<Probe isGameEnded={false} />)
     // My own log: an honest "none yet".
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
 
     await pickFilter('moth')
     expect(screen.getByTestId('empty')).toHaveTextContent('Hidden until game ends.')
 
-    rerender(<Probe isTerminal={true} />)
+    rerender(<Probe isGameEnded={true} />)
     await pickFilter('moth')
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
   })
 
   it('never calls the All view "hidden" — it always carries my own rows', async () => {
-    render(<Probe isTerminal={false} />)
+    render(<Probe isGameEnded={false} />)
     await pickFilter('All')
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
   })

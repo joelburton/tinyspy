@@ -1,6 +1,6 @@
 // cs-blessed-members
 
-import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding.ts'
+import type { EndOutcome, PlayerEndedReason } from '../ending/gameEnding.ts'
 
 /**
  * Who someone IS — the identity shape every render site in the app shares, and
@@ -16,7 +16,7 @@ import type { EndOutcome, PlayerEndedReason } from '../terminal/gameEnding.ts'
  * app than any other name here, so a module with no runtime half means all of
  * those imports erase at compile time and cannot participate in an import
  * cycle, whatever else moves later. The one VALUE that reads these types was
- * put in `common/terminal/terminalOutcomeVerb.ts` precisely so it stays out of
+ * put in `common/ending/endingOutcomeVerb.ts` precisely so it stays out of
  * this file. Keep it that way: no functions, no constants.
  */
 
@@ -58,7 +58,7 @@ export type Player = Member
  *
  * Reach for `Member` where a caller holds the id and might need it, and for
  * `Actor` where the value is only ever shown: `DotActor`'s prop, the person a
- * feedback message is about, the player a terminal verdict names, the
+ * feedback message is about, the player an ending verdict names, the
  * teammate a waiting line names.
  */
 export type Actor = Pick<Member, 'username' | 'color'>
@@ -121,7 +121,7 @@ export type PlayerStanding = {
   // Walked away from a compete game; never true in coop.
   isConceded: boolean
   // Not playing any more, for whatever reason; the game may go on.
-  isLocallyTerminal: boolean
+  isPlayerEnded: boolean
   // The game still wants moves from this player.
   isStillPlaying: boolean
   // Still playing, and the move is theirs.

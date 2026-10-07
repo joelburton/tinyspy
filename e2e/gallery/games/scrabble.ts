@@ -171,7 +171,7 @@ export const scrabbleGallery: GameGallery = {
     if (cell.phase === 'lost') await timeOut(club, 'scrabble', id)
     if (cell.phase === 'ended') await stopGame(club,'scrabble', id)
 
-    // `lost` is the same terminal from a losing chair — ask the game which that
+    // `lost` is the same ending from a losing chair — ask the game which that
     // is rather than assuming the first seat.
     if (cell.phase === 'lost' && cell.mode === 'compete') {
       return { gametype, id, viewer: seatWithVerdict(club, id, false) }

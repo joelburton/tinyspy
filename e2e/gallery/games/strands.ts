@@ -56,7 +56,7 @@ export const strandsGallery: GameGallery = {
     if (cell.phase === 'mid') await trace(viewer, id, paths.slice(0, 2))
     if (cell.phase === 'won') {
       await trace(viewer, id, paths)
-      // Compete: a solver only goes LOCALLY terminal — the winner (fewest
+      // Compete: a solver only goes PLAYER-ENDED — the winner (fewest
       // hints, earliest solve breaking the tie) can't be crowned until nobody
       // is still racing. The rival finishing too, also on zero hints, ends the
       // race with the tiebreak going to the viewer, who solved first.

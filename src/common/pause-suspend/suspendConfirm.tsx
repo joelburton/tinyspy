@@ -14,7 +14,7 @@ import type { ConfirmOptions } from '../floating-panels/confirmations'
  * resumable — but it drags every viewing peer back to the club page, and that
  * surprise is what earns a confirm. A solo game has nobody to surprise and a
  * finished one has nothing to shelve, so neither is asked; docs/states.md →
- * "Leaving the game page — terminal vs non-terminal" holds that split.
+ * "Leaving the game page — ended vs not ended" holds that split.
  */
 export function suspendConfirm(title: string): ConfirmOptions {
   return {

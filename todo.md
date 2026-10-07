@@ -36,7 +36,7 @@ decision against, so a review doesn't propose it again
 - **An actor is a player, and an absent one is null.** The history views
   (`GHistoryView.actor` in every game that has one) return `undefined` for
   "no one to name", and `HistoryBanner`, `ActorMention`, `FeedbackMessage`'s
-  peer and chat builders and the terminal message each take an `Actor`
+  peer and chat builders and the ending message each take an `Actor`
   (`Pick<Member, 'username' | 'color'>`), so a view that holds the whole
   player narrows it to a name and a color, and a reader cannot tell a missing
   actor from an unset prop. Two changes, once every game is on the page blobs

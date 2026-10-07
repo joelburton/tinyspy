@@ -378,7 +378,7 @@ recorded against turned out to be wrong.**
 **The finding's "where it shows" was wrong.** The history banner is `inset: 0`
 with an opaque fill over the whole slot, so nothing of the row is visible while
 viewing a past turn. And every other hard-off state across the five games puts a
-message on the slot — the waiting note, the terminal verdict, "Chain is full" —
+message on the slot — the waiting note, the ending verdict, "Chain is full" —
 and a message makes `WordEntryArea` return the pill INSTEAD of the row. So the
 buttonless row is a state the code can reach and a player cannot, with one
 possible exception: the verdict goes up in a `useEffect`, which runs after
@@ -401,13 +401,13 @@ open to watch it change."*
 `hidden` for the one thing it now means: `hasHistory: false`, a key this game
 hasn't got. So a finished word game still lists `A–Z`, `⌫`, `↵` and the arrows
 in Help; the buttons gray instead of vanishing, which closes the one-frame risk
-without reserving anything; and the keys are swallowed at terminal rather than
+without reserving anything; and the keys are swallowed after the end rather than
 falling through to the browser. Two tests moved, both to `disabled`:
 `useArrowHistory.test.ts`'s gone-case and wordiply's "a finished game takes no
 letters", which now also asserts the key stays listed.
 
 **Recorded in `common/actions/todo.md`, not decided here:** the ruling's reach
-past the entry keys (every play-only action still leaves Help at terminal), and
+past the entry keys (every play-only action still leaves Help after the end), and
 that the never-widen constraint asserted at `useBoundAction.ts:233` is an
 invention of the implementing session rather than Joel's — he proposed the asker
 parameter, not the rule on it.

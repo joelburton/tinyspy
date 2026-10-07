@@ -42,7 +42,7 @@ type Props = {
  * it.
  *
  * Shuffling is always local and harmless (no server write, no broadcast), so an
- * action that offers it usually stays `active` even at terminal — the post-game
+ * action that offers it usually stays `active` even after the end — the post-game
  * fidget is deliberate.
  *
  * The glyph rotates on hover; the rotation lives on the inner span so the pill

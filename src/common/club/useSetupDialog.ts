@@ -56,7 +56,7 @@ function dropNewGameLink() {
  * `/c/<handle>?new=<gametype>` opens it on that gametype without a press. The
  * second exists for games whose board IS their identity — crosswords cannot
  * offer "same again", since replaying the setup re-serves the puzzle you just
- * solved — so their terminal row sends the player here to pick the NEXT one.
+ * solved — so their ending row sends the player here to pick the NEXT one.
  *
  * **A `?new=` link it can't honor opens nothing and says why**, in a toast that
  * stays until dismissed: the game doesn't exist, or this club doesn't play it.

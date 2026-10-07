@@ -43,7 +43,7 @@
  *
  * Since we don't care about cheating (trust model), the whole legal list
  * AND the longest word ship to the FE — the board carries them and
- * create_game stores them readable. The "reveal at terminal" is an FE
+ * create_game stores them readable. The "reveal at the end" is an FE
  * display choice, not a schema gate.
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The
@@ -97,7 +97,7 @@ type Setup = {
 type Board = {
   base: string
   max_word_len: number
-  /** Up to 3 words at the max length — revealed at terminal. */
+  /** Up to 3 words at the max length — revealed at the end. */
   longest_words: string[]
   /** The full clean legal matching-word list, shipped to the FE. */
   legal_words: string[]

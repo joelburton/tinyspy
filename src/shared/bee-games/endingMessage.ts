@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/terminal/gameEnding'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/ending/gameEnding'
+import { buildGameEndedMessageNeutral, type EndingMessage } from '@/common/ending/endingMessage'
 import type { BeeFacts, BeePlayer, BeePuzzle } from './beeGameData'
 
 /**
@@ -55,7 +55,7 @@ export function buildBeeGameEndingMessage({
   facts: BeeFacts
   // The required set's points, the score's denominator.
   puzzle: Pick<BeePuzzle, 'reqdWordsScore'>
-}): TerminalMessage {
+}): EndingMessage {
   const rankName = facts.rankName
   const points = `${facts.foundWordsScore}/${puzzle.reqdWordsScore} points`
   // The rank NAMED in a win is the one they set out for; the score can
@@ -113,7 +113,7 @@ export function buildBeePlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`gd.me.outcome`), written when I ended.
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   if (reason === 'conceded') {
     return { pillText: 'Conceded — race continues', infoColText: 'You conceded', outcome }
   }

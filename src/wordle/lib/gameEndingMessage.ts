@@ -1,10 +1,10 @@
 // cs-unmet
 
-import type { EndOutcome, GameEnding } from '@/common/terminal/gameEnding'
+import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
   buildGameEndedMessageNeutral,
-  type TerminalMessage,
-} from '@/common/terminal/terminalMessage'
+  type EndingMessage,
+} from '@/common/ending/endingMessage'
 
 /**
  * What wordle says once the game is over, for its ending and mode.
@@ -48,9 +48,9 @@ export function buildGameEndingMessage({
   // Compete: the earlier solve, not the guess count, placed me against the
   // winner (`gd.me.tieBrokenByClock`) — I won on it, or lost on it.
   isMyTieBrokenByClock: boolean
-}): TerminalMessage {
+}): EndingMessage {
   /** The two texts, for the game's ending and whether it went my way. */
-  function makeGameEndingWords(): Pick<TerminalMessage, 'pillText' | 'infoColText'> {
+  function makeGameEndingWords(): Pick<EndingMessage, 'pillText' | 'infoColText'> {
     // A Stop is the uniform neutral ending shared with the other games — the
     // shared message owns its words.
     if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(mode)

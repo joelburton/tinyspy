@@ -18,7 +18,7 @@ import shared from '@/common/game-page/playArea.module.css'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { makeGameData } from '../hooks/useGame'
 import { ZTest_clue, ZTest_guess, ZTest_makeGameDataRaw, type ZTest_GameDataFacts } from '../lib/gameData.fixture'
-import type { EndOutcome } from '@/common/terminal/gameEnding'
+import type { EndOutcome } from '@/common/ending/gameEnding'
 import type { GEventRaw, GKey, GPlayer, GTile } from '../types'
 
 const WORDS = Array.from({ length: 25 }, (_, i) => (i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`))

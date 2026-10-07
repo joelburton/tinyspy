@@ -38,7 +38,7 @@
  * by height too, like waffle's square): viewport − chrome − the three things
  * standing between the board and the bottom of the column, each read from the
  * rule that sets it rather than guessed at — the single below-board slot (the
- * input row / feedback pill / terminal status), the board column's gap above
+ * input row / feedback pill / ending status), the board column's gap above
  * it, and `.belowBoard`'s own margin-top, which drops the input row further off
  * the board. `--swap-box-min-height` carries its scaffold default here for the
  * same reason the scaffold gives it one: a game may raise it. */
@@ -82,7 +82,7 @@
 /* The below-board REGION. Board-matched width + the gap off the board; the
  * fixed-height reservation lives on the `shared.moveAreaOrLocalFeedback` swap
  * box inside it, which holds exactly ONE of the input row, the own-action
- * feedback pill, or the terminal status. Width pinned to the board width so a
+ * feedback pill, or the ending status. Width pinned to the board width so a
  * long typed word can't widen the column and shift the centered board. Column
  * so that box STRETCHES to the full board width (so the input row spans the
  * board and its WordEntryInput flex-fills between the buttons). `margin-top` drops the

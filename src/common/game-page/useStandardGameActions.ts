@@ -31,7 +31,7 @@ type GameRpcClient = {
 }
 
 /** `concede` has ONE ok: you dropped out. Whether that also ended the game is
- *  not in the answer — the terminal reaches every client by subscription, this
+ *  not in the answer — the ending reaches every client by subscription, this
  *  one included, so there is nothing here for the conceder to act on. */
 type ConcedeResult = { result: 'conceded' }
 
@@ -41,13 +41,13 @@ type ReplayResult = { result: 'replayed' }
 type StandardGameActionsOptions = {
   db: GameRpcClient
   gameId: string
-  isTerminal: boolean
+  isGameEnded: boolean
   // Which exit this game's mode offers: coop stops, a race concedes.
   mode: 'coop' | 'compete'
   // I'm out of the race — conceded, lost (out of budget, eliminated), or
   // finished while the others play on. Never true in coop. Off the page's
   // shell that is `!cg.me.stillPlaying && !cg.ended`.
-  isLocallyTerminal: boolean
+  isPlayerEnded: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.
   localFeedbackSlot: FeedbackSlot
@@ -86,9 +86,9 @@ type StandardGameActionsOptions = {
 export function useStandardGameActions({
   db,
   gameId,
-  isTerminal,
+  isGameEnded,
   mode,
-  isLocallyTerminal,
+  isPlayerEnded,
   localFeedbackSlot,
 }: StandardGameActionsOptions): StandardGameActions {
   // Stop the whole table. The body of coop's Stop, and of a race's Concede's
@@ -97,11 +97,11 @@ export function useStandardGameActions({
   const stopGameForAll = async () => {
     const res = await runRpc<GameStopResult>(db.rpc('stop_game', { p_game_id: gameId }))
     if (res.type === 'not-ok') {
-      // The one race is `isTerminal` losing to the subscription that feeds it:
+      // The one race is `isGameEnded` losing to the subscription that feeds it:
       // somebody else stopped the game while the question was open.
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
-      // Nothing to do: the terminal arrives by subscription.
+      // Nothing to do: the ending arrives by subscription.
     } else {
       reportUnhandled('stop_game', res)
     }
@@ -118,13 +118,13 @@ export function useStandardGameActions({
   //
   // Irreversible, so the registry gives it the confirm and the shared run asks.
   const actStopGame = useBindAction('act-stop-game', {
-    terminal: isTerminal,
+    ended: isGameEnded,
     describe: (): ActionState => {
-      if (mode === 'compete' && !isLocallyTerminal) return 'hidden'
-      // HIDDEN at terminal, not disabled: there is no ending an ended game, and
+      if (mode === 'compete' && !isPlayerEnded) return 'hidden'
+      // HIDDEN once ended, not disabled: there is no ending an ended game, and
       // `disabled` is for what is possible here and not right now. A conceder
       // still gets it while the others race — conceding is not stopping.
-      return isTerminal ? 'hidden' : 'active'
+      return isGameEnded ? 'hidden' : 'active'
     },
     run: stopGameForAll,
   })
@@ -134,7 +134,7 @@ export function useStandardGameActions({
   // conceding and stopping the table are told apart: `runAlternative` is the
   // body for its second answer.
   const actConcede = useBindAction('act-concede', {
-    terminal: isTerminal,
+    ended: isGameEnded,
     describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
       // Hidden once the game is over — there is no race left to drop out of —
@@ -142,7 +142,7 @@ export function useStandardGameActions({
       // nothing to concede, and a finisher would only throw away a win they may
       // hold, without ending anything sooner for the others. Stop has come out
       // as its own control (above).
-      if (isTerminal || isLocallyTerminal) return 'hidden'
+      if (isGameEnded || isPlayerEnded) return 'hidden'
       // Named for both answers its question offers.
       return { state: 'active', label: 'Concede / Stop game' }
     },
@@ -156,7 +156,7 @@ export function useStandardGameActions({
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
       } else if (res.type === 'ok' && res.data?.result === 'conceded') {
         // Nothing to do here. The conceded flag, the roster the others see, and
-        // a terminal if this was the last racer all arrive by subscription.
+        // the ending if this was the last racer all arrive by subscription.
       } else {
         reportUnhandled('concede', res)
       }
@@ -166,17 +166,17 @@ export function useStandardGameActions({
   // Restart — restart THIS board for everyone. The reset reaches every client
   // through the game's `common.games` row, which the RPC's status builder
   // writes (see `common._nudge_game_page`). A replayed board is a
-  // perfectly legal thing to replay again, so it stays offered at terminal;
+  // perfectly legal thing to replay again, so it stays offered after the end;
   // the shared run's single flight is what stops a second wipe landing on a
   // board someone has already started guessing on.
   const actRestart = useBindAction('act-restart', {
-    terminal: isTerminal,
+    ended: isGameEnded,
     // Reachable all game from the menu and its key — RESTART_CONFIRM is written
     // for exactly that ("clears everyone's progress", "Keep playing"). It gets
     // a BUTTON only at the end: mid-game the info column's few slots belong to
     // playing the game, and restarting is a thing you go looking for.
     describe: (asker): ActionState =>
-      asker === 'button' && !isTerminal ? 'hidden' : 'active',
+      asker === 'button' && !isGameEnded ? 'hidden' : 'active',
     run: async () => {
       const res = await runRpc<ReplayResult>(db.rpc('replay_board', { p_game_id: gameId }))
       if (res.type === 'not-ok') {

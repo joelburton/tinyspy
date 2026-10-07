@@ -403,7 +403,7 @@ kebab — there is no identifier to preserve.
 It was NOT written down. docs/ui.md's token grammar had the neighboring rule
 ("hyphens separate different questions; camelCase joins words that answer
 one") and all its camelCase examples are multi-word qualities — `inFlight`,
-`gameOver`, `terminalFrame` — never a component identifier. Added there, beside
+`gameOver`, `endingFrame` — never a component identifier. Added there, beside
 that bullet, as its own item saying it is a different rule and why.
 
 `--filter-select-dot` → `--filterSelect-dot`, its three uses plus a mention in

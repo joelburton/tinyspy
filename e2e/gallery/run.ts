@@ -98,7 +98,7 @@ const ALL: GameGallery[] = [
  * popup, suppressed once by a `seen` set in localStorage. Every gallery context
  * is a brand-new browser profile, so that set starts empty — and by the time
  * the run photographs a cell from a NON-creator's chair (the losing seat of a
- * compete terminal, say), every game the run has ever made stacks up as Join
+ * compete ending, say), every game the run has ever made stacks up as Join
  * toasts over the info column.
  *
  * Scoped to the MEMBER, not to the club: each game gets its own club, but the
@@ -130,7 +130,7 @@ async function suppressInvites(ctx: BrowserContext, userId: string): Promise<voi
 }
 
 /**
- * A terminal cell must have actually reached a terminal.
+ * An ended cell must have actually reached an ending.
  *
  * wordiply's compete `won` tile was a mid-race board for weeks: compete gives
  * each player their OWN five guesses, so the builder spending one player's five
@@ -146,7 +146,7 @@ async function suppressInvites(ctx: BrowserContext, userId: string): Promise<voi
  */
 function assertPhaseReached(gameId: string, phase: string): void {
   if (phase !== 'won' && phase !== 'lost' && phase !== 'ended') return
-  const terminal = execFileSync(
+  const ended = execFileSync(
     'psql',
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
@@ -157,9 +157,9 @@ function assertPhaseReached(gameId: string, phase: string): void {
     ],
     { encoding: 'utf8' },
   ).trim()
-  if (terminal !== 't') {
+  if (ended !== 't') {
     throw new Error(
-      `cell claims '${phase}' but the game is still playing — the builder did not reach a terminal`,
+      `cell claims '${phase}' but the game is still playing — the builder did not reach an ending`,
     )
   }
 }
@@ -205,7 +205,7 @@ async function settle(page: Page): Promise<void> {
  * all connected PRESENCE-PAUSES (docs/common.md): the board is replaced by a
  * paused overlay, so a single-context screenshot of a two-player game captures
  * nothing but the pause. So each member gets a context, they all land on the
- * game, and only the viewer's page is shot. Terminal cells don't pause, but
+ * game, and only the viewer's page is shot. Ended cells don't pause, but
  * joining everyone anyway keeps one code path.
  *
  * This is the "multiple test users in separate tabs" chore, done by the script.
@@ -282,7 +282,7 @@ async function print(
 ): Promise<string> {
   const contexts: BrowserContext[] = []
   try {
-    // Same presence rule as a screenshot: a non-terminal game whose players
+    // Same presence rule as a screenshot: a still-playing game whose players
     // aren't all connected is paused, and a paused game has no menu to print
     // from. Cheap to just join everyone.
     let viewerPage
@@ -481,7 +481,7 @@ async function main() {
   // DECLARED cells with no file on disk — a builder that failed (its ✗ scrolled
   // past mid-run) or was added and never run. This is the category the summary
   // used to omit, which let FIVE broken builders (connections' losses, waffle's
-  // compete terminals, strands' compete win) hide behind a green-looking sheet
+  // compete endings, strands' compete win) hide behind a green-looking sheet
   // for months while the docs claimed every hole was an unreachable state. A
   // declared cell asserts "this state exists and matters"; a hole under it is
   // always work, never information.

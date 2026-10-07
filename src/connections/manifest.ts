@@ -8,7 +8,7 @@ import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/summ
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import type { GameEndedReason } from '@/common/terminal/gameEnding'
+import type { GameEndedReason } from '@/common/ending/gameEnding'
 import { DEFAULT_CONNECTIONS_SETUP } from './lib/setup'
 import { CATEGORY_COUNT, MISTAKE_BUDGET } from './lib/board'
 import type { GSetup, GSummaryData } from './types'

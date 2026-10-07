@@ -10,13 +10,13 @@ import type { Cell, GameGallery } from '../types'
  * The fixture's deal differs from its solution by ONE transposition (the
  * first two cells), with `par_swaps: 1` — so a win is a single `submit_swap` of
  * positions 0 and 1, and any OTHER swap is a wrong move that leaves the board
- * mid-game. That makes both terminal and mid-game states one RPC each.
+ * mid-game. That makes both ended and mid-game states one RPC each.
  *
  * COMPETE ENDS ONLY WHEN NOBODY IS STILL RACING (`_maybe_finish_compete`:
- * not conceded, not solved, swaps left). The viewer solving is a LOCAL
- * terminal — the rival must run out of swaps too before the game ends and a
+ * not conceded, not solved, swaps left). The viewer solving is only
+ * PLAYER-ENDED — the rival must run out of swaps too before the game ends and a
  * winner (fewest swaps among the solved) is crowned. The same rule that bit
- * wordle's builder; both compete terminals below spend the rival's budget.
+ * wordle's builder; both compete endings below spend the rival's budget.
  */
 async function swap(member: E2EMember, gameId: string, a: number, b: number): Promise<void> {
   const res = await asUser(member.session.access_token)
@@ -56,7 +56,7 @@ export const waffleGallery: GameGallery = {
     if (cell.phase === 'mid') await swap(viewer, id, 2, 3)
     if (cell.phase === 'won') {
       await swap(viewer, id, 0, 1)
-      // Compete: the viewer's solve is only locally terminal (see the
+      // Compete: the viewer's solve is only player-ended (see the
       // docstring) — the rival spending their budget is what ends the race,
       // and fewest-swaps then crowns the viewer.
       if (cell.mode === 'compete') await spendAllSwaps(rival)

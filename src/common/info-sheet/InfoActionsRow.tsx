@@ -39,17 +39,17 @@ type Props = {
  * optional line to their left.
  *
  * Every state of the action slot is this one row — playing (the buttons
- * alone), locally terminal ("You conceded" while the others race on), and over
+ * alone), player-ended ("You conceded" while the others race on), and over
  * ("You won!" beside reveal / restart / new game / leave). They differ only in
  * whether there is a line and what it says, which is why they are not three
  * components: a game writes one element and varies the `message`.
  *
  * **The message is passed, never derived.** What a finished game says is its
- * own builder's to know — `terminal/terminalMessage.ts` puts the boundary
+ * own builder's to know — `ending/endingMessage.ts` puts the boundary
  * exactly there: the one outcome common code can write is "the friends agreed
  * to stop", *"because nothing about that outcome is game-specific"*. "Out of
  * guesses" and "Solved — waiting" need the game's own rules, so they arrive as
- * words. A terminal caller has a `TerminalMessage` and hands over two of its
+ * words. An ended caller has an `EndingMessage` and hands over two of its
  * fields:
  *
  *     <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
@@ -61,10 +61,10 @@ type Props = {
 export function InfoActionsRow({ message, children }: Props) {
   return (
     // The row's own classes are the column's (`infoCol.module.css`), because a
-    // game can compose them directly on its own markup; `.terminalActions` stops
+    // game can compose them directly on its own markup; `.endingActions` stops
     // the row wrapping, which is only wanted when there is a line for the
     // buttons to stay beside.
-    <div className={cls(shared.infoActions, message && shared.terminalActions)}>
+    <div className={cls(shared.infoActions, message && shared.endingActions)}>
       {message && (
         <span className={cls(styles.outcome, styles[`outcome_${message.outcome}`])}>
           {message.text}

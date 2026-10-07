@@ -240,7 +240,7 @@ decoration.
 every render. `GamePage` needs the TRANSITION and builds it with a ref and a
 twelve-line comment about why a level re-ends a replayed game. The games that
 read it (`waffle`, `wordle`, `connections`, `psychicnum`, `stackdown`) use
-it as a fact about a terminal game ("did the clock end this?"). Both are served
+it as a fact about an ended game ("did the clock end this?"). Both are served
 by the level as it is; recording this so the question is asked once: whether
 the hook should hand back the edge (`justExpired`, true for one render) so the
 ref and the comment leave `GamePage`. Options: (1) leave it — ~~`GamePage`'s
@@ -276,7 +276,7 @@ now leads with.
 
 And the level is what the five games want: `waffle`, `wordle`, `connections`,
 `psychicnum` and `stackdown` read `timerExpired` into `buildOver` as a fact
-about an already-terminal game, which survives a reload where an edge does not.
+about an already-ended game, which survives a reload where an edge does not.
 
 ## The closing re-read (2026-09-16)
 

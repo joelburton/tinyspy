@@ -21,7 +21,7 @@ The filter is also the one thing standing between a finished game and its
 answer, and it is worth being exact about how little machinery that involves.
 These games have no reveal feature — no button, no gate, nothing withheld. The
 missed words fold into the rows the moment the game ends, and from then on the
-only question is which way the WHO select is pointing. At terminal it points at
+only question is which way the WHO select is pointing. At the end it points at
 **Found**, so a finished game opens on what you got rather than on what you
 missed; All or Missed is one pick away. That default is the whole of the beat
 before the answer.
@@ -56,7 +56,7 @@ calls two hooks and three shared pieces:
 
 ```
 spellingbee/InfoCol ┐
-   wordwheel/InfoCol ├─▶ <WordList rows players myId isCompete isTerminal>
+   wordwheel/InfoCol ├─▶ <WordList rows players myId isCompete isGameEnded>
       boggle/InfoCol ┘         │
                                ├─▶ useWordListFilter  → the two selects + `filter()` + `emptyText`
                                │        └─▶ <FilterSelect> ×2      (common/lists)
@@ -66,7 +66,7 @@ spellingbee/InfoCol ┐
 ```
 
 The rows themselves come from outside: all three games build them with
-`shared/found-words/wordListRows.ts`, which composes the terminal reveal and the
+`shared/found-words/wordListRows.ts`, which composes the ending reveal and the
 found/unfound merge in one call.
 
 **Who calls what, and what each piece owns.**
@@ -80,14 +80,14 @@ found/unfound merge in one call.
 
 **The heading tallies the FILTERED list**, which is what turns the two selects
 from a search tool into a reading tool: flip WHO to a player to see their coop
-contribution, or to Missed at terminal to see what the reveal cost. Score appears
+contribution, or to Missed at the end to see what the reveal cost. Score appears
 only for games whose rows carry points, and is gated on all rows rather than the
 shown ones, so a filter that matches nothing reads `Score: 0` rather than losing
 the segment and reflowing the heading.
 
 **Identity is the dot, never the text.** A found word leads with a filled disc in
 its finder's color and the word itself stays body-black; an unfound one (the
-post-terminal reveal) leads with a hollow gray ring and a gray word. A solid
+ending reveal) leads with a hollow gray ring and a gray word. A solid
 disc carries a color far better than thin colored text, so a member's color
 only has to survive as a disc and never has to stay legible as a word. Three flags
 compose on top — pangram bolds, bonus adds a trailing bullet, and a recently

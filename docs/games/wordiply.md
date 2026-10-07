@@ -106,7 +106,7 @@ count** — are shown **only at the end**. Mid-game the felt state is "I found a
 The **longest possible word** goes one step further: even at the end it waits
 for the **Reveal best solution** button (`act-reveal`, one action carrying
 both faces — the action row and the menu twin place the SAME one — see [ui.md →
-Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). The
+Endings](../ui.md#endings--the-moment-vs-the-record)). The
 score says how well you did *without naming the answer*, so a table that wants
 to keep guessing at `_ _ _ _ _ _ _` can. The reveal is local and reversible —
 mine alone, and the same button takes it back — so one impatient player can't
@@ -716,7 +716,7 @@ base `ar`, longest possible 7):
 - `winner_test` — compete winner by length score; **tiebreak letter count**,
   then the **earlier last word**, timed or not; first place `won`, second
   `near`; timeout resolves the formula.
-- `terminal_test` — the Stop in both modes (`stopped`, neutral); coop timeout
+- `ending_test` — the Stop in both modes (`stopped`, neutral); coop timeout
   (the one coop loss); `concede`, including the last racer's concede ending the
   race (`conceded`) rather than hanging it, and a fifth word as the last act
   (`resource_exhausted` / `complete`).
@@ -729,7 +729,7 @@ base `ar`, longest possible 7):
   the failure mode the `valid` column creates, and it fails silently without
   this.
 - `replay_test` — the dedicated replay suite (the shape every other replay game
-  has). Deliberately overlaps `terminal_test` §3's coop pass and adds what it
+  has). Deliberately overlaps `ending_test` §3's coop pass and adds what it
   doesn't reach: the **compete** branch (every player's ending, ranking and
   outcome cleared), `restart_count`, the shared clock zeroing, that the
   end-only scores are null again in the blobs, and the non-player rejection

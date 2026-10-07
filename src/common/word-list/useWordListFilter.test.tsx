@@ -29,7 +29,7 @@ const playing: WordListRow[] = [
   found('bead', 'u1'),
   found('blag', 'u2', { isBonus: true }),
 ]
-/** Post-terminal rows: the reveal has folded in, both kinds. */
+/** Rows after the end: the reveal has folded in, both kinds. */
 const ended: WordListRow[] = [...playing, missed('bald'), missed('zho', true)]
 
 const setup = (over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) =>
@@ -39,7 +39,7 @@ const setup = (over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) =>
       players: two,
       myId: 'u1',
       isCompete: false,
-      isTerminal: true,
+      isGameEnded: true,
       ...over,
     }),
   )
@@ -55,14 +55,14 @@ describe('useWordListFilter — the two axes', () => {
     expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
-  it('defaults to Legal · Found at terminal — the answer is one select away', () => {
+  it('defaults to Legal · Found at the end — the answer is one select away', () => {
     // The missed rows are already there; Found is what the list opens on.
     const { result } = setup()
     expect(result.current.filter(ended).map((r) => r.word)).toEqual(['bead', 'blag'])
   })
 
   it('defaults to Legal · All mid-game, where there is nothing to hold back', () => {
-    const { result } = setup({ rows: playing, isTerminal: false })
+    const { result } = setup({ rows: playing, isGameEnded: false })
     expect(result.current.filter(playing).map((r) => r.word)).toEqual(['bead', 'blag'])
   })
 
@@ -91,28 +91,28 @@ describe('useWordListFilter — what each axis gates on', () => {
 
   it('keeps the full KIND axis mid-game, in BOTH modes', async () => {
     for (const isCompete of [false, true]) {
-      const { result } = setup({ rows: playing, isTerminal: false, isCompete })
+      const { result } = setup({ rows: playing, isGameEnded: false, isCompete })
       const { unmount } = render(<>{result.current.picker}</>)
       expect(await filterOptions(KIND)).toEqual(['Legal', 'Required', 'Bonus'])
       unmount()
     }
   })
 
-  it('compete hides the per-player options until terminal — RLS hides peers', async () => {
-    const { result } = setup({ rows: playing, isCompete: true, isTerminal: false })
+  it('compete hides the per-player options until the end — RLS hides peers', async () => {
+    const { result } = setup({ rows: playing, isCompete: true, isGameEnded: false })
     render(<>{result.current.picker}</>)
     // Offering moth mid-game would be a menu entry for a guaranteed-empty list.
     expect(await filterOptions(WHO)).toEqual(['All'])
   })
 
   it('compete offers everyone once the game ends', async () => {
-    const { result } = setup({ isCompete: true, isTerminal: true })
+    const { result } = setup({ isCompete: true, isGameEnded: true })
     render(<>{result.current.picker}</>)
     expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
   it('coop offers the per-player options from the start', async () => {
-    const { result } = setup({ rows: playing, isCompete: false, isTerminal: false })
+    const { result } = setup({ rows: playing, isCompete: false, isGameEnded: false })
     render(<>{result.current.picker}</>)
     expect(await filterOptions(WHO)).toEqual(['All', 'me', 'moth'])
   })
@@ -127,7 +127,7 @@ describe('useWordListFilter — what each axis gates on', () => {
 describe('useWordListFilter — filtering', () => {
   function Probe(over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal: true, ...over,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isGameEnded: true, ...over,
     })
     const rows = (over.rows ?? ended) as WordListRow[]
     return (
@@ -141,7 +141,7 @@ describe('useWordListFilter — filtering', () => {
 
   it('KIND narrows to one shipped list, across found AND missed', async () => {
     render(<Probe />)
-    await pickFilter('All', WHO) // past the terminal default, which is Found
+    await pickFilter('All', WHO) // past the ending default, which is Found
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,blag,bald,zho')
   })
 
@@ -176,11 +176,11 @@ describe('useWordListFilter — filtering', () => {
   })
 
   it('a player filter matches EVERY finder, not just the attributed one', async () => {
-    // Compete post-terminal: 'bead' is attributed to u2 (found first) but u1
+    // Compete after the end: 'bead' is attributed to u2 (found first) but u1
     // found it too. Filtering to u1 must still show it — the dot's color is an
     // attribution choice, not a claim about who else got there.
     const shared: WordListRow[] = [found('bead', 'u2', { finderIds: ['u2', 'u1'] })]
-    render(<Probe rows={shared} isCompete isTerminal />)
+    render(<Probe rows={shared} isCompete isGameEnded />)
     await pickFilter('me', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead')
   })
@@ -204,9 +204,9 @@ describe('useWordListFilter — filtering', () => {
  * "this game has no words" when really your filter matched none of them.
  */
 describe('useWordListFilter — the empty line names the filter', () => {
-  function Probe({ isTerminal = true }: { isTerminal?: boolean } = {}) {
+  function Probe({ isGameEnded = true }: { isGameEnded?: boolean } = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, myId: 'u1', isCompete: false, isTerminal,
+      rows: ended, players: two, myId: 'u1', isCompete: false, isGameEnded,
     })
     return (<>{f.picker}<p data-testid="empty">{f.emptyText}</p></>)
   }
@@ -215,12 +215,12 @@ describe('useWordListFilter — the empty line names the filter', () => {
     // EXACT, not a substring: every one of these lines ends in a period, and
     // the plain one drifted without one precisely because a substring match
     // passed either way.
-    render(<Probe isTerminal={false} />)
+    render(<Probe isGameEnded={false} />)
     expect(screen.getByTestId('empty').textContent).toBe('No words yet.')
   })
 
-  it('does not say "yet" at terminal, where nothing more is coming', () => {
-    // Newly reachable: Found is the terminal default, so a player who found
+  it('does not say "yet" at the end, where nothing more is coming', () => {
+    // Newly reachable: Found is the ending default, so a player who found
     // nothing lands here — and "yet" would be a lie on a finished game.
     render(<Probe />)
     expect(screen.getByTestId('empty').textContent).toBe('Nothing found.')
@@ -249,7 +249,7 @@ describe('useWordListFilter — the empty line names the filter', () => {
   it('keeps "yet" mid-game once narrowed', async () => {
     // The tense follows the game, not the filter: a narrowed line still says
     // "yet" while more words can come.
-    render(<Probe isTerminal={false} />)
+    render(<Probe isGameEnded={false} />)
     await pickFilter('moth', WHO)
     expect(screen.getByTestId('empty').textContent).toBe('Nothing from moth yet.')
   })

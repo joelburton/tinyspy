@@ -16,7 +16,7 @@
  * Addressed by the row's own id, resolved against the list being folded: the
  * `#N` the log prints counts the rows it is SHOWING, which a filter moves.
  * Which rows are folded is `useHistoryView`'s — the rows of whoever wrote the
- * row opened, so a compete terminal can replay an opponent's board.
+ * row opened, so an ended compete game can replay an opponent's board.
  */
 import type { GCategory, GEvent, GMatchedCat, GPuzzle, GReplayedTurn } from '../types'
 

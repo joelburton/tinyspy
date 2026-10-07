@@ -203,7 +203,7 @@ builds them, nothing else writes them.
 **A boolean reads as a yes/no question** — `is…` by default, `amI…` where that
 is the clearer question. Pick the one that reads most naturally: `isOnTurn`
 (a player's), `isEliminated`. The standing flags read as one set with
-`isTerminal`, so it is `isConceded`, not `amIConceded`. A bare past participle
+`isGameEnded`, so it is `isConceded`, not `amIConceded`. A bare past participle
 is not a boolean name — `won` may be a message or a winner — so a flag always
 carries its `is` / `amI`. Its setter and getter carry the full name too:
 `setIsInfoSheetOpen` / `getIsInfoSheetOpen`, never `setInfoSheetOpen`.
@@ -212,8 +212,8 @@ carries its `is` / `amI`. Its setter and getter carry the full name too:
 the bare word (`solved`); state, a long component, and any component that also
 shows the other players carry the full name.
 
-**The standing terms** — `isTerminal`, `isTurnBased`, `turnHolderId` about the
-game; `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isOnTurn`,
+**The standing terms** — `isGameEnded`, `isTurnBased`, `turnHolderId` about
+the game; `isConceded`, `isPlayerEnded`, `isStillPlaying`, `isOnTurn`,
 `isWaitingForTurn`, `isBoardInteractive` about a player — each mean exactly one
 thing, defined as a
 formula in [win-lose.md → Where a player

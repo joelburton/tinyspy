@@ -4,7 +4,7 @@ The app's non-game code lives in two top-level folders under `src/`, and which
 one a module is in is a statement about it:
 
 - **`src/common/`** — the shell every game (or every page) is MADE OF: chat,
-  the manifest, setup, the club page, the terminal row, feedback, the supabase
+  the manifest, setup, the club page, the ending row, feedback, the supabase
   wrappers. A game that lacks one of these is an exception, not a category.
 - **`src/shared/`** — a FAMILY: code factored out of two or three games that
   happened to need the same thing. The found-words data model, the two games
@@ -280,6 +280,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `core-css` | the stylesheets every page loads, plus `patterns/` |
 | `definitions` | click-a-word lookup and the word lookup dialog |
 | `devtools` | pages that ship for the author, not for players (palette, font specimen) |
+| `ending` | what shows when a game ends |
 | `error-page` | the stand-in when a page can't render |
 | `faults` | the fault sink and its modal |
 | `feedback` | the feedback message and its kinds, the two slots that hold them, and the pill that draws one |
@@ -310,7 +311,6 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `setup-form` | the start-a-game dialog, its sections, and its data |
 | `single-flight` | one run of an async action at a time — a second click while the first is in flight is dropped |
 | `supabase` | the client, the envelope wrappers, the DB handle |
-| `terminal` | what shows when a game ends |
 | `themes` | the theme files and the loader |
 | `timer` | the game clock |
 | `toasts` | the bottom-right stack |
@@ -338,7 +338,7 @@ from everyone else.
 |---|---|---|
 | `bee-games` | spellingbee, wordwheel | the hook factory behind their identical data lifecycles, the board header it returns, the compete leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn by |
 | `dict-trie` | boggle, scrabble | the flat trie behind boggle's solver and scrabble's suggester |
-| `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the terminal reveal, the rows the word-list panel draws, the row and word types, the typed-word look, the play-surface scaffolding |
+| `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the reveal at the end, the rows the word-list panel draws, the row and word types, the typed-word look, the play-surface scaffolding |
 | `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |
 | `onscreen-keyboard` | wordle, wordiply | the on-screen QWERTY |
 | `rank-ladder` | the games with a Start..Genius ladder | the ladder, its bar and its stat grid — no data model behind it, so any game with a ladder can take it |
@@ -356,7 +356,7 @@ from everyone else.
   `src/gametypes.ts` — the one file allowed to import games.
 - **`ClubGameDeleteButton`** stays in `club/`, not `buttons/`: it is the card's
   hover trash can with its own two-step confirmation, not a purpose button.
-- **`outcomes`** is its own folder, not terminal's. It is read by boards, the
+- **`outcomes`** is its own folder, not ending's. It is read by boards, the
   pills, the feedback layer and `dbResult`; [outcomes.md](outcomes.md) is
   already its doc.
 - **`revealWords` stays in `shared/found-words`** while `useSolutionReveal` is

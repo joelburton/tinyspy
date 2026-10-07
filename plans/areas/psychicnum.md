@@ -107,7 +107,7 @@ Stamps at the opening: ten files `cs-fixed-outcome-fix`, eighteen `cs-unmet`,
 `logo.svg` and `todo.md` none.
 
 **The net, not the roster**: five e2e specs (`psychicnum-history`, `-mobile`,
-`-print`, `-terminal`, `-turn-order`, 454 lines), `PlayArea.test.tsx` (about
+`-print`, `-ending`, `-turn-order`, 454 lines), `PlayArea.test.tsx` (about
 forty cases), `e2e/board-geometry.e2e.ts` (psychicnum is one of its boards),
 the pgTAP suite. `common/pdf` (the `pdf` area) was, at the read, a shared
 folder psychicnum imports that no area had blessed; it closed and was blessed
@@ -308,7 +308,7 @@ The row is already unconditional here (this is the template). What changes:
 - `hinting` / `spoiling` go. The bound action's `pending` grays the button
   (`ActionButton` ORs it in) and the menu row (`menuModel.ts` reads
   `item.pending`), and nothing else reads the flags. `describe` for Hint and
-  Spoiler becomes `isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'`.
+  Spoiler becomes `isGameEnded ? 'hidden' : isStillPlaying ? 'active' : 'disabled'`.
 - The bindings gather under one header, in one order: the shared trio, then
   Hint, Spoiler, Reveal, then New game and Print — and the InfoCol prop list
   and the menu list them in that same order.
@@ -379,7 +379,7 @@ the three `useCallback`s are gone, and the menu effect's deps are as stable as
 before. `ActionButton` reads `state === 'disabled' || action.pending` and
 `menuModel.ts` reads the same pair, so deleting `hinting` / `spoiling` loses no
 gray: `describe` for Hint and Spoiler is now
-`isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'`, and the
+`isGameEnded ? 'hidden' : isStillPlaying ? 'active' : 'disabled'`, and the
 in-flight beat is `pending`'s.
 
 **The InfoCol's action row was ALREADY drawing "row order"** — Hint · Spoiler |
@@ -408,16 +408,16 @@ club page; the two files sit in the same folder after this, which is the
 most that can be done about the two-home hazard without a shared vocabulary.
 
 **Decision 3 — the file name.** `lib/terminal.ts` (reads with
-`common/terminal/terminalMessage.ts`, whose type it returns) · `lib/over.ts`
+`common/ending/endingMessage.ts`, whose type it returns) · `lib/over.ts`
 (named for the value every PlayArea calls `over`) · `lib/verdict.ts` (the
 word the pill uses). **Decided: `lib/terminal.ts`** (Joel, 2026-09-19).
 
-**Shipped.** `lib/terminal.ts` holds `buildTerminalMessage`; `PlayArea.tsx`
-imports it and no longer imports `gameEndedTerminalMessage` or the
-`TerminalMessage` type at all. The `useMemo` on primitives that feeds the
+**Shipped.** `lib/terminal.ts` holds `buildEndingMessage`; `PlayArea.tsx`
+imports it and no longer imports `buildGameEndedMessageNeutral` or the
+`EndingMessage` type at all. The `useMemo` on primitives that feeds the
 verdict effect stays in the PlayArea, as planned.
 
-`lib/terminal.test.ts` walks the whole input space — every terminal play state
+`lib/terminal.test.ts` walks the whole input space — every ended play state
 (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both modes, with
 the timer expired and not — because the builder reads nothing else. Thirteen
 cases, and the last is a TABLE: one place to see that no cell pairs a winning
@@ -431,16 +431,16 @@ the coop timer branch dropped (1), and coop made to read `selfWon` (3).
 `buildOver` so the call site would not change; Joel read the file after Step 2
 and ruled otherwise (2026-09-19): *"we generally use the word 'terminal' rather
 than 'over', so it would be helpful to make other variables based around that."*
-Done at that moment, ahead of the move: the builder is **`buildTerminalMessage`**
-— which is what it returns — the value it produces is `terminalMessage`, and
-InfoCol's `over` prop is `terminalMessage` too. `<Board gameOver>` is NOT
+Done at that moment, ahead of the move: the builder is **`buildEndingMessage`**
+— which is what it returns — the value it produces is `endingMessage`, and
+InfoCol's `over` prop is `endingMessage` too. `<Board gameOver>` is NOT
 renamed: it is a shared vocabulary, backed by `.gameOverFrame` /
 `.gameOverWon` / `.gameOverLost` in `game-page/playArea.module.css`, and
 renaming one game's prop would desync it from the class it draws. Ordinary
 English "over" in prose stays.
 
 **Five prose sites in `common/` still say `buildOver()`** —
-`terminal/terminalMessage.ts` (twice), `terminal/doc.md` (twice),
+`ending/endingMessage.ts` (twice), `ending/doc.md` (twice),
 `feedback/FeedbackMessage.tsx`, `info-sheet/InfoActionsRow.tsx` — and two of
 them say "every game's `buildOver()`", which is now fifteen of sixteen. Left
 alone deliberately: the other fifteen rename when the shape doc lands, and
@@ -478,7 +478,7 @@ two sections were interleaved and the argument for gating on `playState` alone
 read as an argument about the frame flash. Prose and call are together now,
 under Page hooks.
 
-**Two headers were demoted rather than kept.** "Terminal secrets reveal" is a
+**Two headers were demoted rather than kept.** "The ending's secrets reveal" is a
 sub-comment inside Derived, since that is where the plan puts the state and a
 section rule there would make nine sections out of eight; "Info-column readouts
 (setup choices + live state)" became a plain sentence inside Render, where its
@@ -535,7 +535,7 @@ With the code settled: the call-site rule (a sentence and a pointer where a
 shared mechanism is explained — the envelope paragraph in `createNewGame`,
 the reveal rule at `act-reveal`, the celebration's loading-race story), the
 archaeology deleted ("It used to be a bright ring", "moved into BoardCol",
-"the old terminal branch argued for"), and the file docstring rewritten — it
+"the old ending branch argued for"), and the file docstring rewritten — it
 describes a pre-decomposition surface today ("GameEventLog: coop shows
 everyone's guesses", "Header copy"). InfoCol's and BoardCol's comments get
 the same pass since both files are open by then.
@@ -551,7 +551,7 @@ call site now adds only the narrowing and stops re-arguing the rule. The
 envelope paragraph is three lines pointing at `docs/envelopes.md`.
 
 **One comment was not archaeology but a FALSEHOOD.** `Board.tsx`'s docstring
-said the terminal reveal rings every secret's tile via a `secretWords` prop.
+said the ending's reveal rings every secret's tile via a `secretWords` prop.
 There is no such prop, there is no ring, and `--psychicnum-secret-ring` appears
 nowhere in the repo — the reveal folds into `results` as a hit and the tile
 simply goes green. Found by sweeping for "used to", which is exactly how a
@@ -566,10 +566,10 @@ rule worth stating — green means "a secret was found" in BOTH modes, so
 nothing here teaches a compete-only color.
 
 **Joel's three rules did most of the cutting.** Beyond BoardCol's four: the
-back-to-club paragraph defending a filled button at terminal (rule 3), the
+back-to-club paragraph defending a filled button once the game has ended (rule 3), the
 mobile status bar's "deliberate trade" (3), the `detail`-choice argument at
 the no-such-game gate (3), "which is what puts them here rather than in the
-header slot" (2), and the info column's "the order is the one the old terminal
+header slot" (2), and the info column's "the order is the one the old ending
 branch argued for" (archaeology + 3), which now points at `docs/playarea.md`
 for the order instead.
 
@@ -889,15 +889,15 @@ difficulty band.
 waited on is in, and a deliberate texture would deserve to be designed rather
 than inherited from a tuning aid.
 
-### SHIPPED · F-psychicnum-5 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+### SHIPPED · F-psychicnum-5 · `ending-reads-the-clock` · the ending message decides the reason from the client clock, and cannot say "all conceded"
 
-**Joel, 2026-09-19: "read the outcome."** `buildTerminalMessage` takes
+**Joel, 2026-09-19: "read the outcome."** `buildEndingMessage` takes
 `reason` — `status.outcome`, the server's word — in place of `timerExpired`;
 `PlayArea` passes it and no longer reads `timer` at all. An all-conceded race
 now reads *All conceded — no winner* on the pill and *All conceded* in the
 info column, the club-list label's words. `terminal.test.ts` walks every
 reason the RPCs write (`solved` · `exhausted` · `timeout` · `conceded` ·
-`manual`, and absent) through every terminal state in both modes, and the
+`manual`, and absent) through every ended state in both modes, and the
 compete loss case has its third row. **Verified by planting two faults**: the
 conceded arm dropped (1 red), and the coop loss reading `conceded` for the
 clock (1 red).
@@ -945,7 +945,7 @@ the play state, the order the two refetches can arrive in), the beaten racer,
 a reload of a race already won, and the coop team. **Verified by planting
 two faults**: the gate back to coop-only (1 red), and the gate reading
 `won_compete` alone, which is "SOMEONE won" (2 red). The first-render rule's
-two homes — `docs/ui.md` → Terminal results and `useCelebration`'s docstring
+two homes — `docs/ui.md` → Endings and `useCelebration`'s docstring
 — said a game's own rows are null on the first render; that was true before
 the loader split and this game is now the counterexample, so both carry the
 one clause: a game's own rows count where its loader awaited them.
@@ -976,7 +976,7 @@ flips it and pops. The premise the comment rests on is gone.
   reading for a race ("You win the race!"). The loser gets nothing, which is
   right. `PlayArea.test.tsx` gains a compete win case and a reload case.
 - *"keep coop-only, fix the comment"* — if there is a reason a race winner
-  should not get the modal (one modal at terminal is a rule the comment
+  should not get the modal (one modal at the end is a rule the comment
   already cites; the winner's pill says *Won: the race*), the comment says
   that reason and drops the one that is false.
 
@@ -1068,7 +1068,7 @@ The pass every area makes (app-audit.md §4). `Board.tsx` and `PlayArea.tsx`
 have it right (`//` on every prop); these do not:
 
 - `InfoCol.tsx` — the whole props block, twenty-odd `/**` on members.
-- `GameEventLog.tsx` — `Props`: `guesses`, `isTerminal`, `historyId`,
+- `GameEventLog.tsx` — `Props`: `guesses`, `isGameEnded`, `historyId`,
   `onShowHistory`.
 - `StateLine.tsx` — three of the four props.
 - `BoardCol.tsx` — one: `historyActor` (the rest are `//`).
@@ -1093,7 +1093,7 @@ onto the `<DefinableWord>` cell and "both row kinds" is "every row kind";
 "count count" fixed; and the budget row is looked up ONCE (`myBudgetRow`, in
 Page hooks where its first reader is), with `selfSecretsFound`,
 `iFoundThemAll`, `selfBudget` and `selfWon` all read off it. Two of the seven
-items had already gone with F-5 (`isTerminal && mode`) and F-6.
+items had already gone with F-5 (`isGameEnded && mode`) and F-6.
 
 - `InfoCol.tsx` → props type: `/** The number of board tiles (setup echo). */`
   sits above nothing — the prop it described is gone.
@@ -1112,7 +1112,7 @@ items had already gone with F-5 (`isTerminal && mode`) and F-6.
   and the section header under it says so.
 - `PlayArea.tsx` → Narration: *"an opponent's public found_secrets_count count
   ticks up"*.
-- `PlayArea.tsx` → the verdict memo: `isTerminal && mode ? … : null` — `mode`
+- `PlayArea.tsx` → the verdict memo: `isGameEnded && mode ? … : null` — `mode`
   is `game.mode`, never falsy since the split; a leftover of `mode ?? 'coop'`.
 - `PlayArea.tsx`: `selfSecretsFound` is computed in the local-slot section,
   and `iFoundThemAll` in Derived is the same row's same column against
@@ -1128,22 +1128,22 @@ No decision in any of these.
 **Joel, 2026-09-19: "one answer each."** `InfoCol` takes `isMyTurn` (the
 shell's, the one `BoardCol` gates the entry on) and gates the help line on it;
 `myTurn` and its derivation are gone. `<TurnStatusLine>` reads the
-`isTerminal` prop the column already had rather than `terminalMessage !==
+`isGameEnded` prop the column already had rather than `endingMessage !==
 null`. The existing turn-order specs cover the help line through
 `ctx.isMyTurn` — **verified by planting**: the gate dropped reds "on a
 teammate's turn" (1 red).
 
-- It takes `isTerminal` as a prop (for the log's picker) **and** derives
-  `isTerminal={terminalMessage !== null}` for `<TurnStatusLine>` — the same
+- It takes `isGameEnded` as a prop (for the log's picker) **and** derives
+  `isGameEnded={endingMessage !== null}` for `<TurnStatusLine>` — the same
   fact by two routes, one of which depends on the memo never returning null
-  for a terminal game.
+  for an ended game.
 - It takes `currentTurnUserId` and re-derives `myTurn = currentTurnUserId ===
   null || currentTurnUserId === selfId` to gate the help line, while
   `GamePageCtx.isMyTurn` is the shell's answer and `BoardCol` reads that one.
   The Derived section's rule is that the columns must not answer the same
   question differently.
 
-**Options:** pass `isMyTurn` and use the `isTerminal` prop · leave, since the
+**Options:** pass `isMyTurn` and use the `isGameEnded` prop · leave, since the
 two derivations happen to agree today.
 
 ### SHIPPED · F-psychicnum-13 · `manifest-prose` · the manifest's comments describe a different file
@@ -1230,11 +1230,11 @@ fix in its doc:
 - `docs/ui.md` → Help: *"connections and psychicnum carry placeholder content
   until they earn real copy"* — psychicnum's Help was rewritten
   (F-psychicnum-3).
-- `docs/ui.md` → Terminal results: *"psychicnum's ringed secrets"* — they go
+- `docs/ui.md` → Endings: *"psychicnum's ringed secrets"* — they go
   green; nothing is ringed (`Board.tsx`'s docstring).
 - `docs/ui.md` → game-end vocabulary: *"psychicnum and codenamesduet each
   render their game-end screens differently today"* — both use the shared
-  terminal row and pill.
+  ending row and pill.
 - `docs/common.md` → global shortcuts: *"psychicnum's guess field — opted in
   with `data-game-input`"* — no such attribute anywhere in `src/psychicnum`;
   the entry is a display `<div>` and keys are read off the window.
@@ -1260,7 +1260,7 @@ No decision, except the first.
 are gone, and so are the three siblings' with the same dead path
 (`wordle-history`, `codenamesduet-history`, `connections-history`) — the sweep
 this finding caused, no stamp moved. The gallery is the visual record. The
-history spec's "(still monolithic)" is gone and the terminal spec's token name
+history spec's "(still monolithic)" is gone and the ending spec's token name
 has its `s`. The "end copy" waits for F-17. The e2e suite was not run: no
 assertion changed.
 
@@ -1271,7 +1271,7 @@ assertion changed.
   reads. Drop the screenshots, or point them at `e2e/.artifacts/`.
 - `psychicnum-history.e2e.ts` docstring: *"the feature added on the (still
   monolithic) PlayArea"* — archaeology, and untrue since the decomposition.
-- `psychicnum-terminal.e2e.ts`: the comment names `--outcome-won-fill-color`;
+- `psychicnum-ending.e2e.ts`: the comment names `--outcome-won-fill-color`;
   the token is `--outcomes-won-fill-color`. And one of the banned word
   (F-psychicnum-17).
 
@@ -1281,10 +1281,10 @@ assertion changed.
 *label*, *message* or *line*. `doc.md`'s "desktop's copy" stays: that is a
 second instance of a component, not a message's words.
 
-`manifest.ts` (*"Start-button copy"*, *"terminal copy"*),
+`manifest.ts` (*"Start-button copy"*, *"ending copy"*),
 `components/SetupForm.tsx` (*"Copy is mode-neutral on purpose"*),
-`supabase/sql/psychicnum.sql` → `submit_timeout` (*"the FE's terminal copy can
-show mode-appropriate copy"*), `e2e/psychicnum-terminal.e2e.ts` (*"the shared
+`supabase/sql/psychicnum.sql` → `submit_timeout` (*"the FE's ending copy can
+show mode-appropriate copy"*), `e2e/psychicnum-ending.e2e.ts` (*"the shared
 neutral end copy"*), `e2e/psychicnum-turn-order.e2e.ts` (*"the turn copy"*,
 *"the slot's copy"*), `PlayArea.test.tsx` (*"the turn copy"*). The word is
 *text* (or *words*, *line*, *label*). No decision.
@@ -1403,7 +1403,7 @@ gates and the split; the eight sections and the one order the bindings, the
 prop list and the menu keep; `submit_guess`'s scope rules (coop = anyone's
 row, compete = the caller's) matching `BoardCol`'s local checks exactly;
 `events_select`'s three arms and the column grant on `secrets`; the realtime
-touch after every terminal write that skips `psychicnum.games`; the empty
+touch after every game-ending write that skips `psychicnum.games`; the empty
 entry never submitting (`useCaptureKeys` disables Submit on `''`, so
 `BoardCol` needs no gate); `historySnapshot` resolving by id against the
 filtered list; the print model's per-player tracks; the Answer union carrying
@@ -1503,7 +1503,7 @@ the trailing `: `, which is what separates the pill from the log.
 
 ## Closing
 
-- [x] `e2e/psychicnum-terminal.e2e.ts` renamed to what it asserts (2026-09-19):
+- [x] `e2e/psychicnum-ending.e2e.ts` renamed to what it asserts (2026-09-19):
       the title is "…go green, then hide again", the helper is `greenTiles`,
       and the docstring says the spec measures a FILL rather than narrating the
       ring it once looked for. It also cited `psychicnum.games_view`, a view
@@ -1540,12 +1540,12 @@ the trailing `: `, which is what separates the pill from the log.
       with the rule that a section header states the RULE rather than listing
       its contents; the commands in one block with no `useCallback` and no
       in-flight flag, and the one order the bindings block, the info column's
-      prop list and the menu rows keep; and `buildTerminalMessage` leaving for
+      prop list and the menu rows keep; and `buildEndingMessage` leaving for
       `lib/terminal.ts`. The other fifteen conform as each area opens (Joel),
       and where one cannot, its area file says why.
       **The five `common/` prose sites are done too**, and two of them were
       counting rather than naming a condition: "every game's `buildOver()`"
-      is now "each game builds its own… `buildTerminalMessage` where a game has
+      is now "each game builds its own… `buildEndingMessage` where a game has
       been converted, `buildOver` in the games that have not", which stays true
       at every point of the rollout instead of being wrong at fifteen of them.
 - [x] `plans/app-audit.md` §3's row 53 says THREE passes (2026-09-19), with the

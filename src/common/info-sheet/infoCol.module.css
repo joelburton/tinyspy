@@ -71,7 +71,7 @@
 }
 
 /* Every row of the info column EXCEPT the event log / word list: the state line,
- * the opponent strip, the action row, the help line, a terminal extra, the setup
+ * the opponent strip, the action row, the help line, an ending extra, the setup
  * disclosure. What they have in common is the only thing this says — **none of
  * them is squeezed when the column runs short; the log below absorbs it.**
  * Their CONTENT changes all the time; what does not is that they are never the
@@ -139,7 +139,7 @@
 /* The action row — `<InfoActionsRow>`: turn/game-altering buttons only (Hint /
  * Reveal / End; a board-visual control like Shuffle floats over the board
  * instead). The buttons share the row and wrap as needed. With a line beside
- * them (.terminalActions — a verdict at terminal, "You conceded" while the
+ * them (.endingActions — a verdict at the end, "You conceded" while the
  * others race) the row stops wrapping, so the buttons stay on the line's row. */
 /* @@ */ .infoActions {
   display: flex;
@@ -148,7 +148,7 @@
   gap: var(--spacer-4);
 }
 
-/* @@ */ .terminalActions {
+/* @@ */ .endingActions {
   flex-wrap: nowrap;
 }
 
@@ -190,18 +190,18 @@
  * next door, because only that component ever draws it. The row is here because
  * a game composes `.infoActions` directly on its own markup. */
 
-/* Terminal-only EXTRA info in the info column — content shown ONLY at game over
+/* Ending-only EXTRA info in the info column — content shown ONLY at game over
  * (e.g. wordle's answer reveal: words too tall for the below-board slot, which
  * would overflow the viewport and scroll the page — a hard no). It sits INSIDE
  * `.noShrinkRow`, ABOVE the setup disclosure (Joel's rule, 2026-08-05: the
  * reveal is the payoff, the Setup options list is bookkeeping — the list must
- * never push the answer down). It is allowed to APPEAR on the play→terminal
+ * never push the answer down). It is allowed to APPEAR on the play→ended
  * transition — a DELIBERATE exception to the layout-stability rule (docs/ui.md
  * → "Layout stability") — because by then the play surface is done and the
  * INFO column absorbs it: the board doesn't move, and the scrolling event log
  * below gives way so the page itself never scrolls. `flex-shrink: 0` keeps its
  * content height wherever it sits (the wrapper already refuses to shrink; the
  * log — flex: 1, min-height: 0 — makes room). */
-/* @@ */ .terminalExtra {
+/* @@ */ .endingExtra {
   flex-shrink: 0;
 }

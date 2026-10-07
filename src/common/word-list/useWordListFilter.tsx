@@ -47,7 +47,7 @@ export type WordListFilter = {
  *     KIND   Legal (default) · Required · Bonus
  *     WHO    All · Found · Missed · …every player by handle
  *
- * WHO's default is All mid-game and **Found** at terminal once a missed row
+ * WHO's default is All mid-game and **Found** at the end once a missed row
  * exists, which is how these games hold the answer back a beat — see `doc.md`.
  * KIND always defaults to Legal.
  *
@@ -57,7 +57,7 @@ export type WordListFilter = {
  * where peers' words are visible. Players are named by
  * handle, yours included.
  *
- *     const f = useWordListFilter({ rows, players, myId, isCompete, isTerminal })
+ *     const f = useWordListFilter({ rows, players, myId, isCompete, isGameEnded })
  *     const shown = f.filter(rows)
  *
  * Why the axes are shaped this way, and why only one of them is gated, is in
@@ -68,7 +68,7 @@ export function useWordListFilter({
   players,
   myId,
   isCompete,
-  isTerminal,
+  isGameEnded,
 }: {
   // The unfiltered rows — the option set is partly derived from what is IN them.
   rows: readonly WordListRow[]
@@ -76,7 +76,7 @@ export function useWordListFilter({
   myId: string
   isCompete: boolean
   // Gates the per-player options in compete, where RLS hides peers until the end.
-  isTerminal: boolean
+  isGameEnded: boolean
 }): WordListFilter {
   const [kindChosen, setKindChosen] = useState<Kind | null>(null)
   const [whoChosen, setWhoChosen] = useState<string | null>(null)
@@ -84,7 +84,7 @@ export function useWordListFilter({
   const ordered = orderSelfFirst(players, myId)
 
   // Found/Missed only mean something once BOTH kinds of row can exist. Derived
-  // from the rows rather than from `isTerminal` so a team that found everything
+  // from the rows rather than from `isGameEnded` so a team that found everything
   // isn't offered a "Missed" that resolves to nothing.
   const hasMissed = rows.some((r) => r.kind === 'unfound')
 
@@ -92,7 +92,7 @@ export function useWordListFilter({
   // is everyone's to see from the start; in compete RLS scopes `found_words` to
   // you until the game ends, so offering peers mid-game would be a menu of
   // guaranteed-empty lists. A solo game has nobody to pick between.
-  const arePlayersOffered = players.length > 1 && (!isCompete || isTerminal)
+  const arePlayersOffered = players.length > 1 && (!isCompete || isGameEnded)
 
   const whoOffered = [
     ALL,
@@ -108,13 +108,13 @@ export function useWordListFilter({
   // forever.
   //
   // WHO's default is the one place the missed words are held back — they are
-  // already in the rows at terminal, and Found is what keeps the list off the
+  // already in the rows at the end, and Found is what keeps the list off the
   // answer for a beat (see doc.md).
   //
-  // Gated on `hasMissed` as well as `isTerminal`, because Found is not offered
+  // Gated on `hasMissed` as well as `isGameEnded`, because Found is not offered
   // until a missed row exists — a default that is not in the option set would
   // filter to a list the player cannot get back from.
-  const whoDefault = isTerminal && hasMissed ? FOUND : ALL
+  const whoDefault = isGameEnded && hasMissed ? FOUND : ALL
   const kind: Kind = kindChosen ?? LEGAL
   const who = whoChosen !== null && whoOffered.includes(whoChosen) ? whoChosen : whoDefault
 
@@ -129,7 +129,7 @@ export function useWordListFilter({
     if (who === MISSED) return r.kind === 'unfound'
     // A named player: match against EVERY finder, not just the attributed one, or
     // filtering to yourself hides a word someone else found first (compete
-    // post-terminal). `finderIds` defaults to the attributed finder alone.
+    // after the end). `finderIds` defaults to the attributed finder alone.
     return r.kind === 'found' && (r.finderIds ?? [r.userId]).includes(who)
   }
 
@@ -175,7 +175,7 @@ export function useWordListFilter({
       </div>
     ),
     filter: (rs) => rs.filter((r) => matchesKind(r) && matchesWho(r)),
-    emptyText: emptyTextFor(kind, who, players, isTerminal),
+    emptyText: emptyTextFor(kind, who, players, isGameEnded),
   }
 }
 
@@ -190,13 +190,13 @@ export function useWordListFilter({
  * entries — simply aren't offered until their data is visible, so every empty this
  * has to explain is a genuine empty.
  */
-function emptyTextFor(kind: Kind, who: string, players: Member[], isTerminal: boolean): string {
+function emptyTextFor(kind: Kind, who: string, players: Member[], isGameEnded: boolean): string {
   const kindWord = kind === REQUIRED ? 'required' : kind === BONUS ? 'bonus' : ''
   // "yet" promises more is coming, which a finished game cannot keep.
-  const yet = isTerminal ? '' : ' yet'
+  const yet = isGameEnded ? '' : ' yet'
 
   if (who === MISSED) return kindWord ? `No ${kindWord} words missed.` : 'Nothing missed.'
-  // Reachable only at terminal, where Found is the default.
+  // Reachable only at the end, where Found is the default.
   if (who === FOUND) return kindWord ? `No ${kindWord} words found.` : 'Nothing found.'
   if (who !== ALL) {
     const name = players.find((p) => p.id === who)?.username ?? 'that player'

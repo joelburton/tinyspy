@@ -3,8 +3,8 @@
 import type {
   EndOutcome,
   PlayerEndedReason,
-} from '@/common/terminal/gameEnding'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+} from '@/common/ending/gameEnding'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 
 /**
  * What letterboxed says to a racer who has ended while the others play on.
@@ -26,7 +26,7 @@ export function buildPlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`common.game_players.outcome`).
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   if (reason === 'conceded') {
     return { pillText: 'Conceded — race continues', infoColText: 'You conceded', outcome }
   }

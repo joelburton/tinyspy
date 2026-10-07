@@ -59,7 +59,7 @@ export function GameEventLog({
     players,
     myId,
     mode,
-    isTerminal: isGameEnded,
+    isGameEnded,
     label: 'Whose swaps to show',
     emptyLabel: 'No swaps yet.',
   })

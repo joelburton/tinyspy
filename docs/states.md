@@ -87,7 +87,7 @@ change" the simplest robust shape).
 **Inherited by every gametype.** Pause is common machinery: `computePause` +
 `PauseOverlay` + `PauseBoundary` run under every gametype that mounts
 `<GamePage>` + `useCommonGame`, with no per-game wiring. Pause and
-[suspend](#suspended-vs-terminal--not-a-special-case) never coexist on one game
+[suspend](#suspended-vs-ended--not-a-special-case) never coexist on one game
 — a suspended game isn't being looked at by anyone, so there's no Presence
 channel to pause it.
 
@@ -159,7 +159,7 @@ rules join `common.games` for those.
 The club page lists games entirely from `common.games`: the title, the ending
 columns and `clubpage_info`. No `foo.games` is touched.
 
-## Suspended vs terminal — not a special case
+## Suspended vs ended — not a special case
 
 A "suspended" game is just a description for **a non-current game that
 hasn't ended** — a crossword not yet filled, a connections where categories remain.
@@ -224,22 +224,22 @@ club page's "currently being viewed" slot — easy to rejoin. For the remaining
 players, the disconnect triggers presence-pause (we don't play with a missing
 partner). When the absent player returns, pause clears automatically.
 
-### Leaving the game page — terminal vs non-terminal
+### Leaving the game page — ended vs not ended
 
 The UI bar for "leaving" depends on whether the game has ended — three shapes (`usePageActions`'s
 Back to club):
 
-- **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched
+- **Ended**. Trivial to leave. Members are reviewing the endgame (the matched
   bands, the revealed key cards, the post-game summary); the Back-to-club is
   just a single click. No confirm, no broadcast — other reviewers stay put. When
   the last reviewer leaves, the game stops being current.
 
-- **Non-terminal, SOLO**. Also no confirm — Back-to-club suspends immediately.
+- **Not ended, SOLO**. Also no confirm — Back-to-club suspends immediately.
   Suspending isn't dangerous by itself (the game shelves into the club list,
   resumable); the confirm exists to warn about dragging PEERS off the game, and
   a solo game has none to surprise.
 
-- **Non-terminal, MULTIPLAYER**. The suspend question, asked through
+- **Not ended, MULTIPLAYER**. The suspend question, asked through
   `askConfirmation` like every other question and drawn as a real modal
   (scrim-blocked board, dialog-owned keyboard). Its words are
   `suspendConfirm(title)` in `src/common/pause-suspend/`, a function rather than
@@ -251,7 +251,7 @@ Suspending loses nothing; what needs a beat of consideration is yanking the rest
 of the group off the puzzle mid-flight.
 
 Contrast **stopping** a game (the Stop button / menu item / pause-overlay escape
-hatch), which IS destructive — terminal for the whole group, irreversible — and
+hatch), which IS destructive — the end for the whole group, irreversible — and
 therefore always asks through the shared `ConfirmationBlockingModal` ("Stop this
 game?"), even in a solo or coop game.
 

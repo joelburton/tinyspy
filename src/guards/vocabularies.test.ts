@@ -273,7 +273,7 @@ const VOCABULARIES: Vocabulary[] = [
       // traveled to the component that draws the rule, and none of them grew.
       'src/common/setup-form/SetupSection.module.css': ['0.75rem'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.3rem'],
-      'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem'],
+      'src/common/ending/CelebrationBlockingModal.module.css': ['0.3rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1rem'],
       // The caret's breath — the gap between the last glyph and the drawn
       // bar. RECORDED, not unconverted (Joel, 2026-09-18): the ramp's
@@ -369,7 +369,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/GameEntry.module.css': ['1rem', '1.25rem', '0.85rem'],
       'src/common/club/ClubGameDeleteButton.module.css': ['0.85rem'],
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
-      'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
+      'src/common/ending/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       // RECORDED, not unconverted (Joel, 2026-09-22): the two cap sizes are a
       // PAIR sized against each other, not steps. 1.2rem is deliberately bigger
@@ -419,7 +419,7 @@ const VOCABULARIES: Vocabulary[] = [
       // merged; it did not grow.
       'src/common/club/GameEntry.module.css': ['1.2', '1.25'],
       'src/common/setup-form/SetupNextPuzzleSection.module.css': ['1.4'],
-      'src/common/terminal/CelebrationBlockingModal.module.css': ['1'],
+      'src/common/ending/CelebrationBlockingModal.module.css': ['1'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],
       'src/common/event-log/historyViewer.module.css': ['1'],
       'src/common/game-page/playArea.module.css': ['1.1'],

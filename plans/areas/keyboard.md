@@ -144,8 +144,8 @@ Two facts the conversion has to respect, both checked:
   its board. codenamesduet's clue inputs are not in a panel, but codenamesduet
   is not a `useSwallowTab` caller and its form is its own hand-built ring.
 - **`useCaptureKeys`' clause sits between the hard-off and the busy gate on
-  purpose** (Tab is swallowed while the entry is live, not at terminal). A page
-  ring would swallow at terminal too — which is the tab-rings rule (a surface
+  purpose** (Tab is swallowed while the entry is live, not after the end). A
+  page ring would swallow after the end too — which is the tab-rings rule (a surface
   with nowhere for Tab to go consumes it always), so that is a change in the
   intended direction, not a regression.
 

@@ -68,7 +68,7 @@ export type PuzzleRow = {
  *     catch a feed change silently flipping coordinates to `[col,row]`, which
  *     no amount of shape-checking would notice;
  *  4. the spangram SPANS: it touches two opposite edges of the board (that is
- *     what makes it the spangram — the FE's help and the terminal reveal both
+ *     what makes it the spangram — the FE's help and the ending reveal both
  *     say so, and all ~900 archived puzzles satisfy it);
  *  5. the theme words plus the spangram TILE the board exactly: all 48 cells,
  *     each covered once. That's the invariant the whole gametype leans on —

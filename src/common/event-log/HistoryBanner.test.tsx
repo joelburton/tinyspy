@@ -21,7 +21,7 @@ describe('HistoryBanner', () => {
   })
 
   it("names the actor before the label when the board is someone else's", () => {
-    // Compete at terminal: a `#N` on an opponent's row replays THEIR board, so
+    // Compete after the end: a `#N` on an opponent's row replays THEIR board, so
     // the banner has to say whose it is. "moth: GUESS 3" — never "moth's board".
     render(
       <HistoryBanner label="GUESS 3" actor={{ username: 'moth', color: 'teal' }} onExit={() => {}} />,

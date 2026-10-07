@@ -199,7 +199,7 @@ own rows, since its row is a picture of three cards and not a line of text.
 that grid (wordle adds its keyboard), then that board's own log. The newspaper
 flow is wrong here — one stream wrapping between columns would file one
 player's guesses under another player's grid. Coop is a single track; compete
-is one per player at terminal, and just yours during play, since RLS means you
+is one per player once the game has ended, and just yours during play, since RLS means you
 hold nobody else's until the game ends. Three per page, and why, is under
 Details.
 

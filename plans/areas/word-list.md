@@ -94,7 +94,7 @@ one, no prefix means OPEN)*
 
 What the folder IS, for the record: one component and two hooks. `<WordList>`
 takes rows it did not build — one per word, alphabetized, `found` with a
-finder or `unfound` from the terminal reveal — and draws them as a
+finder or `unfound` from the reveal at the end — and draws them as a
 column-major grid inside the shared info-panel frame, a heading over it that
 tallies whatever is currently shown. `useWordListFilter` is the pair of
 selects in that heading (KIND: Legal · Required · Bonus; WHO: All · Found ·
@@ -278,7 +278,7 @@ Nothing can reach it. The process fix is in [app-audit.md](../app-audit.md) §4 
 [A restart REMOUNTS](../app-audit.md#a-restart-remounts--assume-nothing-in-a-game-still-has-to-clear-itself),
 and the opening step that reads what moved under an area.
 
-### F-word-list-18 · `terminal-default` · The list opens on the answer at game over
+### F-word-list-18 · `ended-default` · The list opens on the answer at game over
 
 **RAISED AND RULED BY JOEL, 2026-09-21**, out of F-6: *"i've been thinking about
 whether we should show all missed words automatically at game end, or whether we
@@ -289,8 +289,8 @@ defaulted to All — so a finished game opened on what you missed before you had
 read what you got. Eleven games gate their answer behind a reveal control; these
 three do not.
 
-**Ruled: keep the automatic fold, and make the WHO filter's terminal default
-`Found`.** Not a Reveal button, for the reason all three games already had
+**Ruled: keep the automatic fold, and make the WHO filter's default, once the
+game has ended, `Found`.** Not a Reveal button, for the reason all three games already had
 written down and which this finding only confirms — the WHO axis IS that control
 for these games, and a button beside it would be two ways to switch the same two
 lists. The code's own note predicted the shape of the fix: *"If we ever wanted
@@ -298,50 +298,50 @@ the answer withheld at the end, the change is the filter's DEFAULT, not a new
 control."* The trade taken knowingly: a default of Found gives the beat but
 announces nothing, so discovery rests on the select being visible.
 
-Gated on `hasMissed` as well as `isTerminal`, since Found is not offered until a
+Gated on `hasMissed` as well as `isGameEnded`, since Found is not offered until a
 missed row exists and a default outside the option set would strand the list.
 
-**It made one empty line reachable that never was.** At terminal with Found
+**It made one empty line reachable that never was.** Once the game has ended, with Found
 selected and nothing found, the plain line read "No words yet" — "yet" being a
 lie on a finished game. There is a `Found` branch now: "Nothing found."
 
 **Six specs changed, and the two that matter are the games'.** spellingbee's and
-wordwheel's terminal smoke tests asserted a missed word was on screen; they now
+wordwheel's ended-game smoke tests asserted a missed word was on screen; they now
 assert it is NOT, and that it appears after picking Missed — both halves, so
 neither the fold nor the hold can regress silently. The rest were tests that had
 leaned on the old default while testing something else (the KIND axis, the
 heading tally); each now picks All explicitly, which is what it always meant.
 
-**F-6 is unblocked by this.** The fold is still exactly `isTerminal`, so `reveal`
+**F-6 is unblocked by this.** The fold is still exactly `isGameEnded`, so `reveal`
 is still that same value under a second name.
 
-### F-word-list-6 · `reveal-prop` · `reveal` is `isTerminal` at every caller
+### F-word-list-6 · `reveal-prop` · `reveal` is `isGameEnded` at every caller
 
-The prop exists to suppress the flash when the terminal refetch lands every
-peer row at once. spellingbee and wordwheel pass `reveal={isTerminal}`;
+The prop exists to suppress the flash when the refetch at the end lands every
+peer row at once. spellingbee and wordwheel pass `reveal={isGameEnded}`;
 boggle passes `reveal={revealWords !== null}`, and `revealWords` is
-`isTerminal ? … : null`. The component already takes `isTerminal`, so every
+`isGameEnded ? … : null`. The component already takes `isGameEnded`, so every
 call carries one value under two names, and the default `false` is a default
 no caller reaches.
 
-1. **Drop `reveal`; gate the flash on `isTerminal`** — three call sites lose a
+1. **Drop `reveal`; gate the flash on `isGameEnded`** — three call sites lose a
    line, `Props` loses a member, and the docstring's "mid-game only" becomes
    literally what the code says. **Recommended.**
-**WORKED 2026-09-21 as (1) — dropped.** The underline gates on `isTerminal`,
+**WORKED 2026-09-21 as (1) — dropped.** The underline gates on `isGameEnded`,
 which the component already takes.
 
 **Verified before the edit, because boggle's spelling differed.** It passed
-`revealWords !== null` rather than `isTerminal`, and the two can only be the
-same if a terminal game can never have a null reveal. It cannot:
+`revealWords !== null` rather than `isGameEnded`, and the two can only be the
+same if an ended game can never have a null reveal. It cannot:
 `buildRevealWords` returns an array literal, never null, and boggle's
-`revealWords` is `isTerminal ? buildRevealWords(…) : null`. So the expression is
-exactly `isTerminal`, and dropping the prop changed no behavior in any of the
+`revealWords` is `isGameEnded ? buildRevealWords(…) : null`. So the expression is
+exactly `isGameEnded`, and dropping the prop changed no behavior in any of the
 three.
 
 **It was unpinned, and this found that out.** With the prop removed, deleting
 the suppression entirely left all 317 tests in the folder and its three games
 green — the prop's whole purpose had no spec. Two now exist: a word arriving
-mid-game takes the underline, and one arriving at terminal does not. Planted
+mid-game takes the underline, and one arriving at the end does not. Planted
 both ways — suppression removed fails the second, marking disabled fails the
 first.
 
@@ -349,7 +349,7 @@ Six sites lost a line each (three `InfoCol` props plus their docstrings, three
 `PlayArea` call sites), and the component's props lost a member.
 
 2. Keep it, and document that it is the same value — for a game that might
-   one day reveal before terminal. Against: no such game; a default is a
+   one day reveal before the end. Against: no such game; a default is a
    decision, and this one is never taken.
 3. Derive it from the rows (`rows.some(r => r.kind === 'unfound')`). Against:
    a compete table that found everything has no unfound row and still gets
@@ -535,7 +535,7 @@ open until F-30 asked it.
 `WordList.test.tsx` is four tests of the tally. Nothing asserts a row: the
 finder's color on the found dot, the hollow gray ring on an unfound row, the
 bonus `•` on both kinds, pangram bold, the recent underline in the finder's
-color and its suppression at terminal, the empty line rendering the hook's
+color and its suppression at the end, the empty line rendering the hook's
 text. The row kinds are the component's whole job and the filter tests reach
 them only through `filter()`. One file — it is one unit — grows a `describe`
 per row kind and one for the flash; F-5's restart spec goes in
@@ -553,7 +553,7 @@ or the pangram class each fails exactly one test and nothing else. F-5's restart
 spec did not go anywhere, since that finding closed no-change.
 
 **The gap this closes is the one the area kept walking into.** Two behaviors —
-the `reveal` prop's whole purpose, and the terminal underline suppression —
+the `reveal` prop's whole purpose, and the underline suppression at the end —
 were found unobserved by PLANTING rather than by reading, both after the audit
 had read the file end to end. A spec file that pins the heading and nothing
 below it reads as coverage while asserting almost nothing about the component's
@@ -590,16 +590,16 @@ Joel's question at the opening. Each of the three games, before `<WordList>`
 can be placed, does the same four things: computes `hasBonus` from its own
 setup (`legal !== required`; boggle's `legal_band !== band`, named
 `hasBonusDifficulty`); calls `buildRevealWords(required, hasBonus ? bonus :
-[], found)` gated on `isTerminal`; feeds that to `buildDisplayRows(found,
-reveal)`; and passes `reveal={isTerminal}`. And each does the reveal + rows
+[], found)` gated on `isGameEnded`; feeds that to `buildDisplayRows(found,
+reveal)`; and passes `reveal={isGameEnded}`. And each does the reveal + rows
 step TWICE — once for `wordRows` and once more inside `actPrintBoard`, which
 builds at click time — so the shape is written six times across the three
 files, identically. The `<WordList>` call is then seven props, identical in
 the three InfoCols, four of them booleans about the game (`isCompete`,
-`isTerminal`, `hasBonus`, `reveal`), one redundant (F-6).
+`isGameEnded`, `hasBonus`, `reveal`), one redundant (F-6).
 
 The seam that shows: **one function in `shared/word-hunt` that turns a game's
-found words, its two lists, `hasBonus` and `isTerminal` into `WordListRow[]`**
+found words, its two lists, `hasBonus` and `isGameEnded` into `WordListRow[]`**
 — the reveal and the merge composed once — read by the screen and by the
 print alike. Six sites become three, the print's row mapping reads
 `r.points` (F-14), and `hasBonus` stays each game's own comparison, which is
@@ -674,28 +674,28 @@ created in `shared/word-hunt`, and every doc line that names the list. For each
 worked finding the grep that would find the same defect elsewhere was run over
 the folder, its callers, and `docs/`. Thirteen more. The shape, for the fifth
 area running: **most of them were written by this area's own findings** — F-18
-(the terminal default) wrote its rationale into nine places and left "yet" in
-two lines it made reachable at terminal; F-15 (the rows seam) moved a call and
+(the ended-game default) wrote its rationale into nine places and left "yet" in
+two lines it made reachable at the end; F-15 (the rows seam) moved a call and
 left two comments, a prop note and a game doc naming the function beneath it;
 F-4 was declared done with one of its own listed sites unworked. One is a test
 whose name promises what its body never reaches, found by planting rather than
 reading — the third such in this area.
 
-### F-word-list-19 · `rationale-nine-places` · The terminal default's rationale is written nine times
+### F-word-list-19 · `rationale-nine-places` · The ended-game default's rationale is written nine times
 
-F-18's design paragraph — the missed words fold in at terminal, the WHO default
+F-18's design paragraph — the missed words fold in at the end, the WHO default
 of Found is the beat before the answer, the axis IS the reveal so there is no
 Reveal button, a button would be two ways to switch the same two lists — is
 now in `doc.md` (the intro's third paragraph, the home) AND, near-verbatim:
 
 - `useWordListFilter.tsx` at `whoDefault` (six lines)
-- `useWordListFilter.test.tsx` → 'defaults to Legal · Found at terminal' (four lines)
+- `useWordListFilter.test.tsx` → 'defaults to Legal · Found at the end' (four lines)
 - `WordList.test.tsx` → 'counts and scores what is SHOWN' (two lines)
 - the three print sites — spellingbee's, wordwheel's and boggle's
   `actPrintBoard` — **seven identical lines each**, beginning "Gated on
-  `isTerminal`, which is the whole rule for these three word-finding games"
+  `isGameEnded`, which is the whole rule for these three word-finding games"
 - boggle's `wordRows` site, a fourth copy of the same six lines
-- `docs/ui.md` → Terminal results and `docs/common.md` → the reveal paragraph
+- `docs/ui.md` → Endings and `docs/common.md` → the reveal paragraph
   (F-20's two, which also get it wrong)
 
 The two InfoCol comments are the right size — one sentence, "the list holds
@@ -703,13 +703,13 @@ them one select back behind its WHO filter's Found default" — and stay. The
 rule is the one `board-marks` relearned this week: a comment beside a shared
 decision is one sentence and a pointer, and the doc is the copy that stays
 right. The print sites' seven lines shrink to their first sentence (the gate is
-`isTerminal`; the WHO filter is the control; see `word-list/doc.md`), the hook's
+`isGameEnded`; the WHO filter is the control; see `word-list/doc.md`), the hook's
 comment to two, the two spec comments to one each.
 
 **WORKED 2026-09-21. F-20 came first and changed what this finding is about:**
 two of the nine copies went with it, and four of the survivors were left
-CITING the sentence it deleted — each pointed at `docs/ui.md → Terminal
-results` for "a Reveal button would be a second, confusing way to switch the
+CITING the sentence it deleted — each pointed at `docs/ui.md → Endings`
+for "a Reveal button would be a second, confusing way to switch the
 same two lists", which lives only in this folder's `doc.md` now. So these were
 stale pointers, not just duplication.
 
@@ -717,7 +717,7 @@ stale pointers, not just duplication.
 *"ui.md doesn't need to go into details about who gets a reveal button or
 not"*). The three print sites lose the whole seven-line block — the paragraph
 above it already carries the local decision, that the print makes the same call
-as the screen, and the gate is the `isTerminal` argument two lines below.
+as the screen, and the gate is the `isGameEnded` argument two lines below.
 Boggle's `wordRows` site keeps two lines, since nothing else there explains the
 fold: what folds in, and a pointer at this folder's `doc.md`. In this folder the
 hook's `whoDefault` comment is three lines (the local fact plus the pointer),
@@ -743,7 +743,7 @@ them to withhold it, the change is that filter's default, not a new control."*
 Two faults. Found / Missed is the **WHO** axis; KIND is Legal / Required /
 Bonus. And F-18 made exactly the change the sentence holds in reserve, so both
 now describe the road taken as untaken and say the three games "show their
-missed-word list at terminal" with no mention of the hold. (`docs/deferred.md:191`
+missed-word list at the end" with no mention of the hold. (`docs/deferred.md:191`
 says "their found/missed filter" with no axis named, and is fine.) The fix is
 the axis and the tense in both; whether `common.md` should restate `ui.md`'s
 paragraph at all is `common.md`'s question, not this area's.
@@ -771,7 +771,7 @@ reveal control, because the missed words fold into the readout itself and the
 WHO select decides which half you read — plus the link to this folder's
 `doc.md`. `common.md`'s clause is the same fact in one line, with NO link of its
 own — the sentence before it in that paragraph already points at
-`ui.md → Terminal results`, and a second citation to the same anchor two clauses
+`ui.md → Endings`, and a second citation to the same anchor two clauses
 later reads as a stutter. The no-solution claim beside it keeps its two game
 names (Joel), being a different claim.
 
@@ -868,7 +868,7 @@ under it:
 
 And one in the file the area wrote: `wordListRows.ts`'s docstring says the four
 steps begin with *"decide whether the game is over"*, and the function decides
-nothing — it is told, through `isTerminal`. "Gate on whether the game is over."
+nothing — it is told, through `isGameEnded`. "Gate on whether the game is over."
 
 **WORKED 2026-09-21, and three of the four sites were already right.** The two
 bee print comments were recast by `plans/found-words.md`'s C-7 the same day, and
@@ -902,24 +902,24 @@ literal, the new test is the ONLY one of the file's forty-three that fails —
 the same plant that proved the old test never reached the line, now answering
 for the new one.
 
-### F-word-list-25 · `yet-at-terminal` · "yet" survives at terminal in the KIND and player lines
+### F-word-list-25 · `yet-at-the-end` · "yet" survives at the end in the KIND and player lines
 
 F-18 found "No words yet" a lie on a finished game and added the Found branch —
-and `emptyTextFor` still takes no `isTerminal`, so the other lines say "yet" at
-terminal too. Two are reachable: pick a player who found nothing → *"Nothing
+and `emptyTextFor` still takes no `isGameEnded`, so the other lines say "yet" at
+the end too. Two are reachable: pick a player who found nothing → *"Nothing
 from moth yet."*; pick a player and Bonus → *"No bonus words from moth yet."*
-The spec pins the wording at terminal without noticing —
+The spec pins the wording at the end without noticing —
 `useWordListFilter.test.tsx` → 'names the KIND', 'names the player, by handle'
-and 'names both' all run on a `Probe` whose default is `isTerminal: true` and
-assert the "yet." lines. The hook has `isTerminal` in hand; the tense follows
-it. Decision-sized only in the wording of the terminal forms.
+and 'names both' all run on a `Probe` whose default is `isGameEnded: true` and
+assert the "yet." lines. The hook has `isGameEnded` in hand; the tense follows
+it. Decision-sized only in the wording of the ended-game forms.
 
-**WORKED 2026-09-21 — "yet" is dropped at terminal** (Joel, over the past-tense
-and player-as-subject forms). `emptyTextFor` takes `isTerminal` and every line
+**WORKED 2026-09-21 — "yet" is dropped at the end** (Joel, over the past-tense
+and player-as-subject forms). `emptyTextFor` takes `isGameEnded` and every line
 that said "yet" now says it only mid-game: `Nothing from moth.`, `No bonus
 words from moth.`, `No required words.`, `No words.`. The Found branch's
 comment loses the half that explained the plain line's tense, since the plain
-line now carries its own. The three terminal specs pin the new lines exactly,
+line now carries its own. The three ended-game specs pin the new lines exactly,
 and a fourth pins that a narrowed line still says "yet" mid-game, so the tense
 is shown to follow the game rather than the filter. spellingbee's and
 wordwheel's `PlayArea.test.tsx` match `/no words yet/` on a mid-game render and
@@ -940,14 +940,14 @@ guard can be FOUND.
 ### F-word-list-27 · `docstring-default` · The hook's docstring says WHO defaults to All
 
 `useWordListFilter`'s docstring table: *"WHO All (default) · Found · Missed ·
-…"*. Since F-18 the default is Found at terminal once a missed row exists, and
+…"*. Since F-18 the default is Found at the end once a missed row exists, and
 that flip is the one thing about the default a caller most needs — it is how the
 answer is held back. The table names the mid-game default as if it were the
 only one.
 
 **WORKED 2026-09-21.** "(default)" comes off the WHO row, since the row cannot
 carry two, and a sentence under the table says both: All mid-game, Found at
-terminal once a missed row exists, with the pointer at `doc.md` for why. KIND's
+the end once a missed row exists, with the pointer at `doc.md` for why. KIND's
 default stays on its row and is restated there, so the two axes are not left
 looking different in kind.
 
@@ -1045,7 +1045,7 @@ written by this area's own fixes.**
 
 `useWordListFilter`'s docstring: the option sets are derived *"from the rows and
 from the four flags below"*. The parameter object holds three booleans —
-`isCompete`, `isTerminal`, `hasBonus` — beside `rows`, `players` and `selfId`,
+`isCompete`, `isGameEnded`, `hasBonus` — beside `rows`, `players` and `selfId`,
 which are not flags. The sentence needs no number at all.
 
 **WORKED 2026-09-21** — "from the rows and from the flags below".
@@ -1201,4 +1201,4 @@ which is what makes the three structural names mean "structure".
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-21, blessed** (Joel: *"bless the files in this area and then close this area"*): seven files `cs-blessed-word-list`. Opened 2026-09-20, paused the same day behind the re-opened `board-marks` (row 35) and resumed once that work landed. The alphabetical finds readout — common, not a family's: it takes its rows as a prop. **Thirty-seven findings in `plans/areas/word-list.md`, all worked or closed**: seventeen from the read, thirteen from the closing re-read, five from a SECOND closing re-read, one from Joel. **What changed the app:** a finished game no longer opens on the answer — the missed words still fold into the list at game over, but the WHO filter's terminal default is **Found**, so you read what you got first and the answer is one select away (F-18, Joel's, raised out of F-6); the empty line names whichever axis emptied the list and drops "yet" once the game is over; a missed word's marker got a token of its own so a divider nudged for the page's sake can't restyle it; the row font came onto the ramp and the row height onto rem; and two props no caller turned are gone. **The re-read's lesson, for the eighth area running: most findings were written by this area's own fixes** — F-18 wrote its rationale into nine places, F-15 left four sentences naming the function beneath the one it called, F-4 was declared done with one of its own listed sites unworked, and F-19's trim was itself the source of F-33. **A second lesson, about tests:** three behaviors were found unpinned by PLANTING rather than reading — the `reveal` prop's whole purpose, the terminal underline suppression, and an empty-line test whose body never reached the empty line — all after the file had been read end to end. `WordList.test.tsx` went from four tests to thirteen. **And one about names, from Joel at the close:** `.wrapper` / `.box` / `.list` hid which contained which, and a shared stem (`EventLog`'s own answer) would not have fixed it — the names are `.panel` ⊃ `.card` ⊃ `.grid` now, the words this folder's prose had already chosen
+**CLOSED 2026-09-21, blessed** (Joel: *"bless the files in this area and then close this area"*): seven files `cs-blessed-word-list`. Opened 2026-09-20, paused the same day behind the re-opened `board-marks` (row 35) and resumed once that work landed. The alphabetical finds readout — common, not a family's: it takes its rows as a prop. **Thirty-seven findings in `plans/areas/word-list.md`, all worked or closed**: seventeen from the read, thirteen from the closing re-read, five from a SECOND closing re-read, one from Joel. **What changed the app:** a finished game no longer opens on the answer — the missed words still fold into the list at game over, but the WHO filter's default once the game has ended is **Found**, so you read what you got first and the answer is one select away (F-18, Joel's, raised out of F-6); the empty line names whichever axis emptied the list and drops "yet" once the game is over; a missed word's marker got a token of its own so a divider nudged for the page's sake can't restyle it; the row font came onto the ramp and the row height onto rem; and two props no caller turned are gone. **The re-read's lesson, for the eighth area running: most findings were written by this area's own fixes** — F-18 wrote its rationale into nine places, F-15 left four sentences naming the function beneath the one it called, F-4 was declared done with one of its own listed sites unworked, and F-19's trim was itself the source of F-33. **A second lesson, about tests:** three behaviors were found unpinned by PLANTING rather than reading — the `reveal` prop's whole purpose, the underline suppression at the end, and an empty-line test whose body never reached the empty line — all after the file had been read end to end. `WordList.test.tsx` went from four tests to thirteen. **And one about names, from Joel at the close:** `.wrapper` / `.box` / `.list` hid which contained which, and a shared stem (`EventLog`'s own answer) would not have fixed it — the names are `.panel` ⊃ `.card` ⊃ `.grid` now, the words this folder's prose had already chosen

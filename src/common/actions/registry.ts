@@ -67,8 +67,8 @@ export type ActionDefinition = {
   // if we ever wanted both.
   keys?: KeySpec[]
   // The question asked before the action runs, by the shared run rather than by
-  // the game — so a game cannot forget to ask. Skipped at terminal, where
-  // there is nothing left to interrupt. A bespoke question that only one game
+  // the game — so a game cannot forget to ask. Skipped once the game has ended,
+  // where there is nothing left to interrupt. A bespoke question that only one game
   // asks stays inside that game's callback instead.
   // A question with two ways to say yes (`ConfirmOptions.alternativeLabel`)
   // runs the action's `runAlternative` for the second.

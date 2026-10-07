@@ -4,11 +4,11 @@
  * Tests for useStandardGameActions — the End / Concede / Restart actions every
  * game binds through it. What each one IS lives in the registry; what this owns
  * is when each applies (a coop game offers End, a race offers Concede, both are
- * hidden at terminal) and what each does with the answer its RPC gives back.
+ * hidden once the game ends) and what each does with the answer its RPC gives back.
  *
  * The confirmation is mocked: whether a question was asked is
  * `useBindAction`'s subject. Which of these carries one is not uniform —
- * Restart at terminal goes straight through, and the case below says so.
+ * Restart after the end goes straight through, and the case below says so.
  */
 
 import { act, renderHook } from '@testing-library/react'
@@ -25,9 +25,9 @@ vi.mock('../floating-panels/confirmationService', () => ({
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)) })
 
 type Overrides = {
-  isTerminal?: boolean
+  isGameEnded?: boolean
   mode?: 'coop' | 'compete'
-  isLocallyTerminal?: boolean
+  isPlayerEnded?: boolean
   confirmed?: boolean
   // What the question is answered with, for the two-ending case.
   answer?: 'confirm' | 'alternative' | null
@@ -52,9 +52,9 @@ function setup(overrides: Overrides = {}) {
     useStandardGameActions({
       db: { rpc },
       gameId: 'g1',
-      isTerminal: overrides.isTerminal ?? false,
+      isGameEnded: overrides.isGameEnded ?? false,
       mode: overrides.mode ?? 'coop',
-      isLocallyTerminal: overrides.isLocallyTerminal ?? false,
+      isPlayerEnded: overrides.isPlayerEnded ?? false,
       localFeedbackSlot,
     }),
   )
@@ -112,10 +112,10 @@ describe('which exit a game offers', () => {
     expect(result.current.actStopGame.describe('button').state).toBe('hidden')
   })
 
-  it('takes the exits away once the game is terminal', () => {
+  it('takes the exits away once the game has ended', () => {
     // HIDDEN, not disabled: there is no race left to drop out of and no game
     // left to end, and `disabled` means "possible here, not right now".
-    const { result } = setup({ mode: 'compete', isTerminal: true })
+    const { result } = setup({ mode: 'compete', isGameEnded: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
     expect(result.current.actStopGame.describe('button').state).toBe('hidden')
   })
@@ -136,7 +136,7 @@ describe('which exit a game offers', () => {
     // is still in the conversation. Conceding is not open to them — a conceder
     // has, a player who lost has nothing to concede, and a finisher would only
     // throw away a win they may hold — so Stop comes out on its own.
-    const { result } = setup({ mode: 'compete', isLocallyTerminal: true })
+    const { result } = setup({ mode: 'compete', isPlayerEnded: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
     expect(result.current.actStopGame.describe('button').state).toBe('active')
   })
@@ -145,21 +145,21 @@ describe('which exit a game offers', () => {
     // Stop and Concede share the flag and ⌥⌫: at most one is ever on screen, and
     // a flag that is there can be pressed.
     for (const mode of ['coop', 'compete'] as const) {
-      for (const isTerminal of [false, true]) {
-        for (const isLocallyTerminal of [false, true]) {
-          const { result } = setup({ mode, isTerminal, isLocallyTerminal })
+      for (const isGameEnded of [false, true]) {
+        for (const isPlayerEnded of [false, true]) {
+          const { result } = setup({ mode, isGameEnded, isPlayerEnded })
           const shown = [result.current.actStopGame, result.current.actConcede]
             .map((a) => a.describe('button').state)
             .filter((s) => s !== 'hidden')
-          expect(shown.length, `${mode} terminal=${isTerminal} out=${isLocallyTerminal}`).toBeLessThanOrEqual(1)
+          expect(shown.length, `${mode} ended=${isGameEnded} out=${isPlayerEnded}`).toBeLessThanOrEqual(1)
           expect(shown).not.toContain('disabled')
         }
       }
     }
   })
 
-  it('offers Restart at terminal too — a replayed board is a legal thing to replay', () => {
-    const { result } = setup({ isTerminal: true })
+  it('offers Restart after the end too — a replayed board is a legal thing to replay', () => {
+    const { result } = setup({ isGameEnded: true })
     expect(result.current.actRestart.describe('button').state).toBe('active')
   })
 })
@@ -190,7 +190,7 @@ describe('stopGame', () => {
     expect(shown.mock.calls[0]![0].kind).toBe('notOk')
   })
 
-  it('says nothing on the ok arm — the terminal arrives by subscription', async () => {
+  it('says nothing on the ok arm — the ending arrives by subscription', async () => {
     const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ENDED_OK)
     act(() => result.current.actStopGame.run())
@@ -207,7 +207,7 @@ describe('concede', () => {
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('concede', { p_game_id: 'g1' })
-    // The ok arm is silent: the conceded flag and any terminal arrive by
+    // The ok arm is silent: the conceded flag and any ending arrive by
     // subscription, so there is nothing for the conceder to be told.
     expect(shown).not.toHaveBeenCalled()
   })
@@ -265,8 +265,8 @@ describe('restart', () => {
     expect(rpc).toHaveBeenCalledWith('replay_board', { p_game_id: 'g1' })
   })
 
-  it('goes straight through at terminal — nothing left to interrupt', async () => {
-    const { result, rpc } = setup({ isTerminal: true })
+  it('goes straight through once the game has ended — nothing left to interrupt', async () => {
+    const { result, rpc } = setup({ isGameEnded: true })
     rpc.mockResolvedValue(REPLAYED_OK)
     act(() => result.current.actRestart.run())
     await flush()

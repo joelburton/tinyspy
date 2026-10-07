@@ -35,7 +35,7 @@ export type ListedGame = {
   // end. The card dates by it and the list orders by it, so a long-suspended
   // game reads by when it was last played rather than when it began.
   statusChangedAt: string
-  isTerminal: boolean
+  isGameEnded: boolean
   // The club's current game: its `common.games.is_current_view`.
   isCurrent: boolean
   summary: string
@@ -68,7 +68,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
     manifest,
     title: data.title,
     statusChangedAt: data.statusChangedAt,
-    isTerminal: data.ended,
+    isGameEnded: data.ended,
     isCurrent: r.is_current_view,
     summary: manifest.summaryFor(data, members),
   }

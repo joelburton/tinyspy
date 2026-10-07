@@ -14,8 +14,8 @@ import {
 } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import {
   CelebrationBlockingModal,
-} from '@/common/terminal/CelebrationBlockingModal'
-import { useCelebration } from '@/common/terminal/useCelebration'
+} from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'

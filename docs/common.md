@@ -96,7 +96,7 @@ Each step is one or two sentences here; the folder named has the rest.
   someone choosing to stop: **Stop** for everyone in co-op, **Concede** for
   one player in a race, who may be left done while the others play on. The
   record is shown in-page; a win alone celebrates
-  ([`common/terminal`](../src/common/terminal/doc.md),
+  ([`common/ending`](../src/common/ending/doc.md),
   [common-schema.md → Concede](common-schema.md#concede--per-player-drop-out),
   [win-lose.md](win-lose.md)).
 - **After.** A player may look at the answer — personally, and only once the

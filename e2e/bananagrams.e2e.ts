@@ -133,7 +133,7 @@ test.describe('bananagrams persistence', () => {
 
 /**
  * Peel — win path: with an empty hand and a dry bunch, peeling goes out and
- * wins (peel → is_terminal flip → the terminal verdict + celebration). We empty the hand by
+ * wins (peel → ended_at set → the ending verdict + celebration). We empty the hand by
  * placing alice's REAL tiles (the FE derives the hand by letter) and drain the
  * bunch so the peel can't refill.
  */
@@ -342,7 +342,7 @@ test.describe('bananagrams peer counts', () => {
 })
 
 /**
- * "New game" — the terminal action row's one stay-here option, also reachable
+ * "New game" — the ending action row's one stay-here option, also reachable
  * mid-game from the menu. Deals a FRESH bunch with this game's setup + roster
  * on a NEW row and navigates to it.
  *
@@ -408,7 +408,7 @@ test.describe('bananagrams stop game', () => {
     await expect(panel.getByText('Concede, or stop the game?')).toBeVisible()
     await panel.getByRole('button', { name: 'Stop for all' }).click()
 
-    // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
+    // Neutral ending: the row offers New game + Back to club, and Peel is gone.
     await expect(actionButton(page, 'act-new-game')).toBeVisible({ timeout: 15000 })
     await expect(actionButton(page, 'act-peel')).toBeHidden()
     await ctx.close()

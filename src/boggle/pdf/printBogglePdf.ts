@@ -10,7 +10,7 @@ import type { jsPDF } from 'jspdf'
  * the frame (header / Setup / save) + `wordColumns` (the found-words list). All that's
  * boggle-specific is the board — a FIXED-size tile grid (a 6×6 prints bigger than a
  * 4×4; it isn't scaled to a column) with the Setup to its right, and the word list
- * below in 4 columns. At terminal the required-but-missed words fold in as bare rows
+ * below in 4 columns. At the end the required-but-missed words fold in as bare rows
  * (`found: null`); the FE builds that list from the same reveal the on-screen list uses.
  */
 

@@ -51,8 +51,8 @@ before any code:
   `useProgress` reads every `progress` row (`user_id, unplaced, placed,
   solved` — the last two gone since 2026-09-28) and subscribes;
   `usePeerBoards` reads every board once at the end for the printout.
-  PlayArea reads the old page props (`authSession`, `isTerminal`,
-  `isConceded`, `isLocallyTerminal`, `status`, `players`).
+  PlayArea reads the old page props (`authSession`, `isGameEnded`,
+  `isConceded`, `isPlayerEnded`, `status`, `players`).
 - **The convenience RLS.** `player_boards_select` (owner-only while
   `ended_at` is null, the club after) is taken over by the seat rule in
   `makeGameData` (a rival's `tiles` and `board` null mid-race) and replaced

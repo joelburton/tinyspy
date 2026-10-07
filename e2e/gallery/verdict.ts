@@ -8,7 +8,7 @@ const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 /**
  * The seat that won (or lost) a finished game.
  *
- * A compete terminal hands out both verdicts at once — the `won` and `lost`
+ * A compete ending hands out both verdicts at once — the `won` and `lost`
  * tiles are the SAME game photographed from two chairs — so the builder has to
  * pick a chair. Hard-coding "member 0 won" is a guess that the scoring happens
  * to reward whoever the fixture had move first, and scrabble is a standing

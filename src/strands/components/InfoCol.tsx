@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndingMessage } from '@/common/ending/endingMessage'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -35,7 +35,7 @@ export function InfoCol({
   gd: GGameData
   // The ending that applies to me — the game's once it has ended, else mine
   // while the others race on — or null while I play.
-  endingMessage: TerminalMessage | null
+  endingMessage: EndingMessage | null
   actions: GActions
   historyView: GHistoryView
   // The puzzle words, spangram first, while I have them revealed; else null.
@@ -135,7 +135,7 @@ export function InfoCol({
             toggle, one secret (a blessed exception to docs/ui.md → Layout
             stability). */}
         {puzzleWords && (
-          <p className={cls(shared.terminalExtra, styles.solutionWords)}>
+          <p className={cls(shared.endingExtra, styles.solutionWords)}>
             <span className="muted">Words:</span>{' '}
             {puzzleWords.map((w) => (
               <DefinableWord key={w.word} word={w.word} />

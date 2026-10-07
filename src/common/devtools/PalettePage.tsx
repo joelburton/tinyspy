@@ -11,7 +11,7 @@ import styles from './PalettePage.module.css'
  * Two things to look at:
  *
  * - **Down a column**: does this variant mean the same thing in every member?
- *   (Do the five terminal frames read as one band treatment, or does one shout?)
+ *   (Do the five ending frames read as one band treatment, or does one shout?)
  * - **Across a row**: is this member a family, or five unrelated colors that
  *   happen to share a name?
  *

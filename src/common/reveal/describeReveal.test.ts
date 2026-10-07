@@ -10,8 +10,8 @@ import { describeReveal } from './describeReveal'
  */
 describe('describeReveal', () => {
   it('names the noun in both live faces, and wears the crossed eye only to hide', () => {
-    const hidden = describeReveal({ noun: 'solution', revealed: false, isTerminal: true })
-    const shown = describeReveal({ noun: 'solution', revealed: true, isTerminal: true })
+    const hidden = describeReveal({ noun: 'solution', revealed: false, isGameEnded: true })
+    const shown = describeReveal({ noun: 'solution', revealed: true, isGameEnded: true })
     expect(hidden).toMatchObject({ state: 'active', label: 'Reveal solution' })
     expect(hidden.icon).toBeUndefined()
     expect(shown).toMatchObject({ state: 'active', label: 'Hide solution' })
@@ -23,8 +23,8 @@ describe('describeReveal', () => {
    * words as the game ended — and tooltipped, because a gray control that says
    * nothing about why is the thing this function exists to stop repeating.
    */
-  it('grays before terminal, keeping its name and saying why', () => {
-    expect(describeReveal({ noun: 'key cards', revealed: false, isTerminal: false })).toEqual({
+  it('grays before the end, keeping its name and saying why', () => {
+    expect(describeReveal({ noun: 'key cards', revealed: false, isGameEnded: false })).toEqual({
       state: 'disabled',
       label: 'Reveal key cards',
       tooltip: "Can't reveal until all end",
@@ -34,11 +34,11 @@ describe('describeReveal', () => {
   it('goes inert once a solve has already put it on screen, whatever the noun', () => {
     // The one label that is NOT built from the noun: there is no control left to
     // describe, so it says what happened rather than what it would do.
-    expect(describeReveal({ noun: 'best solution', revealed: true, impliedBySolve: true, isTerminal: true }))
+    expect(describeReveal({ noun: 'best solution', revealed: true, impliedBySolve: true, isGameEnded: true }))
       .toEqual({ state: 'disabled', label: 'Solution already shown' })
   })
 
   it('omitting impliedBySolve is the four games that never imply', () => {
-    expect(describeReveal({ noun: 'solution', revealed: true, isTerminal: true }).state).toBe('active')
+    expect(describeReveal({ noun: 'solution', revealed: true, isGameEnded: true }).state).toBe('active')
   })
 })

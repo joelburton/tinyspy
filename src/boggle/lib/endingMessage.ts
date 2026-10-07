@@ -1,7 +1,7 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/terminal/gameEnding'
-import { buildGameEndedMessageNeutral, type TerminalMessage } from '@/common/terminal/terminalMessage'
+import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/ending/gameEnding'
+import { buildGameEndedMessageNeutral, type EndingMessage } from '@/common/ending/endingMessage'
 import type { GPlayer } from '../types'
 
 /**
@@ -48,7 +48,7 @@ export function buildGameEndingMessage({
   hasTarget: boolean
   // "12 words, 30 points" — the team's in coop, my own in compete.
   tally: string
-}): TerminalMessage {
+}): EndingMessage {
   const reasonText = gameEnding.reason === 'timeout' ? "Time's up" : 'Game ended'
 
   if (mode === 'coop') {
@@ -90,7 +90,7 @@ export function buildPlayerEndingMessage({
   reason: PlayerEndedReason
   // How I came out (`gd.me.outcome`), written when I ended.
   outcome: EndOutcome
-}): TerminalMessage {
+}): EndingMessage {
   if (reason === 'conceded') {
     return { pillText: 'Conceded — race continues', infoColText: 'You conceded', outcome }
   }
