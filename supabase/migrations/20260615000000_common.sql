@@ -276,7 +276,7 @@ create table common.gametypes (
   -- game (waffle, wordle, stackdown, psychicnum, crosswords, codenamesduet all
   -- have a single answer worth replaying blind), so common.end_game reads it
   -- once and no ending path can forget to pass it — including
-  -- common.concede's all-conceded terminal, which no gametype calls directly.
+  -- common.concede's all-conceded ending, which no gametype calls directly.
   --
   -- Defaults FALSE = "reveal at any ending", which is both the majority
   -- (the word-find trio, connections, wordiply) and the safe direction for a
@@ -320,8 +320,8 @@ create table common.gametypes (
 -- manifest is the only thing that knows how to render it (typed
 -- by the gametype, not by common).
 --
--- ended_at is null while non-terminal and set at terminal
--- transition by common.end_game.
+-- ended_at is null while the game is still playing and set at the
+-- ending by common.end_game.
 --
 -- `gametype` FKs to common.gametypes(gametype) ON DELETE CASCADE,
 -- so dropping a gametype from the registry auto-cleans its games.
@@ -332,7 +332,7 @@ create table common.gametypes (
 -- gametype's own RPC, which also owns the formula; several
 -- gametypes then REWRITE it as play reveals something worth
 -- naming the game after (scrabble's first words played, wordle's
--- answer at terminal, …), and reset it on replay.
+-- answer at the end, …), and reset it on replay.
 --
 -- Two constraints every formula lives under:
 --
@@ -341,7 +341,7 @@ create table common.gametypes (
 --     opponent's guesses, a hidden solution). Games that have
 --     nothing public to say hold the placeholder 'New game'.
 --   * a title that can carry HIDDEN state (waffle, wordle — at
---     terminal the title IS the answer) derives it in one
+--     the end the title IS the answer) derives it in one
 --     `_sync_title` helper called from every transition;
 --     recomputing from state everywhere is what keeps a replayed
 --     game from still advertising the answer. A title that only
@@ -393,7 +393,7 @@ create table common.gametypes (
 --                      gametype's RPC writes it in the same
 --                      transaction as play_state. Avoids
 --                      callers having to interpret per-gametype
---                      terminal-sets.
+--                      sets of ended play_states.
 --     - status      — jsonb; gametype-specific data for the
 --                      club-page listing label (rendered by
 --                      `manifest.summaryFor`). Kept current on
@@ -436,7 +436,7 @@ create table common.games (
   -- state that each game has to remember to reset.
   --
   -- NOT a shield: the solution itself is withheld by each gametype's
-  -- column-grant + `_x_for()` terminal gate. This is the DISPLAY answer, and
+  -- column-grant + `_x_for()` ended gate. This is the DISPLAY answer, and
   -- it's shared — one player revealing opens it for the group, because a
   -- post-mortem is something the friends do together.
   solution_revealed boolean not null default false,
@@ -466,7 +466,7 @@ create table common.games (
   -- whole point — a gametype CAN'T forget to bump it (we did forget, in an
   -- early stackdown path). Because every meaningful game event writes this
   -- row — a move (common.update_state), shelving / resuming (the
-  -- is_current_view flip), a pause, the terminal write (common.end_game) —
+  -- is_current_view flip), a pause, the ending write (common.end_game) —
   -- the timestamp lands on "last touched," which is exactly the
   -- shelved/ended/last-played reading the list wants.
   last_active_at timestamptz not null default now()
@@ -526,14 +526,14 @@ create table common.timers (
 -- for "who was at this game" historical accuracy.
 --
 -- `result jsonb` is the per-player end-state — null while the
--- game is in progress, populated by common.end_game at terminal
--- transition. The gametype's manifest knows the shape (won/lost
+-- game is in progress, populated by common.end_game at the
+-- ending. The gametype's manifest knows the shape (won/lost
 -- flag for cooperative games, score for boggle, etc.) and how
 -- to render it.
 --
 -- `conceded` / `conceded_at` are the per-player DROP-OUT flag: a
 -- player who willfully quit a *compete* game mid-race (see
--- common.concede). It's the one bit of per-player terminal state
+-- common.concede). It's the one bit of per-player ended state
 -- that exists BEFORE common.end_game runs, because it must be
 -- visible to peers (the OpponentStrip shows a conceded player as
 -- "out") and, crucially, it distinguishes the two "no longer an
@@ -648,7 +648,7 @@ alter table common.timers           enable row level security;
 --   owner_id = user = that player's PRIVATE pad (compete — a shared pad
 --                    would leak solving progress between opponents).
 --
--- DB-backed so the notes survive pause-unmount and show in the terminal view.
+-- DB-backed so the notes survive pause-unmount and show in the ended view.
 create table common.game_scratchpads (
   id       uuid primary key default gen_random_uuid(),
   game_id  uuid not null references common.games(id) on delete cascade,

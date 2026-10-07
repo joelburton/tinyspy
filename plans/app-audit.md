@@ -127,7 +127,7 @@ area file's closing summary.
 | 41 | `z-index` | no folder — a task | closed 09-18, nothing stamped · the z- layers |
 | 42 | `word-list` | `word-list` | closed 09-21 · the found-words list |
 | 43 | `word-entry` | `word-entry` | closed 09-18 · the typed-word box and its row |
-| 44 | `terminal` | `ending` | closed 09-18 · a game's ending, and the celebration |
+| 44 | `ending` | `ending` | closed 09-18 · a game's ending, and the celebration |
 | 45 | `reveal` | `reveal` | closed 09-18 · showing the answer |
 | 46 | `info-sheet` | `info-sheet` | closed 09-19 · the info column and its phone page |
 | 47 | `pdf` | `pdf` · `shared/wordle-style/pdfTiles.ts` | closed 09-19 · printing a board |

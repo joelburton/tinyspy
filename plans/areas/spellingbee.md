@@ -10,7 +10,7 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 **Status: CLOSED 2026-09-23, blessed** (Joel: *"bless the files in this area.
 then close the area. then commit."*). Forty-three files
 `cs-blessed-spellingbee`: the forty agreed at the opening and three the area
-created (`Letter.module.css`, `lib/endingMessage.ts` and its test). Closed without
+created (`Letter.module.css`, `lib/terminal.ts` and its test). Closed without
 an e2e run; **run after the close, 2026-09-23, on Joel's word: 17 spec files,
 41 tests, all green** — spellingbee's four, boggle's, wordwheel's and
 wordiply's three each (Step 4 reshaped the engine they share), and the three
@@ -443,8 +443,8 @@ restored from scratchpad copies, green. `tsc -b` clean, lint clean over
 
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-22
 
-wordle's Step 6, copied, names and all: the builder is **`buildEndingMessage`**
-in `lib/endingMessage.ts`, the value it produces is `endingMessage`, and InfoCol's
+wordle's Step 6, copied: the builder is **`buildBeeGameEndingMessage`**
+in `shared/bee-games/endingMessage.ts`, the value it produces is `endingMessage`, and InfoCol's
 `over` prop is `endingMessage` too. `PlayArea.tsx` no longer imports
 `buildGameEndedMessageNeutral`, the `EndingMessage` type or `Actor`; the
 `useMemo` on primitives that feeds the verdict effect stays there. The body
@@ -456,7 +456,7 @@ moved unchanged — same branches, same words.
 docstring lines that said "`lost_compete` + outcome `conceded`" say "reason".
 The value is the same `status.reason` it always was.
 
-`lib/endingMessage.test.ts` walks the whole input space — every ended play state
+`shared/bee-games/endingMessage.test.ts` walks the whole input space — every ended play state
 in both modes (`won` · `lost` · `ended` · `won_compete` · `lost_compete`), the
 caller winning and beaten, the winner known to the roster and not, both
 collective losses told apart by reason — and the last case is a TABLE: no cell
@@ -759,7 +759,7 @@ In the working tree for Joel's read, before any finding is presented
   edit.
 - **The marker pass**, in the shape [[docs/code-conventions.md]] → Code
   clarity states: a note on a field or an argument is `//` (`lib/setup.ts`'s
-  values, `lib/endingMessage.ts`'s input, `pdf/`'s model, `setupSummary`'s `board`,
+  values, `shared/bee-games/endingMessage.ts`'s input, `pdf/`'s model, `setupSummary`'s `board`,
   the edge function's `Setup`, `board.ts`'s three row types). The compete
   manifest's `labelFor` carried a `/**` inside the object literal. One
   docstring sat on the wrong declaration: `board.ts`'s
@@ -778,7 +778,7 @@ In the working tree for Joel's read, before any finding is presented
   the hidden `required_words`" behind a column grant that blocks it — the
   grant lists both lists. `lib/setupSummary.ts` said its order "mirrors
   `SetupForm.tsx`" (the target rank sits after the bands here, before them
-  there). `lib/endingMessage.ts` named `rankLabel` as still used (nothing in the
+  there). `shared/bee-games/endingMessage.ts` named `rankLabel` as still used (nothing in the
   file calls it). `pdf/` named `wordColumns` (the body is `drawWordListBody`)
   and "required-but-missed" (bonus fold in). `Help.tsx` said "Phase 3 copy …
   Phase 4". The edge function's header said "all ~3.5k rows" (the count is
@@ -790,10 +790,10 @@ In the working tree for Joel's read, before any finding is presented
   progress'" and "P0002 'game not found'" where the raises are PN353–PN360
   envelopes; `submit_timeout`'s and `end_game`'s headers said `outcome`,
   "P0001 (which the FE swallows silently)", `ctx.menu.setGameItems`, and
-  "spellingbee has no intrinsic 'you won' ended state in coop" — the coop
+  "spellingbee has no intrinsic 'you won' terminal state in coop" — the coop
   target win exists; `replay_board`'s cited `docs/celebration-ideas.md`, a
   file that does not exist. `gameplay_test`'s header listed `alreadyFound`
-  among the `result`s (it is a race not-ok) and "after-the-end P0001;
+  among the `result`s (it is a race not-ok) and "post-terminal P0001;
   non-player 42501"; `compete_test`'s said `outcome='timeout'` and credited a
   "20260621 spellingbee_compete migration"; `rls_test`'s cited
   "docs/spellingbee.md → Designing for compete" and `setup.mode` (the policy
@@ -869,7 +869,7 @@ does not. **Verified by planting** the gate back to coop only (the race-win
 case red, the rest green) and to any `won_compete` (the somebody-else case
 red), then restored. `doc.md` stated the coop-only rule in three places and its
 Tests row said nothing about it; all four say the rule now, as does
-`lib/endingMessage.ts`'s docstring. `tsc -b` and eslint clean; spellingbee plus the
+`shared/bee-games/endingMessage.ts`'s docstring. `tsc -b` and eslint clean; spellingbee plus the
 guards, 36 files, 363 tests green. **No e2e has run for this.**
 
 `useCelebration(playState === 'won')` in `PlayArea.tsx` is coop only, and the
@@ -1329,7 +1329,7 @@ it. **Not touched, being F-14's:** the "replaces status wholesale" comments in
   pre-split)"* twice, *"required = 1 is now the floor (was 2)"*, *"the new band
   floor"*; `custom_letters_test` points at `create_game_test.sql` for fixtures
   that are `setup.psql`'s; `replay_test` — *"42501 = … 'not-a-player|'"* (it is
-  PN253) and *"the ending RestartButton"* (no such component); 
+  PN253) and *"the terminal RestartButton"* (no such component); 
   `reveal_partition_test` — *"the PlayArea caller-only-score fix"*, *"what the
   old code did"*, *"The old score derivation"*, *"now exposes"*.
 - **`PlayArea.test.tsx`**: a block comment about the compete collective losses
@@ -1614,7 +1614,7 @@ F-11 / F-14 / F-16: every lock-then-gate order right, every handler reading
 identical. `doc.md`'s Genius-at-70% and band-one-floor claims were checked
 against `rankLadder.ts` and the pangram import and hold (the frozen
 migration's "band <= 3" is the stale one, and stays). Help, the manifest's
-labels, `lib/endingMessage.ts` and the edge function's docstring match the code.
+labels, `shared/bee-games/endingMessage.ts` and the edge function's docstring match the code.
 
 ## Notes
 
@@ -1662,4 +1662,4 @@ step 1: "each one is taken over or dropped by name"). What became of each on
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**`spellingbee` is CLOSED 2026-09-23, blessed** (Joel: *"bless the files in this area. then close the area. then commit."*): forty-three files `cs-blessed-spellingbee` — the forty agreed at the opening, `Letter.module.css` from the stylesheet split, and `lib/endingMessage.ts` with its test from Step 6. The fourth game, and the first with an edge function on its roster, whose read took the ordinary shape plus three checks of its own: what it trusts against what `create_game` re-checks, which refusals the player can act on, and that it BOOTS, which `deno check` cannot prove. The restructure in eight steps with the stylesheet split; the audit (seventeen findings in `plans/areas/spellingbee.md`, nine from the todo and the prose pass, eight from the read; sixteen shipped, one ruled no-change); tile-feedback to tf2 (six proposals, four shipped); then Joel's shake change and the closing re-read (five, all shipped). **What changed the app:** a race's winner celebrates; a word typed into a game a friend just deleted is the shared race, not a BUG modal — and **the ruling is roster-wide**, written into `docs/envelopes.md`, with the thirty-three other functions that still fault one entry in `docs/deferred.md`; a refused word shakes its own hexes rather than the hive, and its hexes stroke the shared verdict edge; the tapped hex no longer stays raised on a touchscreen; Help stopped promising a pangram a custom board need not have, and explains bonus words and the two modes; `create_game` answers a non-numeric band in the envelope (`PN499`, `PN500`); every per-player result is `{ won }`; the leaderboard query is one helper; both shuffles are the shared one. **What the read established, for the next game that asks:** the khaki selected edge is the word-finding family's, written into tile-feedback.md → The channels; the bee center colors are brand tokens; an SVG hex cannot wear `.tileFace` and is recorded as unable, not owed. **The lesson:** the audit's first grep counted nine functions answering a deleted game as a fault, and there were thirty-four — a count taken from one phrasing of a message misses every other phrasing; and the re-read's five were this area's own fixes not reaching a sibling (F-16 cut the coop results and left the compete ones), for the ninth area running. **Handed on:** the thirty-three deleted-game conversions (`deferred.md`), three Soon entries this area added to `wordwheel/todo.md` for its twins of spellingbee's fixes (the leaderboard helper, the status-merge comments, the unread result keys) beside the shuffles entry it already had, and wordwheel's ungated hover, which stays in `deferred.md`. Closed without an e2e run, and nothing seen on a device.
+**`spellingbee` is CLOSED 2026-09-23, blessed** (Joel: *"bless the files in this area. then close the area. then commit."*): forty-three files `cs-blessed-spellingbee` — the forty agreed at the opening, `Letter.module.css` from the stylesheet split, and `lib/terminal.ts` with its test from Step 6. The fourth game, and the first with an edge function on its roster, whose read took the ordinary shape plus three checks of its own: what it trusts against what `create_game` re-checks, which refusals the player can act on, and that it BOOTS, which `deno check` cannot prove. The restructure in eight steps with the stylesheet split; the audit (seventeen findings in `plans/areas/spellingbee.md`, nine from the todo and the prose pass, eight from the read; sixteen shipped, one ruled no-change); tile-feedback to tf2 (six proposals, four shipped); then Joel's shake change and the closing re-read (five, all shipped). **What changed the app:** a race's winner celebrates; a word typed into a game a friend just deleted is the shared race, not a BUG modal — and **the ruling is roster-wide**, written into `docs/envelopes.md`, with the thirty-three other functions that still fault one entry in `docs/deferred.md`; a refused word shakes its own hexes rather than the hive, and its hexes stroke the shared verdict edge; the tapped hex no longer stays raised on a touchscreen; Help stopped promising a pangram a custom board need not have, and explains bonus words and the two modes; `create_game` answers a non-numeric band in the envelope (`PN499`, `PN500`); every per-player result is `{ won }`; the leaderboard query is one helper; both shuffles are the shared one. **What the read established, for the next game that asks:** the khaki selected edge is the word-finding family's, written into tile-feedback.md → The channels; the bee center colors are brand tokens; an SVG hex cannot wear `.tileFace` and is recorded as unable, not owed. **The lesson:** the audit's first grep counted nine functions answering a deleted game as a fault, and there were thirty-four — a count taken from one phrasing of a message misses every other phrasing; and the re-read's five were this area's own fixes not reaching a sibling (F-16 cut the coop results and left the compete ones), for the ninth area running. **Handed on:** the thirty-three deleted-game conversions (`deferred.md`), three Soon entries this area added to `wordwheel/todo.md` for its twins of spellingbee's fixes (the leaderboard helper, the status-merge comments, the unread result keys) beside the shuffles entry it already had, and wordwheel's ungated hover, which stays in `deferred.md`. Closed without an e2e run, and nothing seen on a device.

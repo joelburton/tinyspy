@@ -18,7 +18,7 @@
 -- doc says.
 --
 -- A DATA migration, because the key lives in stored rows: every finished game
--- in prod carries it, and the label + terminal readers were renamed with the
+-- in prod carries it, and the label + ending readers were renamed with the
 -- writers in the same change. `supabase/sql/` handles the writers (it is
 -- re-applied in full on every deploy); nothing there can reach rows already
 -- written, which is what this file is for.

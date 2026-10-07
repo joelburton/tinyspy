@@ -687,8 +687,8 @@ terminal games also show a brief terminal message to the left of the buttons."*
 Which is the answer to the layout question too: if the row is the same row
 throughout, there is nothing to reserve.
 
-What existed: two rows in `ending/`, one for the game's end (message from
-`over`) and one for a player's end (a hand-written neutral label), two
+What existed: `terminal/TerminalActionRow` (message from
+`over`) and `terminal/LocalTerminalRow` (a hand-written neutral label), two
 near-identical files, plus a bare `<div className={shared.infoActions}>` for the playing
 branch — three branches, two components, in a folder that is not the one owning
 the stylesheet all three wore.

@@ -87,7 +87,7 @@ create schema if not exists psychicnum;
 -- it from authenticated SELECT (see grants below) while `words`
 -- (the public board) is granted. RPCs run as postgres under
 -- SECURITY DEFINER and read `secrets` freely; the FE only learns
--- it once the game is terminal, via the `psychicnum.games_state`
+-- it once the game has ended, via the `psychicnum.games_state`
 -- view + `_secrets_for` helper pattern.
 --
 -- `mode` is denormalized from `common.games.gametype`
@@ -117,7 +117,7 @@ create table psychicnum.games (
   words text[] not null check (array_length(words, 1) between 5 and 20),
   -- The THREE secret words, distinct, a subset of `words`. The column-grant
   -- below excludes this from authenticated SELECT; it's revealed only
-  -- post-terminal via games_state. Players win by finding all three (coop: as
+  -- after the end via games_state. Players win by finding all three (coop: as
   -- a team; compete: each on their own). The CHECK only asserts the count;
   -- distinctness + the subset property come from construction (create_game
   -- samples three of the board words) — a CHECK can't hold a subquery.
@@ -211,7 +211,7 @@ alter table psychicnum.guesses enable row level security;
 -- Realtime publication
 -- ============================================================
 -- Three tables broadcast so the FE can subscribe to:
---   - games   — terminal-state flip (used to re-fetch the view
+--   - games   — the ended flip (used to re-fetch the view
 --                with secrets now revealed)
 --   - players — the budget count (`guesses_used` since
 --                20260924000009) (drives the budget
@@ -234,7 +234,7 @@ alter publication supabase_realtime add table psychicnum.guesses;
 
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
--- open it with the terminal Reveal (common.reveal_solution). See
+-- open it with the ending Reveal (common.reveal_solution). See
 -- common-schema.md → Revealing the solution.
 -- default_enroll false: psychicnum is the deliberately-minimal toy that
 -- exercises the multi-game architecture, not a game a new club should be

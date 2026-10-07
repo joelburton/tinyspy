@@ -1,4 +1,4 @@
-// cs-blessed-terminal
+// cs-blessed-ending
 
 import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'

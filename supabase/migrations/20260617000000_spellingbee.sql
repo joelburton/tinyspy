@@ -128,9 +128,9 @@ create table spellingbee.pangrams (
 -- shared `useWordSubmit` hook) and submits trusting-commit, the
 -- same model as boggle. The trust model doesn't withhold them
 -- (friends, not anti-cheat), so there's no column-grant gate and
--- no terminal-reveal helper: the FE reads both lists straight off
+-- no reveal-at-the-end helper: the FE reads both lists straight off
 -- `games_state`, and the missed-words reveal is a client-side
--- `required − found` computed at terminal (bonus words are never
+-- `required − found` computed at the end (bonus words are never
 -- shown in the reveal, but that's a FE display choice, not a gate).
 -- See src/spellingbee/doc.md.
 

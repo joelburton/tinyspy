@@ -259,7 +259,7 @@ create unique index connections_guesses_one_correct_per_rank_compete
 -- someone matches all 4 categories OR the timer expires.
 --
 -- Per-player win/lose outcome doesn't live here — that's
--- common.game_players.result written at terminal time via
+-- common.game_players.result written at the end via
 -- common.end_game's player_results param. Same separation as
 -- psychicnum.players.
 create table connections.players (

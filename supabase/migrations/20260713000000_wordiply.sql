@@ -15,7 +15,7 @@
 --   • letter count — the sum of the lengths of ALL your guesses.
 -- The felt state DURING play is only "I found a 7-letter word" (each
 -- guess shows its length); the length score, letter count, and the
--- longest possible word are revealed only at TERMINAL — but that's an FE
+-- longest possible word are revealed only at THE END — but that's an FE
 -- DISPLAY choice, not a security boundary (see below).
 --
 -- This is a targeted FORK of wordwheel/spellingbee (word-list games with
@@ -81,7 +81,7 @@ create schema if not exists wordiply;
 -- Nothing here is column-hidden. Because we don't care about cheating,
 -- longest_words + legal_words + max_word_length are all readable by club
 -- members from game start; the FE gates DISPLAY of the scores + the
--- longest word to terminal.
+-- longest word to the end.
 create table wordiply.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
@@ -98,7 +98,7 @@ create table wordiply.games (
   -- base. PUBLIC — it's the bar's target, a hint, never the answer.
   max_word_length int not null,
   -- The actual longest matching word(s), capped (~top 3). Public (the FE
-  -- only RENDERS it at terminal). jsonb array of text.
+  -- only RENDERS it at the end). jsonb array of text.
   longest_words jsonb not null,
   -- The full clean legal matching-word list shipped to the FE for local
   -- trusting-commit validation. jsonb array of text.

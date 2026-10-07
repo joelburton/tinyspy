@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Every conceder is locally terminal
+-- Every conceder is player-ended
 -- ============================================================
 -- `locally_terminal` means "not playing any more, for whatever reason" —
 -- finished, eliminated, out of budget, or conceded (docs/win-lose.md → Where a

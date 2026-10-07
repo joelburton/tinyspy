@@ -37,7 +37,7 @@ stamped):
 
 **Evidence, not roster:** `turnText.tsx` + `turnText.test.tsx` are
 `cs-blessed-feedback` (`feedback` owns the words; the row says so), the way
-`terminal` treated `endingMessage.ts`. The fourteen game `InfoCol.tsx` files,
+`ending` treated `endingMessage.ts`. The fourteen game `InfoCol.tsx` files,
 eight `BoardCol.tsx` files and `GamePage.tsx` that place these are consumers,
 each its own area. `game-page/playArea.module.css` began as evidence — two roster
 components took their root class from it — and F-11 then edited it, moving the
@@ -210,7 +210,7 @@ is game-page's class (F-11), and the *"non-breaking space"* comment is F-7.
 
 ### F-info-sheet-7 · `ended-turn-line-collapses` · Once the game has ended the whose-turn line renders a plain space and is 0px tall, so the column reflows by a line — **WITHDRAWN 2026-09-18: THE PREMISE IS FALSE.** There is no bug
 
-`if (isGameEnded) return <p className={shared.infoState}>{' '}</p>` — `' '` is
+`if (isTerminal) return <p className={shared.infoState}>{' '}</p>` — `' '` is
 U+0020, collapsible whitespace, and a block holding only that has no line box.
 Measured headless in Chromium with the scaffold's rules (`margin: 0`,
 `font-size: 0.95rem`, a flex column with `gap: 1rem`): **0px**, against 17px
@@ -282,8 +282,8 @@ it.
 ### F-info-sheet-9 · `stale-doc-claims` · `docs/playarea.md` and `docs/mobile.md` describe the folder as it was — WORKED, except the folder-table row F-11 decides
 
 - `playarea.md`: *"Shared in `common/game-page/playArea.module.css` —
-  `.infoState` / `.infoHelp` / `.infoActions` / `.endingActions` /
-  `.outcome_*` / `.endingExtra`"* — `.outcome_*` are `InfoActionsRow.module.css`'s
+  `.infoState` / `.infoHelp` / `.infoActions` / `.terminalActions` /
+  `.outcome_*` / `.terminalExtra`"* — `.outcome_*` are `InfoActionsRow.module.css`'s
   since 2026-09-15.
 - `playarea.md`: *"a bold, outcome-colored result line (won = green / lost =
   red / manual-end = neutral, via the `--outcomes-*-ink-color` tones)"* — an

@@ -57,7 +57,7 @@ alter table crosswords.puzzles enable row level security;
 -- `meta`/`solution` are COPIED from the puzzle at create time so a game
 -- survives puzzle retirement (`on delete set null`, per stackdown). The
 -- copied `solution` is shielded by the same column-grant trick; it's
--- revealed only at terminal, through `games_state` below.
+-- revealed only at the end, through `games_state` below.
 create table crosswords.games (
   id          uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
@@ -114,7 +114,7 @@ alter table crosswords.cells enable row level security;
 -- Realtime: the FE subscribes to the cells (fills) via useCells. It does NOT
 -- subscribe to crosswords.games — useGame is a one-shot fetch and status flows
 -- through common.games (useCommonGame). So crosswords.games is deliberately
--- UNpublished (and the terminal RPCs carry no "Realtime touch" self-update):
+-- UNpublished (and the ending RPCs carry no "Realtime touch" self-update):
 -- there is no subscriber to wake. If a future feature needs the FE to react to
 -- a crosswords.games change, re-add the publication line here AND a touch in the
 -- writing RPC — a subscription to an unpublished table fails silently.
@@ -124,7 +124,7 @@ alter publication supabase_realtime add table crosswords.cells;
 -- ── Gametype registration ─────────────────────────────────────────────
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
--- open it with the terminal Reveal (common.reveal_solution). See
+-- open it with the ending Reveal (common.reveal_solution). See
 -- common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('crosswords_coop', 1, true),

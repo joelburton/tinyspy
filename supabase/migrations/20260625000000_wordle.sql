@@ -25,7 +25,7 @@
 --     tie-break earliest solve.
 --
 -- The structure is waffle's hidden-answer pattern (a HIDDEN `target`,
--- revealed post-terminal via games_state) plus spellingbee's per-guess log
+-- revealed after the end via games_state) plus spellingbee's per-guess log
 -- with mode-aware RLS (compete hides opponents' guesses). The target is
 -- drawn per the chosen `answer_source` (0 = the curated Wordle answer
 -- list, 1..6 = a difficulty band of common.words); guesses are validated
@@ -55,7 +55,7 @@ create schema if not exists wordle;
 -- wordle.games — one row per playthrough
 -- ============================================================
 -- `target` is the answer key — HIDDEN via a column-level grant and
--- revealed only post-terminal through games_state (the
+-- revealed only after the end through games_state (the
 -- waffle/spellingbee/psychicnum hidden-answer pattern). `max_guesses` is
 -- the budget; in coop it's shared by the team, in compete it's each
 -- player's own.
@@ -105,7 +105,7 @@ alter table wordle.players enable row level security;
 -- One row per accepted (valid, non-duplicate) guess. `colors` is the
 -- 5-char g/y/x feedback computed at submit time. Coop: a shared
 -- sequence — every member sees every guess. Compete: per-player; the
--- RLS policy hides opponents' rows until the game is terminal (the
+-- RLS policy hides opponents' rows until the game has ended (the
 -- end-of-game reveal). `seq` is the guesser's 1-based count;
 -- in coop it's the shared team count.
 create table wordle.guesses (
@@ -140,7 +140,7 @@ alter publication supabase_realtime add table wordle.guesses;
 -- compete (own board each, fewest-guesses winner — needs ≥2).
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
--- open it with the terminal Reveal (common.reveal_solution). See
+-- open it with the ending Reveal (common.reveal_solution). See
 -- common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('wordle_coop', 1, true),

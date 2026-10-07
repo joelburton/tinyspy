@@ -164,9 +164,9 @@ create index wordwheel_pangrams_difficulty_idx on wordwheel.pangrams (difficulty
 -- shared `useFoundWordSubmit` hook) and submits trusting-commit, the
 -- same model as boggle. The trust model doesn't withhold them
 -- (friends, not anti-cheat), so there's no column-grant gate and
--- no terminal-reveal helper: the FE reads both lists straight off
+-- no reveal-at-the-end helper: the FE reads both lists straight off
 -- `games_state`, and the missed-words reveal is a client-side reveal
--- of the words nobody found, computed at terminal (bonus words join it
+-- of the words nobody found, computed at the end (bonus words join it
 -- when the board has a real bonus list — a FE display choice, not a
 -- gate).
 -- See src/wordwheel/doc.md.

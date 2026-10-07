@@ -1,4 +1,4 @@
-// cs-blessed-terminal
+// cs-blessed-ending
 
 import { useState } from 'react'
 

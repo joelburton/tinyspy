@@ -107,7 +107,7 @@ create table letterboxed.seeds (
   mask       bigint generated always as (common.word_letter_mask(letters)) stored,
   -- The chained pair that solves this board: last(word_a) =
   -- first(word_b), and their letters union to exactly `letters`.
-  -- Revealed at terminal ("solvable in 2: DEMOTIC, CRAVING") — not
+  -- Revealed at the end ("solvable in 2: DEMOTIC, CRAVING") — not
   -- hidden mid-game by any grant, because the board's full playable
   -- word list ships to the FE anyway (see letterboxed.games below), so
   -- a column gate here would guard nothing.
@@ -176,7 +176,7 @@ create table letterboxed.games (
 
   -- The seeded two-word solution, copied from letterboxed.seeds so the
   -- board stays self-contained (a seed row could later be re-imported
-  -- away). Shown at terminal. The FE could derive A solution from
+  -- away). Shown at the end. The FE could derive A solution from
   -- playable_words, but this is the GETTABLE one — band <= 2 by
   -- construction, where a search would happily return two obscurities.
   solution text[] not null check (cardinality(solution) = 2),
@@ -353,7 +353,7 @@ alter publication supabase_realtime add table letterboxed.events;
 -- ends without a win, so a replay of the same board is a genuine second
 -- try. Without it the answer lands on screen the moment anyone stops the
 -- game, and the post-mortem — "what were you going to play next?" — is
--- over before it starts. The players open it with the terminal Reveal
+-- over before it starts. The players open it with the ending Reveal
 -- (common.reveal_solution). See common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('letterboxed_coop', 1, true),

@@ -1,4 +1,4 @@
-# Area: terminal
+# Area: ending
 
 The folders it reads: `ending`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
@@ -6,7 +6,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: CLOSED 2026-09-18** (Joel: *"close the area and commit"*, after the
 re-read's report named the four blessed files it had changed). Seven files
-`cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18) and
+`cs-blessed-ending` (Joel: *"bless the files in this area"*, 2026-09-18) and
 **all twenty-two findings worked**: ten prose in one pass, F-11 to F-14 one at
 a time, every one answered as (a), then the re-read's eight with Joel's three
 rulings. Roster agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken
@@ -46,7 +46,7 @@ ruled keep (*"don't change it"*); the comment says what is there.
 ## The roster
 
 `src/common/ending/` — what shows when a game ends. Seven files
-`cs-met-terminal`, plus the folder's own two docs (not stamped; the script's
+`cs-met-ending`, plus the folder's own two docs (not stamped; the script's
 scope is files with a first-line comment):
 
 - `CelebrationBlockingModal.tsx` · `.module.css` · `.test.tsx` — the dialog a
@@ -111,11 +111,11 @@ The folder's tests are green (4 files, 16 tests); `tsc -b` is clean.
 
 ## Findings
 
-*(`F-terminal-1 · slug · title`, one heading each, with its status after it when
+*(`F-ending-1 · slug · title`, one heading each, with its status after it when
 it has one; no status means OPEN. F-1 to F-10 are the prose pass; F-11 to F-14
 were the decisions; F-15 to F-22 are the closing re-read.)*
 
-### F-terminal-1 · `props-take-double-slash` · Five props wear `/**` — WORKED
+### F-ending-1 · `props-take-double-slash` · Five props wear `/**` — WORKED
 
 `CelebrationBlockingModal`'s `Props` marks every member — `title`, `body`,
 `onClose`, `primary`, `playSound` — with `/**`. §4 → The docstring marker: a
@@ -125,7 +125,7 @@ restates the shell's scrim rule ("the backdrop is deliberately NOT
 click-to-close") — that is `BlockingModal`'s decision ("see-and-acknowledge"),
 so one clause and a pointer.
 
-### F-terminal-2 · `docstring-archaeology-and-a-plan-cite` · The component's docstring narrates its history and cites §20 — WORKED
+### F-ending-2 · `docstring-archaeology-and-a-plan-cite` · The component's docstring narrates its history and cites §20 — WORKED
 
 Three paragraphs of the docstring are not for a caller:
 
@@ -152,7 +152,7 @@ The JSX comment on the title ("not something a structural move should quietly
 settle") narrates the move; the reason the h2 is rendered here rather than
 passed to the shell — the confetti has to come above it — is the keep.
 
-### F-terminal-3 · `stylesheet-narrates-what-left` · The stylesheet's comments are mostly about rules that are gone — WORKED
+### F-ending-3 · `stylesheet-narrates-what-left` · The stylesheet's comments are mostly about rules that are gone — WORKED
 
 `CelebrationBlockingModal.module.css`, top to bottom:
 
@@ -175,7 +175,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   with attributions, on rules that no longer exist. What survives is one line:
   the buttons are `<StandardButton>`s and this file styles none of them.
 
-### F-terminal-4 · `test-headers` · The two test docstrings describe a component that no longer exists, and count wrong — WORKED
+### F-ending-4 · `test-headers` · The two test docstrings describe a component that no longer exists, and count wrong — WORKED
 
 - `CelebrationBlockingModal.test.tsx`: *"mostly presentational + an Esc
   handler"* — it has no Escape handler of its own (the shell's registry
@@ -187,7 +187,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   and then four numbered items. *"waffle's coop win is the first consumer"* —
   "the first" is a claim that rots, and archaeology besides.
 
-### F-terminal-5 · `verb-docstring` · `endingOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale — WORKED
+### F-ending-5 · `verb-docstring` · `endingOutcomeVerb.ts` has two docstrings, a dead path, a wrong example, and the third copy of one rationale — WORKED
 
 - Two `/**` blocks, file-level and function-level, both opening with
   "reach for this"; one function, one docstring.
@@ -207,7 +207,7 @@ passed to the shell — the confetti has to come above it — is the keep.
   scrabble prints it in its own score cell inside the strip's `metricFor`, so
   the sentence holds if it says the compete strip's cell.
 
-### F-terminal-6 · `hook-docstring-carries-the-body` · `useCelebration`'s docstring explains why the body is written the way it is — WORKED
+### F-ending-6 · `hook-docstring-carries-the-body` · `useCelebration`'s docstring explains why the body is written the way it is — WORKED
 
 *"Effect-free previous-render pattern: state is adjusted DURING render behind
 a transition guard — React's endorsed 'storing information from previous
@@ -216,7 +216,7 @@ it defends, as `//` — exactly where `useTurnStartFlash` (its named twin) puts
 the same sentence. The three rules and the load-bearing paragraph about rule 1
 are for the caller and stay.
 
-### F-terminal-7 · `ui-md-census` · `docs/ui.md → Endings` counts the celebrating games, and counts wrong — WORKED
+### F-ending-7 · `ui-md-census` · `docs/ui.md → Endings` counts the celebrating games, and counts wrong — WORKED
 
 *"Fifteen of sixteen games celebrate; wordiply has no win state to
 celebrate"* — fourteen do; setgame has no celebration either. *"Scrabble and
@@ -229,7 +229,7 @@ winner) and drops the roll call. Same pass: `docs/deferred.md`'s *"`useCelebrati
 is tone-agnostic"* — the hook knows nothing about the outcome; "tone" is the
 chrome word (docs/outcomes.md), not an outcome's.
 
-### F-terminal-8 · `todo-item-already-done` · `todo.md`'s second item describes a rule that left the stylesheet 2026-08-25 — WORKED
+### F-ending-8 · `todo-item-already-done` · `todo.md`'s second item describes a rule that left the stylesheet 2026-08-25 — WORKED
 
 *"`CelebrationBlockingModal`'s `.button:focus-visible` re-declares the shared
 ring."* — there is no `.button` rule in the file. `git grep` at `66a8791d`
@@ -240,7 +240,7 @@ names had left — and this file's own Notes repeated it unverified at the
 opening. A shipped todo is deleted; the stylesheet's paragraph about it is
 F-3's.
 
-### F-terminal-9 · `info-sheet-todo-stale-pointer` · `info-sheet/todo.md` says "Same question in `terminal`" — WORKED
+### F-ending-9 · `info-sheet-todo-stale-pointer` · `info-sheet/todo.md` says "Same question in `terminal`" — WORKED
 
 Its `TurnStatusLine` item asks whether a folder should import another folder's
 readout stylesheet and ends *"Same question in `terminal` and `word-entry`."*
@@ -250,7 +250,7 @@ It was true while `InfoActionsRow` lived here and read
 stylesheet but its own. The three words come out. (`word-entry` answered its
 half as F-word-entry-8.)
 
-### F-terminal-10 · `doc-md` · `doc.md` is three sentences about `endingMessage` and names neither the hook nor the verb — WORKED
+### F-ending-10 · `doc-md` · `doc.md` is three sentences about `endingMessage` and names neither the hook nor the verb — WORKED
 
 The lede describes the one file that is NOT on this roster and says nothing of
 `useCelebration`, `CelebrationBlockingModal` or `endingOutcomeVerb`. Owed:
@@ -261,7 +261,7 @@ fires on mount; why the verb lives here and not beside `Member`), and a
 `## Details` carrying the render tree above. `common/ending` then comes off
 `INTROS_OWED`.
 
-### F-terminal-11 · `which-family` · The celebration is a `modal-blocking` in code and a `modal-normal` in three durable sentences — WORKED as (a)
+### F-ending-11 · `which-family` · The celebration is a `modal-blocking` in code and a `modal-normal` in three durable sentences — WORKED as (a)
 
 In code it renders `<BlockingModal>` with the default family — `modal-blocking`:
 dark scrim, immovable, a card on a phone — since `d7a0952a` (2026-08-25, "the
@@ -317,7 +317,7 @@ working them turned up that the ui.md paragraph had rotted in BOTH halves:
 - `BlockingModal.tsx`'s docstring drops the celebration from its
   `modal-normal` list (blessed file, prose only).
 
-### F-terminal-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size — WORKED as (a)
+### F-ending-12 · `h2-at-h1-size` · The title is an `<h2>` drawn at `1.5rem`, which is h1's size — WORKED as (a)
 
 `todo.md`'s first item. `base.css` gives h2 `1.25rem` so the four levels
 descend; `.title` overrides to `1.5rem`, h1's size. `docs/ui.md` → The heading
@@ -349,7 +349,7 @@ being written. The second citation the audit had not named: `base.css`'s own
 heading-block comment gives this component as its h2 example too, alongside
 `docs/ui.md` — both are true again rather than one of them being fixed.
 
-### F-terminal-13 · `defaults-are-decisions` · `title` defaults to a string every caller replaces, and `body` to a sentence that is false for scrabble — WORKED as (a)
+### F-ending-13 · `defaults-are-decisions` · `title` defaults to a string every caller replaces, and `body` to a sentence that is false for scrabble — WORKED as (a)
 
 `title = 'Congratulations!'` — all fourteen callers pass a title; the default
 is dead. `body = 'You solved the puzzle.'` — four callers pass none: waffle,
@@ -382,7 +382,7 @@ callers pass a title, so its `'Congratulations!'` default is dead; whether the
 prop becomes required was raised alongside (a) and Joel answered the body
 question only.
 
-### F-terminal-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased — WORKED as (a)
+### F-ending-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased — WORKED as (a)
 
 `endingOutcomeVerb.ts`: *"The capitalized word is the only form … the
 strip's word is computed once, here."* `scrabble/components/InfoCol.tsx`'s
@@ -423,12 +423,12 @@ annotation, and it now warns about the separator collision outright.
 collision scrabble's comment describes. Changing a screen from here is not this
 area's call; their own areas have the files open.
 
-### F-terminal-15 · `doc-tree-draws-an-h2` · `doc.md`'s render tree still drew the title as an `<h2>` — WORKED
+### F-ending-15 · `doc-tree-draws-an-h2` · `doc.md`'s render tree still drew the title as an `<h2>` — WORKED
 
 Written at F-10, before Joel's edit made the heading an `<h1>`; the tree in
 `## Details` was never followed. One character.
 
-### F-terminal-16 · `hook-usage-is-invented` · `useCelebration`'s usage example matched no caller, and named the wrong awaiter — WORKED
+### F-ending-16 · `hook-usage-is-invented` · `useCelebration`'s usage example matched no caller, and named the wrong awaiter — WORKED
 
 `useCelebration(mode === 'coop' && playState === 'won')` — nine games write
 `playState === 'won'` bare, since `won` is coop-only by the states vocabulary,
@@ -440,7 +440,7 @@ since `game-page` split the route (2026-09-15); `doc.md` had the right name and
 the hook did not. `docs/ui.md` → Endings carried the same `<GamePage>`
 claim one paragraph after the one F-17 fixes; both say `GamePageLoader` now.
 
-### F-terminal-17 · `ui-md-keeps-what-f2-removed` · `docs/ui.md` → Endings kept the two phrases F-2 took out of the docstring — WORKED
+### F-ending-17 · `ui-md-keeps-what-f2-removed` · `docs/ui.md` → Endings kept the two phrases F-2 took out of the docstring — WORKED
 
 *"ported from crossplay"* (archaeology) and *"**the only modal a terminal game
 pops**"* (a count, and F-2's exact words) stood in the doc's paragraph on the
@@ -448,7 +448,7 @@ component after the docstring lost them. The paragraph now says it as the rule
 the docstring does: it pops for a win and for nothing else, and an ended game
 pops no other modal, its verdict being in-page.
 
-### F-terminal-18 · `nice-is-full-width` · `docs/ui.md` → Dialog buttons gave "Nice!" as its example of a right-justified lone button — WORKED
+### F-ending-18 · `nice-is-full-width` · `docs/ui.md` → Dialog buttons gave "Nice!" as its example of a right-justified lone button — WORKED
 
 Joel's edit gave "Nice!" `fullWidth` (`width: 100%` on the `StandardButton`),
 so it fills the action row rather than sitting at its right; every real
@@ -458,7 +458,7 @@ instead: *"the 'rule' that a dialog with a single button right-justifies it
 shouldn't be considered a rule. there are times i may make the buttons
 full-width; we need no rule to explain this."* The sentence is gone.
 
-### F-terminal-19 · `test-counts-the-callers` · The test written at F-13 counts games, and one test name keeps a default that F-13 removed — WORKED
+### F-ending-19 · `test-counts-the-callers` · The test written at F-13 counts games, and one test name keeps a default that F-13 removed — WORKED
 
 *"Four games take this shape."* — a census, written the same day F-7 stopped
 `docs/ui.md` counting celebrating games; it now names the condition (a game
@@ -466,7 +466,7 @@ whose title says it all passes no body). `it('renders overridden title/body')`
 — there is no default body to override; it is *renders the title and body it is
 given*.
 
-### F-terminal-20 · `psychicnum-todo-points-at-settled-items` · `src/psychicnum/todo.md` said its area would answer the two `CelebrationBlockingModal` items in this folder's `todo.md` — WORKED
+### F-ending-20 · `psychicnum-todo-points-at-settled-items` · `src/psychicnum/todo.md` said its area would answer the two `CelebrationBlockingModal` items in this folder's `todo.md` — WORKED
 
 *"Being first, it also answers what was punted to 'the first game area': the
 two `CelebrationBlockingModal` items in `src/common/terminal/todo.md` (its title
@@ -475,7 +475,7 @@ by F-12 and then Joel's `<h1>`, the ring by F-8 (gone since 2026-08-25) — and
 this folder's `todo.md` is empty. The sentence came out; the bullet's first
 sentence (the control game for the audit) stands.
 
-### F-terminal-21 · `headroom-comment-after-the-margin` · `.content`'s half-rem of padding is explained by a number that is no longer true — WORKED as (b)
+### F-ending-21 · `headroom-comment-after-the-margin` · `.content`'s half-rem of padding is explained by a number that is no longer true — WORKED as (b)
 
 The comment on `.content`: *"the card family's 1rem would clip the top of the
 arc. This adds half a rem to reach 1.5rem."* Joel's edit put
@@ -495,7 +495,7 @@ reaching 1.5rem — no longer describes what the rule does.
 The comment now says the room over the arc is this half rem plus the
 confetti's own top margin; the padding is untouched.
 
-### F-terminal-22 · `props-no-game-passes` · `title`'s default and `primary` have no caller — WORKED as (b)
+### F-ending-22 · `props-no-game-passes` · `title`'s default and `primary` have no caller — WORKED as (b)
 
 The rider F-13 left open, with a second prop beside it. All fourteen callers
 pass a `title`, so `'Congratulations!'` is dead; none passes `primary`, so the
@@ -607,7 +607,7 @@ longer conditional.
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — nothing is owed: every re-read item was ruled, and `todo.md` is empty
 - [x] every file on the roster blessed, or its stamp says why not — seven
-      `cs-blessed-terminal`, on Joel's word; four of them
+      `cs-blessed-ending`, on Joel's word; four of them
       (`CelebrationBlockingModal.tsx`, its `.module.css` and `.test.tsx`,
       `useCelebration.ts`) changed at the re-read, after the blessing, and the
       close was asked for with that named
@@ -617,4 +617,4 @@ longer conditional.
 Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
 the areas table) when that file was trimmed to the process, 2026-09-23.
 
-**CLOSED 2026-09-18, blessed** (Joel: *"close the area and commit"*). Seven files `cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18); the row had said CLOSED for one commit before the re-read, and that was Claude's inference, not Joel's word (*"re-open the area; that was ENTIRELY WRONG"*). The closing re-read was done 2026-09-18 after Joel's own edits: eight more findings, all worked — and, for the sixth area running, most of them were the day's own work recurring next door (the doc.md tree drew the h2 he had changed, a test counted callers the way F-7 had just stopped ui.md doing, ui.md kept two phrases F-2 removed). Three rulings came out of it, each Joel's: the title is an `h2` at `1.5rem` by decision, uncommented (*"we don't need a comment explaining why i've resized a title"*), with the literal excused in `vocabularies.test.ts`; "a single-button dialog right-justifies its button" is not a rule and left ui.md; and `title`'s default and `primary`, the "Play again" half of the 2026-07-08 port that no game ever passed, are gone (*"remove both, since they're not used"*). Nothing is open. A game's end — when to celebrate it, the celebration, and the words. Twenty-two findings in `plans/areas/terminal.md`: ten prose ones in a single pass, four decisions Joel took one at a time, every one answered as (a), and the re-read's eight. **What changed the app:** the celebration's `body` has no default, the one it had ("You solved the puzzle.") being false at scrabble's compete win and a second copy of the title at the three puzzle sites that took it; and the `.title` size override went, after which Joel made the heading an `<h1>` outright (`91e67ce8`); `base.css`'s heading comment dropped its h2 example on his call and `docs/ui.md`'s table dropped the name, so **what level a modal title takes is now unstated** — listing it under h1 would contradict that level's meaning, and that ruling has not been made. **What changed the docs:** the celebration is a `modal-blocking` wherever it is described (it has rendered one since 2026-08-25), and ui.md's "Two panels stay off the shell" paragraph — rotted in BOTH halves, scrabble's blank picker having joined the shell 2026-09-10 — now names crosswords' number jump as the one panel still hand-rolled. **The area's lesson: re-verify a finding's premise before presenting it.** F-14 recommended making scrabble print `Won · 260` like its siblings; reading its call site first showed `260 (lost)` is argued — `OpponentStrip` separates PLAYERS with `·`, so `Won · 260` runs one mark through two jobs — and the docstring changed while no game did. `doc.md` was written during the prose pass (F-10 is a prose finding) and `common/ending` came off `INTROS_OWED`; `todo.md` is empty. Handed on: setgame and wordiply join with `·` inside a strip cell, for their own areas; `endingMessage.ts` stayed `cs-blessed-feedback` throughout, evidence rather than roster
+**CLOSED 2026-09-18, blessed** (Joel: *"close the area and commit"*). Seven files `cs-blessed-ending` (Joel: *"bless the files in this area"*, 2026-09-18); the row had said CLOSED for one commit before the re-read, and that was Claude's inference, not Joel's word (*"re-open the area; that was ENTIRELY WRONG"*). The closing re-read was done 2026-09-18 after Joel's own edits: eight more findings, all worked — and, for the sixth area running, most of them were the day's own work recurring next door (the doc.md tree drew the h2 he had changed, a test counted callers the way F-7 had just stopped ui.md doing, ui.md kept two phrases F-2 removed). Three rulings came out of it, each Joel's: the title is an `h2` at `1.5rem` by decision, uncommented (*"we don't need a comment explaining why i've resized a title"*), with the literal excused in `vocabularies.test.ts`; "a single-button dialog right-justifies its button" is not a rule and left ui.md; and `title`'s default and `primary`, the "Play again" half of the 2026-07-08 port that no game ever passed, are gone (*"remove both, since they're not used"*). Nothing is open. A game's end — when to celebrate it, the celebration, and the words. Twenty-two findings in `plans/areas/ending.md`: ten prose ones in a single pass, four decisions Joel took one at a time, every one answered as (a), and the re-read's eight. **What changed the app:** the celebration's `body` has no default, the one it had ("You solved the puzzle.") being false at scrabble's compete win and a second copy of the title at the three puzzle sites that took it; and the `.title` size override went, after which Joel made the heading an `<h1>` outright (`91e67ce8`); `base.css`'s heading comment dropped its h2 example on his call and `docs/ui.md`'s table dropped the name, so **what level a modal title takes is now unstated** — listing it under h1 would contradict that level's meaning, and that ruling has not been made. **What changed the docs:** the celebration is a `modal-blocking` wherever it is described (it has rendered one since 2026-08-25), and ui.md's "Two panels stay off the shell" paragraph — rotted in BOTH halves, scrabble's blank picker having joined the shell 2026-09-10 — now names crosswords' number jump as the one panel still hand-rolled. **The area's lesson: re-verify a finding's premise before presenting it.** F-14 recommended making scrabble print `Won · 260` like its siblings; reading its call site first showed `260 (lost)` is argued — `OpponentStrip` separates PLAYERS with `·`, so `Won · 260` runs one mark through two jobs — and the docstring changed while no game did. `doc.md` was written during the prose pass (F-10 is a prose finding) and `common/ending` came off `INTROS_OWED`; `todo.md` is empty. Handed on: setgame and wordiply join with `·` inside a strip cell, for their own areas; `endingMessage.ts` stayed `cs-blessed-feedback` throughout, evidence rather than roster

@@ -56,13 +56,13 @@ create table codenamesduet.games (
   -- play_state lives on common.games. codenamesduet's enum values:
   --   playing       — turn-based clue/guess loop (default at create).
   --   sudden_death  — turn budget ran out, agents remain.
-  --   won           — all 15 greens revealed (terminal).
-  --   lost          — status.reason says how (terminal): 'assassin'
+  --   won           — all 15 greens revealed (ended).
+  --   lost          — status.reason says how (ended): 'assassin'
   --                   revealed, 'turns' (a non-green sudden-death
   --                   reveal), or 'timeout' (the wall-clock countdown
   --                   hit 0). Until 20260924000000_codenamesduet_lost_reason
   --                   these were three play_states of their own.
-  --   ended         — a player pressed End; neutral (terminal).
+  --   ended         — a player pressed End; neutral (the game is over).
   turns_remaining int not null default 9,
   turn_number int not null default 1,
   current_clue_giver text check (current_clue_giver in ('A', 'B')),

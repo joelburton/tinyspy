@@ -14,18 +14,18 @@
 -- that tab stopped the game for everyone still playing, with the finisher's
 -- dot drawn hollow as though they had walked out.
 --
--- `locally_terminal` is the repo's own term for that state
--- (docs/win-lose.md → the vocabulary: "a finished racer's state while others
--- play on"), and a COLUMN because `common` cannot see the game-specific fact
--- that produced it — a mistake count, a spent budget, a solved grid all live
--- in the gametype's own schema.
+-- The repo's own term for that state is player-ended (docs/win-lose.md → the
+-- vocabulary: "a finished racer's state while others play on"), and
+-- `locally_terminal` is a COLUMN because `common` cannot see the
+-- game-specific fact that produced it — a mistake count, a spent budget, a
+-- solved grid all live in the gametype's own schema.
 --
 -- It is NOT a second spelling of `conceded`. A conceder walked away and
--- forfeits any win; a locally terminal player may well be the winner, which
+-- forfeits any win; a player whose play has ended may well be the winner, which
 -- is exactly why marking a solver "conceded" instead was not an option.
 --
 -- Since 20260924000010_conceded_is_locally_terminal.sql, conceding is one of
--- the reasons a player is locally terminal: `common._set_conceded` sets both
+-- the reasons a player is player-ended: `common._set_conceded` sets both
 -- flags, so the presence-pause roster is
 --
 --     not locally_terminal
@@ -33,7 +33,7 @@
 -- and `conceded` alone says the win is forfeit.
 --
 -- Written by `common._set_locally_terminal` from inside the gametype RPC that
--- detects the local terminal, and by `common._set_conceded`; cleared by
+-- detects the player's end, and by `common._set_conceded`; cleared by
 -- `common.reset_game` along with `conceded`, so a restart puts everyone back
 -- in.
 --

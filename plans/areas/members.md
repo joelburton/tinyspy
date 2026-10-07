@@ -182,7 +182,7 @@ would trade this for a worse mismatch, so the whole-pair question
 
 - `member.ts:13`: *"over a hundred files"*. `memberList.ts:11`: *"well over a
   hundred files"*. (`ending/endingOutcomeVerb.ts:15` has the same sentence
-  — the terminal area's, noted for it.) The fact that matters is *types only,
+  — the ending area's, noted for it.) The fact that matters is *types only,
   so imports erase*; the count is the drift-magnet.
 - `memberColor.ts:14–17`: *"Used wherever … the member-list circles, chat name
   labels, per-member in-game affordances (tile-selection borders, etc.),
@@ -436,7 +436,7 @@ the sentences are aspirational. Joel's, and not this finding's to settle.
   day it landed. Fixed there rather than noted, and called out for `corecss`.
 - **`endingOutcomeVerb.ts:15`** carried the same "well over a hundred files"
   count as F-members-4. Deleted with the other two rather than left for the
-  `terminal` area (row 41, still `cs-unmet`).
+  `ending` area (row 41, still `cs-unmet`).
 
 ## Predicted test breaks
 

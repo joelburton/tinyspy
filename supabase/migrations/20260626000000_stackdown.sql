@@ -16,7 +16,7 @@
 -- docs/games/stackdown.md) and stored in stackdown.boards; a game claims a
 -- random one. The 30 tiles (letters + positions) are PUBLIC — there is no
 -- hidden board; the only secret is the six solution words, hidden until
--- terminal (the waffle/wordle hidden-answer pattern) for the end reveal.
+-- the end (the waffle/wordle hidden-answer pattern) for the end reveal.
 --
 -- Sibling-manifest pair:
 --   coop    — one SHARED board; the in-progress selection is shared peer-
@@ -62,14 +62,14 @@ create table stackdown.boards (
 -- stackdown.games — one row per playthrough
 -- ============================================================
 -- `tiles` is the board, PUBLIC (the FE renders it). `solution` is the six
--- words — HIDDEN via a column-level grant, revealed only post-terminal
+-- words — HIDDEN via a column-level grant, revealed only after the end
 -- through games_state.
 create table stackdown.games (
   id          uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   mode        text not null check (mode in ('coop', 'compete')),
   tiles       jsonb not null,          -- the board (public)
-  solution    text[] not null,         -- the 6 words (HIDDEN until terminal)
+  solution    text[] not null,         -- the 6 words (HIDDEN until the end)
   band        int not null,            -- copied from the board (see boards.band)
   -- Provenance + difficulty. tiles/solution/band are COPIED above, so a board
   -- can be deleted to retire it without affecting games built from it —
@@ -155,7 +155,7 @@ alter publication supabase_realtime add table stackdown.submissions;
 -- ============================================================
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
--- open it with the terminal Reveal (common.reveal_solution). See
+-- open it with the ending Reveal (common.reveal_solution). See
 -- common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('stackdown_coop', 1, true),

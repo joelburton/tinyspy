@@ -298,7 +298,7 @@ proof it is watching it.
 
 **What this does NOT settle**: the three genuinely-shared classes, whose home
 is still `game-page` while `docs/common-folders.md` gives `info-sheet` "the
-chrome its panels share". That question is filed in `terminal`, `info-sheet`
+chrome its panels share". That question is filed in `ending`, `info-sheet`
 and `word-entry` (Joel, 2026-09-14), each with its own version of it.
 
 ### F-setup-form-11 · `class-sniffing-e2e` · WORKED 2026-09-14 — option 1: our half gets a handle, the library's half is filed

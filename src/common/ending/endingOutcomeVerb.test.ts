@@ -1,4 +1,4 @@
-// cs-blessed-terminal
+// cs-blessed-ending
 
 import { describe, expect, it } from 'vitest'
 import { endingOutcomeVerb } from './endingOutcomeVerb'

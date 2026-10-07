@@ -16,7 +16,7 @@
 -- turn, and a reader of the backfill should not take it for one.
 --
 -- The claim that ENDS the game is a turn like any other. The rotation stops
--- advancing at terminal in every game, which makes "it advanced the pointer"
+-- advancing at the end in every game, which makes "it advanced the pointer"
 -- the wrong test: it would write false on the winning move and leave a reader
 -- unable to tell "this wasn't a turn" from "this was the last one".
 

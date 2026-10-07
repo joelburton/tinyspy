@@ -494,7 +494,7 @@ restored from scratchpad copies, green. `tsc -b` and eslint clean; the game's
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-23
 
 wordle's and spellingbee's Step 6, names and all: `buildOver` is
-**`buildEndingMessage`** in `lib/endingMessage.ts`, the value it produces is
+**`buildGameEndingMessage`** in `lib/endingMessage.ts`, the value it produces is
 `endingMessage`, and InfoCol's `over` prop is `endingMessage` too.
 `PlayArea.tsx` no longer imports `buildGameEndedMessageNeutral` or the
 `EndingMessage` type; the `useMemo` that feeds the verdict effect stays there.
@@ -583,7 +583,7 @@ named an order with no key-card disclosure and said "PlayArea owns the RPCs"
 events table. `CluePanel.tsx`'s docstring put the slot in "PlayArea's
 `.belowBoard`" (BoardCol's), and `peer` "may be undefined briefly during the
 initial roster fetch" (the loader waits for the roster). In `PlayArea.tsx`: the
-surface docstring's "Action row: End game while playing; at the end … a
+surface docstring's "Action row: End game while playing; at terminal … a
 compact Back-to-club button" and "GameEventLog: the shared EventLog table";
 the history comment's "the effect below re-arms" (no effect); the phase
 comment's `src/lib/phase.test.ts` (it is `lib/phase.ts`, whose docstring now
@@ -1453,14 +1453,14 @@ Recommendation: fix the doc — an assassin is an assassin.
 
 ### SHIPPED · F-codenamesduet-23 · `ending-default-is-timeout` · any unnamed ending reads "Lost: out of time"
 
-**Joel, 2026-09-23: "i'll take your rec."** `buildEndingMessage` is a
+**Joel, 2026-09-23: "i'll take your rec."** `buildGameEndingMessage` is a
 `switch` over the five endings, `lost_timeout` named; its `default` reads
 *"Game over: <state>"* / *"Game over"*, neutral — naming the state, as the
 club labels' default does, rather than a win or a loss. An `endingMessage.test.ts`
 case pins it; **planted** the old fallthrough — red. 48 files, 418 tests.
 
-`buildEndingMessage` reaches `lost_timeout` by fallthrough, *"and any future
-ended state"*. All five are known. Options: **name it**, as a `switch`
+`buildGameEndingMessage` reaches `lost_timeout` by fallthrough, *"and any future
+terminal state"*. All five are known. Options: **name it**, as a `switch`
 over the five; or leave it. Recommendation: name it.
 
 ### RULED — NO CHANGE · F-codenamesduet-24 · `print-legend-omits-triangles` · the printed legend leaves out the triangles
@@ -1821,7 +1821,7 @@ or leave them. Recommendation: one noun.
 ### SHIPPED · R-codenamesduet-9 · `restart-retract-comment` · the verdict "retracted by its owner on Restart"
 
 `PlayArea.tsx`'s `endingMessage` comment says the verdict is *"retracted by
-its owner on Restart (a Duet mulligan reopens the game)"*. A restart
+its owner on Restart (a Duet mulligan un-terminals the game)"*. A restart
 REMOUNTS the surface (`<PlayArea key={restarts}>`), so nothing reopens
 inside a mounted one; the effect's cleanup runs on unmount, as every effect's
 does. Written in step 7 of this area; psychicnum's twin carries no such

@@ -457,7 +457,7 @@ above the early return — swapping at the host would unmount the row, taking
 does not separate (a) from (b), since (b) also keeps the row mounted and merely
 returns a bare pill.
 
-`terminal` and `info-sheet` hold the same question about other classes and
+`ending` and `info-sheet` hold the same question about other classes and
 answer for themselves.
 
 ### F-word-entry-9 · `raw-values` · Five literals, one of them a vocabulary value already — WORKED

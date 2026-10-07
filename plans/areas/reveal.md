@@ -11,7 +11,7 @@ closing re-read done the same evening (F-12 to F-19, all worked; F-19 ruled
 (c)), `todo.md` empty. Roster agreed 2026-09-18 (Joel: *"this is a tiny
 section, just do the audit"*) and the two code files stamped
 `cs-audited-reveal`; the two the area wrote carried the same stamp until the
-blessing. Taken in order after `terminal` (row 44); this is row 45.
+blessing. Taken in order after `ending` (row 44); this is row 45.
 
 ## The roster
 

@@ -10,7 +10,7 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 **Status: CLOSED 2026-09-24, blessed** (Joel: *"close the area and
 commit"*, after *"bless the files in this area (and the terminal.ts and
 terminal.test.ts in bee-games)"*). Forty-nine files `cs-blessed-wordwheel`:
-the roster's forty-seven and the two `shared/bee-games/endingMessage` files this
+the roster's forty-seven and the two `shared/bee-games/terminal` files this
 area moved there. Opened 2026-09-23. The four wordwheel e2e specs ran green
 after F-17 (6 tests), and F-9's hover gate was checked on a device; nothing
 since has been run end to end.
@@ -49,7 +49,7 @@ was rewritten over the fixture.
 and carries none; both are on the roster all the same, as is
 `docs/games/wordwheel.md`, deleted into `src/wordwheel/doc.md` in pass 2.
 **`src/wordwheel/doc.md` was written at Step 3** (2026-09-23), markdown like
-the todo, roster all the same. **`lib/endingMessage.ts` and `lib/endingMessage.test.ts`
+the todo, roster all the same. **`lib/terminal.ts` and `lib/terminal.test.ts`
 were created at Step 6**, stamped `cs-met-wordwheel`. **`components/Tile.module.css`
 was created at the stylesheet split**, stamped the same.
 
@@ -432,7 +432,7 @@ unit tests and the guards: 41 files, 378 tests green.
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-23
 
 spellingbee's Step 6 (`8f600f6a`), copied, names and all: the builder is
-**`buildEndingMessage`** in `lib/endingMessage.ts`, the value it produces is
+**`buildBeeGameEndingMessage`** in `shared/bee-games/endingMessage.ts`, the value it produces is
 `endingMessage`, and InfoCol's `over` prop is `endingMessage` too.
 `PlayArea.tsx` no longer imports `buildGameEndedMessageNeutral`, the
 `EndingMessage` type or `Actor`; the `useMemo` on primitives that feeds the
@@ -440,13 +440,13 @@ verdict effect stays there.
 
 **Checked before copying:** wordwheel's `buildOver` and its docstring were
 byte-identical to spellingbee's as it stood before that game's Step 6
-(`e3306824`), once the game names are swapped. So `lib/endingMessage.ts` and
-`lib/endingMessage.test.ts` are spellingbee's Step-6 files with the names swapped —
+(`e3306824`), once the game names are swapped. So `lib/terminal.ts` and
+`lib/terminal.test.ts` are spellingbee's Step-6 files with the names swapped —
 the same body, the same `statusOutcome` → `reason` rename (a name left from
 before `status.outcome` became `status.reason`), the same three docstring lines
 saying "reason". No word a player reads changed.
 
-`lib/endingMessage.test.ts` walks the whole input space — every ended play state
+`shared/bee-games/endingMessage.test.ts` walks the whole input space — every ended play state
 in both modes, the caller winning and beaten, the winner known to the roster
 and not, both collective losses told apart by reason — and ends on the table
 check: no cell pairs a winning sentence with a losing outcome, and both texts
@@ -738,7 +738,7 @@ before any finding is presented (the order [app-audit.md](../app-audit.md)
   is `cs-unmet`, off the roster; only its pointer changed.
 - **The marker pass**, the same files as spellingbee's: a note on a field or
   an argument is `//` (`lib/setup.ts`'s values, `unique_letters` among them;
-  `lib/endingMessage.ts`'s input; `pdf/`'s model; `setupSummary`'s `board`; the
+  `shared/bee-games/endingMessage.ts`'s input; `pdf/`'s model; `setupSummary`'s `board`; the
   edge function's `Setup`; `board.ts`'s three row types). The compete
   manifest's `labelFor` carried a `/**` inside the object literal.
   `board.ts`'s `validateCustomLetters` docstring sat above the `LetterFault`
@@ -757,7 +757,7 @@ before any finding is presented (the order [app-audit.md](../app-audit.md)
   view "conditionally exposes the hidden `required_words`" behind a grant
   that blocks it (both ship). `lib/setupSummary.ts`: "Order mirrors
   `SetupForm.tsx`" (the target rank sits after the bands here, before them
-  there) and "fields take back" (one box). `lib/endingMessage.ts`: `rankLabel`
+  there) and "fields take back" (one box). `shared/bee-games/endingMessage.ts`: `rankLabel`
   named as still used, and "see the comment at the call site". `pdf/`:
   `wordColumns` (the body is `drawWordListBody`) and "required-but-missed"
   (bonus fold in). `lib/wheel.ts`: the box "a square SVG viewBox" with
@@ -1008,7 +1008,7 @@ resolves, as spellingbee's did.
 session.user.id)`, `winnerId` moving up beside the hook that reads it; the
 modal's body reads `targetRankIdx` and says *first* in a race.
 `PlayArea.test.tsx` gains spellingbee's five celebration cases. `doc.md`'s
-three statements of the rule and its Tests row, and `lib/endingMessage.ts`'s
+three statements of the rule and its Tests row, and `shared/bee-games/endingMessage.ts`'s
 docstring, say the rule now.
 
 **Verified:** `tsc -b` and eslint clean; wordwheel and the guards green.
@@ -1032,7 +1032,7 @@ current behavior either way. Options: **the same here** — the gate becomes
 session.user.id)`, `winnerId` moving up beside the hook, the body reading
 `targetRankIdx` and adding *first* in a race, and `PlayArea.test.tsx`
 gaining spellingbee's five celebration cases; `doc.md` says the rule in
-three places and its Tests row, and `lib/endingMessage.ts`'s docstring in one;
+three places and its Tests row, and `shared/bee-games/endingMessage.ts`'s docstring in one;
 or keep coop only with a comment that says it is a choice. Recommendation:
 the same here, for the reason the four siblings gave.
 
@@ -1700,18 +1700,18 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/wordwheel.md` instead; a note here never stands in for either)*
 
-**`endingMessage.ts` moved into `shared/bee-games` — 2026-09-24.** Joel, asked
+**`terminal.ts` moved into `shared/bee-games` — 2026-09-24.** Joel, asked
 whether anything the two bee games both use could live in `bee-games`: *"let's
 move terminal.ts to bee-games, and update both wordwheel and spellingbee."*
-The two `lib/endingMessage.ts` files and their tests were identical but for names
+The two `lib/terminal.ts` files and their tests were identical but for names
 in comments. wordwheel's copy moved (`git mv`, so its history follows) to
-`src/shared/bee-games/endingMessage.ts` and `endingMessage.test.ts`, its prose made to
+`src/shared/bee-games/terminal.ts` and `terminal.test.ts`, its prose made to
 speak for both games; spellingbee's were deleted. Both `PlayArea`s import it
 from there. **The two files stay on this area's roster**, blessed with it
 (`cs-blessed-wordwheel`), though they sit in a closed folder. Prose: both
 `doc.md`s point at `shared/bee-games`; `bee-games/doc.md` lists the endings
 and says why they are shared and when they'd split; `docs/playarea.md` names
-the bee games as the one exception to "each game's own `lib/endingMessage.ts`".
+the bee games as the one exception to "each game's own `lib/terminal.ts`".
 **Touched in closed, blessed areas:** spellingbee's `PlayArea.tsx` (the import
 line) and `doc.md`, and `bee-games/doc.md`; their stamps were left as they
 are. **Verified:** `tsc -b` and eslint clean; spellingbee, wordwheel,
@@ -1761,7 +1761,7 @@ of each on 2026-10-03:
 
 **`wordwheel` is CLOSED 2026-09-24, blessed** (Joel: *"close the area and
 commit"*): forty-nine files `cs-blessed-wordwheel` — the roster's forty-seven
-and `shared/bee-games/endingMessage.ts` with its test, which this area moved there.
+and `shared/bee-games/terminal.ts` with its test, which this area moved there.
 The fifth game, and spellingbee's fork, so every step copied spellingbee's
 matching commit and most findings were its twins. The restructure in eight
 steps with the stylesheet split (and the word engine moved into `BoardCol`);
@@ -1778,9 +1778,9 @@ words and the modes; every per-player result is `{ won }`; the leaderboard is
 one helper; both shuffles are the shared one; `create_game` answers a
 non-numeric band in the envelope (`PN505`, `PN506`); the custom-letters
 example is a nine-tile wheel; the spent-tile state has one name. **Beyond the
-area:** the two bee games' identical `buildEndingMessage` moved into
+area:** the two bee games' identical `buildBeeGameEndingMessage` moved into
 `shared/bee-games` (Joel's ask), with `docs/playarea.md` naming it the one
-exception to each game's own `lib/endingMessage.ts`. **The lesson:** the fork's own
+exception to each game's own `lib/gameEndingMessage.ts`. **The lesson:** the fork's own
 mechanism is where the read found what spellingbee's could not, and each claims
 fix exposed the next leak in the same state — the re-read found the third after
 two fixes had been proved; and, for the tenth area running, the re-read's

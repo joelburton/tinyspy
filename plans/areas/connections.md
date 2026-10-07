@@ -351,11 +351,11 @@ the guards). The e2e specs have not run for Steps 2–5.
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-19
 
 psychicnum's Step 4, copied, with its rename ruling applied from the start:
-the builder is **`buildEndingMessage`** in `lib/gameEndingMessage.ts` — Joel's
-word is "ending", not "over" — the value it produces is `endingMessage`, and
+the builder is **`buildGameEndingMessage`** in `lib/gameEndingMessage.ts` — Joel's
+word is "terminal", not "over" — the value it produces is `endingMessage`, and
 InfoCol's `over` prop is `endingMessage` too. `<Board gameOver>` keeps its
 name, being the shared vocabulary backed by the `.gameOver*` classes.
-`PlayArea.tsx` no longer imports the game-ended message builder or the
+`PlayArea.tsx` no longer imports `buildGameEndedMessageNeutral` or the
 `EndingMessage` type; the `useMemo` on primitives that feeds the verdict
 effect stays there, as planned.
 
@@ -462,7 +462,7 @@ archaeology cut. Four files: `PlayArea.tsx`, `BoardCol.tsx`, `Board.tsx`,
 **The surface's docstring is rewritten around the decomposition** — it
 described the pre-split file: a five-bullet mode table whose surfaces had
 moved out (the OpponentStrip is InfoCol's, the eliminated look is the row's,
-the "ending copy" is `lib/gameEndingMessage.ts`'s), a five-step submission flow that
+the "terminal copy" is `lib/gameEndingMessage.ts`'s), a five-step submission flow that
 is `BoardCol`'s, and a pointer at `docs/deferred.md → Feedback channels`. It
 says now what psychicnum's says: holds no board, draws no control; `mode` is
 what differs and where; what a guess is worth is `lib/answer.ts`'s.
@@ -591,7 +591,7 @@ builder blind to `conceded` (2 red) and the call site back on
 paragraph said the club-list label reads the column; both now name the pill
 beside it.
 
-`buildEndingMessage` takes `timerExpired` off `timer.expired` — the
+`buildGameEndingMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into
 `common.games.status.outcome` (`solved` · `mistakes` · `timeout` · `conceded`
 · `manual`), which the club-list label already reads. Two consequences: a
@@ -1132,7 +1132,7 @@ what runs it), **F-17** (the test headers, and `end_game_test.sql`'s four
 psychicnum's did — blessed there), **F-18** (the SQL's essays cut to the
 contract: `next_puzzle_for_club`'s header from forty lines to twenty-three,
 `submit_guess`'s header rewritten to what the function does today, the
-orphaned "Register with common.gametypes" and end-of-game cleanup
+orphaned "Register with common.gametypes" and "Terminal-transition cleanup"
 paragraphs deleted, since the rows are the migration's and the sentence is
 `doc.md`'s), and **F-19** — `doc.md` has its Intro's last paragraph, Game
 rules (with a Vocabulary table, Coop, Compete, The play states), Schema,

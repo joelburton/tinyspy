@@ -41,7 +41,7 @@ opening, 46 with Step 6's two:
 
 | where | how many | note |
 |---|---|---|
-| `src/wordle/` | 32 | nine arrived `cs-fixed-outcome-fix` — that area ruled its files belong to their own area, which is this one; **`lib/terminal.ts` + `.test.ts` created by Step 6** (2026-09-22) and stamped with the rest |
+| `src/wordle/` | 32 | nine arrived `cs-fixed-outcome-fix` — that area ruled its files belong to their own area, which is this one; **`lib/gameEndingMessage.ts` + `.test.ts` created by Step 6** (2026-09-22) and stamped with the rest |
 | `supabase/migrations/` | 2 | `20260625000000_wordle.sql`, `20260917000001_wordle_events.sql` |
 | `supabase/sql/wordle.sql` | 1 | also `cs-fixed-outcome-fix` |
 | `supabase/tests/wordle/` | 12 | every pgTAP file but one, and `setup.psql` — the fixture was `cs-unmet` at the opening and joined at F-16 (2026-09-22) |
@@ -122,7 +122,7 @@ also passed in Step 0. **Deleted rather than moved**, which is what the register
 is for: a shipped item left in a Deferred list reads as work for three weeks.
 
 **The other item moved OUT of this game.** *"Stop HIDING the keyboard at
-the end; dim it instead"* — reversed 2026-08-17 after a real lost game, on the
+terminal; dim it instead"* — reversed 2026-08-17 after a real lost game, on the
 grounds that the keyboard is where the alphabet's state lives and hiding it
 removes that summary at the moment you want to study it. It went to
 `src/shared/onscreen-keyboard/todo.md`, not `src/wordle/todo.md`, by the sorting
@@ -298,7 +298,7 @@ pgTAP suite green (181 files, 2545 tests). The e2e specs have not run for
 Steps 2–4.
 
 **Seen with the SQL open, left for pass 2:** `submit_guess`'s coop game-ending
-write says *"Every game-ending write states its `outcome` explicitly"* while the
+write says *"Every terminal write states its `outcome` explicitly"* while the
 key it writes is `reason` — the status-key rename left the comment behind. A
 stale-claims item for the audit, with `manifest.ts`'s two-player claim.
 
@@ -351,8 +351,8 @@ Verified: `tsc -b` clean, lint clean over `src/wordle/`, 381 unit tests green
 ### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-22
 
 connections' Step 6 (`95d7872a`), copied, with Joel's rename ruling applied
-from the start: the builder is **`buildEndingMessage`** in
-`lib/terminal.ts` — Joel's word is "terminal", not "over" — the value it
+from the start: the builder is **`buildGameEndingMessage`** in
+`lib/gameEndingMessage.ts` — Joel's word is "terminal", not "over" — the value it
 produces is `endingMessage`, and InfoCol's `over` prop is `endingMessage`
 too. `<Board gameOver>` keeps its name, being the shared vocabulary backed by
 the `.gameOver*` classes. `PlayArea.tsx` no longer imports
@@ -365,7 +365,7 @@ every one a primitive the component derives; none compared a count to a
 constant of the component file, so nothing had to be renamed on the way out.
 Same branches, same words.
 
-`lib/terminal.test.ts` walks the whole input space — every ended play
+`lib/gameEndingMessage.test.ts` walks the whole input space — every ended play
 state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
 modes, the clock run out and not, the caller winning on guesses or on the
 clock and losing the same two ways — and the last case is a TABLE: no cell
@@ -434,7 +434,7 @@ while three readers asked it (the compete narration, Concede's `selfSolved`,
 the print model); it is Derived now. The winner derivations (`selfWon`,
 `wonByClock`, `selfTiedWinner`) stayed beside the ending message, being
 its inputs and nobody else's. Two orphan comments are stale and left for
-Step 8, the comment pass: the "Reveal solution — ENDED GAME ONLY … No handler
+Step 8, the comment pass: the "Reveal solution — TERMINAL ONLY … No handler
 of its own any more" block after New game, and the "verdict in the slot is
 the terse verdict ALONE" block before the JSX. `Derived`'s old header said
 "null-safe; real values after the loading guard", a sentence Step 2's split
@@ -674,7 +674,7 @@ reading to be checked before any wiring, and Joel ruled the same day that
 `ended` is neutral in every mode, so a game whose prose or status line calls a
 compete `ended` a loss is part of that work. **wordle's three are clean**, each
 neutral and mode-blind: `manifest.ts`'s `labelFor` answers
-`verdict('Ended', null)` with no mode branch; `lib/terminal.ts` returns
+`verdict('Ended', null)` with no mode branch; `lib/gameEndingMessage.ts` returns
 `buildGameEndedMessageNeutral(mode)` before it looks at the mode, and that message
 is `outcome: 'neutral'` / "Game ended — no winner"; `wordle.end_game` writes
 `'ended'` with every player `{"won": false}` and `reason: 'manual'`. The game
@@ -692,7 +692,7 @@ takes `offersEndForAll`, which grows Concede's question a second answer
 its own — bananagrams is the worked example, and wordle's `end_game` already
 writes the neutral `ended` in either mode. **The reading the todo asked to
 check first checks out**: `labelFor` reads `ended` as "Ended", mode blind,
-and `buildEndingMessage` hands `ended` to the shared neutral message before
+and `buildGameEndingMessage` hands `ended` to the shared neutral message before
 it looks at the mode — nobody won is not everybody lost, on both surfaces.
 
 Options: **wire it** — `offersEndForAll: true` on this game's
@@ -719,7 +719,7 @@ from the same word.
 
 The fallback branch is the exhausted one, so a row carrying no `reason` — one
 written before the status key was renamed — still fills both texts rather than
-going blank. `lib/terminal.test.ts` walks every word the column can hold plus
+going blank. `lib/gameEndingMessage.test.ts` walks every word the column can hold plus
 `undefined` instead of a boolean, and `PlayArea.test.tsx` gained the WIRE: an
 all-conceded race whose clock is still running reads the server's word on both
 surfaces.
@@ -732,7 +732,7 @@ play states* said the verdict does not read the reason; it says the two
 surfaces name one ending, and that the clock-vs-count win is what the builder
 still works out for itself.
 
-`buildEndingMessage` takes `timerExpired` off `timer.expired` — the
+`buildGameEndingMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into
 `common.games.status.reason` (`solved` · `exhausted` · `timeout` ·
 `conceded` · `manual`), which `labelFor` already reads for the club list.
@@ -744,7 +744,7 @@ thing: the builder takes `reason` from `status`.
 
 Options: **read `status.reason`** — the builder's inputs become `mode ·
 playState · reason · selfWon · wonByClock · selfTiedWinner`, `lost_compete`
-gaining an "All conceded — no winner" sentence, `lib/terminal.test.ts`
+gaining an "All conceded — no winner" sentence, `lib/gameEndingMessage.test.ts`
 walking every word the column can hold, and the call site reading `status`
 (a prop it already destructures for the winner); or **leave the clock**.
 Recommendation: read the server's word.
@@ -943,7 +943,7 @@ builder takes `selfSolved` (PlayArea's `mySolved`) and says, for a
 `won_compete` whose reason is `timeout`: *Won: solved before time ran out* to
 the winner, *Lost: time ran out* to a racer who had not solved, while a solver
 who was outranked still reads *beaten on guesses* and a tie still reads *beaten
-on the clock* — my words, placeholders until ruled. Tests: `terminal.test.ts`
+on the clock* — my words, placeholders until ruled. Tests: `gameEndingMessage.test.ts`
 walks the five timeout cells and its table gains the `selfSolved` axis;
 `PlayArea.test.tsx` wires a timed-out race to the racer still guessing;
 `end_game_test.sql` gains the compete timeout with a solver (state, reason,
@@ -958,12 +958,12 @@ queries — and the duplicate is missing a key: it writes `winner_user_id` and
 `winner_username` but not **`winner_guesses`**, so the club-list label for a
 race the clock decided reads `Won by alice · dict "Wordle"` where every other
 `won_compete` reads `Won by alice · 4 guesses · …` (`labelFor` → `count(…)`
-returns null on the missing key). On the client, `buildEndingMessage` reads
+returns null on the missing key). On the client, `buildGameEndingMessage` reads
 no `reason` for `won_compete`: a racer who had not finished when time ran out
 sees *Lost: beaten on guesses* / *Opponent won*, which is not what happened to
 them — they were never beaten on guesses, the clock stopped them — and the
 solver sees *Won: fewest guesses* with nobody else's count to be fewest than.
-`terminal.test.ts`'s table walks `reason: 'timeout'` against `won_compete` but
+`gameEndingMessage.test.ts`'s table walks `reason: 'timeout'` against `won_compete` but
 asserts only the outcome, and **no pgTAP exercises a compete timeout at all**
 (`end_game_test` covers coop's). `docs/win-lose.md` files wordle as "best —
 fewest guesses · rank the finishers" on timeout, which is what the SQL does;
@@ -972,7 +972,7 @@ the words and the status are what lag it.
 Options: *(a) one finisher* — `_finish_compete(target_game, reason)` builds
 the winner, the results and the whole status once, `_maybe_finish_compete`
 calls it with its computed reason and `submit_timeout` with `'timeout'`, so
-`winner_guesses` cannot be missed twice; `buildEndingMessage` gains the
+`winner_guesses` cannot be missed twice; `buildGameEndingMessage` gains the
 `won_compete` + `timeout` pair on both sides (Joel's words — something like
 *Won: solved before time ran out* / *Lost: time ran out*), and
 `compete_test.sql` or `end_game_test.sql` gains the compete timeout, both the
@@ -1141,7 +1141,7 @@ Each checked against the tree:
   answer" — solved; a wordle finishes on the budget and the clock too.
   `PlayArea.test.tsx` → "SOLVING shows the answer unasked" says the same.
 - `PlayArea.tsx` cites `docs/ui.md → the two feedback slots` and
-  `docs/common.md → GamePageCtx.setup`; `lib/terminal.ts` cites
+  `docs/common.md → GamePageCtx.setup`; `lib/gameEndingMessage.ts` cites
   `docs/mobile.md → feedback text`. None of the three phrases exists in the
   doc it names.
 - `Board.tsx` → the `isViewingHistory` prop: "PlayArea also hands historical
@@ -1183,7 +1183,7 @@ Each checked against the tree:
 - `legal_guess_test.sql`: "it would have been legal under the old hardcoded
   ≤4" — archaeology.
 - `PlayArea.test.tsx` → the ending-flow describe: "the word stays HIDDEN at
-  every ending, win included, until THIS viewer asks" — a solver sees it
+  every terminal, win included, until THIS viewer asks" — a solver sees it
   unasked, and the describe's own fourth case pins that.
 - `PlayArea.test.tsx` → the board-scope marks: "the vocabulary in
   plans/tile-feedback.md" — a plan cite in a durable file, the third in the
@@ -1252,7 +1252,7 @@ each restored. `doc.md`'s Tests rows name the new pins. pgTAP 181 / 2559 PASS,
 - **The tie-break** — `compete_test` says `now()` is constant in a transaction
   so it is "not exercised"; `solved_at` can be set directly as the superuser,
   the way `replay_test` ages the clock.
-- **`wonByClock` and `selfTiedWinner`** — `terminal.test.ts` walks the builder
+- **`wonByClock` and `selfTiedWinner`** — `gameEndingMessage.test.ts` walks the builder
   given the flags; nothing feeds the flags from `playerStates`. A render case
   with two solvers on the same count, one the winner, would pin the inference
   `PlayArea` makes ("if any OTHER solver used the same guess count as the
@@ -1527,10 +1527,10 @@ opposite:
 - `wordle.sql` → `concede`: *"in which case the title becomes the answer"*.
 - `wordle.sql` → `submit_timeout`: *"The game is over either way — the title
   becomes the answer."*
-- `wordle.sql` → `end_game`: *"Ended now, so the title becomes the answer
+- `wordle.sql` → `end_game`: *"Terminal now, so the title becomes the answer
   (see _sync_title)"* — pointing at the function that says it does not.
-- `gameplay_test.sql`, the win: the comment *"Ended → the title stops being
-  the latest guess and becomes the answer"* and the label `ended: the title
+- `gameplay_test.sql`, the win: the comment *"Terminal → the title stops being
+  the latest guess and becomes the answer"* and the label `terminal: the title
   becomes the answer`. The parenthetical beside it ("which the solving guess
   happens to equal") knows better than the label.
 - `compete_test.sql`, the finished race: *"the title can finally say what the
@@ -1555,11 +1555,11 @@ sentences, four of them older than F-8 and two written BY it, still name the
 old function for what the new one does:
 
 - `manifest.ts` → `labelFor`'s status shape: *"The WINNER's own count, written
-  at the end (see _maybe_finish_compete)"*.
+  at terminal (see _maybe_finish_compete)"*.
 - `manifest.ts` → `COMPETE_LOSS`'s docstring: *"Why a compete race ended with
   nobody winning (wordle._maybe_finish_compete)"* — the reason is
   `_finish_compete`'s `case`.
-- `lib/terminal.ts` → the `lost_compete` branch: *"a MIXED table … is
+- `lib/gameEndingMessage.ts` → the `lost_compete` branch: *"a MIXED table … is
   `exhausted`, the server's own call (`_maybe_finish_compete`)"*.
 - `doc.md` → `submit_guess`: *"`_maybe_finish_compete` is the one place that
   rule is written, and it picks the winner by fewest guesses, then earliest
@@ -1569,7 +1569,7 @@ old function for what the new one does:
   carries the winner's count the way _maybe_finish_compete's does — one
   finisher writes both endings"* — the one finisher is the one it does not
   name.
-- `concede_test.sql`'s header: *"re-runs its own end-of-game check
+- `concede_test.sql`'s header: *"re-runs its own terminal check
   (_maybe_finish_compete), which counts a conceder as done and excludes them
   from the win"* — the first clause is that function's, the second is the
   finisher's query.
@@ -1699,7 +1699,7 @@ file, its twin left).
   recurs nowhere. `<Board>`'s twelve are all required and all passed.
 - **The marker rule holds in the prose written this week** — F-3, F-6, F-8,
   F-18's docstrings on functions, `//` on every field and prop, including
-  `buildEndingMessage`'s seven inputs and `GuessAnswer`'s two arms.
+  `buildGameEndingMessage`'s seven inputs and `GuessAnswer`'s two arms.
 - **The reserve is composed and its four terms each resolve** (`base.css`
   declares `--guessKeyboard-height` and `--local-feedback-min-height`; the
   layout publishes `--board-col-gap`; `BoardCol.module.css` reads it).

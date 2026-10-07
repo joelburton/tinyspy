@@ -175,7 +175,7 @@ create table bananagrams.player_boards (
 -- `common.game_players.conceded` (the shared concede mechanism every
 -- compete game uses; see common.concede). `peel` / `save_player_board`
 -- read it from there to skip a dropped-out player, and the FE reads it
--- off `ctx.players`. The game stays 'playing' until a real terminal (a
+-- off `ctx.players`. The game stays 'playing' until a real ending (a
 -- peel-win, the timeout, or the LAST active player conceding).
 --
 -- In the realtime publication so a peer's count updates live.

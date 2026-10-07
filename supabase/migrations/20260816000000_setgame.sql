@@ -40,7 +40,7 @@
 -- makes this the plainest trust story on the roster. What must stay
 -- hidden is which cards come NEXT, so `games.deck` is withheld by a
 -- column grant and `games_state` is what the FE reads. Nothing unlocks
--- it, not even at terminal: the leftover order is of no interest to
+-- it, not even at the end: the leftover order is of no interest to
 -- anyone once the game is over.
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
@@ -119,7 +119,7 @@ create index setgame_games_club_handle_idx on setgame.games (club_handle);
 -- There is no `solved` / `solved_at` here, and its absence is the shape
 -- of the game: setgame has no per-player finish line. The deck running
 -- dry ends the game for EVERYONE at once, and only then does anyone win
--- — so who won is decided at the terminal and written to
+-- — so who won is decided at the end and written to
 -- common.game_players.result, not tracked per row as play goes.
 create table setgame.players (
   game_id uuid not null references setgame.games(id) on delete cascade,
@@ -157,7 +157,7 @@ create index setgame_players_game_id_idx on setgame.players (game_id);
 -- the naming smell docs/naming.md warns about. strands and letterboxed
 -- both arrived here from the same direction.
 --
--- CLUB-READABLE IN BOTH MODES, with no terminal gate — unusual for a
+-- CLUB-READABLE IN BOTH MODES, with no ended gate — unusual for a
 -- compete game, and correct here: the cards were face-up on a shared
 -- table and everyone watched them leave. Knowing which three a rival
 -- took says nothing about what is coming, because nothing about the

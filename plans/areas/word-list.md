@@ -693,7 +693,7 @@ now in `doc.md` (the intro's third paragraph, the home) AND, near-verbatim:
 - `WordList.test.tsx` → 'counts and scores what is SHOWN' (two lines)
 - the three print sites — spellingbee's, wordwheel's and boggle's
   `actPrintBoard` — **seven identical lines each**, beginning "Gated on
-  `isGameEnded`, which is the whole rule for these three word-finding games"
+  `isTerminal`, which is the whole rule for these three word-finding games"
 - boggle's `wordRows` site, a fourth copy of the same six lines
 - `docs/ui.md` → Endings and `docs/common.md` → the reveal paragraph
   (F-20's two, which also get it wrong)
@@ -743,7 +743,7 @@ them to withhold it, the change is that filter's default, not a new control."*
 Two faults. Found / Missed is the **WHO** axis; KIND is Legal / Required /
 Bonus. And F-18 made exactly the change the sentence holds in reserve, so both
 now describe the road taken as untaken and say the three games "show their
-missed-word list at the end" with no mention of the hold. (`docs/deferred.md:191`
+missed-word list at terminal" with no mention of the hold. (`docs/deferred.md:191`
 says "their found/missed filter" with no axis named, and is fine.) The fix is
 the axis and the tense in both; whether `common.md` should restate `ui.md`'s
 paragraph at all is `common.md`'s question, not this area's.

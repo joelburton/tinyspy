@@ -12,7 +12,7 @@
 -- manifest (see docs/naming.md).
 --
 -- See docs/games/waffle.md for the full design (schema, RPCs,
--- coop/compete terminal logic, the on-demand board generation).
+-- coop/compete ending logic, the on-demand board generation).
 
 create schema if not exists waffle;
 
@@ -22,7 +22,7 @@ create schema if not exists waffle;
 -- Boards are generated on demand by the `waffle-build-board` edge
 -- function (no pre-generated puzzle library) and stored here, so the
 -- game is self-contained. `solution` is the answer key — HIDDEN via a
--- column-level grant and revealed only post-terminal through
+-- column-level grant and revealed only after the end through
 -- games_state (the spellingbee/psychicnum hidden-answer pattern).
 -- `scramble` is the starting board (public).
 create table waffle.games (
@@ -113,7 +113,7 @@ alter publication supabase_realtime add table waffle.swaps;
 -- compete (own board each, fewest-swaps winner).
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
--- open it with the terminal Reveal (common.reveal_solution). See
+-- open it with the ending Reveal (common.reveal_solution). See
 -- common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('waffle_coop', 1, true),

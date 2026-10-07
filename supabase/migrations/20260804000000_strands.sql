@@ -26,7 +26,7 @@
 -- │ earliest solve breaking a tie. That single rule sets the │
 -- │ shape of everything else: the race CANNOT end on first   │
 -- │ solve, because the hint count of a player still going is │
--- │ unknown — so a solver goes LOCALLY terminal and the rest │
+-- │ unknown — so a solver is PLAYER-ENDED and the rest       │
 -- │ keep racing, and the game ends when nobody is still      │
 -- │ racing (all solved or conceded) or the clock expires.    │
 -- │ First-to-solve would make the hint count decorative.     │
@@ -82,7 +82,7 @@
 -- │ pattern) and surfaced through a SECURITY DEFINER helper │
 -- │ once common.games.solution_revealed — and the gametype  │
 -- │ registers hides_solution = true, which earns the shared │
--- │ reveal_solution RPC and terminal reveal for free.       │
+-- │ reveal_solution RPC and ending reveal for free.         │
 -- │                                                         │
 -- │ This is recorded as PROVISIONAL (docs/games/strands.md): │
 -- │ if the verdict feels laggy in the hand, the fallback is │
@@ -222,8 +222,8 @@ create index strands_games_puzzle_id_idx on strands.games (puzzle_id);
 -- the actor's row moves. That keeps a single code path instead of two, and it
 -- is exactly what connections does with `mistake_count`.
 --
--- `solved` is compete's finish line rather than the game's. A solver goes
--- LOCALLY terminal and the others keep racing — because the winner is whoever
+-- `solved` is compete's finish line rather than the game's. A solver is
+-- PLAYER-ENDED and the others keep racing — because the winner is whoever
 -- solved with the FEWEST HINTS, which can't be known until everyone has
 -- finished or given up. First-to-solve would make the hint count decorative.
 create table strands.players (
@@ -358,7 +358,7 @@ alter table strands.events enable row level security;
 -- published); schema_test guards the same invariant for wordwheel and
 -- wordiply.
 --
---   games    — terminal flips + the replay touch
+--   games    — ended flips + the replay touch
 --   players  — the hint bar, the active hint, and a peer's hints-used
 --   events   — new submissions and spent hints; how every client
 --              learns a word landed
