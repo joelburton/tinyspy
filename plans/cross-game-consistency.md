@@ -61,15 +61,20 @@ the clock"; about 224 comments. **Unsure, for Joel:** common's
 the timer, so by the ruling it is the timer's name; but "clock" there may be
 the thing on screen rather than the timer kind.
 
-### "Difficulty" as the name of a dictionary band — to decide
+### "Difficulty" as the name of a dictionary band — decided
 
 The schema has been moving to `*_band` (`legal_band`, `required_band`), and
 "difficulty" fails as a name (Joel, 2026-09-28): a game can have two bands; a
 higher band makes some games easier (letterboxed, strands: more escape words)
 and others harder; and games have other knobs that set how hard they are.
-Left: `setup.difficulty` in waffle and wordiply (stored data, so a
-migration), the front end's `difficultyValue` (`src/common/setup-form/`),
-docs, and `common.words.difficulty` itself. Name each for the band it is.
+The name is **dictionary band** in prose and comments and `dictBand` in code
+(Joel, 2026-10-07): waffle's and wordiply's stored key is `setup.dict_band`
+(migration `20261007000003_dict_band_setup_key.sql`, which rewrites the stored
+setups and the static blob's copy), the shared helper is
+`src/common/setup-form/dictBand.ts` with `dictBandValue`, and the SQL and
+edge-function sentences say "band". Left: `common.words.difficulty` itself,
+the column every band is a value of, which the word-list import pipeline
+also names.
 
 ### Smaller names
 

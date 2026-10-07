@@ -18,16 +18,16 @@ const base: GSetup = DEFAULT_WORDIPLY_SETUP_COOP
 const onBase = { custom_base: expect.any(String) }
 
 describe('wordiplySetupError', () => {
-  it('accepts a difficulty within 1..6', () => {
+  it('accepts a dictionary band within 1..6', () => {
     expect(wordiplySetupError(base)).toEqual({})
-    expect(wordiplySetupError({ ...base, difficulty: 1 })).toEqual({})
-    expect(wordiplySetupError({ ...base, difficulty: 6 })).toEqual({})
+    expect(wordiplySetupError({ ...base, dict_band: 1 })).toEqual({})
+    expect(wordiplySetupError({ ...base, dict_band: 6 })).toEqual({})
   })
 
-  it('rejects a difficulty outside 1..6, under Dictionary', () => {
-    for (const difficulty of [0, 7]) {
-      expect(wordiplySetupError({ ...base, difficulty })).toEqual({
-        difficulty: expect.any(String),
+  it('rejects a dictionary band outside 1..6, under Dictionary', () => {
+    for (const dictBand of [0, 7]) {
+      expect(wordiplySetupError({ ...base, dict_band: dictBand })).toEqual({
+        dict_band: expect.any(String),
       })
     }
   })
@@ -81,9 +81,9 @@ describe('customBaseError', () => {
 })
 
 describe('defaults', () => {
-  it('both manifests default to difficulty 5, timer off, no target_rank', () => {
+  it('both manifests default to dictionary band 5, timer off, no target_rank', () => {
     for (const d of [DEFAULT_WORDIPLY_SETUP_COOP, DEFAULT_WORDIPLY_SETUP_COMPETE]) {
-      expect(d.difficulty).toBe(5)
+      expect(d.dict_band).toBe(5)
       expect(d.timer).toEqual({ kind: 'none' })
       expect('target_rank' in d).toBe(false)
     }

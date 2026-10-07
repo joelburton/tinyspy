@@ -138,7 +138,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN138",
-    "message":"BUG: required difficulty of ''9''"}'::jsonb,
+    "message":"BUG: required band of ''9''"}'::jsonb,
   'rejects band out of range');
 
 -- legal_band must sit between the required band and 6. Default band is 3, so a
@@ -149,7 +149,7 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop', pg_temp.boggle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN139",
-    "message":"BUG: legal-word difficulty of ''2''"}'::jsonb,
+    "message":"BUG: legal band of ''2''"}'::jsonb,
   'rejects legal_band below the required band');
 
 select pg_temp.envelope_is(

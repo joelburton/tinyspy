@@ -319,7 +319,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
-    "message":"BUG: required difficulty of 0"}'::jsonb,
+    "message":"BUG: required band of 0"}'::jsonb,
   'rejects setup.required_band below 1 (band floor)');
 
 -- required = 1 is the floor — accepted. Same fixture board (its
@@ -344,7 +344,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
-    "message":"BUG: required difficulty of 7"}'::jsonb,
+    "message":"BUG: required band of 7"}'::jsonb,
   'rejects setup.required_band above 6 (band ceiling)');
 
 select pg_temp.envelope_is(
@@ -374,7 +374,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN505",
-    "message":"BUG: required difficulty that is not a number"}'::jsonb,
+    "message":"BUG: required band that is not a number"}'::jsonb,
   'rejects a setup.required_band that is not a number, in the envelope');
 
 select pg_temp.envelope_is(
@@ -384,7 +384,7 @@ select pg_temp.envelope_is(
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN506",
-    "message":"BUG: legal difficulty that is not a number"}'::jsonb,
+    "message":"BUG: legal band that is not a number"}'::jsonb,
   'rejects a setup.legal_band that is not a whole number, in the envelope');
 
 -- Happy path with explicit non-default bands: required 4, legal 6.

@@ -78,7 +78,7 @@ integer math, and the page draws the index the blob carries.
 | **hive** · **center** · **outer** | the seven letters: `center_letter` and the six-character `outer_letters`, stored lowercase; the frontend shuffles the outer six for display only |
 | **pangram** | a word whose letter set equals the hive's. `+10`, bold in the list, and the seed every random board is grown from |
 | **required word** · **bonus word** | the goal and the rest of the legal list, split by the two bands at creation; each shipped as `{ word, points, is_pangram }` |
-| **required band** · **legal band** | `setup.required_band` (1–6, default 3) and `setup.legal_band` (required–6, default 5), the dictionary difficulty each list is drawn at |
+| **required band** · **legal band** | `setup.required_band` (1–6, default 3) and `setup.legal_band` (required–6, default 5), the dictionary band each list is drawn at |
 | **found word** | a row in `spellingbee.found_words`: who, which word, its points and flags. The team's in coop, each racer's own in compete |
 | **rank** | where a score stands on the ladder, 0–6. The team's in coop; each racer's own in compete, and the one thing rivals can see. (connections uses the word for a category's difficulty; the scope tells them apart) |
 | **target rank** | `spellingbee.games.target_rank`, copied from `setup.target_rank` at create: the goal when set, in either mode; null for none, when the goal is every required word (compete then needs a countdown) |

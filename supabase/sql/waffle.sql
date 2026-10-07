@@ -388,7 +388,7 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --     team: {nSwapsUsed}                   the team's count; null in compete
 --     maxSwaps
 --     parSwaps                             the deal's par
---     band                                 the dictionary band, `setup.difficulty`
+--     band                                 the dictionary band, `setup.dict_band`
 --     nWinnerSwaps                         compete's, once the race is won; null in coop
 --     nSwapsUsedById                       each racer's swaps, public in a race; null in coop
 
@@ -578,7 +578,7 @@ as $$
     'team',         waffle._make_json_team_counts(p_game_id),
     'maxSwaps',     wg.max_swaps,
     'parSwaps',     wg.par_swaps,
-    'band',         coalesce((cg.setup->>'difficulty')::int, 2),
+    'band',         coalesce((cg.setup->>'dict_band')::int, 2),
     'nWinnerSwaps', case when cg.mode = 'compete' then
                       (select wp.n_swaps_used
                          from common.game_players gp
@@ -708,7 +708,7 @@ drop function if exists waffle.create_game(text, jsonb, uuid[], text, jsonb);
 -- string and the working-state semantics.
 --
 -- Setup shape (server validates):
---   { "difficulty": 1..6,                        -- vocab band (UI offers a subset)
+--   { "dict_band": 1..6,                        -- vocab band (UI offers a subset)
 --     "extra_swaps": int (0..15, default 5),     -- budget = par + this
 --     "timer": (none | countup | countdown{seconds}) }
 create or replace function waffle.create_game(
@@ -727,7 +727,7 @@ declare
   new_id       uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_extra      int;
-  s_difficulty int;
+  s_dict_band int;
   b_solution   text;
   b_dealt      text;
   b_par        int;
@@ -749,16 +749,16 @@ begin
       detail = 'setup.extra_swaps must be 0..15';
   end if;
 
-  -- ─── Validate setup.difficulty (the vocab band) ──────────
+  -- ─── Validate setup.dict_band (the dictionary band) ──────────
   -- The server accepts the FULL band range 1..6 (all word-list levels
   -- exist); which bands the setup dialog actually OFFERS is a FE/UI
   -- choice (today 1..5 — see DIFFICULTY_OPTIONS), changeable without a
   -- DB change since boards are generated on demand per band.
-  s_difficulty := coalesce((p_setup->>'difficulty')::int, 2);
-  if s_difficulty not between 1 and 6 then
-    raise exception 'BUG: word difficulty of %', s_difficulty
+  s_dict_band := coalesce((p_setup->>'dict_band')::int, 2);
+  if s_dict_band not between 1 and 6 then
+    raise exception 'BUG: dictionary band of %', s_dict_band
       using errcode = 'PN105', hint = 'fault', column = '_',
-      detail = 'setup.difficulty must be 1..6';
+      detail = 'setup.dict_band must be 1..6';
   end if;
 
   perform common._require_valid_timer(p_setup->'timer');

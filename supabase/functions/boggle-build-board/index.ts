@@ -96,13 +96,13 @@ serve(async (req: Request): Promise<Response> => {
     }
     const band = setup.band ?? 3
     if (band < 1 || band > 6)
-      return fault('PN150', `BUG: required difficulty of '${band}'`, 'boggle-build-board: band must be 1..6')
-    // The bonus (legal) band — the difficulty ceiling for the extra words a player
+      return fault('PN150', `BUG: required band of '${band}'`, 'boggle-build-board: band must be 1..6')
+    // The bonus (legal) band — the ceiling for the extra words a player
     // may discover beyond the required set. Must be at least `band` (required
     // words are legal too) and at most 6. create_game re-validates.
     const legalBand = setup.legal_band ?? band
     if (legalBand < band || legalBand > 6) {
-      return fault('PN151', `BUG: legal-word difficulty of '${legalBand}'`, 'boggle-build-board: legal_band')
+      return fault('PN151', `BUG: legal band of '${legalBand}'`, 'boggle-build-board: legal_band')
     }
     // Validate the ladder here (the trust boundary): it comes from untyped JSON
     // and flows straight into the solver's scoring, which would crash on an
@@ -155,7 +155,7 @@ serve(async (req: Request): Promise<Response> => {
         return formValidation(
           'PN154',
           'custom_board',
-          'No words for those letters at that difficulty.',
+          'No words for those letters at that dictionary band.',
           `boggle-build-board: zero required words at band ${band}`,
         )
       }

@@ -83,7 +83,7 @@ minimum length.
 
 The single most important concept in boggle is the split between the *required*
 set (the board's goal + reveal) and *bonus* words (extra legal finds). Two
-independent difficulty bands govern them, and **both lists are enumerated at
+independent dictionary bands govern them, and **both lists are enumerated at
 board-build time and shipped to the FE** — the FE validates + scores every guess
 locally against required ∪ bonus and submits trusting-commit (the same model as
 spellingbee, via the shared `useFoundWordSubmit` hook). No `common.words`

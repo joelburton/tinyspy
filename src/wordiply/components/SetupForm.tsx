@@ -8,7 +8,7 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { cleanBase } from '../lib/setup'
 import type { GSetupValues } from '../types'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 
 /**
@@ -16,9 +16,9 @@ import { ManualBoardField } from '@/common/fields/ManualBoardField'
  * (coop/compete — picked by which Start button the player clicked), so this
  * body never renders a mode radio.
  *
- * It's deliberately minimal: a mode paragraph, one dictionary-difficulty
+ * It's deliberately minimal: a mode paragraph, one dictionary-band
  * band (the base is a letter-combination, not a word, so there's no base
- * difficulty; and wordiply isn't a race-to-rank, so no target-rank picker),
+ * band; and wordiply isn't a race-to-rank, so no target-rank picker),
  * and the shared `<SetupTimerSection>`.
  *
  * Controlled component: state lives in the wrapping `SetupGameModal`; this
@@ -63,15 +63,15 @@ export function SetupForm({
         }
       />
 
-      <SetupSection label={`Dictionary: ${difficultyValue(s.difficulty)}`}>
+      <SetupSection label={`Dictionary: ${dictBandValue(s.dict_band)}`}>
         <DictBandField
-          name="difficulty"
+          name="dict_band"
           length={null}
           minBand={1}
           maxBand={6}
-          value={s.difficulty}
-          error={errors.difficulty}
-          onChange={(difficulty) => set('difficulty', difficulty)}
+          value={s.dict_band}
+          error={errors.dict_band}
+          onChange={(dictBand) => set('dict_band', dictBand)}
         />
       </SetupSection>
 

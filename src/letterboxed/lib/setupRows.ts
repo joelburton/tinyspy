@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { BOARD_KEY, makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { PAR } from './board'
@@ -54,7 +54,7 @@ export function makeSetupRows(
       label: 'Word limit',
       value: `par + ${setup.extra_words} (${PAR + setup.extra_words} words)`,
     },
-    { key: 'legal_band', label: 'Dictionary', value: difficultyValue(setup.legal_band) },
+    { key: 'legal_band', label: 'Dictionary', value: dictBandValue(setup.legal_band) },
     // Directly above the timer, which is where the dialog's own "Board
     // (optional)" section sits — so the setup rows stay the form read back, in the
     // form's order. Labeled "Board" rather than the letter games' "Letters":

@@ -34,7 +34,7 @@
  * Calling shape (from the FE):
  *   POST /functions/v1/waffle-build-board
  *   { target_club: uuid,
- *     setup: jsonb,                 // { difficulty, extra_swaps, timer }
+ *     setup: jsonb,                 // { dict_band, extra_swaps, timer }
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
@@ -44,7 +44,7 @@
  * the setup dialog has no control capable of producing, and an empty word list
  * means the database was never seeded. The third is the one thing the form
  * genuinely cannot know from its own values: whether a board EXISTS at the
- * difficulty chosen. That one is a validation, and it lands under `difficulty`.
+ * dictionary band chosen. That one is a validation, and it lands under `dict_band`.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -115,14 +115,14 @@ serve(async (req) => {
     const parsed = await parseBuildBoardRequest(req, 'waffle-build-board')
     if (parsed instanceof Response) return parsed
     const { targetClub, mode, playerUserIds, supabase } = parsed
-    const setup = parsed.setup as { difficulty?: number }
+    const setup = parsed.setup as { dict_band?: number }
 
     // The vocabulary band. Server accepts the full 1..6 range (the UI
     // offers a subset); create_game re-validates after we build.
-    const band = setup.difficulty ?? DEFAULT_BAND
+    const band = setup.dict_band ?? DEFAULT_BAND
     if (!Number.isInteger(band) || band < MIN_BAND || band > MAX_BAND) {
-      console.log(`waffle-build-board reject: invalid difficulty "${band}" (must be ${MIN_BAND}..${MAX_BAND})`)
-      return fault('PN119', `BUG: word difficulty of '${band}'`, `waffle-build-board: difficulty must be ${MIN_BAND}..${MAX_BAND}`)
+      console.log(`waffle-build-board reject: invalid dict_band "${band}" (must be ${MIN_BAND}..${MAX_BAND})`)
+      return fault('PN119', `BUG: dictionary band of '${band}'`, `waffle-build-board: dict_band must be ${MIN_BAND}..${MAX_BAND}`)
     }
     console.log(`waffle-build-board: band=${band}`)
 
@@ -146,8 +146,8 @@ serve(async (req) => {
       console.log(`reject: could not build a band-${band} board`)
       return formValidation(
         'PN121',
-        'difficulty',
-        'No board could be built at that difficulty. Try another.',
+        'dict_band',
+        'No board could be built at that dictionary band. Try another.',
         `waffle-build-board: generator exhausted its attempts at band ${band}`,
       )
     }

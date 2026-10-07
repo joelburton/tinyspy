@@ -55,7 +55,7 @@
  * Calling shape (from the FE):
  *   POST /functions/v1/wordiply-build-board
  *   { target_club: uuid,
- *     setup: jsonb,                 // { difficulty?, timer }, NO mode field
+ *     setup: jsonb,                 // { dict_band?, timer }, NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
@@ -80,7 +80,7 @@ import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.t
 type Setup = {
   /** Dictionary band the legal child words are drawn from (1..6, default
    *  5, validated server-side by wordiply.create_game). */
-  difficulty?: number
+  dict_band?: number
   /** An OPTIONAL player-chosen starter (2–4 letters). Present → skip
    *  sampling entirely and build from exactly these letters, under the
    *  relaxed CUSTOM_* gate below. Absent/blank → the usual random board.
@@ -261,8 +261,8 @@ serve(async (req) => {
     const setup = parsed.setup as Setup
     // create_game is the authority on the band's range; here we just
     // default the classic 5 and feed the helpers.
-    const difficulty = setup.difficulty ?? 5
-    console.log(`wordiply-build-board: difficulty=${difficulty}`)
+    const dictBand = setup.dict_band ?? 5
+    console.log(`wordiply-build-board: dict_band=${dictBand}`)
 
     // The player's own starter, if they typed one. create_game re-validates
     // the shape; here we only need to know whether to sample or not.
@@ -291,14 +291,14 @@ serve(async (req) => {
         )
       }
       const bits = await tryBase(
-        supabase, customBase, difficulty, CUSTOM_CHILD_MIN, CUSTOM_CHILD_MAX,
+        supabase, customBase, dictBand, CUSTOM_CHILD_MIN, CUSTOM_CHILD_MAX,
       )
       if (!bits) {
         // Rejected — say which way, since the two have different fixes. Both
         // are player-REACHABLE (you can type ING), and the field is the one the
         // player typed into, so both land under the starter box rather than
         // raising a modal that offers nothing to do.
-        const children = await countMatchingWords(supabase, customBase, difficulty)
+        const children = await countMatchingWords(supabase, customBase, dictBand)
         const shown = customBase.toUpperCase()
         console.log(`reject: custom base ${customBase} has ${children} children`)
         return children > CUSTOM_CHILD_MAX
@@ -325,7 +325,7 @@ serve(async (req) => {
       // repeat of the club's previous base.
       for (const base of candidates) {
         if (base === previousBase) continue
-        const bits = await tryBase(supabase, base, difficulty)
+        const bits = await tryBase(supabase, base, dictBand)
         if (bits) {
           board = {
             base,

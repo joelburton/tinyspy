@@ -93,7 +93,7 @@ describe('stackdown setup — where a refusal lands', () => {
     // PN052 — the board library holds nothing at that band. The form offers
     // both bands, so it cannot know; everything else it CAN prevent, and those
     // arrive as faults.
-    const message = 'No boards at that difficulty yet — try the other one'
+    const message = 'No boards at that dictionary band yet — try the other one'
     draw({ errors: { band: message } })
     expect(errorUnder('band')).toBe(message)
   })

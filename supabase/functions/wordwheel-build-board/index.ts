@@ -75,10 +75,10 @@
  * The words are written HERE, at the raise, not looked up on the frontend:
  *
  *   PN194  form-validation  custom_letters  no words for those letters
- *   PN195  form-validation  required        no pangram seeds at that difficulty
+ *   PN195  form-validation  required        no pangram seeds at that band
  *   PN196  form-validation  unique_letters  no unique-letter boards at it either
  *   PN197  form-validation  _               the club's last board rules out every seed left
- *   PN198  form-validation  required        no board at that required difficulty
+ *   PN198  form-validation  required        no board at that required band
  *   PN192-3, crash          -               a bad request, or a broken pipeline
  *
  * The form-validations are the narrow class the setup form cannot rule out from
@@ -175,7 +175,7 @@ const PAGE_SIZE = 10_000
 
 /** Fetches the pangram seeds eligible for this game — those whose pangram is
  *  gettable at the required band (difficulty <= required_band). The
- *  difficulty tag is what lets the pool grow with the game's difficulty.
+ *  difficulty tag is what lets the pool grow with the game's band.
  *  Worst case (band 6) is the whole pool — a few round-trips at the 10k page
  *  size. */
 async function fetchPangrams(
@@ -359,7 +359,7 @@ serve(async (req) => {
         return formValidation(
           'PN194',
           'custom_letters',
-          'No words for those letters at that difficulty.',
+          'No words for those letters at that dictionary band.',
           `wordwheel-build-board: zero required words at band ${requiredBand}`,
         )
       }
@@ -379,7 +379,7 @@ serve(async (req) => {
         return formValidation(
           'PN195',
           'required_band',
-          `No pangram seeds at required difficulty ${requiredBand}`,
+          `No pangram seeds at required band ${requiredBand}`,
           'wordwheel-build-board: the nine-letter seed pool is empty at that band',
         )
       }
@@ -387,7 +387,7 @@ serve(async (req) => {
       // letters are all distinct (a seed's `letters` is the sorted 9-char
       // multiset, so distinct ⟺ every character differs). Applied before the
       // overlap cap so both filters compose. If it empties the pool, say so
-      // specifically — the friend can drop the constraint or the difficulty.
+      // specifically — the friend can drop the constraint or the band.
       const constrained = setup.unique_letters
         ? allPangrams.filter((row) => new Set(row.letters).size === WHEEL_SIZE)
         : allPangrams
@@ -398,13 +398,13 @@ serve(async (req) => {
         // Player-reachable: the unique-letters option plus a low band can empty
         // the pool. Under `unique_letters` rather than the band, because the
         // option is what narrowed the pool and turning it off is one click —
-        // and the sentence names the other lever anyway. "Higher difficulty" is
+        // and the sentence names the other lever anyway. "Higher band" is
         // the right direction here, since the seed pool GROWS with the band.
         console.log('reject: no all-distinct pangram seeds at this required band')
         return formValidation(
           'PN196',
           'unique_letters',
-          `No unique-letter boards at required difficulty ${requiredBand} — try a higher difficulty or turn off "unique letters only"`,
+          `No unique-letter boards at required band ${requiredBand} — try a higher band or turn off "unique letters only"`,
           'wordwheel-build-board: no all-distinct pangram seeds at that band',
         )
       }
@@ -476,7 +476,7 @@ serve(async (req) => {
         return formValidation(
           'PN198',
           'required_band',
-          'No puzzle could be built at that required difficulty. Try a wider one.',
+          'No puzzle could be built at that required band. Try a wider one.',
           `wordwheel-build-board: ${MAX_SEED_ATTEMPTS} seeds all under ${MIN_REQUIRED_WORDS_COUNT} words`,
         )
       }

@@ -3,7 +3,7 @@
 import type { Member } from '@/common/members/member'
 import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { WORD_CHECK_OPTIONS } from './setup'
 import type { GSetup } from '../types'
 
@@ -52,12 +52,12 @@ export function makeSetupRows(
       {
         key: 'dict_2',
         label: 'Dictionary (2-letter)',
-        value: difficultyValue(setup.dict_2),
+        value: dictBandValue(setup.dict_2),
       },
       {
         key: 'dict_3plus',
         label: 'Dictionary (longer)',
-        value: difficultyValue(setup.dict_3plus),
+        value: dictBandValue(setup.dict_3plus),
       },
     )
   }

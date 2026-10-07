@@ -223,10 +223,10 @@ export type GSummaryData = SummaryData & {
 export type GSetupValues = {
   timer: TimerMode
   dice_set: string
-  // required-word difficulty band, 1 (universal) … 6 (expert) — the words the
+  // required-word dictionary band, 1 (universal) … 6 (expert) — the words the
   // board generator guarantees are findable (clean: american, no slur/crude/slang)
   band: number
-  // legal (bonus) difficulty band, `band`…6 — the ceiling for words that aren't
+  // legal (bonus) dictionary band, `band`…6 — the ceiling for words that aren't
   // required but still score. Filters on difficulty ONLY (any dialect/slur/
   // crude/slang qualifies), so it's the wider net of "real words you might find".
   legal_band: number

@@ -41,7 +41,7 @@ returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'difficulty', 2,
+    'dict_band', 2,
     'extra_swaps', extra,
     'timer', jsonb_build_object('kind', 'none')
   );

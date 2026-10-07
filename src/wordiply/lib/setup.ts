@@ -39,14 +39,14 @@ export function customBaseError(setup: GSetup): FormErrors {
 }
 
 /**
- * The single Start-gate validator for both manifests: the difficulty band
+ * The single Start-gate validator for both manifests: the dictionary band
  * must be 1..6, and the optional custom starter must be the right shape.
  * Returns the error string (which the dialog shows while disabling Start)
  * or `null` when the setup is valid. `create_game` re-checks server-side.
  */
 export function wordiplySetupError(setup: GSetup): FormErrors {
-  if (setup.difficulty < 1 || setup.difficulty > 6) {
-    return { difficulty: 'Difficulty must be between 1 and 6.' }
+  if (setup.dict_band < 1 || setup.dict_band > 6) {
+    return { dict_band: 'Dictionary band must be between 1 and 6.' }
   }
   return customBaseError(setup)
 }
@@ -57,7 +57,7 @@ export function wordiplySetupError(setup: GSetup): FormErrors {
  */
 export const DEFAULT_WORDIPLY_SETUP_COOP: GSetup = {
   timer: { kind: 'none' },
-  difficulty: 5,
+  dict_band: 5,
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
   // 2+ players) offers turn-by-turn. first_turn_user_id is seeded by the field.
   coop_style: 'free-for-all',
@@ -65,9 +65,9 @@ export const DEFAULT_WORDIPLY_SETUP_COOP: GSetup = {
 
 /**
  * Initial setup for the compete manifest — identical to coop (no
- * target_rank; the same difficulty band + timer choices apply).
+ * target_rank; the same dictionary band + timer choices apply).
  */
 export const DEFAULT_WORDIPLY_SETUP_COMPETE: GSetup = {
   timer: { kind: 'none' },
-  difficulty: 5,
+  dict_band: 5,
 }

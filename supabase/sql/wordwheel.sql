@@ -655,24 +655,24 @@ begin
   begin
     s_required := coalesce((p_setup->>'required_band')::int, 3);
   exception when invalid_text_representation then
-    raise exception 'BUG: required difficulty that is not a number'
+    raise exception 'BUG: required band that is not a number'
       using errcode = 'PN505', hint = 'fault', column = '_',
       detail = 'setup.required_band must be an integer 1..6';
   end;
   if s_required < 1 or s_required > 6 then
-    raise exception 'BUG: required difficulty of %', s_required
+    raise exception 'BUG: required band of %', s_required
       using errcode = 'PN182', hint = 'fault', column = '_',
       detail = 'setup.required_band must be 1..6';
   end if;
   begin
     s_legal := coalesce((p_setup->>'legal_band')::int, 5);
   exception when invalid_text_representation then
-    raise exception 'BUG: legal difficulty that is not a number'
+    raise exception 'BUG: legal band that is not a number'
       using errcode = 'PN506', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be an integer between required_band and 6';
   end;
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'BUG: legal difficulty of % with required at %', s_legal, s_required
+    raise exception 'BUG: legal band of % with required at %', s_legal, s_required
       using errcode = 'PN183', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be between required_band and 6';
   end if;
@@ -719,7 +719,7 @@ begin
   is_custom_board := coalesce(p_setup->>'custom_letters', '') <> '';
   if is_custom_board then
     if b_n_reqd_words < 1 then
-      raise exception 'No words for those letters at that difficulty'
+      raise exception 'No words for those letters at that dictionary band'
         using errcode = 'PN188', hint = 'form-validation', column = 'custom_letters',
         detail = 'the chosen wheel produces an empty required set at that band';
     end if;

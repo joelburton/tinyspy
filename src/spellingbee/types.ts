@@ -95,7 +95,7 @@ export type GRefusedMark = Mark<{ letters: ReadonlySet<string>; outcome: Outcome
  *     only the clock or the Stop button stops — the default, and
  *     the right pick for a group that just wants to find words.
  *   - `required_band` / `legal_band` — the vocabulary bands, each a
- *     dictionary difficulty ceiling. `required_band` (1..6) is where
+ *     dictionary band ceiling. `required_band` (1..6) is where
  *     the displayed goal words come from; `legal_band`
  *     (required_band..6) is the wider set of accepted/bonus words;
  *     it must contain the required band (see `legalError`). Every

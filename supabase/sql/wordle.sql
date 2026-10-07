@@ -592,7 +592,7 @@ begin
   end if;
 
   -- ─── Validate the word bands ─────────────────────────────
-  -- answer_band: 0 = the curated Wordle list, 1..6 = a difficulty band.
+  -- answer_band: 0 = the curated Wordle list, 1..6 = a dictionary band.
   -- legal_band: 1..6. A guess must be able to spell any possible answer, so
   -- legal_band must reach the answer's hardest band — 2 for the Wordle list
   -- (0 is not a real band, but every word on the list is at band 2 or
@@ -979,7 +979,7 @@ begin
   -- ─── Soft reject: not in the legal word slice (no burn) ──
   -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_band
   -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
-  -- on guesses — only the difficulty band gates them).
+  -- on guesses — only the dictionary band gates them).
   --
   -- THE ANSWER IS CHECKED FIRST, before the dictionary: the band is read LIVE
   -- from common.words, and the target was banded at game creation — so a word

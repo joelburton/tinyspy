@@ -23,7 +23,7 @@
 -- once; the page reads those.
 --
 -- What is particular to stackdown (docs/games/stackdown.md has the rest):
---   - Boards come from a pre-generated library, one per difficulty band, and
+--   - Boards come from a pre-generated library, one per dictionary band, and
 --     each board spells exactly its six solution words, in order: nothing
 --     else is ever exposed, so submit_word checks against the next solution
 --     word rather than a dictionary.
@@ -536,7 +536,7 @@ drop function if exists stackdown.create_game(text, jsonb, uuid[], text);
 -- semantics.
 --
 -- Setup shape: { "timer": (none | countup | countdown{seconds}),
---                "band":  int 1..6 (word-difficulty; default 1) }.
+--                "band":  int 1..6 (dictionary band; default 1) }.
 create or replace function stackdown.create_game(
   p_club_handle     text,
   p_setup           jsonb,
@@ -566,7 +566,7 @@ begin
   -- library actually holds boards for is accepted.
   v_band := coalesce((p_setup->>'band')::int, 1);
   if v_band < 1 or v_band > 6 then
-    raise exception 'BUG: word difficulty of %', v_band
+    raise exception 'BUG: dictionary band of %', v_band
       using errcode = 'PN051', hint = 'fault', column = '_',
       detail = 'setup band must be 1..6';
   end if;
@@ -575,10 +575,10 @@ begin
   select * into b from stackdown.boards where band = v_band order by random() limit 1;
   if not found then
     -- A validation rather than an error, because the player CAN act on it:
-    -- the fix is the other difficulty, and that is the field it names. The
+    -- the fix is the other band, and that is the field it names. The
     -- library is pre-generated per band, so an empty one is a content gap
     -- rather than anything they did.
-    raise exception 'No boards at that difficulty yet — try the other one'
+    raise exception 'No boards at that dictionary band yet — try the other one'
       using errcode = 'PN052', hint = 'form-validation', column = 'band',
       detail = 'stackdown.boards is empty at that band; run gmake g-stackdown-puzzles + the import';
   end if;

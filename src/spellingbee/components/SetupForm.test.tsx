@@ -105,7 +105,7 @@ describe('spellingbee setup — where a refusal lands', () => {
     // PN168 from create_game, PN175 from spellingbee-build-board — the same
     // sentence from whichever got there first, and the only refusal about this
     // box the dialog could not have made itself.
-    const message = 'No words for those letters at that difficulty.'
+    const message = 'No words for those letters at that dictionary band.'
     draw({ errors: { custom_letters: message } })
     expect(errorUnder('custom_letters')).toBe(message)
   })

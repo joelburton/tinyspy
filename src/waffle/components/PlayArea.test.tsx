@@ -114,7 +114,7 @@ const SOLO_LOST: ZTest_GameDataFacts = { ...COOP_LOST, players: [lost(ME)] }
 
 /** A realistic setup blob — the info-column disclosure reads it (a `{}` here
  *  would crash timerLabel, exactly the kind of render bug these tests guard). */
-const SETUP: GSetup = { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } }
+const SETUP: GSetup = { dict_band: 2, extra_swaps: 5, timer: { kind: 'none' } }
 
 /** A play surface's context: a waffle game, solo coop by default, built from
  *  the facts the way the builder would build it. */
@@ -291,7 +291,7 @@ describe('waffle PlayArea — new game (menu)', () => {
       data: {
         type: 'not-ok',
         severity: 'fault',
-        message: 'No board could be built at that difficulty.',
+        message: 'No board could be built at that dictionary band.',
         dbcode: 'PN121',
       },
     })
@@ -310,7 +310,7 @@ describe('waffle PlayArea — new game (menu)', () => {
     // the server's words.
     await waitFor(() =>
       expect(ZTest_peekFaultMessages().map((f) => f.text)).toContain(
-        'No board could be built at that difficulty.',
+        'No board could be built at that dictionary band.',
       ),
     )
     expect(ctx.goToFollowUpGame).not.toHaveBeenCalled()

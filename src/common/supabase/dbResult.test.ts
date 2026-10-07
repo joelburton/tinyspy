@@ -621,7 +621,7 @@ describe('runEdgeFn — the same shape, through Deno', () => {
   it('leaves a validation alone — no modal, the form will say it', async () => {
     const envelope = {
       type: 'not-ok', severity: 'form-validation', field: 'band',
-      message: 'No board could be built at that difficulty', dbcode: 'PN500',
+      message: 'No board could be built at that dictionary band', dbcode: 'PN500',
     }
     mockInvoke.mockResolvedValue({ data: envelope, error: null })
 

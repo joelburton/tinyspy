@@ -1,7 +1,7 @@
 // cs-blessed-psychicnum
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
@@ -24,7 +24,7 @@ export function makeSetupRows(
     ...makeCoopRows(setup, mode, players),
     { key: 'max_guesses', label: 'Guesses', value: String(setup.max_guesses) },
     { key: 'word_count', label: 'Words on board', value: String(setup.word_count) },
-    { key: 'band', label: 'Dictionary', value: difficultyValue(setup.band) },
+    { key: 'band', label: 'Dictionary', value: dictBandValue(setup.band) },
     makeTimerRow(setup.timer),
   ]
 }

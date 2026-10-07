@@ -249,24 +249,24 @@ select pg_temp.envelope_is(
 
 select pg_temp.envelope_is(
   wordiply.create_game((select handle from club),
-    pg_temp.wordiply_setup() || '{"difficulty": 0}'::jsonb,
+    pg_temp.wordiply_setup() || '{"dict_band": 0}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
-    "message":"BUG: word difficulty of 0"}'::jsonb,
-  'rejects setup.difficulty below 1 (band floor)'
+    "message":"BUG: dictionary band of 0"}'::jsonb,
+  'rejects setup.dict_band below 1 (band floor)'
 );
 
 select pg_temp.envelope_is(
   wordiply.create_game((select handle from club),
-    pg_temp.wordiply_setup() || '{"difficulty": 7}'::jsonb,
+    pg_temp.wordiply_setup() || '{"dict_band": 7}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordiply_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN124",
-    "message":"BUG: word difficulty of 7"}'::jsonb,
-  'rejects setup.difficulty above 6 (band ceiling)'
+    "message":"BUG: dictionary band of 7"}'::jsonb,
+  'rejects setup.dict_band above 6 (band ceiling)'
 );
 
 -- ============================================================

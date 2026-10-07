@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
@@ -18,7 +18,7 @@ export function makeSetupRows(
   return [
     makeRosterRow(players),
     ...makeCoopRows(setup, mode, players),
-    { key: 'difficulty', label: 'Dictionary', value: difficultyValue(setup.difficulty) },
+    { key: 'dict_band', label: 'Dictionary', value: dictBandValue(setup.dict_band) },
     makeTimerRow(setup.timer),
   ]
 }

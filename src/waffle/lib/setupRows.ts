@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import {
   makeCoopRows,
   makeRosterRow,
@@ -29,9 +29,9 @@ export function makeSetupRows(
     makeRosterRow(players),
     ...makeCoopRows(setup, mode, players),
     {
-      key: 'difficulty',
+      key: 'dict_band',
       label: 'Dictionary',
-      value: difficultyValue(setup.difficulty),
+      value: dictBandValue(setup.dict_band),
     },
     {
       key: 'extra_swaps',

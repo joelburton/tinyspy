@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
@@ -22,8 +22,8 @@ export function makeSetupRows(
   const rows: SetupRow[] = [
     makeRosterRow(players),
     ...makeCoopRows(setup, mode, players),
-    { key: 'dict_2', label: 'Dictionary (2-letter)', value: difficultyValue(setup.dict_2) },
-    { key: 'dict_3plus', label: 'Dictionary (longer)', value: difficultyValue(setup.dict_3plus) },
+    { key: 'dict_2', label: 'Dictionary (2-letter)', value: dictBandValue(setup.dict_2) },
+    { key: 'dict_3plus', label: 'Dictionary (longer)', value: dictBandValue(setup.dict_3plus) },
   ]
   if (mode === 'compete' && setup.ai_count > 0) {
     rows.push({

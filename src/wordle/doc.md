@@ -70,7 +70,7 @@ unwinnable.
 
 Where the target comes from is the **answer source**, stored as `answer_band`:
 `0` draws from the curated Wordle answer list, `1`–`6` from any clean
-five-letter word of that difficulty band or easier. The legal band must reach
+five-letter word of that dictionary band or easier. The legal band must reach
 the answer's hardest band so that every possible answer is itself a legal
 guess; the setup dialog floors the control there and `create_game` checks it
 again. For a real band that is the band itself; `0` is not a real band, but
@@ -231,7 +231,7 @@ Starts a game on a fresh random word. It checks the setup — a guess budget of
 five to eight, an answer source, and a legal-guess band that must reach the
 hardest band an answer can come from — then picks the target: from the curated
 Wordle answer list when `answer_band` is `0`, otherwise any five-letter
-dictionary word of that difficulty band or easier. Either way the word is
+dictionary word of that dictionary band or easier. Either way the word is
 clean, and the frontend is never told it. It writes the `common.games` row
 titled `New game` (coop) or `New compete`, a `wordle.games` row holding the
 target and the legal band, one `wordle.players` row per player, and writes the

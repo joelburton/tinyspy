@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { FormErrors } from '@/common/forms/formState'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { GAiLevel, GSetup } from '../types'
 
 /**
@@ -77,7 +77,7 @@ export function validateScrabbleSetup(setup: unknown, playerCount: number): Form
     // are rung, so a setup with one dictionary already wide enough doesn't get
     // a red box around the select that is fine.
     const message =
-      `A ${AI_LEVEL_LABEL[s.ai_level]} AI needs the dictionary at “${difficultyValue(
+      `A ${AI_LEVEL_LABEL[s.ai_level]} AI needs the dictionary at “${dictBandValue(
         band)}” or wider — ` +
       `raise both dictionaries to at least that before adding it.`
     return {

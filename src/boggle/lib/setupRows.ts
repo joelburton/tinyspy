@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { BOARD_KEY, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { DICE_BY_NAME } from './dice'
@@ -72,8 +72,8 @@ export function makeSetupRows(
       label: 'Board',
       value: DICE_BY_NAME[setup.dice_set]?.desc ?? setup.dice_set,
     },
-    { key: 'band', label: 'Dictionary (required)', value: difficultyValue(setup.band) },
-    { key: 'legal_band', label: 'Dictionary (legal)', value: difficultyValue(setup.legal_band) },
+    { key: 'band', label: 'Dictionary (required)', value: dictBandValue(setup.band) },
+    { key: 'legal_band', label: 'Dictionary (legal)', value: dictBandValue(setup.legal_band) },
     { key: 'scoring_ladder', label: 'Scoring', value: ladderLabel },
     { key: 'min_word_length', label: 'Min word length', value: String(setup.min_word_length) },
     {

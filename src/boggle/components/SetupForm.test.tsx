@@ -104,7 +104,7 @@ describe('boggle setup — where a refusal lands', () => {
     // from whichever got there first, and the only refusal about this box that
     // the form could not have caught: whether those letters yield words is the
     // dictionary's answer, not the shape check the dialog already runs.
-    const message = 'No words for those letters at that difficulty.'
+    const message = 'No words for those letters at that dictionary band.'
     draw({ errors: { custom_board: message } })
     expect(errorUnder('custom_board')).toBe(message)
   })

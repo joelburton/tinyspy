@@ -1,7 +1,7 @@
 // cs-blessed-wordwheel
 
 import type { Member } from '@/common/members/member'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeCenterLettersRow, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
@@ -31,8 +31,8 @@ export function makeSetupRows(
   const rows: SetupRow[] = [
     makeRosterRow(players),
     ...makeCenterLettersRow(board),
-    { key: 'required_band', label: 'Dictionary (required)', value: difficultyValue(setup.required_band) },
-    { key: 'legal_band', label: 'Dictionary (legal)', value: difficultyValue(setup.legal_band) },
+    { key: 'required_band', label: 'Dictionary (required)', value: dictBandValue(setup.required_band) },
+    { key: 'legal_band', label: 'Dictionary (legal)', value: dictBandValue(setup.legal_band) },
   ]
   if (setup.target_rank !== null && setup.target_rank !== undefined) {
     rows.push({ key: 'target_rank', label: 'Target rank', value: RANKS[setup.target_rank] ?? '?' })

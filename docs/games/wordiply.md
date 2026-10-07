@@ -13,7 +13,7 @@ is **WordWire**, and it lives only in the manifest `BRAND` const.
 every game here, the existing game is the spec; the work is fitting it into the
 Supabase + React shell, not designing the rules. This is a **new build**, not a
 code port — but it borrows its skeleton almost entirely from **wordwheel** /
-**spellingbee** (word-list games with difficulty bands + an edge-function board
+**spellingbee** (word-list games with dictionary bands + an edge-function board
 builder) and its **hidden-solution** mechanics from **wordle** / **waffle**.
 
 ---
@@ -27,7 +27,7 @@ builder) and its **hidden-solution** mechanics from **wordle** / **waffle**.
   at setup — the challenge ("try wordiply with MOTH"). See
   [§5b](#5b-a-player-chosen-base-setupcustom_base).
 - Players enter **5 guesses**. Every guess **must contain the base as a
-  contiguous substring** and be a valid dictionary word in the difficulty band,
+  contiguous substring** and be a valid dictionary word in the dictionary band,
   and must be **longer than the base** (you have to _extend_ the starter, not
   just retype it).
 - Two readouts, **no single combined score**:
@@ -128,7 +128,7 @@ spread out does **not**. Only the **first** occurrence is highlighted in the UI
 The legal predicate (`wordiply.matching_words`) excludes slang / slurs / crude
 words (`american and not slang and slur = 0 and crude = 0`) — because this set
 also determines the **longest word**, and we don't want a slur to be the answer.
-One `difficulty` band governs it (1..6). Word **length is NOT capped** — a long
+One dictionary band, `dict_band`, governs it (1..6). Word **length is NOT capped** — a long
 best word like `compartmentalizations` is a legitimate target. Instead the edge
 builder throws out over-generous bases (see §5).
 
@@ -169,7 +169,7 @@ is `supabase/sql/wordiply.sql`.
 | `legal_words` | jsonb not null | the full clean legal matching-word list, for the page to judge a word itself (trusting-commit) |
 
 The mode, the club and the start time are `common.games`'; the dictionary band
-only chose the words, and stays in `setup.difficulty`.
+only chose the words, and stays in `setup.dict_band`.
 
 **No hidden columns.** Because we don't care about cheating (trust model),
 nothing needs the column-grant machinery waffle / wordle / crosswords use:
@@ -241,7 +241,7 @@ validated-guess RPC.
   uuid[], p_mode text, p_board jsonb) → jsonb`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`);
     `mode`; **rejects `setup.target_rank`** (wordiply isn't a race-to-rank); one
-    `difficulty` band 1..6; timer via `common._require_valid_timer`; and the
+    `dict_band` 1..6; timer via `common._require_valid_timer`; and the
     optional **`setup.custom_base`** — its shape, plus the cross-check that
     `board.base` matches it ([§5b](#5b-a-player-chosen-base-setupcustom_base)).
     It is stripped from the club's saved default.
@@ -351,14 +351,14 @@ A small orchestration over the two SQL helpers (auth → sample →
 try-until-one-passes → `create_game` → `{id}`). Constants: `SOURCE_BAND=3`,
 `CHILD_MIN=20`, `CHILD_MAX=500`, `MIN_HEADROOM=3`, `ATTEMPTS=40`.
 
-1. Auth (caller JWT), parse `{ target_club, setup{difficulty, timer},
-   player_user_ids, mode }`; `difficulty` defaults to 5.
+1. Auth (caller JWT), parse `{ target_club, setup{dict_band, timer},
+   player_user_ids, mode }`; `dict_band` defaults to 5.
 2. Read the club's **most-recent `wordiply.games.base`** (a repeat cap — don't
    hand out the same starter twice running).
 3. `candidate_bases(SOURCE_BAND, ATTEMPTS)` → N candidate fragments (substrings
    of common source words, so they read naturally and always have children).
 4. For each candidate (skip a repeat of the previous base): `try_base(base,
-   difficulty, CHILD_MIN, CHILD_MAX, MIN_HEADROOM)`. The **first non-empty
+   dictBand, CHILD_MIN, CHILD_MAX, MIN_HEADROOM)`. The **first non-empty
    result wins** — try_base already returns the whole board (`max_word_len` +
    `longest_words` + `legal_words`), so no extra query. The **`CHILD_MAX` bound
    is load-bearing**: it rejects over-generous fragments so the board is a real
@@ -691,7 +691,7 @@ base `ar`, longest possible 7):
 - `create_game_test` — the coop + compete happy paths (rows, gametypes, the
   page blobs at zero, title = just the uppercased base — no length leak); the
   guards: an outsider (42501), an **invalid positional `mode` arg**,
-  `setup.target_rank`, compete `< 2` players, difficulty outside 1..6, malformed
+  `setup.target_rank`, compete `< 2` players, dict_band outside 1..6, malformed
   board (`base` not 2–4 lowercase letters, `max_word_len` below `base_len +
   2`, empty `longest_words` / empty `legal_words`), player count over 6.
 - `gameplay_test` — `submit_guess` trusting-commit: a valid guess →

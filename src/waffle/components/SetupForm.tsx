@@ -8,7 +8,7 @@ import {
   SetupCoopStyleSection,
 } from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { EXTRA_SWAP_OPTIONS } from '../lib/setup'
 import type { GSetupValues } from '../types'
@@ -17,8 +17,8 @@ import type { GSetupValues } from '../types'
  * waffle's setup form, rendered inside the common SetupGameModal.
  * Two choices plus the timer:
  *
- *   - **Word difficulty** — which vocabulary band (1..6) the six 5-letter
- *     words are drawn from (sets `difficulty`), via the shared DictBandField.
+ *   - **Dictionary band** — which band (1..6) the six 5-letter
+ *     words are drawn from (sets `dict_band`), via the shared DictBandField.
  *   - **Swap budget** — how many *extra* swaps beyond the puzzle's
  *     par you get. Fewer = harder. `max_swaps = par + extra_swaps`.
  *
@@ -29,7 +29,7 @@ import type { GSetupValues } from '../types'
  * `unknown` setup and waffle's shape. Shared by both manifests (mode
  * doesn't change the form).
  *
- * `difficulty` is the one field here a refusal can actually land on: whether a
+ * `dict_band` is the one field here a refusal can actually land on: whether a
  * board EXISTS at a given band is the single thing this form cannot rule out
  * from its own values, and waffle-build-board says so under that name.
  */
@@ -46,7 +46,7 @@ export function SetupForm({
   // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
   // waffle has ONE band. The swap summary shows the gloss + the number, e.g.
   // "Swap budget: Tight +3".
-  const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
+  const dictLabel = `Dictionary: ${dictBandValue(s.dict_band)}`
   const swapGloss =
     EXTRA_SWAP_OPTIONS.find((opt) =>
       opt.value === s.extra_swaps)?.label ?? 'Custom'
@@ -78,14 +78,14 @@ export function SetupForm({
       />
       <SetupSection label={dictLabel}>
         <DictBandField
-          name="difficulty"
+          name="dict_band"
           help="Which vocabulary the puzzle's words come from."
           length={5}
           minBand={1}
           maxBand={6}
-          value={s.difficulty}
-          error={errors.difficulty}
-          onChange={(difficulty) => set('difficulty', difficulty)}
+          value={s.dict_band}
+          error={errors.dict_band}
+          onChange={(dictBand) => set('dict_band', dictBand)}
         />
       </SetupSection>
       <SetupSection label={swapLabel}>

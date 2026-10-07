@@ -385,7 +385,7 @@ bold glyph.)
 
 ## Player-tunable difficulty
 
-- **Dictionary/difficulty band at setup:** PN FB MC RA SD SS WN MG MW WW PP SB
+- **Dictionary band at setup:** PN FB MC RA SD SS WN MG MW WW PP SB
   (PP's + SB's bands run the OTHER way: a wider dictionary means more hint words
   / more escape routes off an awkward tail letter, so a HIGHER band makes them
   easier)

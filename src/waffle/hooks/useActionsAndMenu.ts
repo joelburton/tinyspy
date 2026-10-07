@@ -106,7 +106,7 @@ export function useActionsAndMenu({
     })
     if (res.type === 'not-ok') {
       // There is no form here, so even a `form-validation` — PN121, when the
-      // generator gives up at that difficulty — reads in the slot. Shown even
+      // generator gives up at that dictionary band — reads in the slot. Shown even
       // for a fault whose modal has already fired: a modal escalates rather
       // than replaces (docs/envelopes.md).
       localFeedbackSlot.show(FeedbackMessage.notOk(res))

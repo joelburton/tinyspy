@@ -99,7 +99,7 @@ describe('psychicnum setup — where a refusal lands', () => {
   // a field error that arrives renders under its own control, which is what a
   // future validation would need.
   it('lets the difficulty picker carry a field error, if one ever lands', () => {
-    const message = 'Not enough words at that difficulty for a board this size'
+    const message = 'Not enough words at that dictionary band for a board this size'
     draw({ errors: { band: message } })
     expect(errorUnder('band')).toBe(message)
   })

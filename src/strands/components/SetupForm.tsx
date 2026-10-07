@@ -7,7 +7,7 @@ import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupNextPuzzleSection } from '@/common/setup-form/SetupNextPuzzleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { FORM_ERROR_KEYNAME } from '@/common/forms/formState'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -104,7 +104,7 @@ export function SetupForm({
         onPick={(puzzleId) => set('puzzle_id', puzzleId)}
       />
 
-      <SetupSection label={`Hint dictionary: ${difficultyValue(s.band)}`}>
+      <SetupSection label={`Hint dictionary: ${dictBandValue(s.band)}`}>
         {/* The direction is counter-intuitive and worth saying out loud: this is
             the OPPOSITE of waffle's tier, where a higher band is a harder
             board. Here a wider dictionary means more words qualify, so hints

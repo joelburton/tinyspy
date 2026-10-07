@@ -720,7 +720,7 @@ export async function createWordiplyGame(
     .schema('wordiply')
     .rpc('create_game', {
       p_club_handle: club.handle,
-      p_setup: { timer: { kind: 'none' }, difficulty: 5 },
+      p_setup: { timer: { kind: 'none' }, dict_band: 5 },
       p_player_user_ids: playerUserIds,
       p_mode: mode,
       p_board: {
@@ -1080,7 +1080,7 @@ export async function createWaffleGame(
     .schema('waffle')
     .rpc('create_game', {
       p_club_handle: club.handle,
-      p_setup: { difficulty: 2, extra_swaps: 5, timer },
+      p_setup: { dict_band: 2, extra_swaps: 5, timer },
       p_player_user_ids: playerUserIds,
       p_mode: mode,
       p_board: {

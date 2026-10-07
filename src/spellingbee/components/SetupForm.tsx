@@ -5,7 +5,7 @@ import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { GSetupValues } from '../types'
@@ -37,7 +37,7 @@ export function SetupForm({
   const set = setValue as SetupSetter<GSetupValues>
 
   // Disclosure summaries carry the current value so it reads without opening.
-  const dictLabel = `Dictionaries: ${difficultyValue(s.required_band)} / ${difficultyValue(s.legal_band)}`
+  const dictLabel = `Dictionaries: ${dictBandValue(s.required_band)} / ${dictBandValue(s.legal_band)}`
   const customCenter = (s.custom_center ?? '').toUpperCase()
   const customOuter = (s.custom_letters ?? '').toUpperCase()
   // The summary is grouped by the SAME function the field uses, not by a

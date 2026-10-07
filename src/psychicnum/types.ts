@@ -234,7 +234,7 @@ export type GSetupValues = CoopTurnSetup & {
   // hidden secrets; a bigger board means more haystack around the
   // three needles. Validated server-side by `psychicnum.create_game`.
   word_count: number
-  // Dictionary difficulty band (1..6 = Universal..Expert), a
+  // Dictionary band (1..6 = Universal..Expert), a
   // `common.words.difficulty` value. The board words are sampled from
   // the dictionary at `difficulty ≤ this` (plus a clean + american +
   // non-slang filter). Validated server-side.

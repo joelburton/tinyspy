@@ -4,7 +4,7 @@
  * Bundled-dictionary access for the scrabble move suggester.
  *
  * `wordlist.ts` is a gzip+base64 blob of the AI's word universe (len 2..15,
- * american OR british, all difficulty bands, minus slurs + profanity — one
+ * american OR british, all dictionary bands, minus slurs + profanity — one
  * line per word, `"<difficulty><word>"`). That last clause makes it NARROWER
  * than play_word's: a player may play a crude word, the AI may not (see
  * generate-scrabble-wordlist.ts, and docs/word-list.md → Which words a game may

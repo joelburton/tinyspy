@@ -6,7 +6,7 @@ import { RadioRow } from '@/common/fields/RadioRow'
 import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { WIN_PERCENT_OPTIONS } from '../lib/setup'
 import type { GBoardConstraints, GLadderName, GSetupValues } from '../types'
@@ -40,7 +40,7 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
 /**
  * boggle's per-game setup form. Mode is locked at the gametype level (which
  * Start button you clicked), so there's no mode radio — just mode-flavored copy.
- * Picks: dice set, required-word difficulty (form DictBandField), scoring
+ * Picks: dice set, required-word dictionary band (form DictBandField), scoring
  * ladder, minimum word length, optional Board constraints (a collapsible min/max
  * grid like wsboggle's), and the form SetupTimerSection. Controlled component —
  * state lives in SetupGameModal; `create_game` re-validates server-side.
@@ -75,7 +75,7 @@ export function SetupForm({
   const customBoardLabel = customBoard
     ? `Custom board: ${groupTiles(readTiles(customBoard), boardRows)}`
     : 'Custom board (optional)'
-  const dictLabel = `Dictionaries: ${difficultyValue(s.band)} / ${difficultyValue(s.legal_band)}`
+  const dictLabel = `Dictionaries: ${dictBandValue(s.band)} / ${dictBandValue(s.legal_band)}`
   const ladderLabel =
     SCORING_LADDERS.find((l) => l.name === s.scoring_ladder)?.label ?? s.scoring_ladder
   const scoringLabel = `Scoring: ${ladderLabel} / Min length: ${s.min_word_length}`

@@ -64,7 +64,7 @@ describe('wordiply setup — what it offers', () => {
     expect(fieldNames(container)).toEqual([
       'player_user_ids',
       'coop_style',
-      'difficulty',
+      'dict_band',
       'custom_base',
       'timer',
     ])
@@ -130,8 +130,8 @@ describe('wordiply setup — where a refusal lands', () => {
   })
 
   it('leaves the other fields able to carry one, whoever writes it', () => {
-    draw({ errors: { difficulty: 'nope', player_user_ids: 'also nope' } })
-    expect(errorUnder('difficulty')).toBe('nope')
+    draw({ errors: { dict_band: 'nope', player_user_ids: 'also nope' } })
+    expect(errorUnder('dict_band')).toBe('nope')
     expect(errorUnder('player_user_ids')).toBe('also nope')
   })
 })

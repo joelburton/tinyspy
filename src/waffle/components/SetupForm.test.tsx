@@ -63,7 +63,7 @@ describe('waffle setup — what it offers', () => {
     expect(fieldNames(container)).toEqual([
       'player_user_ids',
       'coop_style',
-      'difficulty',
+      'dict_band',
       'extra_swaps',
       'timer',
     ])
@@ -103,9 +103,9 @@ describe('waffle setup — where a refusal lands', () => {
     // at that band. Everything else waffle refuses is a fault — the form's own
     // controls bound it, or the player never touched it — so this is the only
     // sentence that belongs beside a control rather than in a modal.
-    const message = 'No board could be built at that difficulty. Try another.'
-    draw({ errors: { difficulty: message } })
-    expect(errorUnder('difficulty')).toBe(message)
+    const message = 'No board could be built at that dictionary band. Try another.'
+    draw({ errors: { dict_band: message } })
+    expect(errorUnder('dict_band')).toBe(message)
   })
 
   it('leaves the other fields able to carry one, whoever writes it', () => {

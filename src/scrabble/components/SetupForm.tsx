@@ -7,7 +7,7 @@ import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SelectField } from '@/common/fields/SelectField'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { AI_LEVELS } from '../lib/aiLevels'
 import { AI_BAND, AI_LEVEL_LABEL } from '../lib/setup'
@@ -39,12 +39,12 @@ export function SetupForm({
 
   // Disclosure summary carries the current bands so the section reads without
   // opening (the boggle/spellingbee pattern — 2-letter band first, then 3+).
-  const dictLabel = `Dictionaries: ${difficultyValue(s.dict_2)} / ${difficultyValue(s.dict_3plus)}`
+  const dictLabel = `Dictionaries: ${dictBandValue(s.dict_2)} / ${dictBandValue(s.dict_3plus)}`
   const aiLabel =
     s.ai_count === 0
       ? 'AI opponents: none'
       : `AI opponents: ${s.ai_count} × ${AI_LEVEL_LABEL[s.ai_level]}`
-  const aiBandName = difficultyValue(AI_BAND[s.ai_level])
+  const aiBandName = dictBandValue(AI_BAND[s.ai_level])
 
   return (
     <>

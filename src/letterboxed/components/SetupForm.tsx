@@ -7,7 +7,7 @@ import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { PAR } from '../lib/board'
 import { cleanSides, formatSides } from '../lib/customBoard'
@@ -108,8 +108,8 @@ export function SetupForm({
         </SelectField>
       </SetupSection>
 
-      <SetupSection label={`Dictionary: ${difficultyValue(s.legal_band)}`}>
-        {/* Higher = easier here, unlike most games' difficulty bands. */}
+      <SetupSection label={`Dictionary: ${dictBandValue(s.legal_band)}`}>
+        {/* Higher = easier here, unlike most games' dictionary bands. */}
         <DictBandField
           name="legal_band"
           error={errors.legal_band}
@@ -128,7 +128,7 @@ export function SetupForm({
           fill it to play exactly this one — which is how you send a friend a
           board you liked, read straight off its info column or its printout.
 
-          Last before the timer because it's the rare knob: the two difficulty
+          Last before the timer because it's the rare knob: the two dictionary
           fields above are the ones every game touches.
 
           Start is gated on `customSidesError` (via the manifest's validate),

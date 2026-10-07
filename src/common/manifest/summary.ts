@@ -35,7 +35,7 @@
  *     renders the live line, whatever its `summary_data` says.
  */
 
-import { DIFFICULTY_LABELS } from '../setup-form/difficulty'
+import { DICT_BAND_LABELS } from '../setup-form/dictBand'
 
 /** The separator between facts. One character, one meaning. */
 const SEP = ' · '
@@ -77,7 +77,7 @@ export function wonBy(username: string | null | undefined): string {
  */
 export function dictLabel(band: number | null | undefined): string | null {
   if (band == null) return null
-  const name = DIFFICULTY_LABELS[band - 1]
+  const name = DICT_BAND_LABELS[band - 1]
   return name ? `dict "${name}"` : null
 }
 

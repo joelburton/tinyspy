@@ -282,7 +282,7 @@ export type GSetupValues = CoopTurnSetup & {
   // exactly N. The board is generated on demand for the chosen band (the
   // `waffle-build-board` edge function). The dialog offers the full 1–6 via
   // the shared `DictBandField`.
-  difficulty: number
+  dict_band: number
   // Slack added to the puzzle's par to get the swap budget
   // (`max_swaps = par + extra_swaps`). Fewer extra swaps = harder. Server
   // bounds it to 0..15; the form offers a friendly few.

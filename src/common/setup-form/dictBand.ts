@@ -1,7 +1,7 @@
 // cs-blessed-setup-form
 
 /**
- * Vocabulary-difficulty bands (1..6), shared by every word game's setup. The
+ * Dictionary bands (1..6), shared by every word game's setup. The
  * band IS `common.words.difficulty`; the labels + sample words here just SIGNAL
  * to a player roughly how obscure each band feels. They're illustrative only —
  * NOT a validated word list (a game may not even accept words this short).
@@ -12,7 +12,7 @@
  */
 
 /** Band → label. Index 0 is band 1. */
-export const DIFFICULTY_LABELS = [
+export const DICT_BAND_LABELS = [
   'Universal',
   'Common',
   'Familiar',
@@ -22,13 +22,13 @@ export const DIFFICULTY_LABELS = [
 ] as const
 
 /**
- * A difficulty band formatted as the value shown in a game's setup rows —
+ * A dictionary band formatted as the value shown in a game's setup rows —
  * `"2 (Common)"`. Every game's dictionary row uses it, so a band always
  * reads the same way (`Dictionary: 2 (Common)`, `Dictionary (legal): 4
  * (Uncommon)`). An out-of-range band degrades to `"N (—)"`.
  */
-export function difficultyValue(band: number): string {
-  return `${band} (${DIFFICULTY_LABELS[band - 1] ?? '—'})`
+export function dictBandValue(band: number): string {
+  return `${band} (${DICT_BAND_LABELS[band - 1] ?? '—'})`
 }
 
 /**

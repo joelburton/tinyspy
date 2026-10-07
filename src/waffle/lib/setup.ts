@@ -4,7 +4,7 @@ import type { GSetup } from '../types'
 
 /** Initial setup the manifest hands the dialog as `defaults`. */
 export const DEFAULT_WAFFLE_SETUP: GSetup = {
-  difficulty: 2,
+  dict_band: 2,
   extra_swaps: 5,
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,

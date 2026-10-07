@@ -671,7 +671,7 @@ as $$
 declare
   new_id uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
-  s_difficulty int;
+  s_dict_band int;
   s_custom_base text;
   b_base text;
   b_max_word_len int;
@@ -697,11 +697,11 @@ begin
 
   -- The band only chose the words, which the builder has done; it is checked
   -- here and kept in `setup`, not stored.
-  s_difficulty := coalesce((p_setup->>'difficulty')::int, 5);
-  if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'BUG: word difficulty of %', s_difficulty
+  s_dict_band := coalesce((p_setup->>'dict_band')::int, 5);
+  if s_dict_band < 1 or s_dict_band > 6 then
+    raise exception 'BUG: dictionary band of %', s_dict_band
       using errcode = 'PN124', hint = 'fault', column = '_',
-      detail = 'setup.difficulty must be 1..6';
+      detail = 'setup.dict_band must be 1..6';
   end if;
 
   perform common._require_valid_timer(p_setup->'timer');

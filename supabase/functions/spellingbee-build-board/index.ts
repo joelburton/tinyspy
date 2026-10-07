@@ -69,7 +69,7 @@
  * The words are written HERE, at the raise, not looked up on the frontend:
  *
  *   PN175     form-validation  custom_letters  no words for those letters
- *   PN177     form-validation  required        no board at that required difficulty
+ *   PN177     form-validation  required        no board at that required band
  *   PN176     fault            -               the generator gave up on a club board
  *   PN172-4   fault            -               custom letters the dialog should have refused
  *
@@ -375,7 +375,7 @@ serve(async (req) => {
         return formValidation(
           'PN175',
           'custom_letters',
-          'No words for those letters at that difficulty.',
+          'No words for those letters at that dictionary band.',
           `spellingbee-build-board: zero required words at band ${requiredBand}`,
         )
       }

@@ -563,15 +563,15 @@ begin
       detail = 'setup.word_count must be 5..20';
   end if;
 
-  -- ─── Validate the dictionary difficulty band ───────────────
+  -- ─── Validate the dictionary band ───────────────
   if (p_setup->>'band') is null then
-    raise exception 'BUG: game with no word difficulty'
+    raise exception 'BUG: game with no dictionary band'
       using errcode = 'PN047', hint = 'fault', column = '_',
       detail = 'setup.band absent';
   end if;
   s_band := (p_setup->>'band')::int;
   if s_band < 1 or s_band > 6 then
-    raise exception 'BUG: word difficulty of %', s_band
+    raise exception 'BUG: dictionary band of %', s_band
       using errcode = 'PN048', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;

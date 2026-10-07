@@ -21,7 +21,7 @@ type Props = AllFieldProps<string | number> & {
  * control and restyles it by hand — which is three different looks as soon as
  * there are three forms.
  *
- * `DictBandField` is "a SelectField over the difficulty bands"; a game's other
+ * `DictBandField` is "a SelectField over the dictionary bands"; a game's other
  * setup selects compose it with their own `<option>`s.
  *
  * WHICH CONTROL — two axes, and this is the bottom-left of them.

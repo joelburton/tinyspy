@@ -159,7 +159,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | `puzzle: {dealtTiles, parSwaps}` — the deal as `{id, letter}` tiles, and par |
 | `game_data` | `puzzle: {solution}` — the solution as `{id, letter}` tiles, null until the game ends; `team`, the team's facts sent once — the sum of the players' own counts and the one board, read off any row since they are in lock-step — null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player their own facts: `maxSwaps`, `nSwapsUsed`, and a racer's `board: {tiles}` as `GTile`s, null on a coop player |
-| `summary_data` | `team: {nSwapsUsed}`, the team's count, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `parSwaps`, the deal's par; `nWinnerSwaps`, compete's once the race is won, null in coop; `nSwapsUsedById`, each racer's swaps, null in coop |
+| `summary_data` | `team: {nSwapsUsed}`, the team's count, null in compete; `maxSwaps`; `band` (`setup.dict_band`); `parSwaps`, the deal's par; `nWinnerSwaps`, compete's once the race is won, null in coop; `nSwapsUsedById`, each racer's swaps, null in coop |
 
 **The builder writes every board and every swap.** What a racer may not see yet
 — a rival's swaps and board mid-race — is withheld by `useGame` (below), not by
@@ -198,7 +198,7 @@ Two consequences worth knowing:
   sibling-manifest signature plus a `p_board` jsonb (`{solution, dealt,
   par_swaps}`) built by the `waffle-build-board` edge function. Validates
   `_require_club_member`, `_require_player_count_max`, `_require_valid_timer`;
-  validates `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band
+  validates `setup.extra_swaps` (0..15, default 5) and `setup.dict_band` (band
   **1–6**, default 2 — the dialog's `DictBandField` offers the same full 1–6
   range); sanity-checks the board structure (25-char strings, holes at the four
   interior cells, the dealt board a rearrangement of the solution); stores it on
@@ -538,7 +538,7 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
   four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop
   pacing + its first-turn picker — self-gates to nothing for compete / solo), a
-  word-difficulty `DictBandField` (which vocabulary band the six words come
+  dictionary-band `DictBandField` (which vocabulary band the six words come
   from, 1–6), the extra-swaps `RadioRow` (the budget knob — fewer is harder),
   and the shared `SetupTimerSection`. The two disclosure sections carry their
   current values in their summaries ("Dictionary: Familiar", "Swap budget: Tight

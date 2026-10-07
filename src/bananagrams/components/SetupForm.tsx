@@ -5,7 +5,7 @@ import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import {
   HAND_SIZE_OPTIONS,
@@ -66,7 +66,7 @@ export function SetupForm({
     WORD_CHECK_OPTIONS.find((o) => o.value === s.word_check)?.label ?? s.word_check
   }`
   const dictLabel =
-    `Dictionaries: 2-letter ${difficultyValue(s.dict_2)} / ${difficultyValue(s.dict_3plus)}`
+    `Dictionaries: 2-letter ${dictBandValue(s.dict_2)} / ${dictBandValue(s.dict_3plus)}`
 
   return (
     <>

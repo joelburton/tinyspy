@@ -15,7 +15,7 @@
 --                                     7, a longest word 'hangars', and a
 --                                     small legal_words list.
 --   pg_temp.wordiply_setup()          — a default coop/compete `setup`
---                                     jsonb (difficulty 5, no timer). Mode is
+--                                     jsonb (dict_band 5, no timer). Mode is
 --                                     a positional RPC arg, NOT a setup field.
 --   pg_temp.wordiply_setup_timed()    — the same setup with a countdown
 --                                     timer, for the submit_timeout paths.
@@ -66,7 +66,7 @@ returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'difficulty', 5,
+    'dict_band', 5,
     'timer',      jsonb_build_object('kind', 'none')
   );
 $$;
@@ -77,7 +77,7 @@ returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'difficulty', 5,
+    'dict_band', 5,
     'timer',      jsonb_build_object('kind', 'countdown', 'seconds', 60)
   );
 $$;

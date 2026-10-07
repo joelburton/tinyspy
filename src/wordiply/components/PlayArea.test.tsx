@@ -44,7 +44,7 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
   runEdgeFn: vi.fn(),
 }))
 
-const SETUP: GSetup = { difficulty: 5, timer: { kind: 'none' } }
+const SETUP: GSetup = { dict_band: 5, timer: { kind: 'none' } }
 const ME: ZTest_PlayerFacts = { id: 'u1', username: 'me', color: 'red' }
 const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
 

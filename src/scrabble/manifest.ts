@@ -168,7 +168,7 @@ export const scrabbleCoopGame: GameManifest = {
     Component: setupFormLoader,
     defaults: DEFAULT_SCRABBLE_SETUP,
     intro:
-      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
+      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary band you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('coop'),
   summaryFor: (data, members, myId) => makeCoopLabel(data as GSummaryData, members, myId),
@@ -204,7 +204,7 @@ export const scrabbleCompeteGame: GameManifest = {
     defaults: DEFAULT_SCRABBLE_SETUP,
     validate: validateScrabbleSetup,
     intro:
-      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary at the difficulty you pick for its length.',
+      'Build words on the board from your rack of tiles. A word is accepted if it\'s in the dictionary band you pick for its length.',
   },
   startGameInClub: startGameInClubFactory('compete'),
   summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),

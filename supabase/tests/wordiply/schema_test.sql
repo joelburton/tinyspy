@@ -81,7 +81,7 @@ with ins as (
     'wordiply_coop',
     'coop',
     'AR',
-    '{"difficulty": 5, "timer": {"kind": "none"}}'::jsonb
+    '{"dict_band": 5, "timer": {"kind": "none"}}'::jsonb
   )
   returning id
 )

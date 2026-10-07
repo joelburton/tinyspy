@@ -89,7 +89,7 @@ describe('wordiply makeGameData — the links become players', () => {
 
   it('builds the setup rows once, for the info column and the printout', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
-    expect(gd.setupRows.map((r) => r.key)).toContain('difficulty')
+    expect(gd.setupRows.map((r) => r.key)).toContain('dict_band')
   })
 
   it('carries the puzzle through from the blob, whole from the start', () => {

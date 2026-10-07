@@ -224,7 +224,7 @@ export type GEvent = Omit<GEventRaw, 'userId'> & {
  * There is no `target_rank` (wordiply isn't a race-to-rank) and no
  * separate "base" difficulty (the base is a letter-combination, not a
  * word — it has no difficulty). Just:
- *   - `difficulty` — the dictionary band the legal child words are drawn
+ *   - `dict_band` — the dictionary band the legal child words are drawn
  *     from (1..6). Higher = more obscure words count as legal guesses and
  *     can be the longest word. Both manifests default to 5.
  *   - `timer` — the timer's mode (none / countup / countdown).
@@ -233,7 +233,7 @@ export type GEvent = Omit<GEventRaw, 'userId'> & {
 export type GSetupValues = CoopTurnSetup & {
   timer: TimerMode
   // Dictionary band for legal child words (1..6).
-  difficulty: number
+  dict_band: number
   // An OPTIONAL player-chosen starter, 2–4 letters. Blank/absent means the
   // usual random board — the edge function samples a fragment. Set it and the builder uses exactly these letters instead, which is
   // how you hand a friend a challenge ("try wordiply with MOTH").

@@ -1,6 +1,6 @@
 // cs-blessed-forms
 
-import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../setup-form/difficulty'
+import { DICT_BAND_LABELS, sampleWordsFor, type WordLength } from '../setup-form/dictBand'
 import { SelectField } from './SelectField'
 import type { AllFieldProps } from './fieldProps'
 
@@ -27,7 +27,7 @@ type Props = AllFieldProps<number> & {
  *
  * The band is a `common.words.difficulty` value and the column keeps that name —
  * it is the DB's word, and each game's RPC does the actual filtering. The
- * bands and their samples are `setup-form/difficulty.ts`'s.
+ * bands and their samples are `setup-form/dictBand.ts`'s.
  */
 export function DictBandField({
   name,
@@ -60,7 +60,7 @@ export function DictBandField({
           {extraLowOption.value}: {extraLowOption.label}
         </option>
       )}
-      {DIFFICULTY_LABELS.map((bandLabel, i) => {
+      {DICT_BAND_LABELS.map((bandLabel, i) => {
         const band = i + 1
         const examples = samples[i].map((w) => w.toUpperCase()).join(' ')
         return (

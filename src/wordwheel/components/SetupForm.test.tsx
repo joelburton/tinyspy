@@ -107,7 +107,7 @@ describe('wordwheel setup — where a refusal lands', () => {
   it('puts letters that make no puzzle under the box they were typed into', () => {
     // PN188 from create_game, PN194 from wordwheel-build-board — the same
     // sentence from whichever got there first.
-    const message = 'No words for those letters at that difficulty.'
+    const message = 'No words for those letters at that dictionary band.'
     draw({ errors: { custom_letters: message } })
     expect(errorUnder('custom_letters')).toBe(message)
   })

@@ -467,17 +467,17 @@ begin
 
   s_band := (p_setup->>'band')::int;
   if s_band is null or s_band < 1 or s_band > 6 then
-    raise exception 'BUG: required difficulty of ''%''', p_setup->>'band'
+    raise exception 'BUG: required band of ''%''', p_setup->>'band'
       using errcode = 'PN138', hint = 'fault', column = '_',
       detail = 'setup.band must be 1..6';
   end if;
 
-  -- The legal (bonus) band is the difficulty ceiling for words that aren't on
+  -- The legal (bonus) band is the ceiling for words that aren't on
   -- the required list but still score. It must be at least the required band
   -- (every required word is, by definition, also legal) and at most 6.
   s_legal_band := (p_setup->>'legal_band')::int;
   if s_legal_band is null or s_legal_band < s_band or s_legal_band > 6 then
-    raise exception 'BUG: legal-word difficulty of ''%''', p_setup->>'legal_band'
+    raise exception 'BUG: legal band of ''%''', p_setup->>'legal_band'
       using errcode = 'PN139', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be between band and 6';
   end if;
@@ -553,7 +553,7 @@ begin
   -- constraints, which are the player's to set — including none.)
   is_custom_board := coalesce(p_setup->>'custom_board', '') <> '';
   if is_custom_board and coalesce(b_required_count, 0) < 1 then
-    raise exception 'No words for those letters at that difficulty'
+    raise exception 'No words for those letters at that dictionary band'
       using errcode = 'PN147', hint = 'form-validation', column = 'custom_board',
       detail = 'the typed board produces no words at that band';
   end if;

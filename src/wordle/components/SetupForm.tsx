@@ -6,7 +6,7 @@ import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH } from '../lib/setup'
 import type { GSetupValues } from '../types'
@@ -17,7 +17,7 @@ import type { GSetupValues } from '../types'
  *   - **Guesses** — the budget (5–8; 6 is classic Wordle). In coop it's
  *     shared by the team; in compete it's each player's own.
  *   - **Answer source** — where the target comes from: "0: Wordle" (the
- *     curated NYT list) or a difficulty band 1–6.
+ *     curated NYT list) or a dictionary band 1–6.
  *   - **Legal guesses** — how obscure a guess may be (band 1–6). Bands below
  *     the answer's hardest are disabled (you must be able to guess any answer);
  *     the manifest's `validate` gates Start on the same rule.
@@ -36,12 +36,12 @@ export function SetupForm({
   const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // Disclosure summaries carry the current values so each section reads without
-  // opening. Answer source 0 is the curated Wordle list — not a difficulty band
+  // opening. Answer source 0 is the curated Wordle list — not a dictionary band
   // — so it formats as "0 (Wordle)".
   const guessesLabel = `Guesses: ${s.max_guesses}`
   const answerValue =
-    s.answer_band === 0 ? '0 (Wordle)' : difficultyValue(s.answer_band)
-  const dictLabel = `Dictionaries: ${answerValue} / ${difficultyValue(s.legal_band)}`
+    s.answer_band === 0 ? '0 (Wordle)' : dictBandValue(s.answer_band)
+  const dictLabel = `Dictionaries: ${answerValue} / ${dictBandValue(s.legal_band)}`
 
   return (
     <>

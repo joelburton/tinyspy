@@ -15,7 +15,7 @@
 --
 -- Every one is a FAULT on `_`. Two settings and a board reach this RPC, and
 -- the player composes none of them: the setup dialog's own controls bound
--- difficulty and the swap budget, and the board is built by an edge function
+-- dictionary band and the swap budget, and the board is built by an edge function
 -- the player never sees. So nothing here is a sentence to put under a field —
 -- each one means something upstream is broken, and the modal says so.
 --
@@ -63,15 +63,15 @@ select pg_temp.envelope_is(
   'extra_swaps above 15 is rejected'
 );
 
--- ─── (3) setup.difficulty must be 1..6 ────────────────────────
+-- ─── (3) setup.dict_band must be 1..6 ────────────────────────
 select pg_temp.envelope_is(
   waffle.create_game((select handle from club),
-    pg_temp.waffle_setup(5) || '{"difficulty": 9}'::jsonb,
+    pg_temp.waffle_setup(5) || '{"dict_band": 9}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop', pg_temp.waffle_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN105",
-    "message":"BUG: word difficulty of 9"}'::jsonb,
-  'difficulty outside 1..6 is rejected'
+    "message":"BUG: dictionary band of 9"}'::jsonb,
+  'dict_band outside 1..6 is rejected'
 );
 
 -- ─── (4) board.solution / dealt must be 25 chars ──────────────

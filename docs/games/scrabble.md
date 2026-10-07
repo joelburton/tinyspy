@@ -19,8 +19,8 @@ presence-pause, manual "Stop game" — through `<GamePage>` + `useCommonGame`, l
 every other multiplayer gametype.
 
 > **Status: live.** scrabble is built end-to-end (engine, migration, RPCs, FE)
-> and shipping. The design forks — difficulty bands by word length
-> ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)), endgame rules
+> and shipping. The design forks — dictionary bands by word length
+> ([§3.3](#33-the-dictionary-bands-by-word-length)), endgame rules
 > and the leftover rows ([§2.7](#27-ending-the-game)), and the title/label
 > shapes ([§8](#8-title-formula), [§9](#9-the-summary)) — are documented in
 > place across §§2–9.
@@ -254,11 +254,11 @@ SQL-side for the bag shuffle):
 (Unlike spellingbee, **`S` is included and plurals are legal** — they're core to
 Scrabble, not a trivializing exploit.)
 
-### 3.3 The dictionary (difficulty bands, by word length)
+### 3.3 The dictionary (bands, by word length)
 
 The legal word set is the shared `common.words` list (see [word-list.md → The
 word list](../word-list.md#the-word-list-commonwords)), gated by **two per-game
-difficulty bands** chosen at setup — one for **2-letter** words (`dict_2`) and
+dictionary bands** chosen at setup — one for **2-letter** words (`dict_2`) and
 one for **3+-letter** words (`dict_3plus`), both 1..6. A word is legal iff
 `difficulty ≤ the band for its length` and it's valid in the **american OR
 british** dialect (the codebase's default-play convention). The two-band split
@@ -951,7 +951,7 @@ beginner / casual / intermediate / strong / best. The knobs:
 
 | knob | effect | source |
 |---|---|---|
-| `vocabCap` | the AI only *plays* words at/below a difficulty band | `rankMoves` lever |
+| `vocabCap` | the AI only *plays* words at/below a dictionary band | `rankMoves` lever |
 | `scoreFraction` | aim the pick at a fraction of the best equity | `rankMoves` lever |
 | `useLeave` | include the leave heuristic (off → greedy; the rack degrades over a game) | `rankMoves` lever |
 | `bingoMissProb` | probability of "not seeing" an otherwise-best bingo (anagramming is hard) | fallibility |

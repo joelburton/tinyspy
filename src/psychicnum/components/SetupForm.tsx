@@ -7,7 +7,7 @@ import { SelectField } from '@/common/fields/SelectField'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
-import { difficultyValue } from '@/common/setup-form/difficulty'
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { GUESS_OPTIONS, WORD_COUNT_OPTIONS } from '../lib/setup'
 import type { GSetupValues } from '../types'
@@ -21,7 +21,7 @@ import type { GSetupValues } from '../types'
  *     (`<SetupCoopStyleSection>`, which shows nothing outside coop).
  *   - **Guesses** — the budget, one of {3, 5, 7, 9}.
  *   - **Words on the board** — three of them are the secrets.
- *   - **Word difficulty** — the dictionary band the board is drawn from.
+ *   - **Dictionary band** — the band the board is drawn from.
  *   - **Timer** — the shared `<SetupTimerSection>`.
  *
  * State lives in the wrapper: render from `values`, signal through `set`. The
@@ -45,7 +45,7 @@ export function SetupForm({
   // being opened. Singular "Dictionary": this game draws from one band.
   const guessesLabel = `Guesses: ${s.max_guesses}`
   const wordsLabel = `Words on board: ${s.word_count}`
-  const dictLabel = `Dictionary: ${difficultyValue(s.band)}`
+  const dictLabel = `Dictionary: ${dictBandValue(s.band)}`
 
   return (
     <>
