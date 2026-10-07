@@ -191,16 +191,19 @@ select is(
   (select array_agg(p->>'outcome' order by p->>'id')
      from common.games, jsonb_array_elements(game_data->'players') p
     where common.games.id = (select id from g where mode = 'coop')),
-  array['won', 'won'],
-  'a coop clear stamps every teammate won');
+  case when cardinality(pg_temp.sg_board((select id from g where mode = 'coop'))) = 0
+       then array['won', 'won'] else array['neutral', 'neutral'] end,
+  'a coop clear stamps every teammate alike: won on a perfect clear, else neutral');
 select is(
   (select (summary_data->>'perfectClear')::boolean from common.games where id = (select id from g where mode = 'coop')),
   cardinality(pg_temp.sg_board((select id from g where mode = 'coop'))) = 0,
   'and is a perfect clear only when the table ended empty');
 select is(
   (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g where mode = 'coop')),
-  '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]'::jsonb,
-  'a coop clear ranks the whole team first');
+  case when cardinality(pg_temp.sg_board((select id from g where mode = 'coop'))) = 0
+       then '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]'::jsonb
+       else '[]'::jsonb end,
+  'a perfect clear ranks the whole team first; tiles left over rank nobody');
 
 -- ─── (5) A Restart empties it all again ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -211,9 +211,9 @@ describe('scrabble PlayArea — the board viewer', () => {
 })
 
 describe('scrabble PlayArea — the strip', () => {
-  it('marks an opponent who conceded "out"', () => {
+  it('marks an opponent who conceded, beside their score (mid-game)', () => {
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ ...RACE, players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText('0 (conceded)')).toBeInTheDocument()
   })
 
   it('tells conceded, lost and won apart at the end', () => {
@@ -240,6 +240,73 @@ describe('scrabble PlayArea — the strip', () => {
     expect(screen.getByText('5 (2nd)')).toBeInTheDocument()
     expect(screen.getByText('12 (conceded)')).toBeInTheDocument()
     expect(screen.getByText('40 (won)')).toBeInTheDocument()
+  })
+})
+
+describe('scrabble PlayArea — the ending', () => {
+  /** A coop table that went out: every tile played. */
+  const WENT_OUT: ZTest_GameDataFacts = {
+    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1' },
+    outcome: 'won',
+    players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+  }
+
+  it('coop: every tile played wins, in the won frame', () => {
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx(WENT_OUT)} />)
+    expect(screen.getByText('Won (every tile played)')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
+  })
+
+  it('coop: the timer with tiles left over is no result', () => {
+    render(
+      <PlayAreaLoader
+        {...ZTest_makeScrabbleCtx({
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
+          outcome: 'neutral',
+          players: [{ ...ME, outcome: 'neutral' }],
+        })}
+      />,
+    )
+    expect(screen.getByText('Ended (out of time)')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_neutral"]')).not.toBeNull()
+  })
+
+  it('coop: going out celebrates when it happens, not when reopened', () => {
+    const { rerender, unmount } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx()} />)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx(WENT_OUT)} />)
+    expect(screen.getByText(/Every tile played!/)).toBeInTheDocument()
+    unmount()
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx(WENT_OUT)} />)
+    expect(screen.queryByText(/Every tile played!/)).toBeNull()
+  })
+
+  it('compete: a tie for first names the other winner after the word', () => {
+    render(
+      <PlayAreaLoader
+        {...ZTest_makeScrabbleCtx({
+          ...RACE,
+          ending: { reason: 'all_passed', detail: 'blocked', by: 'u2' },
+          outcome: 'won',
+          players: [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
+        })}
+      />,
+    )
+    expect(screen.getByText('Won (tied with moth)')).toBeInTheDocument()
+  })
+
+  it('compete: a player who played no word lost, and says so', () => {
+    render(
+      <PlayAreaLoader
+        {...ZTest_makeScrabbleCtx({
+          ...RACE,
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
+          outcome: 'lost',
+          players: [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'lost' }],
+        })}
+      />,
+    )
+    expect(screen.getByText('Lost (no words played)')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
   })
 })
 
@@ -272,13 +339,15 @@ describe('scrabble PlayArea — the action row', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('after I concede: "You conceded", with Stop for all in Concede\'s place', () => {
+  it('after I concede: my concession, with Stop for all in Concede\'s place', () => {
     render(
       <PlayAreaLoader
         {...ZTest_makeScrabbleCtx({ ...RACE, players: [{ ...ME, ...ZTest_CONCEDED }, MOTH], turnHolderId: 'u2' })}
       />,
     )
-    expect(screen.getAllByText('You conceded').length).toBeGreaterThan(0)
+    // The info column carries the detail; the pill, beside the rack, the word.
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
+    expect(screen.getByText('Conceded')).toBeInTheDocument()
     expect(control('act-concede')).toBeNull()
     expect(control('act-stop-game')).not.toBeNull()
   })

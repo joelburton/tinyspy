@@ -4,12 +4,6 @@
 
 ## Soon
 
-- **A compete timeout before anyone plays crowns the lightest rack.** Every
-  score is 0, `_finish` subtracts each rack's leftover tiles, and the least
-  negative score wins. Ruled: if nobody has played a word, the timeout is
-  `timeout-no-winner`, as boggle, wordiply and setgame already do. Once
-  someone has played, the leftovers count as today.
-
 - **scrabble's three marks have no spec.** Its green, yellow and red all
   converted to `useMark` with the rest (2026-09-20), and each was planted: make
   the mark never draw and scrabble's whole suite stays green. The other nine
@@ -54,13 +48,6 @@
   suggest row is a list row that IS the control rather than a general button,
   so the shared button's `small` treatment does not reach it; this is only
   about which size it means to be.
-- **A tied compete game skips the official tiebreak.** Joel, 2026-09-25: the
-  Hasbro rules break a tie on final score by the higher score BEFORE the
-  leftover tiles are added or deducted; only a tie that survives that is
-  shared. `scrabble._finish` goes straight to co-winners on a tied final score
-  (every top scorer ranked 1). Apply the pre-leftover
-  tiebreak first, and keep co-winners for a tie it cannot break. The winning
-  rules themselves are being worked in `plans/cross-game-consistency.md` §3b.
 - **Where "Waiting for ● name…" belongs.** Joel, 2026-09-25: to investigate
   when auditing scrabble. Today the two modes differ. Turn-by-turn coop shows it
   as a pill in the local feedback slot, which takes the place of the move
@@ -109,10 +96,6 @@
 - **One strength for every bot.** Ruled 2026-10-05: `ai_level` stays on each
   bot's row. Joel: "it's a reasonable future feature for each ai player to
   have a different level".
-- **"Won" on a coop finish.** Ruled 2026-10-05: the bag played out is a `won`
-  outcome, drawn green, and its words say "Completed" and "Ended". Joel: "we
-  don't show 'win' for winning in coop. It's a 'won' outcome and it gets a
-  green border. But the label says 'Ended'".
 - **"cell" in the player's words.** Ruled 2026-10-05: code and comments say
   cell for a board spot, and the player-facing sentences keep "square". Joel:
   "only for user-facing text 'square' is fine".

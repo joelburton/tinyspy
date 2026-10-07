@@ -70,7 +70,7 @@ select pg_temp.envelope_is(
   'ending an already-ended game is rejected');
 reset role;
 
--- ─── Timeout (coop) crowns a gentle score report ─────────
+-- ─── Timeout (coop): no result ───────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gt on commit drop as
   select (scrabble.create_game((select handle from cl),
@@ -85,14 +85,13 @@ update scrabble.players set score = 12
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.submit_timeout((select id from gt));
 reset role;
--- The clock is the ONE way a coop table can lose. Playing the bag out is a win
--- (see auto_finish_test) and stopping early is no result; failing to finish in
--- time is a real loss, the same reading every other game gives it.
+-- Playing every tile is a win (see auto_finish_test); the clock with tiles left
+-- over is no result, so a coop table cannot lose.
 select is((select game_ended_outcome from common.games where id = (select id from gt)),
-  'lost', 'coop timeout is a loss — the table did not finish in time');
+  'neutral', 'coop timeout is no result — tiles were left over');
 select is((select count(*)::int from common.game_players
-            where game_id = (select id from gt) and final_ranking is null and outcome = 'lost'),
-  2, 'coop timeout ranks nobody; every player lost');
+            where game_id = (select id from gt) and final_ranking is null and outcome = 'neutral'),
+  2, 'coop timeout ranks nobody; every player neutral');
 select is((select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from gt)),
   'timeout/timeout', 'the reason is timeout');
 select is(scrabble._team_score((select id from gt)), 2,

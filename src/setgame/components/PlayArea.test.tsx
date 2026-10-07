@@ -195,17 +195,44 @@ describe('setgame PlayArea — the ending', () => {
     expect(screen.getAllByText('Stopped').length).toBeGreaterThan(0)
   })
 
-  it('coop: emptying the deck wins, and a full clear says so', () => {
-    const won: ZTest_GameDataFacts = {
-      players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
-      ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
-      outcome: 'won',
-    }
-    const { unmount } = render(<PlayAreaLoader {...ZTest_makeSetgameCtx(won)} />)
-    expect(screen.getAllByText('Won (deck emptied)').length).toBeGreaterThan(0)
-    unmount()
-    render(<PlayAreaLoader {...ZTest_makeSetgameCtx({ ...won, boardIds: [] })} />)
+  /** A coop game the last claim cleared: no tile left, or tiles left over. */
+  const PERFECT_CLEAR: ZTest_GameDataFacts = {
+    boardIds: [],
+    nTilesInDeck: 0,
+    players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+    ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
+    outcome: 'won',
+  }
+  const EMPTIED_DECK: ZTest_GameDataFacts = {
+    nTilesInDeck: 0,
+    players: [{ ...ME, outcome: 'neutral' }],
+    ending: { reason: 'resource_exhausted', detail: 'cleared', by: 'u1' },
+    outcome: 'neutral',
+  }
+
+  it('coop: a perfect clear wins; an emptied deck with tiles left over is no result', () => {
+    const { unmount } = render(<PlayAreaLoader {...ZTest_makeSetgameCtx(PERFECT_CLEAR)} />)
     expect(screen.getAllByText('Won (perfect clear)').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...ZTest_makeSetgameCtx(EMPTIED_DECK)} />)
+    expect(screen.getAllByText('Ended (emptied deck)').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_neutral"]')).not.toBeNull()
+  })
+
+  it('coop: a perfect clear celebrates when it happens, not when reopened', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeSetgameCtx()} />)
+    rerender(<PlayAreaLoader {...ZTest_makeSetgameCtx(PERFECT_CLEAR)} />)
+    expect(screen.getByText(/Perfect clear!/)).toBeInTheDocument()
+  })
+
+  it('coop: an emptied deck does not celebrate, and a reopened win stays quiet', () => {
+    const { rerender, unmount } = render(<PlayAreaLoader {...ZTest_makeSetgameCtx()} />)
+    rerender(<PlayAreaLoader {...ZTest_makeSetgameCtx(EMPTIED_DECK)} />)
+    expect(screen.queryByText(/Perfect clear!/)).toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...ZTest_makeSetgameCtx(PERFECT_CLEAR)} />)
+    expect(screen.queryByText(/Perfect clear!/)).toBeNull()
   })
 
   it('compete: a tie for first names the other winner after the word', () => {

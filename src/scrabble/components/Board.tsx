@@ -1,6 +1,8 @@
 // cs-fixed-outcome-fix
 
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import type { GridCursor } from '@/common/board-cursor/gridCursor'
@@ -32,25 +34,37 @@ type BoardMarks = {
  * each cell's tile — a played one, else a staged one or a preview's — and which
  * marks the cell and its tile wear; the cell draws them.
  *
- * Over a past turn it wears the shared history frame and takes no cursor.
+ * Over a past turn it wears the shared history frame and takes no cursor;
+ * once I am out of play, the ending frame in my outcome.
  */
 export function Board({
   cells,
   marks,
   cursor,
   isViewingHistory,
+  endingOutcome,
   onCellPointerDown,
 }: {
   cells: GCell[]
   marks: BoardMarks
   cursor: GridCursor
   isViewingHistory: boolean
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
 }) {
   // data-board is the e2e layout hook (the stable board-root selector every
   // game's mobile e2e uses).
   return (
-    <div data-board className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)}>
+    <div
+      data-board
+      className={cls(
+        shared.boardSeal,
+        styles.board,
+        isViewingHistory && history.historyFrame,
+        makeEndingFrameClasses(endingOutcome, isViewingHistory),
+      )}
+    >
       {cells.map((cell, i) => {
         const x = i % BOARD_SIZE
         const y = Math.floor(i / BOARD_SIZE)

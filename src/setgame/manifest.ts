@@ -82,7 +82,6 @@ function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
     mode,
     ended: summary.ended,
     reason: summary.ending?.reason ?? null,
-    isPerfectClear: summary.perfectClear === true,
   }
 }
 
@@ -193,7 +192,7 @@ export const setgameCoopGame: GameManifest = {
 
   setupForm: {
     intro:
-      'One table, everyone hunting together. Claim three cards where each of number, color, shading and shape is either all the same or all different. You win by clearing the deck — that means no sets left to find, not using up every card.',
+      'One table, everyone hunting together. Claim three cards where each of number, color, shading and shape is either all the same or all different. You win with a perfect clear: every card in a set. Running out of sets with cards left over just ends the game.',
     Component: setupFormLoader,
     defaults: DEFAULT_SETGAME_SETUP_COOP,
     validate: (setup) => setgameSetupError(setup as GSetup),

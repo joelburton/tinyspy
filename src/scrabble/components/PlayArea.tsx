@@ -16,8 +16,7 @@ import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useDriveAiTurns } from '../hooks/useDriveAiTurns'
 import { useHistoryView } from '../hooks/useHistoryView'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useMovePreview } from '../hooks/useMovePreview'
 import { useShowOpponentMoves } from '../hooks/useShowOpponentMoves'
 import { useSuggestMove } from '../hooks/useSuggestMove'
@@ -85,9 +84,9 @@ function PlayArea({
   // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // Confetti for a race won — mine, a tie included. A coop table's finish is
-  // its score, not a verdict, so it pops nothing.
-  const celebration = useCelebration(gd.compete && gd.ended && gd.me.outcome === 'won')
+  // Confetti the moment the win is MINE, as the server ranked it: the team's
+  // in coop (every tile played), mine in a race, a tie included.
+  const celebration = useCelebration(gd.ended && gd.me.outcome === 'won')
 
   // A bot holding the turn plays it.
   useDriveAiTurns(gd)
@@ -96,13 +95,12 @@ function PlayArea({
   // Messages about ME: a move's answer, the ending, whose turn it is.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I have conceded and the others race on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I have conceded and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // Whose turn it is, under coop's turn order. Compete's state line already
@@ -147,9 +145,6 @@ function PlayArea({
   // teammate's preview is drawn over the live board.
   const shownCells = historyView.cells ?? gd.me.board.cells
 
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -173,7 +168,10 @@ function PlayArea({
       </InfoSheet>
 
       {celebration.isOpen && (
-        <CelebrationBlockingModal title="You win! 🎉" onClose={celebration.close} />
+        <CelebrationBlockingModal
+          title={gd.coop ? 'Every tile played! 🎉' : 'You win! 🎉'}
+          onClose={celebration.close}
+        />
       )}
     </div>
   )

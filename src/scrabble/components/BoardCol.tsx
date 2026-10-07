@@ -174,6 +174,7 @@ export function BoardCol({
           marks={boardMarks}
           cursor={cursor}
           isViewingHistory={historyView.isViewing}
+          endingOutcome={gd.me.outcome}
           onCellPointerDown={pointer.onCellPointerDown}
         />
 

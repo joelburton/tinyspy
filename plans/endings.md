@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel and setgame are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame and scrabble are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -134,13 +134,8 @@ Also:
 
 ### The game cards against the code
 
-`plans/game-cards.md` says how each game should end. Two gaps, to discuss:
-
-1. **scrabble ranks a player who scored nothing.** Its compete `_finish` ranks
-   everyone who didn't concede, at 0 points too. The card's
-   `timeout-ranks-by-progress`, and the `final-ranking` rule for a
-   `score-only-contest`, leave a player with no progress unranked (`lost`).
-   boggle and setgame drop them.
+`plans/game-cards.md` says how each game should end. Each game's gaps close
+in its turn in step 4; none is open here.
 
 ## The work
 
@@ -180,9 +175,17 @@ Also:
    live there. Their two card gaps closed as boggle's did — every required
    word is the goal with no target, and a race with no target is allowed with
    a countdown, which ranks by score — and their cards gained `co-winners`.
-   setgame, whose card the code already matched. Its label names a tie after
-   the word ("Won (tied with bea)", "2nd (tied with cade)"), and a coop win
-   says "deck emptied", or "perfect clear" with no tile left.
+   setgame and scrabble. A label names a tie after the word ("Won (tied with
+   bea)", "2nd (tied with cade)"). Both coops changed their rules with it (the
+   not-quite-wins, Joel 2026-10-07): only a perfect result wins and
+   celebrates — setgame's perfect clear, every tile in a set; scrabble's every
+   tile played — and the ending that falls short of it is no result
+   ("Ended (emptied deck)", "Ended (out of time)"). Migration
+   `20261007000000_coop_not_quite_wins.sql` rewrites the games that already
+   ended. scrabble's compete ranks only players who played a word, and breaks a
+   tie on the score before the leftovers. `no-result` in docs/win-lose.md
+   widened to a missed goal that is no loss, and both cards follow. scrabble's
+   pill is the word alone, for the room beside the rack.
 
 ## Overlaps
 

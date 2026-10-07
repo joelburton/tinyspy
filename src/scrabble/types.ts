@@ -18,6 +18,7 @@
  * relative and ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
+import type { EndingLabel } from '../common/ending/endingLabel.ts'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
@@ -294,6 +295,8 @@ export type GPlayerRaw = PlayerRaw & {
  *   nBagTiles
  *   own: {score, rack, nRackTiles, board, nBagTiles}
  *                                            # this player's own; in coop the rack is the team's
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * cell:                                      # GCell: a spot a tile is placed onto
  *   id                                       # "x,y"
@@ -347,6 +350,9 @@ export type GGameData = Omit<GGameDataRaw, 'nBagTiles' | 'board' | 'team' | 'tur
  */
 export type GPlayer = Omit<GPlayerRaw, keyof GFactsRaw> & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 export type GEvent = Omit<GEventRaw, 'userId' | 'placements'> & {

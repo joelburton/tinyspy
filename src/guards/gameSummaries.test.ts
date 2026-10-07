@@ -277,18 +277,20 @@ const CASES: Record<string, Family | GameEndingFamily> = {
     ],
   },
   // scrabble._make_json_summary_data: `team` holds coop's score and is null in compete; the
-  // winners and the score they share are compete's. The bag played out is coop's `won` — every
-  // teammate ranked first — and still reads "Ended"; a compete tie shares rank 1.
+  // winners and the score they share are compete's. Every tile played is coop's `won` — every
+  // teammate ranked first — and the timer with tiles left over is no result; a compete tie that
+  // the score before the leftovers cannot break shares rank 1.
   scrabble: {
     live: { team: { score: 152 }, nBagTiles: 47, winnerScore: null },
     coop: [
-      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { score: 312 }, nBagTiles: 0, winnerScore: null }, 'bag played out'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { score: 152 }, nBagTiles: 47, winnerScore: null }, 'timeout'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { score: 312 }, nBagTiles: 0, winnerScore: null }, 'every tile played'],
+      [{ outcome: 'neutral', reason: 'timeout' }, { team: { score: 152 }, nBagTiles: 47, winnerScore: null }, 'timeout, tiles left over'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { score: 152 }, nBagTiles: 47, winnerScore: null }, 'Stop'],
     ],
     compete: [
       [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winners: ['u-alice'] }, { team: null, nBagTiles: 0, winnerScore: 312 }, 'highest score'],
       [{ outcome: 'won', reason: 'all_passed', detail: 'blocked', winners: ['u-alice', 'u-bob'] }, { team: null, nBagTiles: 0, winnerScore: 280 }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nBagTiles: 30, winnerScore: null }, 'timeout, nobody played a word'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, nBagTiles: 30, winnerScore: null }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nBagTiles: 30, winnerScore: null }, 'Stop'],
     ],
@@ -312,12 +314,13 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   },
   // setgame._make_json_summary_data: `team` holds coop's counts and is null in compete; nothing
   // is withheld mid-game, since every claim happened face-up. The two endings the rest of the
-  // roster doesn't have: a coop win that STRANDS tiles (the normal ending; a full clear is ~2% of
-  // games and says so), and a compete tie, a real result because there is no speed tiebreak.
+  // roster doesn't have: a coop deck emptied that STRANDS tiles (the normal ending, no result; only
+  // a perfect clear, ~2% of games, wins), and a compete tie, a real result because there is no
+  // speed tiebreak.
   setgame: {
     live: { team: { nSetsFound: 6, nHintsUsed: 1 }, nTableSetsFound: 6, nTilesInDeck: 45, perfectClear: null, nWinnerSets: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 24, nHintsUsed: 1 }, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: false, nWinnerSets: null }, 'deck cleared'],
+      [{ outcome: 'neutral', reason: 'resource_exhausted', detail: 'cleared' }, { team: { nSetsFound: 24, nHintsUsed: 1 }, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: false, nWinnerSets: null }, 'deck emptied, tiles left over'],
       [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 27, nHintsUsed: 1 }, nTableSetsFound: 27, nTilesInDeck: 0, perfectClear: true, nWinnerSets: null }, 'perfect clear'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, nWinnerSets: null }, 'timeout'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, nWinnerSets: null }, 'Stop'],

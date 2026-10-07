@@ -59,10 +59,10 @@ export function Help({ onClose, brand }: Props) {
       </p>
       <p>
         The game ends when the deck is empty and the cards left hold no set. In
-        co-op that is a win: <strong>clearing the deck</strong> means no sets
-        left to find, not using up every card — ending with six or nine
-        stranded is perfectly normal. In compete, whoever claimed the most sets
-        wins, and a tie is a tie.
+        co-op, a <strong>perfect clear</strong> — every card in a set — is a
+        win; ending with six or nine stranded, the usual finish, just ends the
+        game. In compete, whoever claimed the most sets wins, and a tie is a
+        tie.
       </p>
     </GameHelpCompanion>
   )

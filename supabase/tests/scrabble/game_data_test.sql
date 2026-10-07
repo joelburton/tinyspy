@@ -197,8 +197,8 @@ select is(
   (select array_agg(p->>'outcome' order by p->>'seat')
      from common.games, jsonb_array_elements(game_data->'players') p
     where common.games.id = (select id from g where mode = 'compete')),
-  array['won', 'near'],
-  'the winner won; the out-scored racer is near');
+  array['won', 'lost'],
+  'the winner won; the bot, who played no word, has no place: lost');
 
 -- The coop table stops with tiles in hand: the team pays for them.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

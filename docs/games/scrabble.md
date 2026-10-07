@@ -201,17 +201,19 @@ ends through `common._end_game` ([docs/win-lose.md](../win-lose.md)):
 - **Compete:** each player's leftover tile values are **subtracted** from
   their score, a `leftovers` row each; the player who went out **gains the sum
   of everyone else's**, their `went_out` row. The players who didn't concede
-  are then **ranked by final score**, ties sharing a rank — so an exact tie at
-  the top is two winners. The reason is the act: `resource_exhausted` /
+  and played a word are then **ranked by final score**; a tie is broken by the
+  score before the leftovers (the official rule), and one that survives it
+  shares a rank — two winners. A player who played no word has no place, so
+  a game nobody played in has no winner. The reason is the act: `resource_exhausted` /
   `complete` (going out), `all_passed` / `blocked`, `timeout`, or `conceded`
   (see Concede, §5.6).
 - **Coop:** the team's score is the players' own scores summed, less the
   shared rack's leftovers — one `leftovers` row, in the name of whoever's act
-  ended the game. **Playing the bag out is a `won` outcome** (`resource_exhausted`
-  / `complete`, the whole team ranked 1 — Joel, 2026-09-27: plans/common-tables.md
-  → Decided), drawn green, but its words say "Completed" and "Ended": the
-  score is the point, not a verdict (Joel, 2026-10-05). **The clock is the one
-  way a coop table loses** (`timeout`, nobody ranked). **A Stop is neutral**
+  ended the game. **Playing every tile is a win** (`resource_exhausted` /
+  `complete`, the whole team ranked 1): "Won (every tile played)", and it
+  celebrates. **The clock, with tiles left over, is no result** (`timeout`,
+  nobody ranked, neutral): "Ended (out of time)". A coop table cannot lose.
+  **A Stop is neutral**
   (`stopped`), **but not free in coop**: tiles still in hand cost their value,
   the same penalty a natural end applies, so a team is pushed to find plays
   for its last tiles rather than just stopping.
@@ -706,9 +708,8 @@ sketch at its top), or in `reactTypes.ts` for the one that reaches React.
   ← belongs to common/ ; everything else is this folder's
 ```
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-`lib/playerEndingMessage.ts`), `useShowOpponentMoves` (each opponent's turn in
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
+ending label: `lib/endingLabel.ts`, on every `gd` player), `useShowOpponentMoves` (each opponent's turn in
 the header, compete only), `useHistoryView`, `useMovePreview` (the Broadcast),
 `useSuggestMove` (coop's suggester and its action), `useDriveAiTurns` (pokes
 `scrabble-ai-move` while a bot holds the turn) and `useActionsAndMenu`.
@@ -809,7 +810,7 @@ a Stop alike (the first is a `won` outcome, drawn green), `Lost (out of time) ·
 | `lib/suggest.test.ts` | the move generator's exact move-set against a brute-force reference, on hand-built and random boards |
 | `lib/rank.test.ts`, `lib/policy.test.ts` | the leave heuristic and ranking; the bots' choice and a self-played game |
 | `lib/rackOrder.test.ts` | the rack order after a draw |
-| `lib/answer.test.ts`, `lib/gameEndingMessage.test.ts` | every answer's words and outcome, and every ending's, both modes |
+| `lib/answer.test.ts`, `lib/endingLabel.test.ts` | every answer's words and outcome, and every ending's label, both modes |
 | `lib/setup.test.ts` | the setup's checks |
 | `hooks/useGame.test.ts` | `makeGameData`: the decoded board, the log's tiles, a rival's rack withheld mid-race and shown at the end, the board and bag on every player, the side's facts and `own` |
 | `hooks/useStagedTiles.test.ts` | staged tiles kept when an opponent's move misses them, a typed letter's tile, a tap-placed tile |

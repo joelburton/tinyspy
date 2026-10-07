@@ -54,8 +54,10 @@ export function Help({ onClose, brand }: Props) {
         <strong>Coop:</strong> one shared rack and score — plan the best word
         together over chat; anyone can play it. <strong>Suggest</strong> asks
         for the best moves, and <strong>Show move to team</strong> lays yours
-        out on their boards. <strong>Compete:</strong> your own rack, taking
-        turns; highest score when the tiles run out wins.
+        out on their boards. Play every tile and the team wins; if the timer
+        runs out first, the game just ends. <strong>Compete:</strong> your own
+        rack, taking turns; highest score when the tiles run out wins, and a
+        tie goes to the higher score before leftover tiles count.
       </p>
       <p className="muted">
         Click any word in the move log to see its definition, or press{' '}

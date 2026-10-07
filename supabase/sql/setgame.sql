@@ -416,7 +416,7 @@ as $$
     'nTableSetsFound', (select sum(sp.n_sets_found)::int from setgame.players sp
                          where sp.game_id = p_game_id),
     'nTilesInDeck',    setgame._deck_size(sg.deck_kind) - sg.deck_pos,
-    'perfectClear', case when cg.mode = 'coop' and cg.game_ended_reason = 'reached_goal'
+    'perfectClear', case when cg.mode = 'coop' and cg.game_ended_reason_detail = 'cleared'
                          then cardinality(sg.board) = 0 end,
     'nWinnerSets',  (select max(sp.n_sets_found)
                        from setgame.players sp
@@ -666,11 +666,11 @@ drop function if exists setgame._finish(uuid, text);
 -- last claim (`p_reason_detail` 'cleared', ended by `p_ended_by_user_id`) or
 -- by the timer ('timeout'). Rankings (docs/win-lose.md):
 --
---   coop, cleared     reached_goal: the team, every player ranked 1. Clearing
---                     means no sets left to find, NOT using every tile —
---                     stranding six or nine tiles is the normal ending (a full
---                     clear happens in about 2% of games), so nothing grades
---                     the leftovers
+--   coop, cleared     with no tile left (a perfect clear, about 2% of games):
+--                     reached_goal, the team, every player ranked 1. With
+--                     tiles left over — every set found, but not every tile
+--                     in one, the normal ending — resource_exhausted with no
+--                     result, nobody ranked
 --   coop, timeout     nobody ranked — a loss
 --   compete, either   resource_exhausted (cleared) or timeout, ranked on SETS
 --                     FOUND among the players who didn't concede and found at
@@ -693,11 +693,15 @@ as $$
 declare
   v_mode text;
   v_rankings jsonb := '{}'::jsonb;
+  -- A coop clear with no tile left on the table.
+  v_is_perfect_clear boolean;
 begin
   select mode into v_mode from common.games where id = p_game_id;
+  select p_reason_detail = 'cleared' and cardinality(board) = 0 into v_is_perfect_clear
+    from setgame.games where game_id = p_game_id;
 
   if v_mode = 'coop' then
-    if p_reason_detail = 'cleared' then
+    if v_is_perfect_clear then
       select jsonb_object_agg(user_id::text, 1) into v_rankings
         from common.game_players where game_id = p_game_id;
     end if;
@@ -718,10 +722,10 @@ begin
   perform common._end_game(
     p_game_id,
     case when p_reason_detail = 'timeout' then 'timeout'
-         when v_mode = 'coop' then 'reached_goal'
+         when v_mode = 'coop' and v_is_perfect_clear then 'reached_goal'
          else 'resource_exhausted' end,
     p_reason_detail, p_ended_by_user_id,
-    p_is_no_result => false,
+    p_is_no_result => v_mode = 'coop' and p_reason_detail = 'cleared' and not v_is_perfect_clear,
     p_final_rankings => v_rankings
   );
 end;

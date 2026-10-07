@@ -611,15 +611,19 @@ drop function if exists scrabble._finish(uuid, text, int);
 -- (`p_going_out_user_id` goes out with the bag empty, or null). Rankings
 -- (docs/win-lose.md):
 --
---   coop, resource_exhausted / complete   the bag played out: the team,
+--   coop, resource_exhausted / complete   every tile played: the team,
 --                                         every player ranked 1
---   coop, timeout                         nobody ranked — the one way a coop
---                                         table loses
+--   coop, timeout                         tiles left over: no result, nobody
+--                                         ranked. A coop table cannot lose
 --   compete, any                          by final score among the players
---                                         who didn't concede, ties sharing a
---                                         rank; a bot can win, and when every
---                                         person has conceded the bots are
---                                         all that is ranked
+--                                         who didn't concede and played a
+--                                         word; a tie is broken by the score
+--                                         before the leftovers (the official
+--                                         rule), and a tie that survives it
+--                                         shares a rank. Nobody having played
+--                                         ranks nobody. A bot can win, and
+--                                         when every person has conceded the
+--                                         bots are all that is ranked
 --
 -- A Stop is common._stop's (stop_game scores coop's leftovers first).
 -- `p_ended_by_user_id` is whose act ended it.
@@ -637,10 +641,12 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   v_rankings jsonb := '{}'::jsonb;
+  v_mode     text;
 begin
   perform scrabble._score_leftovers(p_game_id, p_going_out_user_id, p_ended_by_user_id);
 
-  if (select mode from common.games where id = p_game_id) = 'coop' then
+  select mode into v_mode from common.games where id = p_game_id;
+  if v_mode = 'coop' then
     if p_reason_detail = 'complete' then
       select jsonb_object_agg(user_id::text, 1) into v_rankings
         from common.game_players where game_id = p_game_id;
@@ -649,18 +655,27 @@ begin
     select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
       into v_rankings
       from (
-        select p.user_id, rank() over (order by p.score desc) as ranking
+        select p.user_id,
+               rank() over (order by p.score desc, w.word_score desc) as ranking
           from scrabble.players p
           join common.game_players gp
             on gp.game_id = p.game_id and gp.user_id = p.user_id
+          -- The words they played: how many, and their points before the
+          -- leftovers.
+          cross join lateral (
+            select count(*) as n_words, coalesce(sum(e.score), 0) as word_score
+              from scrabble.events e
+             where e.game_id = p.game_id and e.user_id = p.user_id and e.kind = 'word'
+          ) w
          where p.game_id = p_game_id
            and gp.player_ended_reason is distinct from 'conceded'
+           and w.n_words > 0
       ) ranked;
   end if;
 
   perform common._end_game(
     p_game_id, p_reason, p_reason_detail, p_ended_by_user_id,
-    p_is_no_result => false,
+    p_is_no_result => v_mode = 'coop' and p_reason = 'timeout',
     p_final_rankings => v_rankings
   );
 end;
@@ -1661,8 +1676,8 @@ drop function if exists scrabble.submit_timeout(uuid);
 -- Fired by every connected client when a countdown hits 0; the first ends the
 -- game, the rest find it ended and answer the game-over race. Runs final
 -- scoring, because a Scrabble score is real: compete ranks by it, so the
--- leader wins (docs/games/scrabble.md → Ending the game). Coop: a loss — the one way a
--- coop table loses. Ended by whoever held the turn, or nobody in free-for-all
+-- leader wins (docs/games/scrabble.md → Ending the game). Coop: no result, the
+-- tiles left over. Ended by whoever held the turn, or nobody in free-for-all
 -- coop.
 --
 -- The lock matters more here than anywhere: every client races to call this,

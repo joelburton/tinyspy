@@ -172,6 +172,10 @@ update scrabble.players set rack = '{}', score = 10
   where game_id = (select id from gwin) and user_id = 'ada11111-1111-1111-1111-111111111111';
 update scrabble.players set rack = '{}', score = 50
   where game_id = (select id from gwin) and user_id = (select id from bot);
+-- Each played a word (`_finish` ranks only players who did), worth their score.
+insert into scrabble.events (game_id, user_id, kind, score, took_turn)
+values ((select id from gwin), 'ada11111-1111-1111-1111-111111111111', 'word', 10, true),
+       ((select id from gwin), (select id from bot), 'word', 50, true);
 select scrabble._finish((select id from gwin), 'resource_exhausted', 'complete',
   (select id from bot), (select id from bot));
 select scrabble._rebuild_data_cols((select id from gwin), true);

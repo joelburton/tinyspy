@@ -73,3 +73,13 @@ create function pg_temp.sc_seat_user(g uuid, p_seat int)
 returns uuid language sql as $$
   select user_id from common.game_players where game_id = g and turn_seat = p_seat;
 $$;
+
+-- Compete: give a player a score made of one played word, as `_finish` reads
+-- it — the player's score, and a 'word' row carrying the points. `_finish`
+-- ranks only players who played a word, and breaks a tie on those points.
+create function pg_temp.sc_score(g uuid, p_uid uuid, p_score int)
+returns void language sql as $$
+  update scrabble.players set score = p_score where game_id = g and user_id = p_uid;
+  insert into scrabble.events (game_id, user_id, kind, score, took_turn)
+  values (g, p_uid, 'word', p_score, true);
+$$;

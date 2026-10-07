@@ -6,6 +6,7 @@ import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
 import { decodeBoard, decodePlacement } from '../lib/board'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
   GBoard,
@@ -37,7 +38,12 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. A coop rack is the team's alone, so it is every
   // player's own too.
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const tiedWithNames = raw.players
+      .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
+      .map((o) => o.username)
+    const endingLabel = makeEndingLabel(p, gameFacts, tiedWithNames)
     const maySeeRack = raw.ended || p.id === myId
     const own: GFacts = {
       score: p.score,
@@ -46,7 +52,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       board,
       nBagTiles,
     }
-    return { ...p, ...own, ...(team === null ? {} : { score: team.score }), own }
+    return { ...p, ...own, ...(team === null ? {} : { score: team.score }), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

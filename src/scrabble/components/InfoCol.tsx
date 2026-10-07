@@ -1,7 +1,6 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import {
@@ -46,13 +45,12 @@ export function InfoCol({
     : undefined
 
   /** A player's cell in the strip: their score, live — every word was played on
-   *  the open board; "out" once they have ended; and their verdict beside it
-   *  once the game has ended, the one thing telling a player who conceded from
-   *  one who played on and lost. */
-  function getScoreOrOut(player: GPlayer) {
-    if (gd.ended) return `${player.score} (${endingOutcomeVerb(player).toLowerCase()})`
-    if (player.ending !== null) return 'out'
-    return `${player.score}`
+   *  the open board; once they are out of play — on their own or with the
+   *  game — how they came out after it: "312 (won)", "280 (2nd)", "40
+   *  (conceded)". */
+  function getScoreAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return `${player.score}`
+    return `${player.score} (${player.endingLabel.word.toLowerCase()})`
   }
 
   // Help on how to lay a move out, while I still may.
@@ -70,7 +68,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Score"
-            metricFor={getScoreOrOut}
+            metricFor={getScoreAndResult}
           />
         )}
 

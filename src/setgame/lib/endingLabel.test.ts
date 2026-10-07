@@ -6,9 +6,9 @@ import { makeEndingLabel } from './endingLabel'
 
 /**
  * setgame's ending label for every ending it reaches, in both modes: the
- * common word, setgame's detail after it, a tie named, my outcome, and which
- * ending it is. A table, so a reader sees at a glance that no row pairs a
- * winning word with a losing outcome.
+ * common word or setgame's own no-result word, setgame's detail after it, a
+ * tie named, my outcome, and which ending it is. A table, so a reader sees at
+ * a glance that no row pairs a winning word with a losing outcome.
  */
 
 type Player = Parameters<typeof makeEndingLabel>[0]
@@ -32,13 +32,10 @@ const conceded = (over: Partial<Player> = {}) =>
     ...over,
   })
 
-const gameEnded = (
-  mode: 'coop' | 'compete',
-  reason: GameEndedReason,
-  isPerfectClear = false,
-): Game => ({ mode, ended: true, reason, isPerfectClear })
+const gameEnded = (mode: 'coop' | 'compete', reason: GameEndedReason): Game =>
+  ({ mode, ended: true, reason })
 
-const racePlaying: Game = { mode: 'compete', ended: false, reason: null, isPerfectClear: false }
+const racePlaying: Game = { mode: 'compete', ended: false, reason: null }
 
 describe('makeEndingLabel', () => {
   it('has no label while I still play', () => {
@@ -47,12 +44,12 @@ describe('makeEndingLabel', () => {
 
   // [case, player, game, tied with, word, long, pill, outcome, endedBy]
   const cases: [string, Player, Game, string[], string, string, string, string, string][] = [
-    ['coop: the deck emptied', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal'), [],
-      'Won', 'deck emptied', 'deck emptied', 'won', 'game'],
-    ['coop: a perfect clear', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal', true), [],
+    ['coop: a perfect clear', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal'), [],
       'Won', 'perfect clear', 'perfect clear', 'won', 'game'],
     ['coop: the team is never a tie', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal'), ['bea'],
-      'Won', 'deck emptied', 'deck emptied', 'won', 'game'],
+      'Won', 'perfect clear', 'perfect clear', 'won', 'game'],
+    ['coop: the deck emptied, tiles left over', player({ outcome: 'neutral' }), gameEnded('coop', 'resource_exhausted'), [],
+      'Ended', 'emptied deck', 'emptied deck', 'neutral', 'game'],
     ['coop: out of time', player({ outcome: 'lost' }), gameEnded('coop', 'timeout'), [],
       'Lost', 'out of time', 'out of time', 'lost', 'game'],
     ['coop: a Stop', player({ outcome: 'neutral' }), gameEnded('coop', 'stopped'), [],

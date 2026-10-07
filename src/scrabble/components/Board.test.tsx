@@ -25,6 +25,7 @@ function renderBoard(marks: Partial<Parameters<typeof Board>[0]['marks']> = {}) 
       }}
       cursor={{ x: 0, y: 0, dir: 'h' }}
       isViewingHistory={false}
+      endingOutcome={null}
       onCellPointerDown={() => {}}
     />,
   )

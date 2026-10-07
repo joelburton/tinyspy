@@ -656,10 +656,9 @@ scored by tile values and premium squares. Compete can seat AI players.
 - **winning and losing**
   - `ranked-by`
     1. the highest score
-    2. `co-winners`
-  - `loses-by`
-    - coop: `loses-by-timeout-only`
-    - compete: `loses-by-none`
+    2. the higher score before the leftovers
+    3. `co-winners`
+  - `loses-by` — `loses-by-none`
   - `announce-when` — `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: score
 - **ending**
@@ -668,7 +667,7 @@ scored by tile values and premium squares. Compete can seat AI players.
     - `ends-when-resource-exhausted`
     - compete: also `ends-when-all-passed`
   - `timeout-result`
-    - coop: `timeout-ranks-by-goal`
+    - coop: `timeout-no-result`
     - compete: `timeout-ranks-by-progress`
 - **hints**
   - `hint` — a suggested move
@@ -686,7 +685,7 @@ deck deals out onto the table as sets are claimed.
 
 - **goal**
   - `game-goal` — `goal-intrinsic`
-    - coop: clear the deck of sets
+    - coop: every tile in a set (a perfect clear)
     - compete: the most sets
   - `goal-chosen` — none
   - `goal-progress` — sets found
@@ -709,6 +708,7 @@ deck deals out onto the table as sets are claimed.
 - **ending**
   - `exhaustible-resource` — the deck, with no set left on the table
   - `ends-when` — `ends-when-resource-exhausted`
+  - `no-result` — coop: the deck emptied with tiles left over
   - `timeout-result`
     - coop: `timeout-ranks-by-goal`
     - compete: `timeout-ranks-by-progress`

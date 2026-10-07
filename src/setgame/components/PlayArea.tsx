@@ -9,6 +9,8 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
+import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
+import { useCelebration } from '@/common/ending/useCelebration'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -84,6 +86,10 @@ function PlayArea({
   // On a phone the board fills the screen and the info column moves into an
   // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
+
+  // Confetti the moment the team wins a coop game: a perfect clear, every tile
+  // in a set. It is shown only when it happens.
+  const celebration = useCelebration(gd.coop && gd.me.outcome === 'won')
 
   // ─── The local slot ────────────────────────────────────
   // Messages about ME: a claim's refusal, the hint's, the standing conditions,
@@ -165,6 +171,15 @@ function PlayArea({
           historyView={historyView}
         />
       </InfoSheet>
+
+      {/* The team's win's confetti — once, when it happens. */}
+      {celebration.isOpen && (
+        <CelebrationBlockingModal
+          title="Perfect clear! 🎉"
+          body={`Every tile in a set: ${gd.me.nSetsFound} sets.`}
+          onClose={celebration.close}
+        />
+      )}
     </div>
   )
 }

@@ -407,8 +407,11 @@ wins.**
   - **`decided-stands`** — stopping a game that is already `decided` keeps its
     win: the Stop only ends the play-on.
 - **`no-result`** — a `goal-none` game reached its end (its
-  `exhaustible-resource` ran out, or a `timeout`): nobody `won` or `lost`. The same neutral tone as `stopped`,
-  but a different word — nobody chose to stop it.
+  `exhaustible-resource` ran out, or a `timeout`), or a game's
+  `exhaustible-resource` ran out with its `game-goal` missed where missing it
+  is no loss (setgame coop: the deck emptied with tiles left over): nobody
+  `won` or `lost`. The same neutral tone as `stopped`, but a different word —
+  nobody chose to stop it.
 
 ### The player
 

@@ -88,14 +88,23 @@ select pg_temp.sg_play_out(
         'bea22222-2222-2222-2222-222222222222'::uuid]) as claims;
 
 reset role;
+-- The deck is shuffled, so the table ends empty (a perfect clear, a win) or
+-- with tiles left over (no result), and each check reads which.
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
      from common.games where id = (select id from g2)),
-  'reached_goal/cleared/won', 'clearing the deck wins the coop game');
+  case when cardinality(pg_temp.sg_board((select id from g2))) = 0
+       then 'reached_goal/cleared/won'
+       else 'resource_exhausted/cleared/neutral' end,
+  'clearing the deck wins the coop game with no tile left, and is no result with tiles left over');
 select is(
   (select count(*)::int from common.game_players
-    where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
-  2, 'the whole team is ranked 1');
+    where game_id = (select id from g2)
+      and final_ranking is not distinct from
+            case when cardinality(pg_temp.sg_board((select id from g2))) = 0 then 1 end
+      and outcome = case when cardinality(pg_temp.sg_board((select id from g2))) = 0
+                         then 'won' else 'neutral' end),
+  2, 'the whole team alike: ranked 1 on a perfect clear, unranked otherwise');
 select is(
   pg_temp.sg_tiles_in_deck((select id from g2)),
   0, 'the deck is spent');

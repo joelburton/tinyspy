@@ -66,8 +66,8 @@ Two of those rows are load-bearing and easy to get backwards:
   ~3%, but a game makes about two dozen of those checks. Two games in three
   reach fifteen tiles. Anything that treats a wider board as an exception —
   layout, tile sizing, the claim's marks — is wrong.
-- **A full clear is rare**, which kills "win = use every tile" as a coop goal.
-  See §4.
+- **A full clear is rare**, so a coop win is rare: the win is every tile in a
+  set, and the ordinary ending, tiles left over, is no result. See §4.
 
 
 ## 2. Architecture — the plainest trust story on the roster
@@ -153,7 +153,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | the common part alone: there is no puzzle, and the table refills in place |
 | `game_data` | `board: {tiles}` — the one table, shared in both modes, each tile `{id}`, its four digits as text, in slot order. `nTilesInDeck`, the tiles still to be dealt. `team: {nSetsFound, nHintsUsed}` — the team's own facts, the players' counts summed, sent once; null in compete. `events`, every row `{id, userId, kind, tiles, boardAfter, tookTurn, at}`. On each player their own `nSetsFound` and `nHintsUsed` |
-| `summary_data` | `team: {nSetsFound, nHintsUsed}`, the team's counts, null in compete; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `nWinnerSets`, the sets every player ranked first shares — compete's |
+| `summary_data` | `team: {nSetsFound, nHintsUsed}`, the team's counts, null in compete; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, whether a cleared coop game left the table empty (null otherwise); `nWinnerSets`, the sets every player ranked first shares — compete's |
 
 **Every player carries the facts** (`GFacts`: `nSetsFound`, `nHintsUsed`,
 `board`, `nTilesInDeck`) twice: spread on, the side's — the team's in coop,
@@ -175,7 +175,8 @@ The ending is `common.games`' reason, detail and outcome
 
 | mode | when | reason / detail | ranked |
 |---|---|---|---|
-| coop | the deck cleared | `reached_goal` / `cleared` | everyone 1, won |
+| coop | the deck cleared, no tile left | `reached_goal` / `cleared` | everyone 1, won |
+| coop | the deck cleared, tiles left over | `resource_exhausted` / `cleared` | nobody — no result, neutral |
 | coop | the timer | `timeout` | nobody — a loss |
 | compete | the deck cleared | `resource_exhausted` / `cleared` | by sets found, among players who didn't concede and found one; ties share |
 | compete | the timer | `timeout` | the same ranking |
@@ -190,17 +191,18 @@ the turn in turn-by-turn coop, and by nobody otherwise.
 
 Vocabulary per [win-lose.md](../win-lose.md).
 
-### Coop — clear the deck
+### Coop — a perfect clear
 
-The goal is **no sets left to find**: the deck empty and the board dead. It does
-**not** mean using every tile. Stranding six or nine is the ordinary ending
-(§1), so the win says "deck emptied" and reports no leftover count anywhere —
-a "6 stranded" readout measures the win against a target that doesn't exist. A
-**full clear** is a ~2% event and keeps its own line.
+The game ends when there are **no sets left to find**: the deck empty and the
+board dead. The win is a **perfect clear**, every tile in a set and the table
+empty — "Won (perfect clear)", with a celebration. Stranding six or nine tiles
+is the ordinary ending (§1): every set was found, but not every tile used, so
+it is **no result** — "Ended (emptied deck)", neutral.
 
 | | |
 |---|---|
 | finish | built-in (deck out + board dead), always reachable |
+| win | a perfect clear only, ~2% of games |
 | loss | timer only — the stackdown / strands / crosswords coop shape |
 
 ### Turn-by-turn coop

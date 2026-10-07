@@ -34,7 +34,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     mode: raw.mode,
     ended: raw.ended,
     reason: ending?.reason ?? null,
-    isPerfectClear: board.tiles.length === 0,
   }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const own: GFacts = { nSetsFound: p.nSetsFound, nHintsUsed: p.nHintsUsed, board, nTilesInDeck }

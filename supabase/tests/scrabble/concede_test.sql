@@ -78,6 +78,14 @@ create temp table gb on commit drop as
   select (scrabble.create_game((select handle from club),
     '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')->'data'->>'id')::uuid as id;
+reset role;
+-- The bot has played a word: `_finish` ranks only players who did.
+insert into scrabble.events (game_id, user_id, kind, score, took_turn)
+select (select id from gb), gp.user_id, 'word', 8, true
+  from common.game_players gp
+  join common.profiles pr on pr.user_id = gp.user_id
+ where gp.game_id = (select id from gb) and pr.ai_member;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.concede((select id from gb));
 reset role;
 

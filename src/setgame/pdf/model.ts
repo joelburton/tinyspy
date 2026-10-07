@@ -52,8 +52,7 @@ export function buildPrintModel({
   const sets = `${nSetsFound} ${nSetsFound === 1 ? 'set' : 'sets'}`
   // The summary reads as a state line, matching what the info column says: how
   // much game is left during play, what the table got at the end. It does not
-  // count the tiles left over — that is the ordinary ending, not a shortfall
-  // (lib/gameEndingMessage.ts).
+  // count the tiles left over (docs/games/setgame.md → Coop — a perfect clear).
   const summary = gd.ended ? `${sets} found` : `${sets} found · ${gd.me.nTilesInDeck} in the deck`
 
   return {
