@@ -47,44 +47,44 @@ const cellAt = (x: number, y: number) =>
 
 describe('Board', () => {
   it('draws a cell per spot, and a tile on a filled one', () => {
-    render(<Board editing={makeEditing({ board: setChar(emptyBoard(), idx(3, 4), 'q') })} />)
+    render(<Board editing={makeEditing({ board: setChar(emptyBoard(), idx(3, 4), 'q') })} endingOutcome={null} />)
     expect(document.querySelectorAll('[data-cell]')).toHaveLength(GRID * GRID)
     expect(cellAt(3, 4).textContent).toBe('q')
     expect(cellAt(4, 4).textContent).toBe('')
   })
 
   it('rings the cell the cursor is on, and only that one', () => {
-    render(<Board editing={makeEditing({ cursor: { x: 2, y: 7, dir: 'v' } })} />)
+    render(<Board editing={makeEditing({ cursor: { x: 2, y: 7, dir: 'v' } })} endingOutcome={null} />)
     expect(cellAt(2, 7).querySelector('[class*="cursor"]')).not.toBeNull()
     expect(cellAt(3, 7).querySelector('[class*="cursor"]')).toBeNull()
   })
 
   it('answers a drag over an empty cell ok, over a filled one blocked', () => {
     const board = setChar(emptyBoard(), idx(3, 4), 'q')
-    const { rerender } = render(<Board editing={makeEditing({ board, hover: { x: 5, y: 5 } })} />)
+    const { rerender } = render(<Board editing={makeEditing({ board, hover: { x: 5, y: 5 } })} endingOutcome={null} />)
     expect(cellAt(5, 5).className).toContain('dropOk')
-    rerender(<Board editing={makeEditing({ board, hover: { x: 3, y: 4 } })} />)
+    rerender(<Board editing={makeEditing({ board, hover: { x: 3, y: 4 } })} endingOutcome={null} />)
     expect(cellAt(3, 4).className).toContain('dropNo')
   })
 
   it('lets a lifted tile land back on its own cell', () => {
     const board = setChar(emptyBoard(), idx(3, 4), 'q')
     const drag = { source: { kind: 'board' as const, x: 3, y: 4 }, letter: 'q', x: 0, y: 0 }
-    render(<Board editing={makeEditing({ board, hover: { x: 3, y: 4 }, drag: drag as never })} />)
+    render(<Board editing={makeEditing({ board, hover: { x: 3, y: 4 }, drag: drag as never })} endingOutcome={null} />)
     expect(cellAt(3, 4).className).toContain('dropOk')
     expect(cellAt(3, 4).querySelector('[class*="lifted"]')).not.toBeNull()
   })
 
   it('marks the cells a check painted red', () => {
     const board = setChar(setChar(emptyBoard(), idx(3, 4), 'q'), idx(4, 4), 'x')
-    render(<Board editing={makeEditing({ board, invalidCells: new Set([idx(4, 4)]) })} />)
+    render(<Board editing={makeEditing({ board, invalidCells: new Set([idx(4, 4)]) })} endingOutcome={null} />)
     expect(cellAt(4, 4).querySelector('[class*="invalid"]')).not.toBeNull()
     expect(cellAt(3, 4).querySelector('[class*="invalid"]')).toBeNull()
   })
 
   it('forwards a press on a cell with its coordinates', () => {
     const onCellPointerDown = vi.fn()
-    render(<Board editing={makeEditing({ onCellPointerDown })} />)
+    render(<Board editing={makeEditing({ onCellPointerDown })} endingOutcome={null} />)
     cellAt(6, 9).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
     expect(onCellPointerDown).toHaveBeenCalledWith(6, 9, expect.anything())
   })

@@ -157,7 +157,7 @@ test.describe('bananagrams win', () => {
     await peel.click()
 
     // The win verdict appears in the below-board pill…
-    await expect(page.getByText('Bananas! You went out first').first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Won (Bananas!)').first()).toBeVisible({ timeout: 15000 })
     // …and the WINNER gets the celebration instead of the old game-over modal.
     // This is the one test that drives a REAL win, so it's the only place the
     // false→true flip `useCelebration` needs actually happens (a test that renders

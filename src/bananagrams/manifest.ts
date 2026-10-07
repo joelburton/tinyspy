@@ -8,7 +8,9 @@ import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeEndingLabel } from './lib/endingLabel'
 import { bunchSizeError, DEFAULT_BANANAGRAMS_SETUP } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
@@ -34,34 +36,57 @@ import logoUrl from './logo.svg?url'
  *  stays lowercase everywhere in code. */
 const BRAND = 'MonkeyGrams'
 
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
 /**
  * The club line. While the game is on it counts the tiles left in the bunch,
- * which every peel draws down, so it says how near the race is to its end. A
- * race's one winner is the player the common `players` ranks first; the two no-winner losses,
- * the timer running out and everyone conceding, are told apart by the ending's
- * reason.
+ * which every peel draws down, so it says how near the race is to its end. It
+ * leads with my ending label once I am out of play, and names the winner once
+ * someone has gone out.
  */
-function makeLabel(summary: GSummaryData, members: readonly Member[]): string {
-  if (summary.ending === null) {
+function makeLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
+  const facts = { ended: summary.ended, reason: summary.ending?.reason ?? null }
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeEndingLabel(me, facts)
+  if (summary.ending === null && myEndingLabel === null) {
     return statusLine(
       verdict('Playing'),
       count(summary.nBunchTiles, 'tile in the bunch', 'tiles in the bunch'),
     )
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
+
+  const winnerName = findUsername(members, findWinnerIds(summary).find((id) => id !== myId) ?? null)
+  const nobodyFinished = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'nobody finished'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      if (myEndingLabel.labelType === 'won') return makeLead(myEndingLabel)
+      // Someone else went out: name them, beside my concession; a loss to
+      // them is said by naming them.
+      return myEndingLabel.labelType === 'conceded'
+        ? statusLine(makeLead(myEndingLabel), wonBy(winnerName))
+        : wonBy(winnerName)
+    }
+    return statusLine(makeLead(myEndingLabel), nobodyFinished)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
     case 'won':
-      return wonBy(memberById(members, findWinnerIds(summary)[0]!)?.username)
+      return wonBy(winnerName)
     case 'lost':
-      return summary.ending.reason === 'conceded'
+      return summary.ending!.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
         : statusLine(verdict('Lost', 'out of time'), 'nobody finished')
-    // A Stop.
     case 'neutral':
-      return verdict('Ended')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -114,7 +139,7 @@ export const bananagramsGame: GameManifest = {
       }),
     ),
 
-  summaryFor: (data, members) => makeLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeLabel(data as GSummaryData, members, myId),
 
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
   // collective loss (nobody went out in time) via bananagrams.submit_timeout.

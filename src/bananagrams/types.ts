@@ -19,6 +19,7 @@
  * tile is an instance the builder writes).
  */
 
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -195,6 +196,8 @@ export type GBoard = {
  *   nBagTiles                         # the out-of-play reserve's count, the same on every player
  *   own: {tiles, nTiles, nUnplacedTiles, board, nBunchTiles, nBagTiles}
  *                                     # their own: compete only, so the same as the side's
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                     # how they came out; null while they play
  *
  * event:
  *   id
@@ -236,6 +239,9 @@ export type GGameData = Omit<GGameDataRaw, 'nBunchTiles' | 'nBagTiles' | 'team' 
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** One row of the log, as `gd` holds it: the blob's row, with its player. */

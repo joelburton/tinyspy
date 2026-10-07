@@ -18,8 +18,7 @@ import {
 import { useCelebration } from '@/common/ending/useCelebration'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useShowDrawMessages } from '../hooks/useShowDrawMessages'
 import { usePeel } from '../hooks/usePeel'
 import { useDump } from '../hooks/useDump'
@@ -95,13 +94,12 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
   // Any key is the player's next move → dismiss a gesture-cleared message.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I have conceded and the others race on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I have conceded and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // A peel's and my dump's acknowledgment, off the log's newest row.
@@ -128,9 +126,6 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
   })
 
   // ─── Render ────────────────────────────────────────────
-
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <>

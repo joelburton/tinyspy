@@ -129,8 +129,7 @@ docs, and `common.words.difficulty` itself. Name each for the band it is.
 
 - `busy` — my move is with the server — is `submitting`: codenamesduet's
   `ClueStrip.tsx` still says `busy`.
-- The solved flag is one name: the blob's `solved`. `iSolved` is left in
-  wordle's and strands' `lib/gameEndingMessage.ts`, `hasSolved` in
+- The solved flag is one name: the blob's `solved`. `hasSolved` is left in
   `common/reveal` (`useSolutionReveal.ts`, `doc.md`).
 - `isStillPlaying` survives as a prop on connections' `Board` and
   psychicnum's `usePickedTile`; a prop names its purpose at the boundary.

@@ -116,8 +116,9 @@ describe('bananagrams PlayArea — render', () => {
     render(<PlayAreaLoader {...ZTest_makeBananagramsCtx(WON_BY_ME)} />)
     // No modal carries the verdict — a WIN pops the celebration instead, and
     // `useCelebration` fires on the flip, not on mount.
-    expect(screen.getByText('You won!')).toBeInTheDocument()
-    expect(screen.getAllByText(/Bananas! You went out first/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Won (Bananas!)')).toBeInTheDocument()
+    expect(screen.getByText('Won: Bananas!')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
@@ -125,9 +126,17 @@ describe('bananagrams PlayArea — render', () => {
     render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
       players: [{ ...ME, ...ZTest_CONCEDED }, MOTH],
     })} />)
-    expect(screen.getAllByText(/you conceded/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Conceded (game continues)').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Peel' })).not.toBeInTheDocument()
+  })
+
+  it('the peers strip marks a conceded rival conceded, beside their tiles left', () => {
+    render(<PlayAreaLoader {...ZTest_makeBananagramsCtx({
+      players: [ME, { ...MOTH, ...ZTest_CONCEDED }],
+    })} />)
+    expect(document.querySelector(`[data-peer="${MOTH.id}"] [data-count]`)!.textContent)
+      .toMatch(/^\d+ \(conceded\)$/)
   })
 
   it('the setup disclosure shows the shared rows, the same ones the PDF prints', () => {

@@ -308,7 +308,8 @@ is filled then.
 
 **`PeersStrip`** is this game's own vertical strip, kept over the shared
 `OpponentStrip` because a race reads top-down: each rival's tiles left, closest
-to done first, a conceded rival "out" at the bottom, the winner "done!".
+to done first, a conceded rival at the bottom; once a rival is out of play,
+how they came out follows their count: "4 (conceded)", "0 (won)", "3 (lost)".
 Nothing in solo.
 
 **The local slot** carries a peel's or dump's acknowledgment, the check's
@@ -318,10 +319,12 @@ rival's, "Dumped Q" with the exchange glyph for my own dump; a rival's dump
 changes nothing of mine and isn't shown. The winner alone gets
 `<CelebrationBlockingModal>` ("Bananas! 🍌").
 
-**The endings** (`lib/gameEndingMessage.ts`, `lib/playerEndingMessage.ts`):
-"🍌 Bananas! You went out first" / "moth went out — Bananas!"; "⏰ Time's up —
-no winner"; "🏳️ All conceded — no winner"; a Stop's shared neutral message; and
-"Conceded — race continues" while the others race on.
+**The endings** come from my ending label (`lib/endingLabel.ts`, on every
+`gd` player): "Won (Bananas!)" for going out first, a bare "Lost" to whoever
+did (the club line names them), "Lost (out of time)", "Conceded" once
+everyone has, a Stop's shared neutral message, and "Conceded (game
+continues)" while the others race on. The board wears the ending frame in my
+outcome, with no space reserved for it.
 
 **Desktop only.** `PlayAreaLoader` shows the shared `DeviceBlockNotice` on any
 coarse pointer — the gate keys off the pointer, not the width, since a touch
@@ -366,8 +369,8 @@ input. `Board` draws the grid; `EditingBoard` draws no grid of its own. The DOM 
 (`data-cell` / `data-x` / `data-y`, `data-zone="hand"` / `"dump"`,
 `data-hand-tile`) is load-bearing.
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`), `useShowDrawMessages`, one per trip to the
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending label's message),
+`useShowDrawMessages`, one per trip to the
 server — `usePeel`, `useDump` and `useCheckBoard`, each showing its own answer
 and handing a peel's or a check's failing cells back to the editing board to paint —
 and `useActionsAndMenu` (Restart · New game, then Print, in the menu). The
@@ -437,7 +440,7 @@ every run of two or more across and down) de-duped, alphabetical, unscored.
   the hand, the strip and the state line off the blob; the ending I won; the
   conceded row; the setup rows; the commands through the dispatcher (+, ⌥⌫'s
   two answers, Stop behind Concede, Restart) and the menu's order.
-- **`lib/answer.test.ts`**, **`lib/gameEndingMessage.test.ts`**,
+- **`lib/answer.test.ts`**, **`lib/endingLabel.test.ts`**,
   **`lib/board.test.ts`**, **`lib/words.test.ts`**, **`lib/setup.test.ts`**,
   **`lib/setupRows.test.ts`**, **`components/SetupForm.test.tsx`**.
 - **pgTAP** (`supabase/tests/bananagrams/`) — `game_data_test.sql` pins the

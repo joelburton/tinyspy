@@ -80,7 +80,7 @@ export function EditingBoard({
           hug board), so it does NOT compose shell.boardCol — styles.boardCol is
           self-sufficient, avoiding a flex hug-vs-fill override fight. */}
       <div className={styles.boardCol}>
-        <Board editing={editing} />
+        <Board editing={editing} endingOutcome={gd.me.outcome} />
         {/* Moves are made on the board itself, so `.moveArea` is empty; the
             slot reserves its own height so the board never reflows when the
             pill appears or clears (docs/playarea.md → The swap rule). */}

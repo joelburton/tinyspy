@@ -5,6 +5,7 @@ import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
   GEvent,
@@ -31,7 +32,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // Each player carries the facts twice (docs/common-schema.md → A player's
   // facts): spread on, the side's; under `own`, their own — the same, since a
   // racer's side is themselves. The piles are one for every racer.
+  const gameFacts = { ended: raw.ended, reason: ending?.reason ?? null }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const endingLabel = makeEndingLabel(p, gameFacts)
     const maySee = raw.ended || p.id === myId
     const own: GFacts = {
       tiles: maySee ? p.tiles : null,
@@ -41,7 +44,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nBunchTiles,
       nBagTiles,
     }
-    return { ...p, ...(team ?? own), own }
+    return { ...p, ...(team ?? own), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

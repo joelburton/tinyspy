@@ -4,6 +4,8 @@ import { GRID, MAX_CELL, idx } from '../lib/board'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { blurActiveField } from '@/common/keyboard/keyboardHandoff'
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import type { GEditingBoard } from '../reactTypes'
 import { Cell } from './Cell'
 import shared from '@/common/game-page/playArea.module.css'
@@ -16,7 +18,14 @@ import styles from './Board.module.css'
  * no input: the editing board does, and this works out what each cell shows
  * (its letter, the drop answer under a drag, the cursor) and hands it over.
  */
-export function Board({ editing }: { editing: GEditingBoard }) {
+export function Board({
+  editing,
+  endingOutcome,
+}: {
+  editing: GEditingBoard
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
+}) {
   // Read once up front: the editing board carries the board's scroll ref, and
   // the `react-hooks/refs` rule treats every later read off a group holding a
   // ref as a read of the ref itself.
@@ -53,7 +62,16 @@ export function Board({ editing }: { editing: GEditingBoard }) {
   return (
     // The frame: fills the column above the fixed feedback slot; the scroll
     // box and the floating controls are positioned within it.
-    <div className={cls(shared.boardSeal, styles.boardFrame)}>
+    <div
+      className={cls(
+        shared.boardSeal,
+        styles.boardFrame,
+        // No history viewer here, so the frame never steps aside for one. No
+        // space is reserved for it: the outline may run a little past the
+        // viewport.
+        makeEndingFrameClasses(endingOutcome, false),
+      )}
+    >
       {/* A press blurs a focused chat box, so clicking the board hands the
           keyboard back to the game (the cells are non-focusable divs). */}
       <div className={styles.boardScroll} ref={scrollRef} onPointerDown={blurActiveField}>

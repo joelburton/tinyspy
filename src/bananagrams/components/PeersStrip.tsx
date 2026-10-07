@@ -15,15 +15,15 @@ type Props = {
  *
  * Renders nothing in a solo game (no rivals). Racers are sorted by tiles left
  * ascending (closest to finishing at the top); conceded rivals sink to the
- * bottom, shown as "out".
+ * bottom. Once a rival is out of play, how they came out follows their count:
+ * "4 (conceded)", "0 (won)", "3 (lost)".
  */
 export function PeersStrip({ players, myId }: Props) {
-  // A rival who conceded reads "out" and the winner "done!"; everyone else
-  // shows their tiles left.
-  function getScoreOrOut(player: GPlayer) {
-    return player.conceded ? 'out' : player.solved ? 'done!' : player.nUnplacedTiles
+  // A rival's tiles left, then how they came out once they are out of play.
+  function getTilesAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nUnplacedTiles
+    return `${player.nUnplacedTiles} (${player.endingLabel.word.toLowerCase()})`
   }
-
 
   // Conceded players are out of the race → sort them last regardless of count;
   // among the racers, closest to done first.
@@ -42,7 +42,7 @@ export function PeersStrip({ players, myId }: Props) {
           <Dot color={p.color} className={styles.dot} />
           <span className={styles.name}>{p.username}</span>
           <span className={styles.count} data-count>
-            {getScoreOrOut(p)}
+            {getTilesAndResult(p)}
           </span>
         </div>
       ))}

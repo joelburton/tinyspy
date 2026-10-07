@@ -247,7 +247,7 @@ Into each game's `lib/`, next to `history.ts`, where it can be unit-tested
 against every play state. That also puts it beside the other place play
 states are named (the manifest's `summaryFor`), which is a known two-home
 hazard. Fifteen files; none has a `lib/` home for it yet, so the file name is
-psychicnum's to choose (psychicnum's is `lib/gameEndingMessage.ts`). The `useMemo` on primitives that feeds the verdict effect
+psychicnum's to choose (every game's is now `lib/endingLabel.ts`, plans/endings.md). The `useMemo` on primitives that feeds the verdict effect
 stays in the PlayArea — only the pure builder moves.
 
 ### 3.5 A comment pass with the call-site rule — OPEN

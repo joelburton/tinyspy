@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed, wordiply, codenamesduet and crosswords are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is built for every game.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -239,6 +239,11 @@ in its turn in step 4; none is open here.
    "Solved" (outcome still won); a compete solve, and a loss to it, are the
    word alone. A compete winner now celebrates too, and the grid gains the
    ending frame with no space reserved for it.
+   bananagrams, the last, whose card the code already matched; a race with no
+   turn order, so no bell or flash is owed. Going out first reads "Won
+   (Bananas!)", a loss to it the word alone; its own PeersStrip carries the
+   label after each rival's tiles left; the board gains the ending frame with
+   no space reserved. Every game is now on the ending label.
 
 ## Overlaps
 
