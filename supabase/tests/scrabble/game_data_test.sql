@@ -112,6 +112,7 @@ select is(
   null, 'a person has no level');
 select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ended' - 'outcome' - 'ending'
+                       - 'players'
      from common.games where id = (select id from g where mode = 'coop')),
   '{"team": {"score": 0}, "nBagTiles": 93, "winnerIds": null, "winnerScore": null}'::jsonb,
   'a fresh coop summary: the team''s score, the bag, no winners');

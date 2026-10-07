@@ -95,6 +95,7 @@ select is(
   'each player starts with no sets and no hints');
 select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ended' - 'outcome' - 'ending'
+                       - 'players'
      from common.games where id = (select id from g where mode = 'coop')),
   jsonb_build_object(
     'team', '{"nSetsFound": 0, "nHintsUsed": 0}'::jsonb,

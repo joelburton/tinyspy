@@ -106,6 +106,7 @@ select is(
   'a board is one string of 625 empty cells');
 select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ended' - 'outcome' - 'ending'
+                       - 'players'
      from common.games where id = (select id from g)),
   '{"nBunchTiles": 1}'::jsonb,
   'a fresh summary: the bunch count and nothing else of bananagrams''');

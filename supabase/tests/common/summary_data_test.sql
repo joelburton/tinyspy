@@ -4,13 +4,16 @@
 -- Test: summary_data — common._make_json_summary_data
 -- ============================================================
 -- The common part of every game's `summary_data`: the game named and dated,
--- and how it ended. A game's builder adds its own keys beside it and writes
--- the whole (supabase/sql/common.sql → The page blobs' common parts). This
--- file pins the common part:
+-- how it ended, and how each player came out of it. A game's builder adds its
+-- own keys beside it and writes the whole (supabase/sql/common.sql → The page
+-- blobs' common parts). This file pins the common part:
 --
 --   1. A fresh game, as a whole, dated by the instant the builder passes
---   2. The game's ending: the group, the flag and the outcome
+--   2. The game's ending: the group, the flag, the outcome and the players
 --   3. A game that does not exist raises
+--   4. Co-winners: both players ranked 1, both `won`
+--   5. A ranking below first is `near`
+--   6. A conceder is unranked, `lost`, and marked
 --
 -- psychicnum's keys beside it are supabase/tests/psychicnum/game_data_test.sql's.
 -- See games_test.sql for the as_jwt_only trick.
@@ -20,7 +23,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(3);
+select plan(6);
 
 \ir ../_shared/setup.psql
 
@@ -52,6 +55,30 @@ select set_config('request.jwt.claims', '', true);
 create function pg_temp.race() returns uuid language sql as
   $$ select current_setting('test.race')::uuid $$;
 
+-- Another two-player game, for the cases that end one differently.
+create function pg_temp.new_game() returns uuid
+language plpgsql as $$
+declare
+  v_id uuid;
+begin
+  perform pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+  v_id := common._create_game(
+    (select handle from club), 'spellingbee_compete', 'compete',
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'test-title', '{"timer": {"kind": "none"}}'::jsonb, null);
+  perform set_config('request.jwt.claims', '', true);
+  return v_id;
+end;
+$$;
+
+-- One player as the summary lists them.
+create function pg_temp.player(p_id text, p_outcome text, p_ranking int, p_conceded boolean)
+returns jsonb language sql as $$
+  select jsonb_build_object(
+    'id', p_id, 'outcome', p_outcome, 'finalRanking', p_ranking, 'conceded', p_conceded)
+$$;
+
 -- ─── (1) A fresh game, as a whole ───
 select is(
   common._make_json_summary_data(pg_temp.race(), '2026-01-02T03:04:05Z'),
@@ -62,8 +89,11 @@ select is(
     'statusChangedAt', '2026-01-02T03:04:05Z'::timestamptz,
     'ending',          null,
     'ended',           false,
-    'outcome',         null),
-  'the whole common part of a fresh game: named, dated by the instant passed, not ended'
+    'outcome',         null,
+    'players',         jsonb_build_array(
+      pg_temp.player('ada11111-1111-1111-1111-111111111111', null, null, false),
+      pg_temp.player('bea22222-2222-2222-2222-222222222222', null, null, false))),
+  'the whole common part of a fresh game: named, dated by the instant passed, not ended, every player listed'
 );
 
 -- ─── (2) The game ends ───
@@ -82,8 +112,11 @@ select is(
       'by',     'ada11111-1111-1111-1111-111111111111',
       'winner', 'ada11111-1111-1111-1111-111111111111'),
     'ended',   true,
-    'outcome', 'won'),
-  'the ending: its group, the flag and the outcome, with the winner ranked first'
+    'outcome', 'won',
+    'players', jsonb_build_array(
+      pg_temp.player('ada11111-1111-1111-1111-111111111111', 'won', 1, false),
+      pg_temp.player('bea22222-2222-2222-2222-222222222222', 'lost', null, false))),
+  'the ending: its group, the flag, the outcome, and each player''s outcome and ranking'
 );
 
 -- ─── (3) No such game ───
@@ -92,6 +125,59 @@ select throws_ok(
   'P0002',
   'game-not-found|',
   'a game that does not exist raises'
+);
+
+-- ─── (4) Co-winners ───
+select set_config('test.tie', pg_temp.new_game()::text, true);
+select common._end_game(
+  current_setting('test.tie')::uuid, 'timeout', 'timeout', null,
+  p_is_no_result => false,
+  p_final_rankings => '{"ada11111-1111-1111-1111-111111111111": 1,
+                        "bea22222-2222-2222-2222-222222222222": 1}'::jsonb);
+
+select is(
+  common._make_json_summary_data(current_setting('test.tie')::uuid, now()) -> 'players',
+  jsonb_build_array(
+    pg_temp.player('ada11111-1111-1111-1111-111111111111', 'won', 1, false),
+    pg_temp.player('bea22222-2222-2222-2222-222222222222', 'won', 1, false)),
+  'co-winners: both players ranked 1, both won'
+);
+
+-- ─── (5) Ranked below first ───
+select set_config('test.near', pg_temp.new_game()::text, true);
+select common._end_game(
+  current_setting('test.near')::uuid, 'timeout', 'timeout', null,
+  p_is_no_result => false,
+  p_final_rankings => '{"ada11111-1111-1111-1111-111111111111": 1,
+                        "bea22222-2222-2222-2222-222222222222": 2}'::jsonb);
+
+select is(
+  common._make_json_summary_data(current_setting('test.near')::uuid, now()) -> 'players',
+  jsonb_build_array(
+    pg_temp.player('ada11111-1111-1111-1111-111111111111', 'won', 1, false),
+    pg_temp.player('bea22222-2222-2222-2222-222222222222', 'near', 2, false)),
+  'a ranking below first is near'
+);
+
+-- ─── (6) A conceder ───
+select set_config('test.conceded', pg_temp.new_game()::text, true);
+update common.game_players
+   set player_ended_at = now(), player_ended_reason = 'conceded',
+       player_ended_reason_detail = 'conceded'
+ where game_id = current_setting('test.conceded')::uuid
+   and user_id = 'bea22222-2222-2222-2222-222222222222';
+select common._end_game(
+  current_setting('test.conceded')::uuid, 'reached_goal', 'solved',
+  'ada11111-1111-1111-1111-111111111111',
+  p_is_no_result => false,
+  p_final_rankings => '{"ada11111-1111-1111-1111-111111111111": 1}'::jsonb);
+
+select is(
+  common._make_json_summary_data(current_setting('test.conceded')::uuid, now()) -> 'players',
+  jsonb_build_array(
+    pg_temp.player('ada11111-1111-1111-1111-111111111111', 'won', 1, false),
+    pg_temp.player('bea22222-2222-2222-2222-222222222222', 'lost', null, true)),
+  'a conceder is unranked, lost, and marked conceded'
 );
 
 select * from finish();

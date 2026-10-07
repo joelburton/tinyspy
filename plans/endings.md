@@ -1,8 +1,8 @@
 # Endings — every winner, my outcome, and the word "ending"
 
 **Status: decided 2026-10-06, being built; step 1, the rename, is done.** How a game's ending is named,
-stored and shown: the word "terminal" goes, both page blobs can hold several
-winners, the club page's line can speak to the viewer, and the game page
+stored and shown: the word "terminal" goes, every winner is named from the
+final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
 
 ## Decided
@@ -19,9 +19,15 @@ always shows MY outcome.
   is `lost`, any other is `near` — what `common._end_game` already writes.
   Some games cannot have co-winners by their rules; the blobs hold several
   anyway.
-- **Both blobs name every winner.** `ending.winners`, the ids of every player
-  ranked 1, replaces `ending.winner` in the common part of `game_data` and
-  `summary_data`. scrabble's and setgame's own `winnerIds` fold into it.
+- **The blobs carry the ranking, not a winner.** The winners are exactly the
+  players with `finalRanking` 1, and every player carries it, so `ending` loses
+  `winner` in both blobs, and scrabble's and setgame's own `winnerIds` go.
+- **`gd.ending.winners` is built once, in common.** The players ranked 1, in
+  seat order: empty when nobody won, the whole team in a coop win, every
+  co-winner in a tie. It replaces each `useGame`'s `winner:
+  playerOf(ending.winner)`. "Did I win" is `gd.me.outcome`, already there; no
+  second field says it. The club page gets the same list of ids from a shared
+  helper over `summary_data`'s players, for `summaryFor` to name.
 - **`summary_data` carries every player.** The common part gains a short list,
   one entry per player: `id`, `outcome`, `finalRanking`, `conceded`. Always
   written, for every game, whether or not its summary reads it.
@@ -119,16 +125,17 @@ Also:
    `TerminalMessage`, `terminalFrame`,
    `terminalVerdict`, `isTerminal`, `isLocallyTerminal`), every game, the
    docs and `plans/areas`.
-2. **Common SQL.** `common._make_json_ending` writes `winners`;
-   `common._make_json_summary_data` adds the player list; scrabble's and
-   setgame's `winnerIds` go. Every game's `_rebuild_data_cols_for_all()` on
-   deploy.
-3. **Common front end.** The types follow; `summaryFor` takes the viewer;
+2. **Common SQL.** `common._make_json_summary_data` adds the player list.
+   Additive: nothing reads it yet, and `ending.winner` stays until step 3 has
+   moved its readers. Every game's `_rebuild_data_cols_for_all()` on deploy.
+3. **Common front end.** The types follow; `gd.ending.winners` and the club
+   page's winners helper; every reader of `ending.winner` and `winnerIds`
+   moves to them, and then the SQL drops both. `summaryFor` takes the viewer;
    `.endingFrame_near`; one shared verb for the strips, with `near` and the
    place.
 4. **Each game.** Its message colored by mine and naming every winner; "2nd
-   place"; the frame; its strip on the shared verb; its `summaryFor` on
-   `winners`. boggle, spellingbee and wordwheel's hard-coded `'lost'` first:
+   place"; the frame; its strip on the shared verb; its `summaryFor` naming
+   every winner. boggle, spellingbee and wordwheel's hard-coded `'lost'` first:
    they color a `near` player red today. Each game also closes its gaps
    against `plans/game-cards.md` and answers "what should the club-page
    summary be?".

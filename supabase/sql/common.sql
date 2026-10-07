@@ -1990,6 +1990,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     statusChangedAt                      the same instant the builder writes to the column
 --     ending: {reason, detail, by, winner} null while playing
 --     ended, outcome                       outcome null until the game ends
+--     players: [{id, outcome, finalRanking, conceded}, …]   seat order, as game_data's
 
 -- The game has a turn order: its players were seated when it was created.
 -- Fixed for the game's life; a free-for-all game never gains seats.
@@ -2241,8 +2242,10 @@ $$;
 
 revoke execute on function common._make_json_shell_data(uuid) from public;
 
--- The common part of a game's summary_data: the game named and dated, and how
--- it ended. A game's builder adds its own keys beside these. The builder
+-- The common part of a game's summary_data: the game named and dated, how it
+-- ended, and how each player came out of it — a list of games can say who won,
+-- and how the viewer did, from the blob alone. A game's builder adds its own
+-- keys beside these. The builder
 -- passes the instant it writes to `status_changed_at` in the same statement,
 -- so the blob and the column never disagree.
 create or replace function common._make_json_summary_data(
@@ -2270,7 +2273,17 @@ begin
     'statusChangedAt', p_status_changed_at,
     'ending',          common._make_json_ending(g),
     'ended',           g.ended_at is not null,
-    'outcome',         g.game_ended_outcome);
+    'outcome',         g.game_ended_outcome,
+    'players',         (
+      select jsonb_agg(jsonb_build_object(
+               'id',           gp.user_id,
+               'outcome',      gp.outcome,
+               'finalRanking', gp.final_ranking,
+               'conceded',     gp.player_ended_reason is not distinct from 'conceded')
+             order by gp.turn_seat, prof.username)
+        from common.game_players gp
+        join common.profiles prof on prof.user_id = gp.user_id
+       where gp.game_id = p_game_id));
 end;
 $$;
 
