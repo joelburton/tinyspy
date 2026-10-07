@@ -13,10 +13,16 @@
  *   seed     first seed; the sheet is reproducible from it (default 1)
  *
  * The cards are blind: each shows its number, its band and the starter's
- * five colored tiles, with an empty row to write in. The tier is on the key,
+ * five colored tiles, with an empty row to write in. A card's answer sits AT
+ * its band, not at or below it (`answerAtBand`), so a band-6 card is a band-6
+ * word and not a band-1 word unique among band 6. The tier is on the key,
  * the last page, beside the answer and the generator's scores, so a rating by
  * hand can be compared with the tier the generator assigned rather than led
  * by it. The card order is shuffled for the same reason.
+ *
+ * Played in a browser rather than on paper, each card's rating and miss count
+ * are live inputs, and the box at the foot of the page encodes every entry as
+ * one line per card (`#n tier misses`) to paste back; see `SCRIPT`.
  *
  * Reads the five-letter words from `common.words` over psql (`SUPABASE_DB_URL`,
  * default the local stack); needs a seeded list (`gmake all-words ENV=local`).
@@ -82,7 +88,7 @@ for (const band of BANDS) {
     let attempts = 0
     while (made < PER_CELL && attempts < PER_CELL * 10) {
       attempts++
-      const puzzle = buildPuzzle(words, { band, tier, random: mulberry32(SEED + k++) })
+      const puzzle = buildPuzzle(words, { band, tier, random: mulberry32(SEED + k++), answerAtBand: true })
       if (puzzle === null) continue
       if (seen.has(puzzle.starter) || seen.has(puzzle.answer)) continue
       seen.add(puzzle.starter)
@@ -120,9 +126,48 @@ const cardHtml = (c: Card) => `
     <div class="head"><b>#${c.n}</b> <span class="band">band ${c.band}</span></div>
     <div class="row">${tiles(c.puzzle.starter, c.puzzle.colors)}</div>
     <div class="row">${tiles('     ', null)}</div>
-    <div class="notes">misses ________</div>
-    <div class="notes">rating &nbsp;☐ easy &nbsp;☐ medium &nbsp;☐ hard</div>
+    <div class="notes">misses <input class="misses" type="number" min="0" max="9" data-n="${c.n}"></div>
+    <div class="notes">rating ${TIERS.map((t) => `<label><input type="radio" name="r${c.n}" value="${t}" data-n="${c.n}"> ${t}</label>`).join(' ')}</div>
   </div>`
+
+/**
+ * Keeps the ratings: every tick or miss count is written to the box at the
+ * foot of the page as one line per rated card (`#n tier misses`), ready to
+ * paste, and to localStorage under the sheet's seed so a reload keeps them.
+ * Plain JS in a plain string: no `${}` here, so the page template leaves it be.
+ */
+const SCRIPT = `
+  var KEY = 'wordleone-sheet-' + document.body.dataset.seed + '-' + document.body.dataset.perCell;
+  var out = document.getElementById('ratings');
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+  document.querySelectorAll('input[data-n]').forEach(function (el) {
+    var s = saved[el.dataset.n];
+    if (!s) return;
+    if (el.type === 'radio') el.checked = el.value === s.tier;
+    else el.value = s.misses || '';
+  });
+  function render() {
+    var byCard = {};
+    document.querySelectorAll('input[data-n]').forEach(function (el) {
+      var n = el.dataset.n;
+      byCard[n] = byCard[n] || {};
+      if (el.type === 'radio') { if (el.checked) byCard[n].tier = el.value; }
+      else if (el.value !== '') byCard[n].misses = el.value;
+    });
+    var lines = [];
+    Object.keys(byCard).map(Number).sort(function (a, b) { return a - b; }).forEach(function (n) {
+      var r = byCard[n];
+      if (r.tier === undefined && r.misses === undefined) return;
+      lines.push('#' + n + ' ' + (r.tier || '-') + ' ' + (r.misses === undefined ? '-' : r.misses));
+    });
+    out.value = 'wordleone sheet seed ' + document.body.dataset.seed + ', ' + document.body.dataset.perCell + ' per cell\\n' + lines.join('\\n');
+    try { localStorage.setItem(KEY, JSON.stringify(byCard)); } catch (e) {}
+  }
+  document.addEventListener('input', render);
+  out.addEventListener('focus', function () { out.select(); });
+  render();
+`
 
 const keyRow = (c: Card) =>
   `<tr><td>#${c.n}</td><td>${c.puzzle.starter.toUpperCase()}</td><td class="mono">${c.puzzle.colors}</td><td><b>${c.puzzle.answer.toUpperCase()}</b></td><td>${c.band}</td><td>${c.puzzle.tier}</td><td>${c.puzzle.greens}g ${c.puzzle.yellows}y</td><td>${c.puzzle.positiveSpace}</td><td>${c.puzzle.loadBearing}</td></tr>`
@@ -147,14 +192,18 @@ const html = `<!doctype html>
           font-weight: 700; font-size: 15pt; color: #fff; border-radius: 2pt; }
   .tile.blank { background: #fff; border: 1.5pt solid #d3d6da; }
   .notes { color: #666; font-size: 9pt; margin-top: 4pt; }
+  .notes label { margin-right: 6pt; }
+  .misses { width: 3em; font: inherit; }
   .key { break-before: page; }
+  .ratings { margin-top: 14pt; }
+  #ratings { width: 100%; max-width: 480pt; height: 160pt; font: 9.5pt ui-monospace, Menlo, monospace; }
   table { border-collapse: collapse; font-size: 9.5pt; }
   td, th { padding: 1.5pt 8pt 1.5pt 0; text-align: left; }
   th { border-bottom: 1px solid #999; }
   .mono { font-family: ui-monospace, Menlo, monospace; }
 </style>
 </head>
-<body>
+<body data-seed="${SEED}" data-per-cell="${PER_CELL}">
 <h1>Wordle in 1 — ${cards.length} puzzles (seed ${SEED}, ${PER_CELL} per band × tier)</h1>
 <p class="rules">The colored row is a starter word scored against a hidden five-letter word: green right letter right spot,
 yellow in the word elsewhere, gray not in the word. Exactly one word at or below the card's band fits. Write it in the empty
@@ -167,6 +216,12 @@ row, count your misses, and rate it. The key is on the last page.</p>
 ${cards.map(keyRow).join('\n')}
 </table>
 </div>
+<div class="ratings">
+<h1>Ratings</h1>
+<p class="rules">One line per rated card: number, tier ticked, misses entered (<span class="mono">-</span> for neither). Copy and paste the box.</p>
+<textarea id="ratings" readonly></textarea>
+</div>
+<script>${SCRIPT}</script>
 </body>
 </html>
 `

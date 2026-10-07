@@ -90,6 +90,21 @@ describe('buildPuzzle', () => {
     expect(a).toEqual(b)
   })
 
+  it('under answerAtBand, the answer is a clean non-plural word at exactly the band, listed or not', () => {
+    for (const band of [3, 4, 5]) {
+      const puzzle = buildPuzzle(WORDS, { band, tier: 'any', random: mulberry32(band), answerAtBand: true })
+      expect(puzzle, `band ${band}`).not.toBeNull()
+      const answer = byWord.get(puzzle!.answer)!
+      expect(answer.band).toBe(band)
+      expect(answer.isAnswerList).toBe(false)
+      expect(isPlural(answer)).toBe(false)
+      // The off-list answer counts itself, as a listed answer always does.
+      expect(puzzle!.positiveSpace).toBeGreaterThanOrEqual(1)
+    }
+    // Band 6 has no word at all in the fixture.
+    expect(buildPuzzle(WORDS, { band: 6, tier: 'any', random: mulberry32(1), answerAtBand: true })).toBeNull()
+  })
+
   it('answers null when the band has no answer-list word', () => {
     const obscureOnly = WORDS.filter((r) => !r.isAnswerList)
     expect(buildPuzzle(obscureOnly, { band: 6, tier: 'any', random: mulberry32(1) })).toBeNull()

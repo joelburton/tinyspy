@@ -44,7 +44,7 @@ export interface Puzzle {
   tier: Tier
   greens: number
   yellows: number
-  /** Answer-list words consistent with the greens and yellows alone. */
+  /** Answer-list words (and the answer, when it is off the list) consistent with the greens and yellows alone. */
   positiveSpace: number
   /** Tiles the answer is NOT unique without — the ones doing work. */
   loadBearing: number
@@ -140,11 +140,19 @@ export interface BuildOptions {
   random: () => number
   /** How many answers to try before giving up (each is a full pass over the starters). */
   maxAnswers?: number
+  /**
+   * The sheet's sampling rule: the answer sits AT the band, not at or below it,
+   * and is any clean non-plural word rather than one on the NYT answer list,
+   * which has no word above band 2. A card marked band 6 then shows what a
+   * band-6 answer feels like. Off by default: the game draws from the list.
+   */
+  answerAtBand?: boolean
 }
 
 /**
  * Build one puzzle. The answer is a random clean word on the NYT answer list
- * at or below the band; the starter is any clean non-plural word at band ≤ 2
+ * at or below the band (or, under `answerAtBand`, any clean non-plural word at
+ * exactly the band); the starter is any clean non-plural word at band ≤ 2
  * that scores against the answer with the tier's green count, isolates it
  * among every word at or below the band, and leaves at most four answer-list
  * words consistent with its greens and yellows alone.
@@ -153,12 +161,16 @@ export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzz
   const { band, tier, random } = opts
   const pool = words.filter((r) => r.band <= band).map((r) => r.word)
   const answerList = words.filter((r) => r.isAnswerList && r.isClean).map((r) => r.word)
-  const answers = words.filter((r) => r.isAnswerList && r.isClean && r.band <= band).map((r) => r.word)
+  const answers = opts.answerAtBand
+    ? words.filter((r) => r.isClean && !isPlural(r) && r.band === band).map((r) => r.word)
+    : words.filter((r) => r.isAnswerList && r.isClean && r.band <= band).map((r) => r.word)
   const starters = words.filter((r) => r.isClean && r.band <= STARTER_MAX_BAND && !isPlural(r)).map((r) => r.word)
   if (answers.length === 0 || starters.length === 0) return null
 
   const ALL = [0, 1, 2, 3, 4]
   for (const answer of shuffled(answers, random).slice(0, opts.maxAnswers ?? 25)) {
+    // Positive space always counts the answer itself, so an off-list answer's number compares with a listed one's.
+    const positiveList = answerList.includes(answer) ? answerList : [...answerList, answer]
     for (const starter of shuffled(starters, random)) {
       if (starter === answer) continue
       const colors = colorsOf(starter, answer)
@@ -178,7 +190,7 @@ export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzz
       if (!isUnique) continue
 
       const colored = ALL.filter((i) => colors[i] !== 'x')
-      const positiveSpace = colored.length === 0 ? answerList.length : countConsistent(starter, colors, answerList, colored)
+      const positiveSpace = colored.length === 0 ? positiveList.length : countConsistent(starter, colors, positiveList, colored)
       if (positiveSpace > MAX_POSITIVE_SPACE) continue
 
       let loadBearing = 0

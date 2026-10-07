@@ -345,6 +345,22 @@ game uses, and the difficulty beside it.
 4. **The starter pool**: band ≤ 2 clean non-plurals, following the NYT's two
    off-list starters. Band ≤ 1 would be purer and costs yield; the table above
    is at ≤ 2.
+5. **The setup key for the tier.** The plan calls it `difficulty`, but waffle
+   and wordiply already store a `setup.difficulty` that is a dictionary band,
+   and cross-game-consistency → "Difficulty" as the name of a dictionary band
+   is still open. A third game with a `difficulty` that means something else
+   widens that question. The name is Joel's: keep `difficulty`, or name it for
+   what it is (e.g. `tier`).
+6. **After a miss, does the typed row clear?** A soft reject keeps the word
+   (decided); the plan says a miss shakes red but not what happens next.
+   Recommended: it clears once the shake ends, since in coop with turns the
+   next typist is someone else.
+7. **What `#N` shows for a miss.** The plan says the starter row plus, at the
+   solve, the green row. Recommended for a miss: the starter, and the missed
+   word in the second row, uncolored and ringed, the way wordle rings the
+   replayed row.
+8. **`docs/features.md`'s two-letter code.** `WN` is wordle's; the new one is
+   Joel's pick.
 
 ## First step — a sheet of puzzles to try by hand
 
@@ -362,9 +378,14 @@ Before any game code, the generator itself, and a page to print its output:
   entry is `gmake g-wordleone-sheet`, with `PER_CELL`, `SEED` and `SHEET`
   (the output path, default `~/Downloads/wordleone-sheet.html`) — reads the
   five-letter words from the local database as stackdown's generator does,
-  draws a batch per band × tier cell, and writes one HTML page to stdout.
+  draws a batch per band × tier cell, and writes one HTML page to stdout. A
+  cell's answers sit AT its band (the generator's `answerAtBand`), drawn from
+  every clean non-plural word there, since the NYT list stops at band 2: a
+  band-6 card is a band-6 word, not a band-1 word unique among band 6.
   The cards are blind — a number, the band, the starter's five colored tiles,
-  an empty row to write in and a rating to tick — and the tier sits on the
+  an empty row to write in and a rating to tick (live inputs in a browser,
+  encoded by a box at the foot of the page as one line per card to paste
+  back) — and the tier sits on the
   key, the last page, beside the answer and the generator's scores, so a
   rating by hand is compared with the tier rather than led by it. The page is
   for a color printer and is not committed; the script is, since it is the
@@ -375,28 +396,316 @@ Before any game code, the generator itself, and a page to print its output:
 
 ## Steps
 
-Unordered beyond their dependencies; none is scheduled.
+**Done:** the first step's code — `supabase/scripts/wordleone/gen.ts`, its
+vitest, `sheet.ts`, `gmake g-wordleone-sheet`, the `_wordleone:sheet` npm
+script and its cheatsheet lines.
 
-1. The first step above; then settle the open questions.
-2. **SQL**: the migration, the `wordleone.sql` behavior file from wordle's
-   with the budget removed and the puzzle columns added, pgTAP in the game's
-   own folder under `supabase/tests/` — create (the re-check of a handed puzzle, the
-   grant on `target`), gameplay (the three answers to a guess, the title),
-   compete ranking and the tie, timeout and Stop, Restart, reveal, the blobs
-   whole.
-3. **The edge function** `wordleone-build-board` and its Deno tests: the
-   filters each pinned by a planted puzzle; the fault for an unseeded list;
-   the validation when a tier is empty.
-4. **The frontend**: the folder, the two manifests, registration in
-   `src/gametypes.ts`, the logo, `theme.css`; vitest beside the code as
-   wordle has it, with a fixture built from facts.
-5. **The lift** into `shared/wordle-style`, both docs updated.
-6. **The rest of a new game**: a gallery entry beside
-   `e2e/gallery/games/wordle.ts` and the e2e specs (history, print, mobile),
-   `docs/features.md`'s roster, the Makefile's `BACKUP_SCHEMAS`, the guards'
-   game lists (`gameTypes.test.ts` and whichever else enumerate games), the
-   folder's `doc.md` and `todo.md`, and this plan's knowledge moved into that
-   doc before the plan is deleted.
+Each step below ends at a stop: the work sits in the working tree for Joel to
+read, and the next step waits for his go. The order is the dependency order —
+shape, behavior, the generator, the page, the lists, the docs, prod — with the
+lift last (decision 8). Line numbers are from 2026-10-07 and will drift.
+
+### Step 0 — the gate
+
+- The sheet played by hand (First step above); whatever it moves in `gen.ts`'s
+  constants moves now, before step 3 pins them in tests.
+- Open questions 1, 5 and 6 answered — the copy, the tier's key and the
+  miss's row are written into SQL, types and tests from step 1 on. 2–4, 7 and
+  8 can wait for the step that reads them.
+
+### Step 1 — the shape: one migration
+
+`supabase/migrations/<ts>_wordleone.sql`, written fresh, **not** a copy of
+`20260625000000_wordle.sql`: that file inserts the long-dropped
+`hides_solution`, omits the now-required `brand`, publishes its tables to
+Realtime (undone for every game by `20261006000002`), and predates the
+clubs backfill.
+
+- `create schema wordleone`.
+- `wordleone.games`: `game_id uuid pk → common.games(id) on delete cascade`,
+  `starter char(5) not null`, `starter_colors char(5) not null check
+  (starter_colors ~ '^[gyx]{5}$' and starter_colors <> 'ggggg')`,
+  `target char(5) not null`, `legal_band int not null check (legal_band
+  between 1 and 6)`, `difficulty text not null check (… in
+  ('easy','medium','hard','any'))` — the key's name per open question 5.
+- `wordleone.players`: `(game_id, user_id)` pk, fks as wordle's,
+  `n_misses int not null default 0`, the `game_id` index.
+- `wordleone.events` on the events skeleton ([docs/supabase.md → Every
+  game's log is `<game>.events`](../docs/supabase.md#every-games-log-is-gameevents)): `id bigint identity pk`, `game_id`, `user_id`, `kind text not null
+  check (kind in ('guess'))`, `took_turn bool not null default false`,
+  `created_at`, plus `word char(5) not null`, `colors char(5)` **nullable**
+  (null for a miss, decision 11), `is_correct bool not null`, and a check that
+  ties them: `(is_correct and colors = 'ggggg') or (not is_correct and colors
+  is null)`. Index `(game_id, id)`.
+- RLS enabled on all three; no Realtime publication.
+- The gametype rows, in the shape `20260615000000_common.sql:253-266`
+  describes: `insert into common.gametypes (gametype, min_players, brand)
+  values ('wordleone_coop', 1, 'WordNerdier'), ('wordleone_compete', 2,
+  'WordNerdier') on conflict do nothing`.
+- **The clubs backfill**, for every existing club, since
+  `20261007000002_paw_protection.sql` makes a missing `clubs_gametypes` row a
+  disabled game: `common._enroll_club_gametypes`'s rule
+  (`supabase/sql/common.sql:307-318`) inlined, because a migration cannot
+  call `supabase/sql/` — enabled except compete in a solo club. Not setgame's
+  backfill, which skips solo clubs' compete row entirely.
+
+**Done when:** the migration applies locally and `select * from common.clubs_gametypes where gametype
+like 'wordleone%'` has a row for every club. `gmake db-schema ENV=local`
+resets the local database, so ask before using it.
+
+### Step 2 — the behavior: `wordleone.sql` in `supabase/sql/`
+
+Copied from `supabase/sql/wordle.sql`, then changed by the rules. Every
+`max_guesses`, `resource_exhausted` and `answer_band` site goes (the list:
+wordle.sql grants :50; blobs :184-411; create_game :539-693; submit_guess
+:826-1059).
+
+- **Grants and policies:** `grant select (game_id, starter, starter_colors,
+  legal_band, difficulty)` on games — `target` left out, the column grant
+  that hides it. The three club-gated select policies as wordle's.
+- **`create_game(p_club_handle, p_setup, p_player_user_ids, p_mode,
+  p_board)`.** Named `p_board`, not the plan's `p_puzzle`: the shared
+  `invokeCreateGame` (`supabase/functions/_shared/startGame.ts:137-152`)
+  types its argument with `p_board`, as every build-board game passes it.
+  Checks, in order:
+  - the common gates (`_require_club_member`, player count ≤ 6,
+    `_require_valid_mode`, compete ≥ 2, `_require_valid_timer`);
+  - `legal_band` 1..6 and the tier key one of the four (new PN codes; the
+    next free numbers are printed by `src/guards/raiseCodes.test.ts`);
+  - the handed puzzle, each a `hint = 'fault'` BUG raise as waffle's
+    (`supabase/sql/waffle.sql:714-859`): five lowercase letters each;
+    `starter <> answer`; `colors = common._wordle_colors(starter, answer)`;
+    the answer legal at the band; the tier honored by the green count (`any`
+    takes 0–3); and **unique** — `select count(*) from common.words where len
+    = 5 and difficulty <= legal_band and common._wordle_colors(starter, word)
+    = colors` is exactly 1. One set-based pass per game; time it locally at
+    band 6 (12,890 plpgsql calls) and note the number in the doc.
+  - `common._create_game(…, 'wordleone_' || mode, …)`, turns as wordle's
+    (`coop_style = 'turns'`, `first_turn_user_id`, `_assign_turn_order`), the
+    rows, `_write_static_game_data`, `_rebuild_data_cols(…, true)`,
+    `{result: 'created', id}`.
+- **`submit_guess(p_game_id, p_guess)`** — wordle's order (lock, deleted,
+  player, game over, `_require_turn`, conceded, malformed, already solved),
+  with no budget guard. Then:
+  - duplicate: coop any player's word, compete the caller's own — **and the
+    starter is a duplicate too** (a word already on the board);
+  - `notAWord`: not the target and not at or below `legal_band`;
+  - the answer: event `('ggggg', true)`, `solved_at`, coop ends
+    `reached_goal`/`solved` with every teammate ranked 1; compete
+    `_set_player_ended(… 'reached_goal','solved','neutral')` and
+    `_maybe_finish_compete`;
+  - otherwise a **miss**: event `(null, false)`, `n_misses + 1`, coop with
+    turns `_advance_turn`; nothing ends.
+  - `_sync_title`, `_rebuild_data_cols`. Answers `correct | miss | duplicate
+    | notAWord`, with `n_misses`, `solved`, `game_ended`; no `colors`.
+- **`_finish_compete`**: `rank() over (order by wp.n_misses, gp.solved_at)`
+  over the solvers. `_maybe_finish_compete`, `concede`, `submit_timeout`,
+  `stop_game` as wordle's with the names changed.
+- **`replay_board`** (Restart): `n_misses = 0`, delete the events,
+  `common._reset_game`, title, rebuild. The static blob is untouched — same
+  puzzle.
+- **The blobs** (the Schema section above): `_make_json_static_game_data`
+  adds `puzzle: {starter, colors}`, so `_write_static_game_data` writes the
+  game's own builder as waffle's does (`waffle.sql:551-564`), not the common
+  one alone. `_make_json_board` is the starter row, then `{word, 'ggggg'}`
+  once solved. `_make_json_team` is `{nMisses, board}` in coop;
+  `_make_json_players` carries `nMisses`, `board` (compete),
+  `tieBrokenByClock` (wordle's rule with `n_misses`). `_make_json_events`
+  passes `colors` through, null for a miss. `summary_data`: `team: {nMisses}`,
+  `legalBand`, the tier, `nWinnerMisses`, `nMissesById` (compete; keep only if
+  the club line reads it — wordle's `nGuessesUsedById` is the model).
+- **`_sync_title`**: wordle's, unchanged in logic (latest word, coop always,
+  compete once ended).
+- **`_rebuild_data_cols_for_all`** over the `wordleone_%` gametypes.
+
+**Done when:** the SQL applies cleanly (`gmake db-sql ENV=local`) and step 3's tests pass.
+
+### Step 3 — pgTAP: a `wordleone/` folder under `supabase/tests/`
+
+From `supabase/tests/wordle/`, with a `setup.psql` whose
+`pg_temp.wordleone_puzzle()` returns a fixed, known-unique puzzle (as
+`tests/waffle/setup.psql`'s `waffle_board()` does), checked against the
+seeded list once by hand.
+
+| file | pins |
+|---|---|
+| `create_game_test.sql` | the envelope; `select target` throws (the column grant); `game_data` target null; each puzzle refusal — wrong colors, starter = answer, answer outside the band, not unique, tier mismatch, four greens; bad band and tier; the caller among the players |
+| `gameplay_test.sql` | the four answers: duplicate (incl. the starter) and `notAWord` write nothing; a miss writes `colors` null and counts; the solve ends coop; malformed; deleted game |
+| `compete_test.sql` | private boards; ranking by fewest misses then the earlier solve; `tieBrokenByClock` |
+| `concede_test.sql` · `stop_game_test.sql` · `turn_order_test.sql` | wordle's, renamed; a miss advances the turn, a reject does not |
+| `replay_test.sql` · `reveal_test.sql` | Restart clears misses and re-hides the target; the title never spells an unsolved answer, a missed word may title the game |
+| `game_data_test.sql` · `rebuild_data_cols_test.sql` | the blobs whole, incl. the static `puzzle` |
+| `banded_answer_test.sql` | the answer accepted though re-banded above `legal_band` (the target before the dictionary) |
+
+The common tests that list every game, which fail without it:
+`supabase/tests/common/clubs_gametypes_test.sql` (counts 30 → 32 and the
+arrays at :55, :91, :123, :246), `fk_delete_rules_test.sql` (:56-60, :105),
+`events_skeleton_test.sql` (:43-55), `realtime_publication_test.sql`
+(scope only), `function_grants_test.sql` and `function_overloads_test.sql`
+(both already miss strands, letterboxed and setgame — say so, fix only if
+Joel says), `supabase/scripts/rehearse-migration.sh:110-113`.
+
+**Done when:** `gmake test-db` (the whole pgTAP suite; it runs whole-suite
+only) is green.
+
+### Step 4 — the edge function: `wordleone-build-board/` under `supabase/functions/`
+
+- `git mv supabase/scripts/wordleone/gen.ts` into it; its vitest becomes
+  `gen_test.ts` with `Deno.test`s and a local `eq` (as `waffle-build-board`'s,
+  no std import). `sheet.ts` imports the new path, so the sheet and the game
+  keep running one generator.
+- `index.ts`, in waffle's shape (`waffle-build-board/index.ts:110-173`):
+  `preflight` → `parseBuildBoardRequest` → band and tier from setup (bad →
+  `fault`) → fetch the words as the caller → `buildPuzzle` with `Math.random`
+  → null is a `formValidation` under the tier's key ("No puzzle at that
+  difficulty. Try another.") → `invokeCreateGame(supabase, 'wordleone', {…,
+  p_board: {starter, colors, answer, tier}})` → `crash` in the catch.
+- The fetch differs from waffle's: **every** five-letter word at or below
+  `max(band, STARTER_MAX_BAND)` (a band-1 game still draws starters from band
+  2), not clean-filtered (a guess isn't), selecting `word, difficulty,
+  wordle, slur, crude, american, slang, root_word`, paged at 10,000 as
+  waffle's. An empty list is the "unseeded" fault.
+- Tests: each filter pinned by a planted word list — a non-unique pattern
+  skipped, four greens skipped, the positive-space ceiling, the tier honored,
+  a plural starter skipped, a band-1 game's starter from band 2 — and null
+  for an empty tier.
+
+**Done when:** `npm run test:edge` and `deno check` on the folder are green,
+and a local call (`supabase functions serve`) creates a game.
+
+### Step 5 — the frontend: a `wordleone/` folder under `src/`
+
+Copy `src/wordle/` whole, rename (`wordle` → `wordleone`, `WordNerd` →
+`WordNerdier`, `db.ts` → `supabase.schema('wordleone')`), restamp every file
+`cs-unmet` (none is blessed in the copy). Then, by file:
+
+- **Unchanged but for names:** `Board`, `BoardRow`, `Tile` and their CSS;
+  `BoardCol.module.css`, `PlayArea.module.css`, `InfoCol.module.css`;
+  `useTypedGuess`, `useFlipBaseline`, `useGetEndingMessage`,
+  `useHistoryView`, `useShowOppsSolvedMessages`; `lib/colors.ts`;
+  `pdf/printPdf.ts`. Keep the turn bell and flash in `PlayArea.tsx`
+  (`useTurnStartFlash`) — the game has turns.
+- **`types.ts`:** `GFacts = {nMisses, board}`; `GEventRaw.colors: string |
+  null`; `GSetupValues` = coop style, `legal_band`, the tier, timer, players;
+  a static `puzzle: {starter, colors}`; `GAnswer` with `miss` / `miss_peer`
+  for `incorrect` / `incorrect_peer`; `GSummaryData` per step 2.
+- **`useGame.ts`:** `own: {nMisses, board}`; `mergeStaticGameData` keeps the
+  static `puzzle` (its comment stops saying the static blob is the common
+  part alone); the compete "ahead" helper reads misses.
+- **`useSubmitGuess.ts`:** the union's accepted half is `correct | miss`, no
+  `colors`. A miss shakes the row red (`lost`) and says so in the slot — and,
+  per open question 6, clears the typed word after the shake. Its word never
+  lands as a row, so `inFlight` must be cleared on a miss, or it sticks.
+- **`lib/answer.ts`:** `miss` → `lost`, the soft rejects → `warning`
+  (wordle has `not_a_word` as `lost`); the copy from open question 1.
+- **`GameEventLog.tsx` + CSS:** a null `colors` draws five uncolored squares
+  (an outline, no gray fill) instead of calling `getTileColor`, which throws
+  on null.
+- **`lib/history.ts`:** `#N` replays the starter row, plus the green row at
+  the solve, plus a miss per open question 7.
+- **`lib/endingLabel.ts`:** drop the `resource_exhausted` branch; "fewer
+  misses" where wordle says "more guesses".
+- **`StateLine.tsx`:** "3 misses" (and "No misses yet" or similar — copy).
+- **`InfoCol.tsx`:** the strip's metric is `Misses`.
+- **`BoardCol.tsx`:** `maxGuesses: 2` to `Board` (the starter and the typing
+  row); the key tint reads the board rows, which is the starter and the solve.
+- **`SetupForm.tsx`, `lib/setup.ts`, `lib/setupRows.ts`:** legal band
+  (`DictBandField`), the tier (a `SelectField`: easy · medium · hard · any),
+  timer, coop style; no budget, no answer source. The setupRows guard needs a
+  row for each key.
+- **`manifest.ts`:** `startGameInClub` and the in-game New game
+  (`useActionsAndMenu.ts`) call `runEdgeFn('wordleone-build-board', …)` as
+  waffle's do (`src/waffle/manifest.ts:51-63`,
+  `src/waffle/hooks/useActionsAndMenu.ts:100-121`); the summary line reads
+  `legalBand` in the `dict "…"` slot and the tier beside it; no "out of
+  guesses".
+- **`Help.tsx`**, **`logo.svg`**, **`theme.css`**: new.
+- **`pdf/model.ts`:** two rows per track, the result line in misses, the
+  misses as plain words.
+- **Tests** beside each, from wordle's, with the fixture
+  (`lib/gameData.fixture.ts`) rebuilt from facts: `used` → `misses`, no
+  `ZTest_SPENT`, events with null colors. `PlayArea.test.tsx` drops the
+  out-of-guesses cases and gains a miss (red ring, row cleared, logged
+  uncolored) and a soft reject (orange ring, row kept).
+
+**Done when:** `npx tsc -b`, and eslint and vitest over the new folder, are
+green.
+
+### Step 6 — the lists: registration and guards
+
+- `src/gametypes.ts` — the import (keep the literal `from
+  './wordleone/manifest'`; eslint finds games by it) and the array.
+- `supabase/config.toml:15` `[api] schemas`, `supabase/deploy/env.sh:92`
+  `EXPOSED_SCHEMAS`, `Makefile:491` `BACKUP_SCHEMAS` — all three checked by
+  `src/guards/deployLists.test.ts`. The local stack needs a restart to read
+  config.toml.
+- `src/types/db.ts` regenerated (`gmake dev-types`).
+- Guards that list games: `gameTypes.test.ts:33` (`CONVERTED_GAMES`),
+  `concedeLock.test.ts:62`, `gameDeletedFirst.test.ts:93-94` (the five
+  `wordleone.*` functions), `gameSummaries.test.ts:242-259` (a `wordleone`
+  case family from step 2's `summary_data`; no `resource_exhausted`).
+- `git add -N` the new files first — `prosePaths` and the other guards read
+  the index.
+
+**Done when:** `npx vitest run src/guards` and the full `npx vitest run`
+are green.
+
+### Step 7 — e2e
+
+Ask before running any of it (and the gallery needs `gmake db-reset
+ENV=local` while the local DB is a prod copy — ask first).
+
+- `e2e/helpers/fixtures.ts`: `createWordleoneGame` (through the edge
+  function, or through `create_game` with a fixed puzzle as the pgTAP setup
+  does) and `seedWordleoneGuesses` beside wordle's (:783-845).
+- A `wordleone.ts` beside `e2e/gallery/games/wordle.ts` (fresh, mid with misses, won, ended, both
+  modes; no "lost" cell — nothing runs out) and its two registrations,
+  `e2e/gallery/run.ts:72,89` and `e2e/gallery/moveBytes.ts:47,131`.
+- The rosters: `e2e/events-realtime.e2e.ts:78-82`,
+  `e2e/build-board-random.e2e.ts:25-30`, `e2e/restart-resets.e2e.ts:90-97`.
+- New specs from wordle's: `wordleone-history`, `wordleone-print`,
+  `wordleone-mobile`.
+
+**Done when:** those specs and the gallery cells pass, run one by one on
+Joel's go.
+
+### Step 8 — the docs
+
+- The folder's `doc.md` in wordle's headings (Intro to area · Game rules ·
+  Schema · RPCs · FE submissions · Frontend · Tests), taking this plan's rules,
+  puzzle evidence and filters; its `todo.md` with the five sections.
+- The card in `plans/game-cards.md`, in psychicnum's model.
+- `CLAUDE.md` (a game-doc row; "Sixteen" → "Seventeen" and the roster),
+  `README.md` (:5, :21, :57, :174), `docs/features.md` (the code from open
+  question 8, the player counts, the tag lines), `docs/naming.md` (the
+  codename and brand tables), `src/common/reveal/doc.md:71`,
+  `src/common/pdf/doc.md:243`, `docs/supabase.md:304`, and the count words
+  (`docs/code-conventions.md:254`, `docs/states.md:83`, `docs/testing.md`'s
+  gallery totals, `Makefile:830`).
+
+**Done when:** the guards are green (links, prose paths, spelling).
+
+### Step 9 — prod
+
+On Joel's go: `gmake project-config-api ENV=prod` for the exposed schemas,
+then `gmake deploy ENV=prod` (the migration, `supabase/sql/`, every
+function including the new one, the FE). Nothing to rebuild —
+no existing game reads the new blobs. Then one coop and one compete game on
+prod.
+
+### Step 10 — the lift
+
+When wordleone is green: diff the new folder against `src/wordle/` and move
+what is byte-identical — the board trio, `useTypedGuess`, `useFlipBaseline`,
+the key tint, the printer's tiles — into `src/shared/wordle-style/` (or a
+sibling whose `doc.md` says why), both games importing it; both PlayAreas
+stay two copies. `shared/wordle-style/doc.md`, `docs/common-folders.md:344-346`
+and wordle's `doc.md` follow. This touches blessed wordle files and is last.
+
+### Step 11 — close the plan
+
+What this plan knows that the game's `doc.md` doesn't moves there; the
+plan and its `CLAUDE.md` row go.
 
 ## Reference
 
