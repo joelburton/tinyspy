@@ -29,21 +29,23 @@ export type EndingMessage = {
 }
 
 /**
- * The message for a NEUTRAL ending, and only that: the friends agreed to stop
- * (the game's ending reason `stopped`), so nobody won and nobody lost. It is
- * never the message for a win or a loss — a game builds those itself. Nothing
- * about the neutral outcome is game-specific, which is why it can live here.
+ * The message for a Stop, and only that: the friends agreed to stop (the
+ * game's ending reason `stopped`) before anyone won, so nobody won and nobody
+ * lost, and it says so. It is never the message for a win or a loss — a game
+ * builds those itself — nor for a `no-result` ending, which is neutral too and
+ * which a game words from its own reason. Nothing about a Stop is
+ * game-specific, which is why it can live here.
  *
  * A game may still write its own — boggle does, spending the pill on the
  * tally (`Ended: 12 words, 34 points`) — so read the game's own builder
  * before assuming.
  */
-export function buildGameEndedMessageNeutral(mode: 'coop' | 'compete'): EndingMessage {
+export function buildStoppedMessage(mode: 'coop' | 'compete'): EndingMessage {
   return {
     // No trailing period: a pill LABEL, and the rest of the ending
     // vocabulary ("You win!", "Lost: assassin") doesn't punctuate either.
-    pillText: mode === 'coop' ? 'Game ended' : 'Game ended — no winner',
-    infoColText: 'Game over',
+    pillText: mode === 'coop' ? 'Stopped' : 'Stopped — no winner',
+    infoColText: 'Stopped',
     outcome: 'neutral',
   }
 }

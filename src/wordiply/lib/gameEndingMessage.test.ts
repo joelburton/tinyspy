@@ -65,6 +65,6 @@ describe('wordiply buildGameEndingMessage', () => {
       winner: null,
       gameEnding: { outcome: 'neutral', reason: 'stopped' },
       playerOutcome: 'neutral',
-    })).toMatchObject({ pillText: 'Game ended — no winner', outcome: 'neutral' })
+    })).toMatchObject({ pillText: 'Stopped — no winner', outcome: 'neutral' })
   })
 })

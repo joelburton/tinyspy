@@ -111,7 +111,7 @@ test('ending keeps the tiles; Reveal swaps in the categories, Hide swaps back', 
   // Stop it for the table (the neutral stop).
   await page.getByRole('button', { name: 'Stop game' }).first().click()
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
-  await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
 
   // The board is the record: all sixteen still there, and no answer on screen.
   await expect(tiles).toHaveCount(16)

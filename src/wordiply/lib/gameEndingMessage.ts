@@ -3,7 +3,7 @@
 import type { Actor } from '@/common/members/member'
 import type { EndOutcome, GameEnding } from '@/common/ending/gameEnding'
 import {
-  buildGameEndedMessageNeutral,
+  buildStoppedMessage,
   type EndingMessage,
 } from '@/common/ending/endingMessage'
 
@@ -62,7 +62,7 @@ export function buildGameEndingMessage({
     }
 
     // A Stop is the uniform neutral ending shared with the other games.
-    if (gameEnding.outcome === 'neutral') return buildGameEndedMessageNeutral(
+    if (gameEnding.outcome === 'neutral') return buildStoppedMessage(
       mode)
 
     if (gameEnding.outcome === 'won') {

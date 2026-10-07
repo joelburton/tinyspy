@@ -51,7 +51,7 @@ describe('coop', () => {
       ...WINNER, mode: 'coop', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
     })
     expect(msg.outcome).toBe('neutral')
-    expect(msg.pillText).toBe('Game ended')
+    expect(msg.pillText).toBe('Stopped')
   })
 })
 
@@ -86,7 +86,7 @@ describe('compete', () => {
       ...WINNER, mode: 'compete', gameEnding: makeGameEnding('neutral', 'stopped'), playerOutcome: 'neutral',
     })
     expect(msg.outcome).toBe('neutral')
-    expect(msg.pillText).toBe('Game ended — no winner')
+    expect(msg.pillText).toBe('Stopped — no winner')
   })
 })
 

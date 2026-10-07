@@ -30,7 +30,7 @@ describe('letterboxed buildGameEndingMessage', () => {
       pillText: 'Lost: out of time at 9/12', infoColText: 'Out of time', outcome: 'lost',
     })
     expect(messageFor('coop', 'neutral', 'stopped', 'neutral')).toEqual({
-      pillText: 'Game ended', infoColText: 'Game over', outcome: 'neutral',
+      pillText: 'Stopped', infoColText: 'Stopped', outcome: 'neutral',
     })
   })
 

@@ -36,7 +36,7 @@ describe('buildGameEndingMessage', () => {
   it('a Stop is the shared neutral ending', () => {
     expect(buildGameEndingMessage({
       gameOutcome: 'neutral', reason: 'stopped', playerOutcome: 'neutral', winner: null,
-    })).toEqual({ pillText: 'Game ended — no winner', infoColText: 'Game over', outcome: 'neutral' })
+    })).toEqual({ pillText: 'Stopped — no winner', infoColText: 'Stopped', outcome: 'neutral' })
   })
 })
 

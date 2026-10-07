@@ -90,7 +90,7 @@ test.describe('waffle replay board', () => {
     // Stop it for the table (a neutral 'ended').
     await page.getByRole('button', { name: 'Stop game' }).first().click()
     await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
-    await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 8000 })
 
     // Nothing autoreveals, so the answer stays covered until asked for…
     await expect(page.getByText('ABCDE', { exact: true })).toHaveCount(0)

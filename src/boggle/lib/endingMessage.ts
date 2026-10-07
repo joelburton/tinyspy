@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/ending/gameEnding'
-import { buildGameEndedMessageNeutral, type EndingMessage } from '@/common/ending/endingMessage'
+import { buildStoppedMessage, type EndingMessage } from '@/common/ending/endingMessage'
 import type { GPlayer } from '../types'
 
 /**
@@ -19,7 +19,7 @@ import type { GPlayer } from '../types'
  *   - neutral — no target, or a Stop → `Ended: …`, "Time's up" / "Game ended"
  *
  * **Compete:**
- *   - a Stop → the shared `buildGameEndedMessageNeutral('compete')`
+ *   - a Stop → the shared `buildStoppedMessage('compete')`
  *   - I conceded → `Lost: conceded`
  *   - I won — first to the target, or the top score when the timer stopped
  *     (a tie for first wins together) → `Won: …`
@@ -61,7 +61,7 @@ export function buildGameEndingMessage({
     return { pillText: `Ended: ${tally}`, infoColText: reasonText, outcome: 'neutral' }
   }
 
-  if (gameEnding.reason === 'stopped') return buildGameEndedMessageNeutral('compete')
+  if (gameEnding.reason === 'stopped') return buildStoppedMessage('compete')
   if (conceded) {
     return { pillText: 'Lost: conceded', infoColText: 'You conceded', outcome: 'lost' }
   }

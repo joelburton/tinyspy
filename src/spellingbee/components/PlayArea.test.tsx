@@ -288,7 +288,7 @@ describe('spellingbee PlayArea — compete ending verdicts', () => {
 
   it('a Stop stays neutral', () => {
     render(<PlayAreaLoader {...endedRace('stopped', 'neutral')} />)
-    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+    expect(screen.getByText('Stopped — no winner')).toBeInTheDocument()
   })
 })
 

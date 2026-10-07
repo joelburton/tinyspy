@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import type { EndOutcome } from '@/common/ending/gameEnding'
-import { buildGameEndedMessageNeutral } from '@/common/ending/endingMessage'
+import { buildStoppedMessage } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from './endingMessage'
 
 // Every ending the RPCs write, as [outcome, detail].
@@ -38,7 +38,7 @@ describe('buildGameEndingMessage', () => {
 
   it('reads a Stop as the shared neutral ending, never a loss', () => {
     const m = buildGameEndingMessage({ outcome: 'neutral', detail: 'stopped' })
-    expect(m).toEqual(buildGameEndedMessageNeutral('coop'))
+    expect(m).toEqual(buildStoppedMessage('coop'))
     expect(m.outcome).toBe('neutral')
   })
 

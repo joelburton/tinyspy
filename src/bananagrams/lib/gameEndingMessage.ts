@@ -3,7 +3,7 @@
 import type { Actor } from '@/common/members/member'
 import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import {
-  buildGameEndedMessageNeutral,
+  buildStoppedMessage,
   type EndingMessage,
 } from '@/common/ending/endingMessage'
 
@@ -39,7 +39,7 @@ export function buildGameEndingMessage({
   /** The texts, for the game's ending and whether it went my way. */
   function makeGameEndingWords(): Omit<EndingMessage, 'outcome'> {
     if (gameOutcome ===
-      'neutral') return buildGameEndedMessageNeutral('compete')
+      'neutral') return buildStoppedMessage('compete')
 
     if (gameOutcome === 'lost') {
       if (reason === 'timeout') {

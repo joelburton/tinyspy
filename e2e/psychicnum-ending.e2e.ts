@@ -86,7 +86,7 @@ test('ending: secrets stay hidden until Reveal, go green, then hide again', asyn
 
   // The below-board pill carries the verdict (the shared neutral end text), not a
   // word list.
-  await expect(page.getByText('Game ended', { exact: true })).toBeVisible()
+  await expect(page.getByText(/^Stopped/).first()).toBeVisible()
 
   await ctx.close()
 })

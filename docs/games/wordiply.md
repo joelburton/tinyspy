@@ -774,7 +774,7 @@ sheet works, at phone sizes) and `wordiply-print` (a real PDF downloads).
   `act-restart` from `useStandardGameActions`, plus the game's `act-new-game`
   and the shell's `act-back-to-club`), each placed as an `<ActionButton>`.
 - **The ending:** `useShowEndingFeedback`, `useCelebration`,
-  `buildGameEndedMessageNeutral` for a race's Stop.
+  `buildStoppedMessage` for a race's Stop.
 - **RPC helpers:** `makeRpcDispatcher`, `runEdgeFn`.
 - **Not applicable:** `WordList` (the board lines are the words).
 

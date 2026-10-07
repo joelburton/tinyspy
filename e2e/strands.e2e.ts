@@ -161,7 +161,7 @@ test.describe('strands play loop', () => {
     await page.getByRole('button', { name: /stop game/i }).first().click()
     const confirmStopGame = page.getByRole('button', { name: /^Stop game$/ }).last()
     if (await confirmStopGame.isVisible().catch(() => false)) await confirmStopGame.click()
-    await expect(page.getByText(/Game ended/)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
     await expect
       .poll(() => puzzleWordsSeen.some((w) => w !== null), { timeout: 10000 })
       .toBe(true)

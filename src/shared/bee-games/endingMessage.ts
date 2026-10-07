@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { EndOutcome, GameEndedReason, PlayerEndedReason } from '@/common/ending/gameEnding'
-import { buildGameEndedMessageNeutral, type EndingMessage } from '@/common/ending/endingMessage'
+import { buildStoppedMessage, type EndingMessage } from '@/common/ending/endingMessage'
 import type { BeeFacts, BeePlayer, BeePuzzle } from './beeGameData'
 
 /**
@@ -33,7 +33,7 @@ import type { BeeFacts, BeePlayer, BeePuzzle } from './beeGameData'
  *     names a person; no "Lost:" prefix, the loss is implicit
  *   - lost, reason `conceded` (everyone dropped) → `Lost: all conceded`
  *   - lost, reason `timeout` → `Lost: ran out of time`
- *   - neutral (a Stop) → the shared `buildGameEndedMessageNeutral('compete')`
+ *   - neutral (a Stop) → the shared `buildStoppedMessage('compete')`
  */
 export function buildBeeGameEndingMessage({
   mode,
@@ -83,7 +83,7 @@ export function buildBeeGameEndingMessage({
       return { pillText: 'Lost: ran out of time', infoColText: 'Out of time', outcome: 'lost' }
     }
     // The friends agreed to stop: the shared neutral sentence, like every game's.
-    return buildGameEndedMessageNeutral('compete')
+    return buildStoppedMessage('compete')
   }
 
   if (gameEnding.outcome === 'won') {

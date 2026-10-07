@@ -84,8 +84,8 @@ async function revealIfOffered(page: Page) {
 }
 
 /** Every game's ending verdict says one of these somewhere on the surface
- *  ("Ended: 0 words, 0 points", "Game ended", "Game over"). */
-const VERDICT = /Ended:|Game ended|Game over/
+ *  ("Ended: 0 words, 0 points", "Game ended", "Stopped"). */
+const VERDICT = /Ended:|Game ended|Stopped/
 
 const GAMES = [
   { name: 'boggle', make: createBoggleGame },

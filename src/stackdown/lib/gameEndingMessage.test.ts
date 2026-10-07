@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { buildGameEndedMessageNeutral } from '@/common/ending/endingMessage'
+import { buildStoppedMessage } from '@/common/ending/endingMessage'
 import { buildGameEndingMessage } from './gameEndingMessage'
 
 const MOTH = { username: 'moth', color: 'blue' }
@@ -30,7 +30,7 @@ describe('stackdown buildGameEndingMessage', () => {
       pillText: 'Lost: out of time', infoColText: 'Out of time', outcome: 'lost',
     })
     expect(messageFor('coop', 'neutral', 'stopped', 'neutral')).toEqual({
-      ...buildGameEndedMessageNeutral('coop'), outcome: 'neutral',
+      ...buildStoppedMessage('coop'), outcome: 'neutral',
     })
   })
 

@@ -2,7 +2,7 @@
 
 import type { EndOutcome } from '@/common/ending/gameEnding'
 import {
-  buildGameEndedMessageNeutral,
+  buildStoppedMessage,
   type EndingMessage,
 } from '@/common/ending/endingMessage'
 
@@ -56,7 +56,7 @@ export function buildGameEndingMessage({
       }
     // A Stop: the friends ended the game on purpose — the shared neutral ending.
     case 'neutral':
-      return buildGameEndedMessageNeutral('coop')
+      return buildStoppedMessage('coop')
     // An ending nobody wrote a case for says so, neutrally and with its raw
     // name, rather than claiming a win or a loss it cannot know.
     default:

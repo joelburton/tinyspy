@@ -213,7 +213,7 @@ describe('boggle PlayArea — render smoke', () => {
         }))}
       />,
     )
-    expect(screen.getAllByText('Game ended — no winner').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Stopped — no winner').length).toBeGreaterThan(0)
     expect(screen.queryByText(/won$/)).toBeNull()
   })
 

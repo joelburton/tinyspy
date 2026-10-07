@@ -177,7 +177,7 @@ test.describe('confirm modals — suspend + stop game', () => {
     // Confirm → the game ends.
     await page.getByRole('button', { name: 'Stop game' }).first().click()
     await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
-    await expect(page.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
     await ctx.close()
   })
 
@@ -193,8 +193,8 @@ test.describe('confirm modals — suspend + stop game', () => {
     // Alice stops the game (through the modal) → ended for both.
     await alice.getByRole('button', { name: 'Stop game' }).first().click()
     await alice.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
-    await expect(alice.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
-    await expect(bob.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
+    await expect(alice.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
+    await expect(bob.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
 
     // Back-to-club from the ENDED game: direct navigation, no suspend dialog —
     // and bob stays right where he is (no peer kick, since nothing broadcasts).

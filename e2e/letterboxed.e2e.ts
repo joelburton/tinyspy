@@ -255,7 +255,7 @@ test.describe('letterboxed', () => {
     const confirm = page.getByRole('button', { name: /^(stop|yes|confirm)/i }).last()
     if (await confirm.isVisible().catch(() => false)) await confirm.click()
 
-    await expect(page.getByText('Game over')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/Solvable in two/i)).toBeHidden()
 
     await actionButton(page, 'act-reveal').click()

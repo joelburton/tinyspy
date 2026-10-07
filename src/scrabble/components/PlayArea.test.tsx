@@ -148,9 +148,10 @@ describe('scrabble PlayArea — what it draws', () => {
     expect(screen.getAllByText(/Ended · 86 in bag/)).toHaveLength(2)
   })
 
-  it('a coop Stop says the game is over', () => {
+  it('a coop Stop says it stopped', () => {
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx(STOPPED)} />)
-    expect(screen.getByText('Game over')).toBeInTheDocument()
+    // The pill and the info column's line say the same word.
+    expect(screen.getAllByText('Stopped').length).toBeGreaterThan(0)
   })
 })
 

@@ -2,7 +2,7 @@
 
 import type { EndOutcome, GameEndedReason } from '@/common/ending/gameEnding'
 import {
-  buildGameEndedMessageNeutral,
+  buildStoppedMessage,
   type EndingMessage,
 } from '@/common/ending/endingMessage'
 
@@ -104,7 +104,7 @@ export function buildGameEndingMessage({
         : { pillText: 'Lost: nobody found a set', infoColText: 'Nobody scored' }
     }
     // A Stop is the uniform neutral ending shared with the other games.
-    return buildGameEndedMessageNeutral(mode)
+    return buildStoppedMessage(mode)
   }
 
   return { ...makeGameEndingWords(), outcome: playerOutcome }

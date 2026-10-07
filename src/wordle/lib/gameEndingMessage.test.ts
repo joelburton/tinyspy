@@ -60,7 +60,7 @@ describe('coop', () => {
   it('a Stop is neutral — nobody won, which is not everybody losing', () => {
     const msg = build('coop', 'neutral', 'stopped', 'neutral')
     expect(msg.outcome).toBe('neutral')
-    expect(msg.pillText).toBe('Game ended')
+    expect(msg.pillText).toBe('Stopped')
   })
 })
 
@@ -111,7 +111,7 @@ describe('compete', () => {
   it('a Stop is neutral here too, and says no winner', () => {
     const msg = build('compete', 'neutral', 'stopped', 'neutral')
     expect(msg.outcome).toBe('neutral')
-    expect(msg.pillText).toBe('Game ended — no winner')
+    expect(msg.pillText).toBe('Stopped — no winner')
   })
 
   // The two flags are compete questions. Coop reads neither: the team won or

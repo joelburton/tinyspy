@@ -295,7 +295,7 @@ describe('wordiply PlayArea — the race\'s verdicts', () => {
 
   it('a Stop stays neutral', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH], ...STOPPED })} />)
-    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+    expect(screen.getByText('Stopped — no winner')).toBeInTheDocument()
   })
 
   it('a loss names who won, at their score', () => {

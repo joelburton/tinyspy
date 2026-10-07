@@ -105,7 +105,7 @@ test.describe('crosswords play loop', () => {
     await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     // No game-over modal any more (the sweep treatment) — the neutral verdict
     // lands in the active-clue slot's pill.
-    await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 8000 })
     await expect(cell11).toHaveAttribute('data-fill', '')
 
     // "Reveal solution" shows the author's grid EXACTLY as shipped: blanks fill in
@@ -150,7 +150,7 @@ test.describe('crosswords play loop', () => {
     // cell00 is the one the player typed into AND later revealed — blank now too.
     await expect(cell00).toHaveAttribute('data-fill', '', { timeout: 8000 })
     // The board is playable again, not stuck ended.
-    await expect(page.getByText('Game ended')).toHaveCount(0)
+    await expect(page.getByText(/^Stopped/)).toHaveCount(0)
   })
 
   test('compete: finishing your own grid first wins', async ({ browser }) => {
