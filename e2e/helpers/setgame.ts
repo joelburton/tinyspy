@@ -54,7 +54,7 @@ export function findNonSetOn(board: readonly number[]): [number, number, number]
  * Row-major over seven columns, while the board array is column-major.
  */
 export function letterForSlot(slot: number): string {
-  return 'ABCDEFGHIJKLMNOPQRSTU'[(slot % 3) * 7 + Math.floor(slot / 3)]
+  return 'QWERTYUASDFGHJZXCVBNM'[(slot % 3) * 7 + Math.floor(slot / 3)]
 }
 
 /** The board as the server has it, in slot order. */

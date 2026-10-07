@@ -94,27 +94,27 @@ beforeEach(() => {
 describe('setgame PlayArea — the letters are the input', () => {
   it('a letter picks the tile in that slot; typing it again drops it', async () => {
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
-    await type('a')
+    await type('q')
     expect(isPicked('1111')).toBe(true)
-    await type('a')
+    await type('q')
     expect(isPicked('1111')).toBe(false)
   })
 
   it('the third letter of a set claims it, with the tiles as numbers', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'claimed' }))
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
+    await type('q')
     await type('a')
-    await type('h')
-    await type('o')
+    await type('z')
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('submit_set', { p_game_id: 'g1', p_tiles: [1111, 1112, 1113] }))
   })
 
   it('a third tile that is not a set is refused here, with no round trip', async () => {
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
+    await type('q')
     await type('a')
-    await type('h')
-    await type('b')
+    await type('w')
     expect(await screen.findByText('Not a set')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
     expect(isPicked('1111')).toBe(false)
@@ -123,7 +123,7 @@ describe('setgame PlayArea — the letters are the input', () => {
   it('a click picks too, and ⌫ clears the picks', async () => {
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
     fireEvent.click(tile('1111'))
-    await type('h')
+    await type('a')
     expect(isPicked('1111') && isPicked('1112')).toBe(true)
     await press({ key: 'Backspace', code: 'Backspace' })
     expect(isPicked('1111') || isPicked('1112')).toBe(false)
@@ -131,8 +131,8 @@ describe('setgame PlayArea — the letters are the input', () => {
 
   it('a letter with no tile at that slot does nothing', async () => {
     render(<WithKeys {...ZTest_makeSetgameCtx()} />)
-    // E is the fifth column; a twelve-tile table has four.
-    await type('e')
+    // T is the fifth column; a twelve-tile table has four.
+    await type('t')
     expect(document.querySelectorAll('button[data-tile][class*="picked"]')).toHaveLength(0)
   })
 })

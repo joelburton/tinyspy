@@ -69,7 +69,7 @@ test.describe('setgame — phone', () => {
     // reclaimed height that this is really about.
     const visibleLetters = await page.evaluate(() =>
       [...document.querySelectorAll('span')]
-        .filter((s) => /^[A-U]$/.test(s.textContent ?? '') && s.getBoundingClientRect().height > 0)
+        .filter((s) => /^[A-Z]$/.test(s.textContent ?? '') && s.getBoundingClientRect().height > 0)
         .length)
     expect(visibleLetters, 'no letters on a phone').toBe(0)
 

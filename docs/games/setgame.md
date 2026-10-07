@@ -507,18 +507,16 @@ The letters are a **fixed 3 × 7 grid** (`lib/letters.ts`), of which only the
 dealt columns are shown:
 
 ```
-A  B  C  D | E  F  G
-H  I  J  K | L  M  N
-O  P  Q  R | S  T  U
+Q  W  E  R | T  Y  U
+A  S  D  F | G  H  J
+Z  X  C  V | B  N  M
 ```
 
-Two properties that pull against each other, both satisfied: letters read
-left-to-right, and **a letter never changes which tile it means**. Numbering
-across the current width would re-letter eight of the twelve tiles the moment a
-column arrived — and a player typing from muscle memory would silently claim a
-tile they never looked at. The cost is that rows are not contiguous (row two
-starts at H), which nobody has to know: a letter is an address to read off a
-tile, never a sequence to recite.
+Two properties that pull against each other, both satisfied: each board row is
+a keyboard row, so a tile's key sits where the tile is, and **a letter never
+changes which tile it means**. Numbering across the current width would
+re-letter eight of the twelve tiles the moment a column arrived — and a player
+typing from muscle memory would silently claim a tile they never looked at.
 
 **Tab is caught and goes nowhere** — the page declares an empty tab ring.
 Nothing on this surface takes focus, so a Tab that did anything would only move

@@ -15,9 +15,8 @@ import type { EndOutcome, PlayerEndedReason } from '../ending/gameEnding.ts'
  * **Types only, and that is load-bearing.** `Member` is imported by more of the
  * app than any other name here, so a module with no runtime half means all of
  * those imports erase at compile time and cannot participate in an import
- * cycle, whatever else moves later. The one VALUE that reads these types was
- * put in `common/ending/endingOutcomeVerb.ts` precisely so it stays out of
- * this file. Keep it that way: no functions, no constants.
+ * cycle, whatever else moves later. Keep it that way: no functions, no
+ * constants.
  */
 
 /**

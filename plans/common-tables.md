@@ -3,10 +3,7 @@
 **Status: decided (Joel, 2026-09-27); the path is below, and no stage has
 started.** It grew out of
 cross-game-consistency's old §3b (how it ended for me)
-and built that plan's step 7. The facts it rests on — both common
-tables' columns, each game's own table, who reads and writes what, every
-`status` and `result` key, and prod's stored values — are in
-[common-tables-survey.md](common-tables-survey.md).
+and built that plan's step 7.
 
 ## The model
 
@@ -260,7 +257,7 @@ was the compete players' numbers and is now a subset of their
   ones (a migration cannot call a `supabase/sql/` function). The summaries
   are empty only between the two, inside the maintenance window. Every
   `status` and `result` key is a copy of a game's own tables or worked out
-  from them (common-tables-survey.md), except the three the migration
+  from them, except the three the migration
   already moves into columns — the ending's reason, who won, letterboxed's
   flags; a builder in step 4 that needs anything else shows it, and the
   migration, editable until the deploy, extracts it before `status` goes.

@@ -15,8 +15,8 @@ function rows(tiles: number): string[] {
 }
 
 describe('board letters', () => {
-  it('reads left-to-right along each row', () => {
-    expect(rows(12)).toEqual(['ABCD', 'HIJK', 'OPQR'])
+  it('reads left-to-right along each keyboard row', () => {
+    expect(rows(12)).toEqual(['QWER', 'ASDF', 'ZXCV'])
   })
 
   it('is a bijection with the slots on the board', () => {
@@ -71,7 +71,7 @@ describe('board letters', () => {
   })
 
   it('ignores keys that are not addresses', () => {
-    expect(slotForKey('V')).toBe(-1)
+    expect(slotForKey('P')).toBe(-1)
     expect(slotForKey('1')).toBe(-1)
     expect(slotForKey('Enter')).toBe(-1)
   })
