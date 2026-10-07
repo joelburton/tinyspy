@@ -205,7 +205,7 @@ describe('wordle PlayArea — render smoke', () => {
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
     // The info-column outcome line, and — since this is a coop WIN — the answer
     // line with it: solving is the one thing that shows the word unasked.
-    expect(screen.getByText('Solved it!')).toBeInTheDocument()
+    expect(screen.getByText('Won (solved it)')).toBeInTheDocument()
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
   })
 })
@@ -234,7 +234,7 @@ describe('wordle PlayArea — icon-only action row', () => {
 
   it('a racer who is done sees Reveal grayed, Stop, and Back to club', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [meOut, MOTH] })} />)
-    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
+    expect(screen.getByText('Solved (waiting on the rest)')).toBeInTheDocument()
     // Possible here, not right now: the answer waits for the race to end for
     // everyone, and the tooltip says so.
     expect(getAction('act-reveal').describe('button').state).toBe('disabled')
@@ -360,7 +360,7 @@ describe('wordle PlayArea — the ending', () => {
 
   it('hides the word on a coop loss (and pops no modal)', () => {
     render(<PlayAreaLoader {...makeCtx(SOLO_LOST)} />)
-    expect(screen.getByText('Out of guesses')).toBeInTheDocument()
+    expect(screen.getByText('Lost (out of guesses)')).toBeInTheDocument()
     // The target is on the client (the blob carries it once the game ends)
     // but NOT displayed.
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
@@ -468,7 +468,7 @@ describe('wordle PlayArea — the ending', () => {
     )
     expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
     expect(screen.getByText('You solved it in the fewest guesses.')).toBeInTheDocument()
-    expect(screen.getByText('You won!')).toBeInTheDocument()
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
   })
 
   it('does not celebrate a compete game somebody else won', () => {
@@ -487,7 +487,8 @@ describe('wordle PlayArea — the ending', () => {
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+    // My result; the club line names the winner.
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
   })
 
   it('does not celebrate when mounted into a compete game already won', () => {
@@ -504,9 +505,8 @@ describe('wordle PlayArea — the ending', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  // Two solvers on the same count, the earlier solve the winner: the server
-  // marks both players' `tieBrokenByClock`, and each reads it from their own
-  // side.
+  // Two solvers on the same count, the earlier solve the winner: the place
+  // below first says the clock decided it; the winner reads a plain win.
   it('a tie on guesses reads as the clock deciding it, on both sides', () => {
     const tied = (myOutcome: 'won' | 'near') =>
       makeCtx({
@@ -519,17 +519,16 @@ describe('wordle PlayArea — the ending', () => {
         ],
       })
     const { rerender } = render(<PlayAreaLoader {...tied('near')} />)
-    expect(screen.getByText('Lost: beaten on the clock')).toBeInTheDocument()
-    expect(screen.getByText('Opponent won (faster)')).toBeInTheDocument()
+    expect(screen.getByText('2nd: solved later')).toBeInTheDocument()
+    expect(screen.getByText('2nd (solved later)')).toBeInTheDocument()
 
     rerender(<PlayAreaLoader {...tied('won')} />)
-    expect(screen.getByText('Won: same guesses, but faster')).toBeInTheDocument()
-    expect(screen.getByText('You won (faster)')).toBeInTheDocument()
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
   })
 
   // A game the clock ended with a solver: the player still guessing reads that
-  // time ran out, from the server's reason and their own unsolved row — not
-  // "beaten on guesses", a count they never finished.
+  // time ran out, from the server's reason and their own unsolved row — not a
+  // place, which a player who never solved does not have.
   it('a timed-out game tells the player still guessing that time ran out', () => {
     render(
       <PlayAreaLoader
@@ -541,14 +540,14 @@ describe('wordle PlayArea — the ending', () => {
         })}
       />,
     )
-    expect(screen.getByText('Lost: time ran out')).toBeInTheDocument()
-    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+    expect(screen.getByText('Lost: out of time')).toBeInTheDocument()
+    expect(screen.getByText('Lost (out of time)')).toBeInTheDocument()
   })
 
-  // THE WIRE, end to end: the verdict names the reason the SERVER wrote, not
-  // one the page infers from its own clock. An all-conceded game is the case
-  // where the two part company — the clock never ran out, so a clock-reading
-  // verdict has nothing to say and falls back to "Nobody solved".
+  // THE WIRE, end to end: the verdict reads what the SERVER wrote, not what
+  // the page infers from its own clock. An all-conceded game is the case where
+  // the two part company — the clock never ran out, and each player's label
+  // says they conceded.
   it('an all-conceded game reads the ending\'s reason, with the clock still running', () => {
     render(
       <PlayAreaLoader
@@ -561,8 +560,8 @@ describe('wordle PlayArea — the ending', () => {
         })}
       />,
     )
-    expect(screen.getByText('All conceded — no winner')).toBeInTheDocument()
-    expect(screen.getByText('All conceded')).toBeInTheDocument()
+    expect(screen.getAllByText('Conceded').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/out of time/)).not.toBeInTheDocument()
   })
 })
 
@@ -709,14 +708,14 @@ describe('wordle PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded opponent "out" in the strip', () => {
+  it('marks a conceded opponent conceded in the strip, beside their guesses', () => {
     render(
       <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />,
     )
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText(/^\d+ \(conceded\)$/)).toBeInTheDocument()
   })
 
-  it('marks an opponent out of guesses "out", and shows a waiting solver\'s count', () => {
+  it('marks an opponent out of guesses lost, and a waiting solver solved, each beside their count', () => {
     const outOfGuesses: ZTest_PlayerFacts = { ...MOTH, ...ZTest_SPENT, used: 6 }
     const solvedWaiting: ZTest_PlayerFacts = { ...CADE, ...ZTest_SOLVED_WAITING, used: 3 }
     render(
@@ -724,16 +723,16 @@ describe('wordle PlayArea — concede', () => {
         {...makeCtx({ mode: 'compete', players: [ME, outOfGuesses, solvedWaiting] })}
       />,
     )
-    // One "out": the player who ran out. The solver may yet win, so shows 3.
-    expect(screen.getAllByText('out')).toHaveLength(1)
-    expect(screen.getByText('3')).toBeInTheDocument()
+    // The player who ran out has lost; the solver may yet win, so is only solved.
+    expect(screen.getByText('6 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('3 (solved)')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" line after I concede', () => {
+  it('shows my concession after I concede', () => {
     render(
       <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
   })
 })
 
@@ -917,7 +916,7 @@ describe('wordle Board — the reveal flip', () => {
 describe('wordle PlayArea — a solved player cannot concede', () => {
   it('solved and waiting: the flag is Stop, not Concede', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [meOut, MOTH] })} />)
-    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
+    expect(screen.getByText('Solved (waiting on the rest)')).toBeInTheDocument()
     expect(stateOf('act-concede')).toBe('hidden')
     expect(stateOf('act-stop-game')).toBe('active')
   })

@@ -243,19 +243,19 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // (docs/common-schema.md → A player's facts); the winner's count is compete's
   // alone; the answer band is the setup's.
   wordle: {
-    live: { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null },
+    live: { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal' }, { team: { nGuessesUsed: 4 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { nGuessesUsed: 6 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal' }, { team: { nGuessesUsed: 4 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: { nGuessesUsed: 6 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: null }, 'out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: 4 }, 'someone won'],
-      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'everyone out of guesses'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: 4, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'everyone out of guesses'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'Stop'],
     ],
   },
   // stackdown._make_json_summary_data: `team` holds coop's three counts and is null in compete,

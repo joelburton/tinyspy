@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown and waffle are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle and wordle are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -212,6 +212,11 @@ in its turn in step 4; none is open here.
    swaps)" / "2nd (solved later)"), read from the summary's new
    `nSwapsUsedById` and `parSwaps`; a player with no place says what ran
    out.
+   wordle, in waffle's shape, whose card the code already matched and which
+   already had the bell, the flash, the frame and the celebration. The coop
+   win reads "Won (solved it)"; "2nd (more guesses)" / "2nd (solved later)"
+   from the summary's new `nGuessesUsedById`. The server's
+   `tieBrokenByClock` player key has no reader left.
 
 ## Overlaps
 

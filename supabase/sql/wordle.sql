@@ -208,6 +208,7 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --     maxGuesses
 --     answerBand                           the setup's
 --     nWinnerGuesses                   compete's, once the race is won; null in coop
+--     nGuessesUsedById                 each racer's guesses, public in a race; null in coop
 --
 -- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
 -- written: nothing reads wordle's any more. The columns stay until a
@@ -417,7 +418,12 @@ as $$
                               where gp.game_id = p_game_id and gp.final_ranking = 1
                               order by gp.solved_at
                               limit 1)
-                          end)
+                          end,
+    'nGuessesUsedById', case when cg.mode = 'compete' then
+                          (select jsonb_object_agg(wp.user_id::text, wp.n_guesses_used)
+                             from wordle.players wp
+                            where wp.game_id = p_game_id)
+                        end)
     from wordle.games wg
     join common.games cg on cg.id = wg.game_id
    where wg.game_id = p_game_id;

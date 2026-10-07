@@ -117,8 +117,10 @@ the rest are `near`. A racer who didn't solve it is unranked, a conceder
 forfeits any win, and a race nobody solved is a loss for everyone. A
 countdown running out ranks the race the same way among those who had solved
 it. Where the earlier solve decided between the winner and a solver on the
-same count, the builder marks both players' `tieBrokenByClock`, and the
-ending's words say so ("same guesses, but faster", "beaten on the clock").
+same count, the builder marks both players' `tieBrokenByClock`. The page's
+words read it from the counts instead: a place below first says what lost it,
+"2nd (more guesses)" when someone above used fewer, "2nd (solved later)" when
+they used as many; nothing reads `tieBrokenByClock` any more.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
 where coop takes 1–6. `create_game` checks both ends of that: a race with
@@ -172,7 +174,7 @@ hook merges it into `game_data`, each key in its place:
 |---|---|
 | `static_game_data` | the common part alone: wordle's puzzle is only the answer, which waits for the end |
 | `game_data` | `puzzle: {target}` (null until the game ends); `team`, the team's facts sent once, null in compete; `events`, every player's rows; on each player their own facts and `tieBrokenByClock` |
-| `summary_data` | `team: {nGuessesUsed}`, the team's count, null in compete; `maxGuesses`, `answerBand`, `nWinnerGuesses` |
+| `summary_data` | `team: {nGuessesUsed}`, the team's count, null in compete; `maxGuesses`, `answerBand`, `nWinnerGuesses`; `nGuessesUsedById`, each racer's guesses, null in coop |
 
 wordle's facts (`GFacts`) are `nGuessesUsed`, `maxGuesses` and `board: {rows}`,
 the guess rows in the order of play. Each player's count is their own, on
@@ -374,7 +376,7 @@ cannot see an opponent's rows and narrates the one thing it can, a player's
 `solved_at` being set (`useShowOppsSolvedMessages`) — green, because the
 outcome follows the event and not the viewer's stake. The ending's lines, the
 game's and mine, are standing conditions of the local slot, not answers to a
-move (`lib/gameEndingMessage.ts`, `lib/playerEndingMessage.ts`).
+move (my ending label, `lib/endingLabel.ts`, through `useGetEndingMessage`).
 
 **New game is a plain `create_game`.** The play surface calls it directly with
 this game's setup, roster and mode, and the creator jumps to the new game
@@ -402,7 +404,7 @@ eight sections.
         │     └── InfoCol                the readouts and the action row
         │           ├── StateLine        "3/6 guesses"
         │           ├── TurnStatusLine ← turn-order coop only
-        │           ├── OpponentStrip ←  compete only: each player's guess count, or "out"
+        │           ├── OpponentStrip ←  compete only: each player's guess count, then how they came out ("3 (solved)")
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
         │           ├── the answer line  once the game has ended, and only once this viewer asks
         │           ├── SetupDisclosure ←
@@ -482,9 +484,9 @@ What is wordle's own:
   including it, that row ringed, addressed by the row's id so a filter cannot
   move it, and folding the rows of whoever wrote it — so an opponent's `#N`,
   once a compete game has ended, replays their board.
-- **The ending** is the pill and the row's line (`lib/gameEndingMessage.ts`,
-  and `lib/playerEndingMessage.ts` for a compete player who has ended while
-  the others play on), the frozen board banded in its outcome, and the
+- **The ending** is the pill and the row's line, from my ending label
+  (`lib/endingLabel.ts`: "Won (solved it)", "2nd (more guesses)", "Lost (out
+  of guesses)", "Solved (waiting on the rest)"), the frozen board banded in its outcome, and the
   disabled keyboard. The answer line under the action row appears when this
   viewer presses Reveal and goes away when they press Hide; a solver sees it
   unasked, being the one who typed it. A win celebrates, once, on the flip:
@@ -528,7 +530,7 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's words per mode, reason and player outcome |
+| `lib/answer.test` · `lib/endingLabel.test` | every `answerType`'s words and outcome; every ending's label per mode, reason and player outcome |
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id, and only the author's rows in compete; the keyboard's strength order and each letter's strongest color |
 | `hooks/useGame.test` | `gd` from the blob — the links turned into players, the setup rows, the target, each player's count and tie flag; the seat rule: a rival's rows and board withheld mid-race, opened at the end, nothing withheld in coop; a null blob throws |
 | `hooks/useActionsAndMenu.test` · `hooks/useHistoryView.test` | the menu's rows and order, and Reveal before and after the end; a past turn opened and closed, and whose board it is |

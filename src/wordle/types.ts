@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -134,6 +135,8 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   maxGuesses
  *   board: {rows}                         # coop's one board on every player; null for a rival mid-race
  *   own: {nGuessesUsed, maxGuesses, board}  # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *   tieBrokenByClock                      # compete, once ranked; null in coop and until the end
  */
 
@@ -168,6 +171,9 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat's tiles show: its guess rows, in the order of play. */
@@ -338,4 +344,6 @@ export type GSummaryData = SummaryData & {
   maxGuesses: number
   answerBand: number
   nWinnerGuesses: number | null
+  // Each racer's guesses, by id, public in a race; null in coop.
+  nGuessesUsedById: Record<string, number> | null
 }

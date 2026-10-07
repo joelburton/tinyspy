@@ -145,13 +145,15 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nGuessesUsed": 0}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
+    || '{"team": {"nGuessesUsed": 0}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null, "nGuessesUsedById": null}'::jsonb,
   'the fresh coop game''s summary: the common part, then a team with nothing used, the setup''s answer band, no winner''s count'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
+    || jsonb_build_object('team', null, 'maxGuesses', 5, 'answerBand', 0, 'nWinnerGuesses', null,
+         'nGuessesUsedById', (select jsonb_object_agg(user_id::text, n_guesses_used)
+                                from wordle.players where game_id = pg_temp.compete())),
   'the fresh compete game''s summary has no team, so no progress'
 );
 
@@ -205,7 +207,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nGuessesUsed": 1}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
+    || '{"team": {"nGuessesUsed": 1}, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null, "nGuessesUsedById": null}'::jsonb,
   'coop: the summary has the team''s used count'
 );
 
@@ -243,7 +245,9 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": null}'::jsonb,
+    || jsonb_build_object('team', null, 'maxGuesses', 5, 'answerBand', 0, 'nWinnerGuesses', null,
+         'nGuessesUsedById', (select jsonb_object_agg(user_id::text, n_guesses_used)
+                                from wordle.players where game_id = pg_temp.compete())),
   'compete: the summary still carries no progress, and no ending yet'
 );
 
@@ -303,7 +307,9 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": 2}'::jsonb,
+    || jsonb_build_object('team', null, 'maxGuesses', 5, 'answerBand', 0, 'nWinnerGuesses', 2,
+         'nGuessesUsedById', (select jsonb_object_agg(user_id::text, n_guesses_used)
+                                from wordle.players where game_id = pg_temp.compete())),
   'compete: the summary names the winner''s count'
 );
 select is(

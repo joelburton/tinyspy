@@ -43,12 +43,12 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A player who dropped out or ran out of guesses reads "out"; everyone else,
-  // a solver waiting on the rest included, shows their guesses.
-  function getGuessesOrOut(player: GPlayer) {
-    const endedReason = player.ending?.reason
-    if (endedReason === 'conceded' || endedReason === 'resource_exhausted') return 'out'
-    return player.nGuessesUsed
+  // A player's cell in the strip: the guesses they have used; once they are
+  // out of play — on their own or with the game — how they came out after it:
+  // "3 (won)", "4 (2nd)", "2 (solved)", "6 (lost)".
+  function getGuessesAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nGuessesUsed
+    return `${player.nGuessesUsed} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -72,7 +72,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Guesses"
-            metricFor={getGuessesOrOut}
+            metricFor={getGuessesAndResult}
           />
         )}
 
