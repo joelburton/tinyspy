@@ -6,8 +6,8 @@ section shape) and [tile-feedback.md](tile-feedback.md) (the board's feedback).
 psychicnum is the control: these are the choices Joel made on it, component by
 component, in commits tagged `playarea-refactor`, `BoardCol-refactor` and
 `infocol-refactor`, then `a7040014` (players), `ff36623e` (one in-flight
-guard) and `bf1454db` (Board and `WordTile`). The grouped-values trial
-([DO-NOT-READ-grouped-values.md](DO-NOT-READ-grouped-values.md)) was run on
+guard) and `bf1454db` (Board and `WordTile`). The grouped-values trial —
+grouping what hooks return and props carry into named objects — was run on
 psychicnum, and its outcome is recorded here, in the `gd` section below.
 
 What is durable is already in `docs/playarea.md` (the four layers, Board owning

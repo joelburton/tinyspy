@@ -174,9 +174,6 @@ feedback) is read when app-audit opens a game's area.
 | [plans/endings.md](plans/endings.md) | **Decided, being built; the common steps, psychicnum, boggle, the two bee games, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed, wordiply, codenamesduet, crosswords and bananagrams are done, game by game.** Every winner named from the final ranking (no `ending.winner`; `gd.ending.winners` built in common; a player list in `summary_data`); the game page shows MY outcome; `near` reads "2nd place"; every game draws the ending frame; "terminal" becomes ending / game-ended / player-ended |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/wordleone.md](plans/wordleone.md) | Not scheduled: **WordNerdier**, Wordle in 1 — one pre-colored starter row, the only legal word that fits; built in wordle's shape, the puzzle generated in an edge function |
-| [plans/DO-NOT-READ-grouped-values.md](plans/DO-NOT-READ-grouped-values.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: grouping what hooks return and props carry into named objects |
-| [plans/DO-NOT-READ-smaller-payload.md](plans/DO-NOT-READ-smaller-payload.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: splitting what never changes out of `game_data` so a move doesn't resend it |
-| [plans/DO-NOT-READ-crosswords.md](plans/DO-NOT-READ-crosswords.md) | **DO NOT READ unless Joel names it.** Ideas only, nothing decided: crosswords on the page blobs — a compact grid, my own letters overlaid, the flash found by comparing |
 
 ## Audience — friends, not strangers
 
