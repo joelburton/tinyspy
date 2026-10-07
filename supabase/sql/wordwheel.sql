@@ -26,9 +26,10 @@
 --   - Words are required (at `required_band`, clean and American) or bonus
 --     (up to `legal_band`); both score, and the rank ladder
 --     (common._rank_idx) is measured against the required points.
---   - Reaching `target_rank` wins at once: the team in coop, the first racer
---     in compete. A coop game without a target is an open hunt that only the
---     clock or a Stop ends, with no result.
+--   - The goal is `target_rank` when one is set, else every required word;
+--     reaching it wins at once: the team in coop, the first racer in
+--     compete. A compete game with no target needs a countdown, whose
+--     timeout ranks by score; coop's timeout with no target has no result.
 --   - What a racer may see of a rival's finds mid-race is the page's rule
 --     (the hook), applied to game_data; the tables carry no mode arm.
 --
@@ -617,16 +618,17 @@ begin
   perform common._require_player_count_max(p_player_user_ids, 6);
 
   -- ─── Validate setup.target_rank (BOTH modes) ─────────────
-  -- compete: REQUIRED — it's the finish line of the race.
-  -- coop:    OPTIONAL — present means "reach this rank together and you WIN"
-  --          (the game ends the moment the TEAM rank reaches it); absent/null
-  --          means the open-ended word hunt that only ends on the clock or the
-  --          Stop button. Absent and explicit null are the same thing, so a FE
-  --          that always sends the key can send null for "none".
-  if p_mode = 'compete' and (p_setup->>'target_rank') is null then
-    raise exception 'BUG: race with no target rank'
-      using errcode = 'PN179', hint = 'fault', column = '_',
-      detail = 'compete needs a target_rank';
+  -- Optional in both modes: present means "reach this rank and you WIN" (the
+  -- team's rank in coop, your own in compete); absent/null means the goal is
+  -- every required word. Absent and explicit null are the same thing, so a FE
+  -- that always sends the key can send null for "none". A compete game with
+  -- no target needs a countdown: nothing else could crown a winner short of
+  -- a full clear. The form allows it; Start refuses it, under the target.
+  if p_mode = 'compete' and (p_setup->>'target_rank') is null
+     and p_setup->'timer'->>'kind' is distinct from 'countdown' then
+    raise exception 'A compete game with no target needs a countdown'
+      using errcode = 'PN179', hint = 'form-validation', column = 'target_rank',
+      detail = 'compete with no target_rank needs timer.kind = countdown';
   end if;
   if (p_setup->>'target_rank') is not null then
     begin
@@ -805,14 +807,16 @@ drop function if exists wordwheel.submit_word(uuid, text, int, boolean, boolean)
 -- the shared found-words engine's, said in src/wordwheel/lib/answer.ts — so
 -- a refused word never reaches this function. What is left here is the
 -- duplicate, REFUSED per mode rule as a RACE rather than an answer, the
--- accepted word itself, and the target check:
+-- accepted word itself, and the goal check. The goal is `target_rank` when
+-- one is set (reached_goal / target), else every required word
+-- (reached_goal / solved):
 --
 --   - coop:    duplicate iff ANY row has this word (once found by anyone,
---              it's locked); the team's score reaching `target_rank` wins
---              for everyone (reached_goal / target, the team ranked 1)
---   - compete: duplicate iff the CALLER has this word; the caller's score
---              reaching `target_rank` wins the race — the race ends when
---              decided, so the caller alone is ranked 1
+--              it's locked); the team reaching the goal wins for everyone
+--              (the team ranked 1)
+--   - compete: duplicate iff the CALLER has this word; the caller reaching
+--              the goal wins the race — the race ends when decided, so the
+--              caller alone is ranked 1
 --
 -- A score counts every find, bonus included, so a player who finds bonus
 -- pangrams can reach the target faster than the displayed max suggests.
@@ -821,7 +825,7 @@ drop function if exists wordwheel.submit_word(uuid, text, int, boolean, boolean)
 -- (and call out a pangram) WITHOUT re-deriving the point/pangram rules.
 -- `result` is `accepted` / `bonus` / `pangram` — a pangram being a required
 -- OR bonus word using all 9 letters, which takes precedence — or `won`, the
--- word that reached the target rank. The envelope carries no outcome: the
+-- word that reached the goal. The envelope carries no outcome: the
 -- pill is shown from the FE's own table before this call is made
 -- (docs/envelopes.md → Who writes the words, per answer).
 --
@@ -847,6 +851,8 @@ declare
   v_mode text;
   w_lower text;
   v_score int;
+  v_goal text;
+  v_reached boolean;
   v_rankings jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
@@ -905,40 +911,47 @@ begin
     (p_game_id, caller_id, w_lower,
      coalesce(p_points, 0), coalesce(p_is_pangram, false), coalesce(p_is_bonus, false));
 
-  -- ─── Did that reach the target? ──────────────────────────
-  -- `_rank_idx` is monotonic in the score, so this fires exactly once: the
-  -- first word that crosses the line ends the game, and every later
-  -- submit_word finds the game over. A coop game with no target is an open
-  -- hunt that only the clock or a Stop ends.
+  -- ─── Did that reach the goal? ────────────────────────────
+  -- The goal is the target rank when one is set (`target`), else every
+  -- required word (`solved`). Both only grow, so this fires exactly once: the
+  -- first word that reaches the goal ends the game, and every later
+  -- submit_word finds the game over.
   if g.target_rank is not null then
+    v_goal := 'target';
     select coalesce(sum(fw.points), 0) into v_score
       from wordwheel.found_words fw
      where fw.game_id = p_game_id
        and (v_mode = 'coop' or fw.user_id = caller_id);
+    v_reached := common._rank_idx(v_score, g.reqd_words_score) >= g.target_rank;
+  else
+    v_goal := 'solved';
+    v_reached := (select count(*) from wordwheel.found_words fw
+                   where fw.game_id = p_game_id and not fw.is_bonus
+                     and (v_mode = 'coop' or fw.user_id = caller_id)) >= g.n_reqd_words;
+  end if;
 
-    if common._rank_idx(v_score, g.reqd_words_score) >= g.target_rank then
-      if v_mode = 'coop' then
-        -- The team solves, so every teammate solved at this word.
-        update common.game_players set solved_at = now() where game_id = p_game_id;
-        select jsonb_object_agg(user_id::text, 1) into v_rankings
-          from common.game_players where game_id = p_game_id;
-      else
-        update common.game_players set solved_at = now()
-         where game_id = p_game_id and user_id = caller_id;
-        v_rankings := jsonb_build_object(caller_id::text, 1);
-      end if;
-
-      perform common._end_game(
-        p_game_id, 'reached_goal', 'target', caller_id,
-        p_is_no_result => false,
-        p_final_rankings => v_rankings
-      );
-      perform wordwheel._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
-      -- Its OWN answer, in both modes: "this word ended the game and you won"
-      -- is one case, so it gets one name.
-      return common._ok_envelope(jsonb_build_object(
-        'result', 'won', 'points', coalesce(p_points, 0)));
+  if v_reached then
+    if v_mode = 'coop' then
+      -- The team solves, so every teammate solved at this word.
+      update common.game_players set solved_at = now() where game_id = p_game_id;
+      select jsonb_object_agg(user_id::text, 1) into v_rankings
+        from common.game_players where game_id = p_game_id;
+    else
+      update common.game_players set solved_at = now()
+       where game_id = p_game_id and user_id = caller_id;
+      v_rankings := jsonb_build_object(caller_id::text, 1);
     end if;
+
+    perform common._end_game(
+      p_game_id, 'reached_goal', v_goal, caller_id,
+      p_is_no_result => false,
+      p_final_rankings => v_rankings
+    );
+    perform wordwheel._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+    -- Its OWN answer, in both modes: "this word ended the game and you won"
+    -- is one case, so it gets one name.
+    return common._ok_envelope(jsonb_build_object(
+      'result', 'won', 'points', coalesce(p_points, 0)));
   end if;
 
   perform wordwheel._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
@@ -973,12 +986,15 @@ drop function if exists wordwheel.submit_timeout(uuid);
 -- ============================================================
 -- Fired by every connected client when a countdown hits 0; the first ends the
 -- game, the rest find it ended and answer the game-over race. Nobody reached
--- the target, so nobody is ranked:
+-- the goal:
 --
---   - a game with a target (compete always; coop when it set one) — a loss:
---     the clock beat everyone to the rank, the same rule boggle applies to
---     its score target
---   - a coop game with no target — no result: there was nothing to fail at
+--   - a game with a target — a loss, nobody ranked: the clock beat everyone
+--     to the rank, the same rule boggle applies to its score target
+--   - compete with no target — a score race: every player who didn't concede
+--     and scored is ranked by score, ties sharing; nobody scored → nobody
+--     ranked
+--   - coop with no target — no result: finding less than every word is
+--     neither a win nor a loss
 --
 -- wordwheel has no turn order, so nobody is recorded as ending it.
 create or replace function wordwheel.submit_timeout(p_game_id uuid)
@@ -990,6 +1006,8 @@ as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g wordwheel.games%rowtype;
+  v_mode text;
+  v_rankings jsonb := '{}'::jsonb;
 begin
   select * into g from wordwheel.games where game_id = p_game_id for update;
   if not found then
@@ -1002,10 +1020,29 @@ begin
     perform common._raise_game_over();
   end if;
 
+  select mode into v_mode from common.games where id = p_game_id;
+  if g.target_rank is null and v_mode = 'compete' then
+    select coalesce(jsonb_object_agg(user_id::text, ranking), '{}'::jsonb)
+      into v_rankings
+      from (
+        select t.user_id, rank() over (order by t.sc desc) as ranking
+          from (
+            select fw.user_id, sum(fw.points) as sc
+              from wordwheel.found_words fw
+             where fw.game_id = p_game_id
+             group by fw.user_id
+          ) t
+          join common.game_players gp
+            on gp.game_id = p_game_id and gp.user_id = t.user_id
+         where gp.player_ended_reason is distinct from 'conceded'
+           and t.sc > 0
+      ) ranked;
+  end if;
+
   perform common._end_game(
     p_game_id, 'timeout', 'timeout', null,
-    p_is_no_result => g.target_rank is null,
-    p_final_rankings => '{}'::jsonb
+    p_is_no_result => g.target_rank is null and v_mode = 'coop',
+    p_final_rankings => v_rankings
   );
 
   perform wordwheel._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
@@ -1031,9 +1068,9 @@ drop function if exists wordwheel.end_game(uuid);
 -- ============================================================
 -- wordwheel.stop_game — the Stop
 -- ============================================================
--- The only automatic endings are a target rank reached (inside submit_word)
--- and the countdown expiring (submit_timeout). A coop hunt with no target,
--- and any game the friends are done with, is stopped explicitly — this RPC.
+-- The only automatic endings are the goal reached (inside submit_word) and
+-- the countdown expiring (submit_timeout). Any game the friends are done
+-- with is stopped explicitly — this RPC.
 -- Neutral even when a target was set and missed: the friends chose to stop,
 -- which isn't losing (docs/common-schema.md → Stop).
 create or replace function wordwheel.stop_game(p_game_id uuid)

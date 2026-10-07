@@ -2,6 +2,8 @@
 
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { useTileShuffle } from '@/shared/bee-games/useTileShuffle'
 import shared from '@/common/game-page/playArea.module.css'
 import { HEX_POSITIONS } from '../lib/board'
@@ -27,6 +29,8 @@ type Props = {
   // the shake plays again — a CSS animation restarts on a remount, not on a
   // class that is already there.
   refused: GRefusedMark | null
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
 }
 
 /**
@@ -47,12 +51,17 @@ type Props = {
  * sees the letters not yet used. A refused word's letters take its answer and
  * shake, each tile on its own.
  */
-export function Board({ tiles, isInteractive, onTileClick, usedLetters, refused }: Props) {
+export function Board({ tiles, isInteractive, onTileClick, usedLetters, refused, endingOutcome }: Props) {
   const shuffle = useTileShuffle(tiles)
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
-        <svg className={styles.grid} viewBox="0 0 256 267" data-board>
+        <svg
+          // spellingbee has no history viewer, so the frame never steps aside for one.
+          className={cls(styles.grid, makeEndingFrameClasses(endingOutcome, false))}
+          viewBox="0 0 256 267"
+          data-board
+        >
           {shuffle.tiles.map((tile, i) => {
             // The refusal's mark, when this tile is one of the word's letters.
             const mark = refused?.value.letters.has(tile.letter) ? refused : null

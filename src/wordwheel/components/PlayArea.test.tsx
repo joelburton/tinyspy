@@ -374,21 +374,30 @@ describe('wordwheel PlayArea — the tiles the word is spending', () => {
  * the server actually writes.
  */
 describe('wordwheel PlayArea — compete ending verdicts', () => {
-  const endedRace = (reason: 'conceded' | 'timeout' | 'stopped', outcome: 'lost' | 'neutral') =>
+  const endedRace = (reason: 'timeout' | 'stopped', outcome: 'lost' | 'neutral') =>
     makeCtx(race({
       players: [me({ outcome }), moth({ outcome })],
       ending: { reason, detail: reason, by: null },
       outcome,
     }))
 
-  it('all-conceded says so', () => {
-    render(<PlayAreaLoader {...endedRace('conceded', 'lost')} />)
-    expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
+  it('all-conceded says I conceded', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx(race({
+          players: [me(CONCEDED), moth(CONCEDED)],
+          ending: { reason: 'conceded', detail: 'conceded', by: null },
+          outcome: 'lost',
+        }))}
+      />,
+    )
+    // The pill and the info column's line say the same word.
+    expect(screen.getAllByText('Conceded').length).toBe(2)
   })
 
   it('timeout blames the clock', () => {
     render(<PlayAreaLoader {...endedRace('timeout', 'lost')} />)
-    expect(screen.getByText('Lost: ran out of time')).toBeInTheDocument()
+    expect(screen.getByText('Lost: out of time')).toBeInTheDocument()
   })
 
   it('a Stop stays neutral', () => {
@@ -820,14 +829,17 @@ describe('wordwheel PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded opponent "out" in the strip (mid-game)', () => {
+  /** The strip's text, label and cells. */
+  const stripText = () => screen.getByText('Rank:').parentElement!.textContent
+
+  it('marks a conceded opponent conceded in the strip, beside their rank (mid-game)', () => {
     render(<PlayAreaLoader {...makeCtx(race({ players: [me(), moth(CONCEDED)] }))} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(stripText()).toMatch(/moth:\s*Start \(conceded\)/)
   })
 
-  it('shows the "You conceded" look after I concede, while the race goes on', () => {
+  it('shows my concession after I concede, while the race goes on', () => {
     render(<PlayAreaLoader {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
     // A spent Concede goes, and Stop takes its place: one flag, not two.
     expect(getAction('act-concede').describe('button').state).toBe('hidden')
     expect(getAction('act-stop-game').describe('button').state).toBe('active')
@@ -838,7 +850,7 @@ describe('wordwheel PlayArea — concede', () => {
     expect(getAction('act-new-game').describe('button').state).toBe('hidden')
   })
 
-  it('distinguishes Conceded / Lost / Won at the end in the strip', () => {
+  it('distinguishes conceded / lost / won at the end in the strip', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
@@ -853,9 +865,17 @@ describe('wordwheel PlayArea — concede', () => {
         }))}
       />,
     )
-    expect(screen.getByText(/Conceded at/)).toBeInTheDocument()
-    expect(screen.getByText(/Won at/)).toBeInTheDocument()
-    expect(screen.getByText(/Lost at/)).toBeInTheDocument()
+    expect(stripText()).toMatch(/You:\s*\w+ \(lost\)/)
+    expect(stripText()).toMatch(/moth:\s*\w+ \(conceded\)/)
+    expect(stripText()).toMatch(/cade:\s*\w+ \(won\)/)
+  })
+
+  it('frames the board in my outcome once I am out of play, mid-race too', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx(race({ players: [me(CONCEDED), moth()] }))} />)
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx(race())} />)
+    expect(document.querySelector('[class*="endingFrame"]')).toBeNull()
   })
 })
 

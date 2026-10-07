@@ -97,6 +97,7 @@ export function BoardCol({
         typedCounts={typedCounts}
         claimedTileIds={submission.claimedTileIds}
         refused={submission.refused}
+        endingOutcome={gd.me.outcome}
       />
       {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
           slot's message in their place — the same slot, so nothing reflows. */}

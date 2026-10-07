@@ -474,7 +474,7 @@ next open (todo.md → Someday).
   `useGetGameEndingMessage`, `useGetPlayerEndingMessage`,
   `useShowOppsRankMessages` (a rival's `rankIdx` climbing, in place of the
   status leaderboard) and `lib/wordRows.ts`; `BoardCol` and `InfoCol` take
-  `gd`; the two ending builders are `shared/bee-games/endingMessage.ts`;
+  `gd`; the ending words are `shared/bee-games/endingLabel.ts`;
   `terminal.ts` and `beeLeaderboard.ts` went. The Board pass (2026-10-04):
   `Board` and `Tile` in both games take `gd.puzzle.tiles` and a `GTile`,
   `data-tile` is the tile's id, the shared `useTileShuffle` holds ids, and

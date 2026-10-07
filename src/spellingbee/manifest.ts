@@ -3,17 +3,14 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
-import { findUsername } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { findWinnerIds } from '@/common/manifest/summaryData'
 import { runEdgeFn } from '@/common/supabase/dbResult'
+import { makeBeeCompeteSummary, makeBeeCoopSummary } from '@/shared/bee-games/beeSummary'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
   spellingbeeSetupError,
 } from './lib/setup'
-import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import logoUrl from './logo.svg?url'
 import type { GSetup, GSummaryData } from './types'
 
@@ -31,7 +28,7 @@ import type { GSetup, GSummaryData } from './types'
  * What differs between the two: the `gametype` string (the URL segment and
  * registry key), `mode`, `numberOfPlayers` (compete needs an opponent), the
  * setup defaults (compete seeds a target rank), the dialog's intro, and
- * `summaryFor`'s vocabulary.
+ * `summaryFor`'s line (`shared/bee-games/beeSummary.ts`, one per mode).
  */
 
 // Help loader is shared — both modes link to the same rules modal.
@@ -76,26 +73,6 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-// The summary reads the game's `summary_data` (`GSummaryData`: the common part
-// with the team's progress, null in compete, and what it is measured against).
-
-/** The team's points against the required set's. */
-function pointsTally(summary: GSummaryData) {
-  return `${summary.team!.foundWordsScore}/${summary.reqdWordsScore} pts`
-}
-
-/** The team's finds against the required set's count. */
-function wordsTally(summary: GSummaryData) {
-  return tally(summary.team!.nFoundWords, summary.nReqdWords, 'words')
-}
-
-/** The rank the game set out for, for a label; a coop game with none never
- *  reads it, and a race always has one. */
-function targetRankName(summary: GSummaryData) {
-  return RANKS[summary.targetRankIdx ?? 0]
-}
-
-
 // The single source of truth for this game's user-facing brand name.
 // Both sibling manifests set `name: BRAND`, and the start-game error
 // reads it too — so a fork rebrands by editing this one line. The
@@ -134,32 +111,7 @@ export const spellingbeeCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (data) => {
-    const summary = data as GSummaryData
-    if (summary.ending === null) {
-      return statusLine(verdict('Playing'), pointsTally(summary), wordsTally(summary))
-    }
-    // Written with the ending.
-    const outcome = summary.outcome!
-    switch (outcome) {
-      case 'won':
-        // The rank named is the one the team set out for. "Won at …" is one
-        // phrase, not two facts — no separator inside it.
-        return statusLine(`${verdict('Won')} at "${targetRankName(summary)}"`, pointsTally(summary))
-      // Ran out WITH a target to hit. (Ran out with nothing to fail at is
-      // neutral below — the close of an open hunt.)
-      case 'lost':
-        return statusLine(verdict('Lost', 'out of time'), pointsTally(summary), wordsTally(summary))
-      case 'neutral':
-        return statusLine(
-          verdict('Ended', summary.ending.reason === 'timeout' ? 'out of time' : null),
-          pointsTally(summary),
-          wordsTally(summary),
-        )
-      default:
-        return outcome
-    }
-  },
+  summaryFor: (data, _members, myId) => makeBeeCoopSummary(data as GSummaryData, myId),
 
   submitTimeout,
   stopGame,
@@ -194,30 +146,7 @@ export const spellingbeeCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  // Compete's label reads the target rank mid-game and the winner at the end;
-  // no racer's score reaches the listing row (`summary_data.team` is null).
-  summaryFor: (data, members) => {
-    const summary = data as GSummaryData
-    const rank = targetRankName(summary)
-    if (summary.ending === null) return statusLine(verdict('Playing'), `race to "${rank}"`)
-    // Written with the ending.
-    const outcome = summary.outcome!
-    switch (outcome) {
-      case 'won':
-        return `${wonBy(findUsername(members, findWinnerIds(summary)[0] ?? null))} at "${rank}"`
-      // The two collective losses, told apart by the reason: the last racer
-      // dropped out, or the clock beat everyone to the rank.
-      case 'lost':
-        return summary.ending.reason === 'conceded'
-          ? verdict('Lost', 'all conceded')
-          : statusLine(verdict('Lost', 'out of time'), `nobody reached "${rank}"`)
-      // The one neutral race ending, the players agreeing to stop.
-      case 'neutral':
-        return statusLine(verdict('Ended'), `nobody reached "${rank}"`)
-      default:
-        return outcome
-    }
-  },
+  summaryFor: (data, members, myId) => makeBeeCompeteSummary(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,

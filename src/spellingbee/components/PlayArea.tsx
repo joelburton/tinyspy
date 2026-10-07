@@ -14,8 +14,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '@/shared/bee-games/useGetEndingMessage'
 import { useShowOppsRankMessages } from '../hooks/useShowOppsRankMessages'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -88,13 +87,12 @@ function PlayArea({
   // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I am out of the race and the others play on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I am out of play and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // ─── What a PEER did, in the header slot ───────────────
@@ -130,9 +128,6 @@ function PlayArea({
 
   // ─── Render ────────────────────────────────────────────
 
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
-
   return (
     <div
       className={cls(
@@ -154,14 +149,14 @@ function PlayArea({
         />
       </InfoSheet>
 
-      {/* My win's confetti — once, when it happens. Only a game with a target
-          rank can reach it: a coop that set one, or a race, which always has one. */}
+      {/* My win's confetti — once, when it happens. "first" only in a race
+          to the goal: a top score at the countdown was not a race to it. */}
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={
             `Reached "${gd.me.rankName}"` +
-            `${gd.compete ? ' first' : ''} — ` +
+            `${gd.compete && gd.ending?.reason === 'reached_goal' ? ' first' : ''} — ` +
             `${gd.me.foundWordsScore}/${gd.puzzle.reqdWordsScore} points.`
           }
           onClose={celebration.close}

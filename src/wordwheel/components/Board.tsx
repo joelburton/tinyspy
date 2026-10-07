@@ -2,6 +2,8 @@
 
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { useTileShuffle } from '@/shared/bee-games/useTileShuffle'
 import shared from '@/common/game-page/playArea.module.css'
 import { spentTileIds } from '../lib/spend'
@@ -30,6 +32,8 @@ type Props = {
   // the same letters again remounts them and the shake plays again — a CSS
   // animation restarts on a remount, not on a class that is already there.
   refused: GRefusedMark | null
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
 }
 
 /**
@@ -56,6 +60,7 @@ export function Board({
   typedCounts,
   claimedTileIds,
   refused,
+  endingOutcome,
 }: Props) {
   const shuffle = useTileShuffle(tiles)
   const spent = spentTileIds(tiles, typedCounts, claimedTileIds)
@@ -66,7 +71,11 @@ export function Board({
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
-        <div className={styles.grid} data-board>
+        <div
+          // wordwheel has no history viewer, so the frame never steps aside for one.
+          className={cls(styles.grid, makeEndingFrameClasses(endingOutcome, false))}
+          data-board
+        >
           {shuffle.tiles.map((tile, i) => {
             // The refusal's mark, when this tile is one the word used.
             const mark = refused && answered.has(tile.id) ? refused : null

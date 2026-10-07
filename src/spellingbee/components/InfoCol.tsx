@@ -1,7 +1,6 @@
 // cs-blessed-spellingbee
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -34,13 +33,12 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A racer's cell in the strip: their rank; a racer who has ended reads "out"
-  // while the race runs, and once it has ended the outcome verb leads so the
-  // two "no longer active" states read differently — "Conceded at Amazing" vs
-  // "Lost at Amazing" vs "Won at Genius".
-  function getRankOrOut(player: GPlayer) {
-    if (!gd.ended) return player.ending ? 'out' : player.rankName
-    return `${endingOutcomeVerb(player)} at ${player.rankName}`
+  // A player's cell in the strip: their rank; once they are out of play — on
+  // their own or with the game — how they came out after it: "Genius (won)",
+  // "Amazing (2nd)", "Solid (conceded)".
+  function getRankAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.rankName
+    return `${player.rankName} (${player.endingLabel.word.toLowerCase()})`
   }
 
   const wordRows = makeWordRows(gd)
@@ -55,12 +53,15 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Rank"
+            // With no target, the goal is every required word: nothing to name.
             leading={
-              <>
-                target: <strong>{gd.me.targetRankName}</strong>
-              </>
+              gd.me.targetRankName !== null && (
+                <>
+                  target: <strong>{gd.me.targetRankName}</strong>
+                </>
+              )
             }
-            metricFor={getRankOrOut}
+            metricFor={getRankAndResult}
           />
         )}
 

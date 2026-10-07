@@ -19,9 +19,10 @@ import { NO_TARGET, splitCustomLetters, TARGET_RANK_CHOICES } from '@/shared/bee
  * (coop or compete — picked by which Start button the player clicked), so
  * this body never renders a mode radio.
  *
- * In order: the players, the target rank — coop's "Win at" with a "None" that
- * is stored as an ABSENT `target_rank`, compete's "Target rank" with no
- * "None" — the two dictionary bands, the board constraints (unique letters
+ * In order: the players, the target rank — coop's "Win at", compete's "Target
+ * rank", each with a "None" that is stored as an ABSENT `target_rank` (compete
+ * with none needs a countdown, which Start enforces) — the two dictionary
+ * bands, the board constraints (unique letters
  * only), the optional custom letters in one box, and the shared
  * `<SetupTimerSection>`. Both pickers offer Good..Genius; Start is withheld
  * (`TARGET_RANK_CHOICES`).
@@ -53,7 +54,7 @@ export function SetupForm({
     : 'Board constraints (optional)'
 
   // What the two target-rank summaries say. `target_rank` is an index into
-  // RANKS, and its ABSENCE is the coop "None" — the key is deleted rather than
+  // RANKS, and its ABSENCE is "None" — the key is deleted rather than
   // set to a sentinel, so the summary reads the same absence.
   const targetRankLabel = s.target_rank === undefined ? 'None' : RANKS[s.target_rank]
 
@@ -73,44 +74,27 @@ export function SetupForm({
         onChange={(next) => set('player_user_ids', next)}
       />
 
-      {mode === 'compete' ? (
-        <SetupSection label={`Target rank: ${targetRankLabel}`}>
-          <SelectField
-            name="target_rank"
-            error={errors.target_rank}
-            value={s.target_rank ?? NO_TARGET}
-            onChange={(v) => set('target_rank', Number(v))}
-          >
-            {TARGET_RANK_CHOICES.map((idx) => (
-              <option key={idx} value={idx}>
-                {RANKS[idx]}
-              </option>
-            ))}
-          </SelectField>
-        </SetupSection>
-      ) : (
-        <SetupSection label={`Win at: ${targetRankLabel}`}>
-          <SelectField
-            name="target_rank"
-            error={errors.target_rank}
-            value={s.target_rank ?? NO_TARGET}
-            // -1 is this picker's "None" value only; it never reaches the setup
-            // blob — picking it DELETES the key, because "no win condition" is
-            // the absence of a target, not a magic rank.
-            onChange={(v) => {
-              const choice = Number(v)
-              set('target_rank', choice === NO_TARGET ? undefined : choice)
-            }}
-          >
-            <option value={NO_TARGET}>None</option>
-            {TARGET_RANK_CHOICES.map((idx) => (
-              <option key={idx} value={idx}>
-                {RANKS[idx]}
-              </option>
-            ))}
-          </SelectField>
-        </SetupSection>
-      )}
+      <SetupSection label={`${mode === 'compete' ? 'Target rank' : 'Win at'}: ${targetRankLabel}`}>
+        <SelectField
+          name="target_rank"
+          error={errors.target_rank}
+          value={s.target_rank ?? NO_TARGET}
+          // -1 is this picker's "None" value only; it never reaches the setup
+          // blob — picking it DELETES the key, because "no target" is the
+          // absence of a target, not a magic rank.
+          onChange={(v) => {
+            const choice = Number(v)
+            set('target_rank', choice === NO_TARGET ? undefined : choice)
+          }}
+        >
+          <option value={NO_TARGET}>None</option>
+          {TARGET_RANK_CHOICES.map((idx) => (
+            <option key={idx} value={idx}>
+              {RANKS[idx]}
+            </option>
+          ))}
+        </SelectField>
+      </SetupSection>
 
       {/* "Dictionaries" — the required/legal word bands, behind a disclosure whose
           summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5

@@ -38,11 +38,11 @@ frontend gets back is `create_game`'s own envelope, relayed untouched.
 
 What separates the two modes is whose list a word lands on, exactly as in
 spellingbee. Coop is one found list, the team's score, and a game that runs
-until the clock or the Stop button stops it — or, when the team set a target
-rank, until they reach it together. Compete is a race to a target rank on
-private lists: an opponent's finds stay hidden until the game is over, so all a
-racer learns about a rival mid-game is the rank they have reached, and the
-first to the target ends the race for everyone.
+until the team reaches its goal — the target rank when one was set, else every
+required word — or the clock or the Stop button stops it. Compete is a race to
+the same goal on private lists: an opponent's finds stay hidden until the game
+is over, so all a racer learns about a rival mid-game is the rank they have
+reached, and the first to the goal ends the race for everyone.
 
 The end of a game is on the board. No modal carries the verdict: the
 below-board pill says it, the action row's line repeats it, and the word list
@@ -92,7 +92,7 @@ integer math, and the page draws the index the blob carries.
 | **required band** · **legal band** | `setup.required_band` (1–6, default 3) and `setup.legal_band` (required–6, default 5), the dictionary difficulty each list is drawn at |
 | **found word** | a row in `wordwheel.found_words`: who, which word, its points and flags. The team's in coop, each racer's own in compete |
 | **rank** | where a score stands on the ladder, 0–6. The team's in coop; each racer's own in compete, and the one thing rivals can see. (connections uses the word for a category's difficulty; the scope tells them apart) |
-| **target rank** | `wordwheel.games.target_rank`, copied from `setup.target_rank` at create: compete's finish line, always set; coop's optional win, null for the open-ended hunt |
+| **target rank** | `wordwheel.games.target_rank`, copied from `setup.target_rank` at create: the goal when set, in either mode; null for none, when the goal is every required word (compete then needs a countdown) |
 | **custom letters** | `setup.custom_center` + `setup.custom_letters`, a board the player chose instead of a sampled one. A one-off: never saved as the club's next default |
 | **unique letters** | `setup.unique_letters`: sample only a wheel whose nine tiles all differ. A constraint on a random board, ignored when the letters are the player's own, and saved with the rest of the setup |
 
@@ -116,13 +116,16 @@ What a racer learns about a rival mid-game is their rank, on the Rank strip,
 and whether they have dropped out — never a word, which the row policy
 withholds until the game ends and then opens for the post-game read.
 
-The first racer whose rank reaches the target ends the race for everyone: they
-alone are ranked 1, since the race ends when decided and the rest are short of
-the goal. A conceder is out while the others race on and can submit nothing
-more, so they cannot reach the target; every racer conceding is a collective
-loss, written by `common._concede`. The countdown expiring before anyone reaches the target is a
-loss for the table, since there was a rank to reach; Stop is neutral in a race
-too.
+The first racer to reach the goal — the target rank, or with none every
+required word — ends the race for everyone: they alone are ranked 1, since the
+race ends when decided and the rest are short of the goal. A conceder is out
+while the others race on and can submit nothing more, so they cannot reach it;
+every racer conceding is a collective loss, written by `common._concede`. The
+countdown expiring before anyone reaches a target is a loss for the table,
+since there was a rank to reach. A race with no target needs a countdown —
+nothing else could crown a winner short of a full clear — and its countdown
+ranks the racers by score: ties share a place, and a racer with no points has
+none. Stop is neutral in a race too.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
 where coop takes 1–6. `create_game` checks both ends: a race with fewer than
@@ -136,12 +139,13 @@ The ending is `common.games`' reason, detail and outcome
 | when | reason / detail | coop | compete |
 |---|---|---|---|
 | the target rank reached | `reached_goal` / `target` | the team ranked 1, won | the racer who reached it ranked 1; the rest lost |
+| every required word found, with no target | `reached_goal` / `solved` | the team ranked 1, won | the racer who found them ranked 1; the rest lost |
 | the clock, with a target | `timeout` | nobody ranked, lost | nobody ranked, lost |
-| the clock, with no target (coop) | `timeout` | no result, neutral | — |
+| the clock, with no target | `timeout` | no result, neutral | ranked by score, ties sharing; no points, no place |
 | every racer conceded | `conceded` | — | nobody ranked, lost |
 | somebody pressed Stop | `stopped` | neutral | neutral |
 
-The word that reaches the target is who ended the game; a timeout is ended by
+The word that reaches the goal is who ended the game; a timeout is ended by
 nobody.
 
 ## Schema
@@ -284,7 +288,8 @@ comes back on the form's own line, asking for the settings to be relaxed.
 ### `wordwheel.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)`
 
 Records a board the edge function built. It checks the setup — a target rank
-of 0 to 6, required in compete and optional in coop; a required band of 1 to 6
+of 0 to 6 or none, though a race with none needs a countdown (refused under the
+target, the one refusal the dialog can reach); a required band of 1 to 6
 and a legal band from there to 6; the timer — and the board's shape: eight
 lowercase outer letters and a lowercase center, repeats allowed and the center
 free to repeat an outer, both word lists present, and at least fifteen
@@ -332,8 +337,9 @@ first and reaching the server means its list was stale; the server writes the
 whole line for that one so the two routes to it read alike.
 
 An accepted word is written to `found_words` with its points and flags. When
-the game has a target rank and this word carries the team's score (coop) or
-the caller's (compete) to it, the game ends `reached_goal` / `target`: the team
+this word carries the team (coop) or the caller (compete) to the goal, the
+game ends `reached_goal`: `target` when the score reached the target rank,
+`solved` when, with no target, it was the last required word. The team is
 ranked 1, or the caller alone. Either way the page blobs are rewritten. **The answer is about the caller's word and never
 about anyone else's**: the ending reaches every client with the rewritten blob, and the
 reply only names this word's kind.
@@ -348,7 +354,7 @@ precedence over them:
 - an ordinary required word — `{ "result": "accepted", "points": 6 }`
 - a bonus word — `{ "result": "bonus", "points": 1 }`
 - a pangram, required or bonus — `{ "result": "pangram", "points": 24 }`
-- the word that reached the target rank and ended the game — `{ "result": "won", "points": 24 }`
+- the word that reached the goal and ended the game — `{ "result": "won", "points": 24 }`
 
 None carries an outcome or a message, and the frontend reads none of the four
 for their own sake: the pill was shown before the call went out, and any `ok`
@@ -360,8 +366,8 @@ leaves it standing.
 every game has, doing here what they do everywhere. What is this game's:
 `stop_game` goes through `common._stop`, neutral in both modes, since friends
 agreeing to stop is not losing; `submit_timeout` is a loss wherever there was a
-rank to reach — a coop game that set a target, and always a race — and a game
-with no result only in the open-ended coop hunt; `concede` is refused outside
+rank to reach, ranks a race with no target by score, and is a game with no
+result in a coop game with no target; `concede` is refused outside
 compete and decided by `common._concede`, and a conceder's words are refused
 from then on, so they cannot reach the target; and `replay_board` clears every
 found word and resets the ending, the target carried over on the row, so the
@@ -507,19 +513,22 @@ What is wordwheel's own:
   `gd.me` beside `gd.puzzle`, mirrored above the wheel on a phone by `MobileStatusBar` so the readout stays on the
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
-- **The ending** is the pill and the row's line, in sentences spellingbee shares
-  ([`shared/bee-games`](../shared/bee-games/doc.md)), the inert wheel, and the
-  list with its missed words. A win celebrates once, as `gd.me.outcome` turns
+- **The ending** is my ending label — the pill and the row's line, in words
+  spellingbee shares ([`shared/bee-games`](../shared/bee-games/doc.md)) — the
+  wheel's frame in my outcome, the inert wheel, and the list with its missed
+  words. The Rank strip shows each racer's rank and, once they are out of
+  play, their word: `Amazing (2nd)`. A win celebrates once, as `gd.me.outcome` turns
   `won` — the team's in coop, and in a race only the winner's screen; nothing
   pops for any other ending.
-- **The setup form** offers the target rank — *Win at* in coop with a *None*,
-  *Target rank* in compete — the two dictionary bands, *unique letters only*
+- **The setup form** offers the target rank — *Win at* in coop, *Target rank*
+  in compete, each with a *None* — the two dictionary bands, *unique letters only*
   under a board-constraints section of its own, and one box for custom letters
   that writes both setup keys, split after the first letter, repeats allowed.
   Start is gated on the legal band containing the required one and on the
   letter rules, the same rules the edge function and `create_game` check again.
-- **The club label** (`manifest.ts`) reads `summary_data`: coop's points and words,
-  compete's target and, at the end, who won at it or that nobody did.
+- **The club label** (`shared/bee-games/beeSummary.ts`) reads `summary_data`,
+  led by my ending label once I am out of play: coop's points and words,
+  compete's target and, at the end, who won or that nobody did.
 - **The printer** (`pdf/`) is the wheel beside the setup, above the word list —
   coop's one shared list and compete's a section per player, the missed words folded in once
   the game has ended as they are on screen. On the grayscale page the
@@ -545,11 +554,11 @@ a no-timer coop setup to override a field of:
 | `game_data_test` | the page blobs: a fresh game's puzzle, team, found words and players; the coop and compete mid-game shapes; the won race and the stopped coop game; a Restart; a rebuild of every game without re-dating it |
 | `rls_test` | a member sees every row of both tables in both modes; an outsider sees no row of any table; a direct insert is denied |
 | `candidate_words_test` | this game's own: the SQL helper returns a fitting word AND a word that would need more of a letter than the wheel has tiles, which is what proves the fit filter is the edge function's; a word missing the center and a word off the wheel are excluded |
-| `create_game_test` | both modes' rows, the gametype suffix and the mode; the title formula, with a repeated letter appearing twice; the target and bands copied to their columns; duplicate outers and a center repeating an outer accepted, and an S; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, the outer letters' length, the fifteen-word gate, and seven players refused |
+| `create_game_test` | both modes' rows, the gametype suffix and the mode; the title formula, with a repeated letter appearing twice; the target and bands copied to their columns; duplicate outers and a center repeating an outer accepted, and an S; a race with no target accepted with a countdown and refused without; an outsider, a bad mode, a short race, an out-of-range target, a bad band, the outer letters' length, the fifteen-word gate, and seven players refused |
 | `custom_letters_test` | a hand-picked board is accepted under fifteen words and refused at zero, and may repeat a letter; the custom letters are stripped from the saved default; a random board still needs fifteen |
 | `coop_target_test` | reaching the target ends the game `reached_goal` / `target` with everyone ranked 1, and it is really over; the clock with a target unreached is a loss; with no target it is no result; Stop with a target unreached is neutral |
-| `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; a word spending both tiles of a letter accepted on the multiset board; coop has no end at a full clear; the timeout and the Stop, a second call the game-over race; the lists un-gated throughout; a word into a game deleted under it is the shared race |
-| `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the target hit answers `won`, ends the race with the winner alone ranked 1; a post-win submit is refused; the timeout and the manual end with nobody winning |
+| `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; a word spending both tiles of a letter accepted on the multiset board; coop with no target wins at a full clear, `solved`, and not one word sooner; the timeout and the Stop, a second call the game-over race; the lists un-gated throughout; a word into a game deleted under it is the shared race |
+| `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the target hit answers `won`, ends the race with the winner alone ranked 1; a post-win submit is refused; the timeout and the manual end with nobody winning; with no target, the countdown's ranking by score with a shared first and an unranked zero, and a full clear winning the race |
 | `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss |
 | `replay_test` | the found list cleared, the ending reset, the clock zeroed, the board and target kept; any player may, mid-game or after; a non-player may not |
 | `player_subset_test` | a club member not seated in the game can read it and cannot move in it |
@@ -571,11 +580,11 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/answer.test` | every answer's words and outcome, and the two-way split of a miss by the center (the ending sentences are `shared/bee-games`' `endingMessage.test`) |
+| `lib/answer.test` | every answer's words and outcome, and the two-way split of a miss by the center (the ending words are `shared/bee-games`' `endingLabel.test`) |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, the unique-letters key dropped rather than stored false, and where a server refusal lands — the letters box, the band, or the checkbox that narrowed the pool |
 | `lib/spend.test` · `lib/tiles.test` · `components/TypedWord.test` | which tile a use spends: the center first for a typed letter, the clicked tile for a click, a claim ignored once the word drops its letter, and the most recent click forgotten first; whether a word fits the tiles; a typed letter dimming past its tile count or off the wheel |
 | `hooks/useGame.test` · `hooks/useSubmitWord.test` | `gd` from the blob — players, the seat rule, the state line's data; and the move without a board — a legal word answered and sent with its own points and flags, a miss refused without a call and its tiles marked, a click claiming its tile and the claim living as long as its letter |
-| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter and the clicked twin over its sibling, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin and forgotten once its word is submitted or a recall replaces it, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs Stop per mode and the strip's *out* / *Conceded at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, Stop, Concede |
+| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter and the clicked twin over its sibling, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin and forgotten once its word is submitted or a recall replaces it, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs Stop per mode and the strip's rank and word — `Start (conceded)`; the frame in my outcome; the action row and the menu; New game dropping hand-picked letters; the keys — New game, Stop, Concede |
 
 Playwright, in `e2e/`: `wordwheel` (a submitted word lands in the list and
 moves the score with no refresh), `wordwheel-coop-win` (crossing the target

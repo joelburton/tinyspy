@@ -66,16 +66,6 @@ The server writes it (`common._end_game`'s outcome: `final_ranking > 1` is
   guess at what it meant, and bring the uncertain ones to Joel before
   changing them.
 
-### A compete word hunt needs a target, a countdown, or both
-
-**Decided** (Joel, 2026-09-25): something must be able to crown a winner.
-With no target, the countdown crowns the top score (and nobody, if nobody
-scored). spellingbee and wordwheel gain compete with no target when a
-countdown is set, for "best score in ten minutes"; boggle loses the untimed
-compete game with no target, which nobody could win. Each game's `todo.md`
-carries its half; docs/win-lose.md's `score-only-contest` rule already counts
-a countdown.
-
 ### codenamesduet's guess answer carries the reason pair
 
 **Decided** (2026-09-26): the guess answer carries the same two names as the

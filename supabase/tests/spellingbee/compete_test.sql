@@ -28,7 +28,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(27);
+select plan(30);
 
 -- One player inside the game_data blob.
 create function pg_temp.player_of(game uuid, uid uuid) returns jsonb language sql as
@@ -366,6 +366,73 @@ select is(
   (select count(*) from spellingbee.found_words where game_id = (select id from g_rls)),
   2::bigint,
   'rls (compete, ended): cade sees both ada''s + bea''s finds (branch 3: ended_at)'
+);
+
+-- ============================================================
+-- (18)–(20) compete with no target: a countdown's score race, or a full clear
+-- ============================================================
+-- The timeout ranks every non-conceder who scored by score, ties sharing;
+-- cade scored nothing, so cade is unranked.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g_score on commit drop as
+select (spellingbee.create_game(
+  (select handle from club),
+  pg_temp.spellingbee_setup() || '{"timer": {"kind": "countdown", "seconds": 600}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        'cade3333-3333-3333-3333-333333333333'::uuid],
+  'compete',
+  pg_temp.spellingbee_board()
+)->'data'->>'id')::uuid as id;
+select spellingbee.submit_word((select id from g_score), 'bead', 1, false, false);
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select spellingbee.submit_word((select id from g_score), 'face', 1, false, false);
+select spellingbee.submit_timeout((select id from g_score));
+
+reset role;
+select is(
+  (select jsonb_object_agg(u.username, gp.final_ranking)
+     from common.game_players gp join common.profiles u on u.user_id = gp.user_id
+    where gp.game_id = (select id from g_score)),
+  '{"ada": 1, "bea": 1, "cade": null}'::jsonb,
+  'compete, no target, timeout: the tied top scores share 1; no points, no place'
+);
+
+-- A full clear wins the race, as solved.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g_clear on commit drop as
+select (spellingbee.create_game(
+  (select handle from club),
+  pg_temp.spellingbee_setup() || '{"timer": {"kind": "countdown", "seconds": 600}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.spellingbee_board()
+)->'data'->>'id')::uuid as id;
+
+reset role;
+insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram, is_bonus)
+  select (select id from g_clear), 'ada11111-1111-1111-1111-111111111111'::uuid,
+         sw->>'word', (sw->>'points')::int, (sw->>'is_pangram')::boolean, false
+    from jsonb_array_elements(pg_temp.spellingbee_board()->'required_words') sw
+   where sw->>'word' <> 'bfeg';
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  spellingbee.submit_word((select id from g_clear), 'bfeg', 1, false, false)->'data'->>'result',
+  'won',
+  'compete, no target: the last required word returns "won"'
+);
+
+reset role;
+select is(
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || gp.final_ranking
+     from common.games cg join common.game_players gp on gp.game_id = cg.id
+    where cg.id = (select id from g_clear)
+      and gp.user_id = 'ada11111-1111-1111-1111-111111111111'),
+  'reached_goal/solved/1',
+  'compete, no target: the first to find every required word wins, ranked 1'
 );
 
 -- ============================================================

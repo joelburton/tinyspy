@@ -344,8 +344,10 @@ row. A menu is easy to reorder, so this is a starting order, not a lock.
 **The ending message.** A pure `buildGameEndingMessage(...)` returning an
 `EndingMessage`, in `lib/gameEndingMessage.ts`, and `buildPlayerEndingMessage`
 for a player's own end in `lib/playerEndingMessage.ts`, beside the game's other
-decisions about what a move meant — except for spellingbee and wordwheel, whose
-endings read alike and share one in `shared/bee-games/endingMessage.ts`. The `useMemo` that feeds
+decisions about what a move meant. A game on the ending label
+([plans/endings.md](../plans/endings.md)) builds it instead from each player's
+`endingLabel` (its `lib/endingLabel.ts`; spellingbee and wordwheel share
+`shared/bee-games/endingLabel.ts`), through one `useGetEndingMessage`. The `useMemo` that feeds
 the verdict effect stays in the component. Its test walks every ended play
 state in every mode for every reason the server writes — a small, closed space
 worth exhausting.

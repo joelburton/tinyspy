@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum and boggle are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee and wordwheel are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -175,7 +175,11 @@ Also:
    ("Ended (out of time)"), and closed its two card gaps: every required word
    is the goal with no target, and a compete game with no target needs a
    countdown (`PN512`); its card gained `co-winners`.
-   **Next:** spellingbee and wordwheel, which color a `near` player red today.
+   spellingbee and wordwheel, together, since `shared/bee-games` builds both
+   games' `gd`: the label, the one `useGetEndingMessage` and the club lines
+   live there. Their two card gaps closed as boggle's did — every required
+   word is the goal with no target, and a race with no target is allowed with
+   a countdown, which ranks by score — and their cards gained `co-winners`.
 
 ## Overlaps
 

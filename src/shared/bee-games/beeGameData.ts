@@ -5,6 +5,8 @@ import { makeEnding } from '@/common/game-page/makeEnding'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { SetupRow } from '@/common/setup-form/types'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeBeeEndingLabel } from './endingLabel'
 
 /**
  * The page blobs the two bee games share, and the one function that turns a
@@ -71,16 +73,16 @@ export type BeeFactsRaw = {
   nFoundWords: number
   foundWordsScore: number
   rankIdx: number
-  // The rank that wins, an index into `RANKS`; null for coop's open hunt. The
-  // game's one target, the same on every player: a goal for the board, not
-  // part of it.
+  // The rank that wins, an index into `RANKS`; null for none, when the goal is
+  // every required word. The game's one target, the same on every player: a
+  // goal for the board, not part of it.
   targetRankIdx: number | null
 }
 
 /** The names of a side's two ranks, from `RANKS`. */
 export type BeeRankNames = {
   rankName: string
-  // Null for coop's open hunt.
+  // Null for no target.
   targetRankName: string | null
 }
 
@@ -100,6 +102,9 @@ export type BeePlayerRaw = PlayerRaw & BeeFactsRaw
  */
 export type BeePlayer = PlayerRaw & FactsApart<BeeFacts> & {
   own: BeeFacts
+  // How they came out (`endingLabel.ts`): of the game once it has ended, or
+  // of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** One found word, as the blob carries it: `gd` turns `userId` into the
@@ -172,6 +177,8 @@ export type BeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
  *   targetRankName
  *   own: {nFoundWords, foundWordsScore, rankIdx, rankName, targetRankIdx, targetRankName}
  *                                                    # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                                    # how they came out; null while they play
  *
  * tile:                                              # puzzle.tiles[], the center first
  *   id                                               # the tile's place, as text
@@ -266,7 +273,14 @@ export function makeBeeGameData<Setup>(
   // under `own`, their own.
   const players: BeePlayer[] = raw.players.map(function makePlayer(p) {
     const own = addRankNames(p)
-    return { ...p, ...(teamFacts ?? own), own }
+    const endingLabel = makeBeeEndingLabel(p, {
+      mode: raw.mode,
+      ended: raw.ended,
+      reason: ending?.reason ?? null,
+      detail: ending?.detail ?? null,
+      targetRankIdx: p.targetRankIdx,
+    })
+    return { ...p, ...(teamFacts ?? own), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

@@ -93,14 +93,19 @@ const BOGGLE_TEAM = {
 const BEE_CASES: GameEndingFamily = {
   live: BEE_LIVE,
   coop: [
-    [{ outcome: 'won', reason: 'reached_goal' }, { ...BEE_LIVE, team: { ...BEE_TEAM, nFoundWords: 20, foundWordsScore: 47, rankIdx: 6 } }, 'reached target'],
+    [{ outcome: 'won', reason: 'reached_goal', detail: 'target' }, { ...BEE_LIVE, team: { ...BEE_TEAM, nFoundWords: 20, foundWordsScore: 47, rankIdx: 6 } }, 'reached target'],
+    [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { ...BEE_LIVE, team: { ...BEE_TEAM, nFoundWords: 30, foundWordsScore: 50, rankIdx: 6, targetRankIdx: null }, targetRankIdx: null }, 'every required word (no target)'],
     [{ outcome: 'lost', reason: 'timeout' }, BEE_LIVE, 'timeout, target set'],
     [{ outcome: 'neutral', reason: 'timeout' }, { ...BEE_LIVE, team: { ...BEE_TEAM, targetRankIdx: null }, targetRankIdx: null }, 'timeout, no target'],
     [{ outcome: 'neutral', reason: 'stopped' }, BEE_LIVE, 'Stop'],
   ],
   compete: [
-    [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, BEE_RACE, 'someone hit the target'],
+    [{ outcome: 'won', reason: 'reached_goal', detail: 'target', winners: ['u-alice'] }, BEE_RACE, 'someone hit the target'],
+    [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { ...BEE_RACE, targetRankIdx: null }, 'every required word first (no target)'],
+    [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { ...BEE_RACE, targetRankIdx: null }, 'top score at the countdown (no target)'],
+    [{ outcome: 'won', reason: 'timeout', winners: ['u-alice', 'u-bob'] }, { ...BEE_RACE, targetRankIdx: null }, 'tied — co-winners (no target)'],
     [{ outcome: 'lost', reason: 'timeout' }, BEE_RACE, 'timeout'],
+    [{ outcome: 'lost', reason: 'timeout' }, { ...BEE_RACE, targetRankIdx: null }, 'timeout, nobody scored (no target)'],
     [{ outcome: 'lost', reason: 'conceded' }, BEE_RACE, 'all conceded'],
     [{ outcome: 'neutral', reason: 'stopped' }, BEE_RACE, 'Stop'],
   ],

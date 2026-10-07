@@ -137,7 +137,9 @@ climb a rank ladder, Start to Genius.
       - without: `timeout-no-result`
     - compete:
       - with target rank: `timeout-ranks-by-goal`
-      - without: `timeout-ranks-by-progress`
+      - without: `timeout-ranks-by-progress`:
+        1. the highest score
+        2. `co-winners`
 - **hints** — none
 
 **Mismatches** — none.
@@ -182,7 +184,9 @@ Its ending code is spellingbee's.
       - without: `timeout-no-result`
     - compete:
       - with target rank: `timeout-ranks-by-goal`
-      - without: `timeout-ranks-by-progress`
+      - without: `timeout-ranks-by-progress`:
+        1. the highest score
+        2. `co-winners`
 - **hints** — none
 
 **Mismatches** — none.

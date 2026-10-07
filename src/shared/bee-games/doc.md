@@ -3,8 +3,9 @@
 What spellingbee and wordwheel share and nothing else does: the one blob shape
 their builders write and the one reading that turns it into `gd`, the
 coordinate-unit geometry a hive and a wheel are both drawn by, the setup form's
-target-rank choices and custom-letters split, and the sentences a finished game
-says. Everything the wider found-words family
+target-rank choices and custom-letters split, and the words a finished game
+says — its ending label, the message made from it, and the club line.
+Everything the wider found-words family
 shares — the submit engine, the reveal, the rows, the row and word types, the
 typed-word look, the play-surface scaffolding — is [shared/found-words](../found-words/doc.md).
 
@@ -48,14 +49,17 @@ boards, no shared geometry between them.
 ```
 spellingbee/hooks/useGame ─┐
   wordwheel/hooks/useGame ─┴─▶ makeBeeGameData(blob, myId, makeSetupRows) ─▶ gd
-                                   └─▶ Bee* types ─▶ named in each types.ts as G*
+                                   ├─▶ Bee* types ─▶ named in each types.ts as G*
+                                   └─▶ endingLabel.ts (makeBeeEndingLabel, on
+                                                       each player)
 
 the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-width
                                             .mobileStatus)
 the two Boards ─▶ useTileShuffle.ts         (the display order and the Shuffle)
-the two ending hooks ─▶ endingMessage.ts   (buildBeeGameEndingMessage and
-                                            buildBeePlayerEndingMessage — the pill
-                                            and the action row's line)
+the two PlayAreas ─▶ useGetEndingMessage.ts  (my label → the pill and the
+                                              action row's line)
+the two manifests ─▶ beeSummary.ts          (makeBeeCoopSummary ·
+                                              makeBeeCompeteSummary — the club line)
 the two SetupForms ─▶ beeSetup.ts          (TARGET_RANK_CHOICES · NO_TARGET ·
                                             splitCustomLetters(raw, 7 | 9))
 ```
@@ -66,13 +70,15 @@ component is not shared; a change to one is made to the other. Diffing them
 with the game names swapped shows only the "hive" / "wheel" wording.
 
 **The endings are shared because the games end alike.** Both modes, every
-outcome and every reason are the same in the two games, and so is every sentence
-said about them; only the brand differs, and no sentence names it. Each game's
-`useGetGameEndingMessage` and `useGetPlayerEndingMessage` feed the two builders
-from `gd` and memoize the answer. Every other game keeps its ending builders in
-its own folder (docs/playarea.md → What leaves the component file). The day one
-bee game's ending needs a word the other's doesn't, the functions go back to
-the game folders.
+outcome and every reason are the same in the two games, and so is every word
+said about them; only the brand differs, and no word names it. The goal is the
+target rank when one is set, else every required word; a race with no target
+needs a countdown, which ranks by score. `makeBeeEndingLabel` turns a player's
+facts into their ending label, `makeBeeGameData` puts it on every player, and
+`useGetEndingMessage` and the two club lines read it. Every other game keeps
+its label in its own folder (docs/playarea.md → What leaves the component
+file). The day one bee game's ending needs a word the other's doesn't, the
+functions go back to the game folders.
 
 **The blob is the whole read.** Each game's `_rebuild_data_cols` writes
 `game_data` after every move — the puzzle and its words, every found word,

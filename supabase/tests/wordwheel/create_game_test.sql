@@ -39,7 +39,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(38);
+select plan(39);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -238,7 +238,7 @@ select pg_temp.envelope_is(
   'compete with 1 player rejected');
 
 -- ============================================================
--- (8) target_rank required iff compete
+-- (8) target_rank: compete without one needs a countdown
 -- ============================================================
 
 select pg_temp.envelope_is(
@@ -248,9 +248,23 @@ select pg_temp.envelope_is(
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'compete',
     pg_temp.wordwheel_board()),
-  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN179",
-    "message":"BUG: race with no target rank"}'::jsonb,
-  'compete without target_rank rejected');
+  '{"type":"not-ok","severity":"form-validation","field":"target_rank","dbcode":"PN179",
+    "message":"A compete game with no target needs a countdown"}'::jsonb,
+  'compete without target_rank or a countdown is refused');
+
+select lives_ok(
+  format(
+    $$ select wordwheel.create_game(%L,
+                                 pg_temp.wordwheel_setup()
+                                   || '{"timer": {"kind": "countdown", "seconds": 600}}'::jsonb,
+                                 array['ada11111-1111-1111-1111-111111111111'::uuid,
+                                       'bea22222-2222-2222-2222-222222222222'::uuid],
+                                 'compete',
+                                 pg_temp.wordwheel_board()) $$,
+    (select handle from club)
+  ),
+  'compete without target_rank but with a countdown accepted'
+);
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),

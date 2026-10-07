@@ -115,7 +115,7 @@ describe('makeBeeGameData — the links become players', () => {
     }
   })
 
-  it("an open hunt's target has no name", () => {
+  it("a game with no target has no target name", () => {
     const gd = makeBeeGameData(ZTest_makeBeeGameDataRaw(GAME, { players: TWO }), 'u1', noRows)
     expect(gd.me.targetRankName).toBeNull()
   })

@@ -58,10 +58,10 @@ export function spellingbeeSetupError(setup: GSetup): FormErrors {
 }
 
 /**
- * Initial setup for the coop manifest. No `target_rank`: the default coop game
- * is the open-ended hunt (find words until you stop) — a team that wants a
- * finish line picks one in the dialog's "Win at" field, and then reaching it
- * ends the game as a win. The timer starts off; players pick a clock too.
+ * Initial setup for the coop manifest. No `target_rank`: the default coop
+ * game's goal is every required word — a team that wants a nearer finish line
+ * picks one in the dialog's "Win at" field. Either goal reached ends the game
+ * as a win. The timer starts off; players pick a clock too.
  */
 export const DEFAULT_SPELLINGBEE_SETUP_COOP: GSetup = {
   timer: { kind: 'none' },

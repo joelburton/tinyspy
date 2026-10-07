@@ -35,7 +35,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(50);
+select plan(51);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -286,10 +286,11 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (9) Coop has NO automatic ending — players keep going past n_reqd_words
+-- (9) Coop with no target: every required word is the goal, and wins
 -- ============================================================
--- Bulk-insert the rest of the required set directly, drop one, and re-submit it
--- via the RPC to exercise the aggregate recount at the count-complete boundary.
+-- Bulk-insert the rest of the required set directly, drop one, find a bonus
+-- word, then re-submit the dropped one via the RPC to exercise the recount at
+-- the count-complete boundary.
 
 reset role;
 insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram, is_bonus)
@@ -313,33 +314,40 @@ delete from spellingbee.found_words
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'bfeg', 1, false, false)->'data'->>'result',
-  'accepted',
-  'coop: 30th required word returns "accepted"'
+  spellingbee.submit_word((select id from g), 'abcdef', 6, false, true)->'data'->>'result',
+  'bonus',
+  'coop: a bonus word does not count toward every required word'
 );
 
 reset role;
 select is(
   (select ended_at from common.games where id = (select id from g)),
   null,
-  'coop: the game does not end past 100%-found (no automatic ending)'
-);
-
-select is(
-  (select count(*)::int from common.game_players
-    where game_id = (select id from g) and player_ended_at is not null),
-  0,
-  'coop: no player has ended past 100%-found'
+  'coop: one required word short is still playing'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'abcdef', 6, false, true)->'data'->>'result',
-  'bonus',
-  'coop: bonus word accepted after the required set is exhausted'
+  spellingbee.submit_word((select id from g), 'bfeg', 1, false, false)->'data'->>'result',
+  'won',
+  'coop: the last required word returns "won"'
 );
 
 reset role;
+select is(
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from g)),
+  'reached_goal/solved/won',
+  'coop, no target: every required word found wins, as solved'
+);
+
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = (select id from g) and final_ranking = 1 and solved_at is not null),
+  (select count(*)::int from common.game_players where game_id = (select id from g)),
+  'coop: every teammate is ranked 1 and solved'
+);
+
 select is(
   (select (summary_data->'team'->>'foundWordsScore')::int > (summary_data->>'reqdWordsScore')::int
      from common.games where id = (select id from g)),

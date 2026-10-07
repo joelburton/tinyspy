@@ -10,9 +10,10 @@
  */
 export const TARGET_RANK_CHOICES = [1, 2, 3, 4, 5, 6] as const
 
-/** The coop picker's "None" option. A UI-only sentinel — choosing it removes
+/** The target picker's "None" option. A UI-only sentinel — choosing it removes
  *  `target_rank` from the setup blob entirely (the server reads absent/null as
- *  "no win condition"), so this number never reaches the setup blob. */
+ *  "no target": the goal is every required word), so this number never
+ *  reaches the setup blob. */
 export const NO_TARGET = -1
 
 /** Normalize a letter input: lowercase, drop anything but a–z, cap the length.

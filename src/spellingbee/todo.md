@@ -17,25 +17,6 @@
 
 ## Someday
 
-- **Compete with no target, when a countdown is set.** The rule for every
-  compete word hunt (plans/cross-game-consistency.md → "A compete word
-  hunt needs a target, a countdown, or both"): something must be able to
-  crown a winner. Today `create_game` refuses compete with no `target_rank`,
-  so "best score in ten minutes" can't be played. The change: compete may
-  leave the target empty when the timer is a countdown; the timeout then
-  crowns the top score (`co-winners` on a tie, nobody if nobody scored), as
-  boggle's does. The setup form offers None in compete only with a countdown.
-  wordwheel's todo carries the same change.
-
-- **Every required word is the `goal-intrinsic`: coop with no target wins
-  on it.** With no target rank chosen, the game's goal is every required
-  word (docs/win-lose.md → `goal-intrinsic`). Today finding every required
-  word ends and wins nothing (`gameplay_test` pins "coop has no end at a
-  full clear"). The change: a coop game with no target is `won` when the
-  team finds every required word. Its timeout stays neutral, as it is
-  today: `timeout-no-result`, since missing every word is no loss.
-  wordwheel's and boggle's todos carry the same change.
-
 - **The `WordList` marker vocabulary** — ◐ ("more than one player found this
   word", in the first finder's color) and ⦻ ("scored zero because more than one
   player found it"). Both are compete-mode readings this game's list would
