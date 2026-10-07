@@ -185,13 +185,12 @@ describe('psychicnum PlayArea — concede', () => {
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" player-ended look after I concede', () => {
+  it('shows my concession while the race continues', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
-    // The info-column action row swaps to the player-ended LOOK ("You conceded"),
-    // and the below-board slot narrates the drop-out ("Conceded — race
-    // continues", `buildPlayerEndingMessage`'s pill).
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
-    expect(screen.getByText(/Conceded — race continues/)).toBeInTheDocument()
+    // My ending label, in its two lengths: the info column's line and the pill
+    // under the board.
+    expect(screen.getByText('Conceded (race continues)')).toBeInTheDocument()
+    expect(screen.getByText(/Conceded: race continues/)).toBeInTheDocument()
   })
 })
 

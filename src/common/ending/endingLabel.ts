@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndOutcome, GameEndedReason } from './gameEnding'
+import { buildStoppedMessage, type EndingMessage } from './endingMessage'
 import type { PlayerRaw } from '../game-page/gameData'
 
 /**
@@ -72,6 +73,25 @@ export function makeEndingLabelWord(
       : { labelType: 'finished', word: 'Finished' }
   }
   return { labelType: 'lost', word: 'Lost' }
+}
+
+/**
+ * The message an ending label makes on the game page: the pill under the
+ * board ("Lost: out of guesses") and the info column's line ("Lost (out of
+ * guesses)"), in the label's color. A Stop takes the shared Stop message, so it
+ * reads the same in every game.
+ */
+export function makeEndingMessage(
+  endingLabel: EndingLabel,
+  mode: 'coop' | 'compete',
+): EndingMessage {
+  if (endingLabel.labelType === 'stopped') return buildStoppedMessage(mode)
+  const { word, long, pill, outcome } = endingLabel
+  return {
+    pillText: pill === '' ? word : `${word}: ${pill}`,
+    infoColText: long === '' ? word : `${word} (${long})`,
+    outcome,
+  }
 }
 
 /** A ranking as a place: 2 → "2nd", 3 → "3rd", 11 → "11th", 22 → "22nd". */

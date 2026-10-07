@@ -18,8 +18,7 @@ import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { addRevealedSecrets } from '../lib/addRevealedSecrets'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useShowOppsFoundMessages } from '../hooks/useShowOppsFoundMessages'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -59,7 +58,7 @@ type PlayAreaProps = Pick<
  *
  * Both manifests mount it, and the mode (`gd.mode`, fixed at create-game time)
  * is what differs — who a narration names, whose progress a readout counts,
- * and which verdict `lib/gameEndingMessage.ts` builds. The rule it keeps across that
+ * and which words `lib/endingLabel.ts` builds. The rule it keeps across that
  * split: green means "a secret was found" in both modes, so nothing here
  * teaches a compete-only color.
  *
@@ -97,13 +96,12 @@ function PlayArea({
   // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I have ended and the others play on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I have ended and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
@@ -154,9 +152,6 @@ function PlayArea({
   const liveTiles = secretsShown
     ? addRevealedSecrets(gd.me.board.tiles, gd.puzzle.secrets ?? [])
     : gd.me.board.tiles
-
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
