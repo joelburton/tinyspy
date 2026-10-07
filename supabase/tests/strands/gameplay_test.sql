@@ -163,8 +163,8 @@ select is((select res -> 'data' ->> 'result' from invalid_res), 'invalid',
 select is((select res -> 'outcome' from invalid_res), 'null'::jsonb,
   'the envelope carries no outcome for a miss');
 
--- band 0 would be below every word; band 1 admits the fixture's difficulty-1
--- words. A game at a LOWER band than the word's difficulty must reject it —
+-- band 0 would be below every word; band 1 admits the fixture's band-1
+-- words. A game at a LOWER band than the word's must reject it —
 -- this is the knob that makes the game harder.
 create temp table band_game on commit drop as
 select (strands.create_game(
@@ -176,7 +176,7 @@ select (strands.create_game(
 select is(
   strands.submit_path((select id from band_game), pg_temp.strands_prefix_path(0, 4)) -> 'data' ->> 'result',
   'hint_word',
-  'a difficulty-1 word is accepted at band 1 — difficulty ALONE gates a hint word'
+  'a band-1 word is accepted at band 1 — the band ALONE gates a hint word'
 );
 
 -- ============================================================

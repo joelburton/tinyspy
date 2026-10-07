@@ -3552,7 +3552,7 @@ drop function if exists common.anagrams(text);
 -- ============================================================
 -- The dictionary tool behind the global anagram popup: given a letters
 -- pattern, return every word of EXACTLY that length the pattern can spell,
--- with its difficulty band. The pattern's syntax (the dialog teaches it):
+-- with its band. The pattern's syntax (the dialog teaches it):
 --
 --   - lowercase letter — a tile that can land anywhere ("floats")
 --   - '?'              — a floating wildcard, pays any one letter
@@ -3577,7 +3577,7 @@ drop function if exists common.anagrams(text);
 --   3. the exact multiset fold (_anagram_fits) on the few survivors: each
 --      UNPINNED word position consumes a floating letter or a wildcard.
 --
--- Ordered difficulty then word — familiar words first, the useful order
+-- Ordered band then word — familiar words first, the useful order
 -- when hunting a word you might actually know.
 --
 -- SECURITY DEFINER (house pattern): the internal _anagram_fits helper is
@@ -3632,13 +3632,13 @@ begin
     end if;
   end loop;
 
-  -- Ordering is part of the contract (difficulty, then word), so the array is
+  -- Ordering is part of the contract (band, then word), so the array is
   -- built with `jsonb_agg(... order by ...)` rather than left to the planner.
-  select coalesce(jsonb_agg(jsonb_build_object('word', t.word, 'difficulty', t.difficulty)
-                            order by t.difficulty, t.word), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('word', t.word, 'band', t.band)
+                            order by t.band, t.word), '[]'::jsonb)
     into found
     from (
-      select w.word, w.difficulty
+      select w.word, w.band
         from common.words w
        where w.len = n
          and w.word like pat
@@ -3728,7 +3728,7 @@ declare
   k text;
 begin
   for k in select jsonb_object_keys(fields) loop
-    if k not in ('definition', 'hint', 'difficulty', 'crude', 'slur', 'slang',
+    if k not in ('definition', 'hint', 'band', 'crude', 'slur', 'slang',
                  'american', 'british', 'canadian', 'australian') then
       -- PN020-PN023 are all faults: the dialog builds this object from its own
       -- named controls, so an unknown key or an out-of-range number is our bug.
@@ -3737,11 +3737,11 @@ begin
         detail = 'field is not in the editable allow-list';
     end if;
   end loop;
-  if fields ? 'difficulty'
-     and (fields->>'difficulty')::int not between 1 and 6 then
-    raise exception 'BUG: difficulty outside 1-6'
+  if fields ? 'band'
+     and (fields->>'band')::int not between 1 and 6 then
+    raise exception 'BUG: band outside 1-6'
       using errcode = 'PN021', hint = 'fault', column = '_',
-      detail = 'words.difficulty is 1-6';
+      detail = 'words.band is 1-6';
   end if;
   if fields ? 'crude' and (fields->>'crude')::int not between 0 and 2 then
     raise exception 'BUG: crude rating outside 0-2'
@@ -3803,7 +3803,7 @@ begin
     -- 'm' = manual, the provenance the schema reserved for hand edits.
     definition_source = case when patch ? 'definition' then 'm' else definition_source end,
     hint       = case when patch ? 'hint'       then patch->>'hint'              else hint end,
-    difficulty = case when patch ? 'difficulty' then (patch->>'difficulty')::smallint else difficulty end,
+    band = case when patch ? 'band' then (patch->>'band')::smallint else band end,
     crude      = case when patch ? 'crude'      then (patch->>'crude')::smallint else crude end,
     slur       = case when patch ? 'slur'       then (patch->>'slur')::smallint  else slur end,
     slang      = case when patch ? 'slang'      then (patch->>'slang')::boolean  else slang end,
@@ -3889,7 +3889,7 @@ grant execute on function common.delete_word(text, text) to authenticated;
 
 drop function if exists common.add_word(text, jsonb, text);
 
--- Add a word. `fields` uses the same editable set; difficulty is required
+-- Add a word. `fields` uses the same editable set; band is required
 -- (there is no sensible default band), everything else defaults to the
 -- import's defaults. len derives, letter_mask generates.
 create or replace function common.add_word(
@@ -3920,13 +3920,13 @@ begin
       using errcode = 'PN027', hint = 'form-validation', column = 'new_word',
       detail = 'new word must be 1-45 lowercase letters';
   end if;
-  if not fields ? 'difficulty' then
+  if not fields ? 'band' then
     -- PN028. There is no sensible default band, so the server is the first to
-    -- ask. `fields` is the parameter it arrived in; the difficulty control
+    -- ask. `fields` is the parameter it arrived in; the band control
     -- inside it is where the message belongs once forms route by field.
-    raise exception 'Pick a difficulty'
+    raise exception 'Pick a band'
       using errcode = 'PN028', hint = 'form-validation', column = 'fields',
-      detail = 'add_word needs a difficulty';
+      detail = 'add_word needs a band';
   end if;
   if exists (select 1 from common.words cw where cw.word = new_word) then
     -- PN029. The form cannot know what the dictionary holds.
@@ -3936,11 +3936,11 @@ begin
   end if;
 
   insert into common.words
-    (word, difficulty, american, british, canadian, australian,
+    (word, band, american, british, canadian, australian,
      crude, slur, slang, len, definition, definition_source, hint)
   values
     (new_word,
-     (fields->>'difficulty')::smallint,
+     (fields->>'band')::smallint,
      coalesce((fields->>'american')::boolean, false),
      coalesce((fields->>'british')::boolean, false),
      coalesce((fields->>'canadian')::boolean, false),

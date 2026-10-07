@@ -52,7 +52,7 @@ export type GSetupValues = {
   // Bananagrams. Board GEOGRAPHY (one connected grid) is always required to
   // win, whatever this says: it is structural, not a matter of taste.
   word_check: GWordCheck
-  // The obscurity ceiling for 2-letter words, 2..6 (`common.words` difficulty):
+  // The obscurity ceiling for 2-letter words, 2..6 (`common.words.band`):
   // a thin, separate vocabulary, so it gets its own band, and band 1 is too
   // sparse to be fun. Meaningful only when `word_check` is not `'off'`.
   dict_2: number

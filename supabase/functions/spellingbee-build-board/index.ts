@@ -258,7 +258,7 @@ async function fetchPreviousMask(
 
 /** Fetches every legal word that uses only puzzle letters AND
  *  contains the center letter. The bitmask intersection (and
- *  spellingbee's difficulty/dialect/length slice of common.words) runs
+ *  spellingbee's band/dialect/length slice of common.words) runs
  *  server-side via `spellingbee.candidate_words`, so the response is only
  *  the matching ~hundreds of rows — well under PostgREST's `max_rows`, which
  *  silently truncates a query that pulls the whole list to filter here.
@@ -442,7 +442,7 @@ serve(async (req) => {
         return formValidation(
           'PN177',
           'required_band',
-          'No puzzle could be built at that required difficulty. Try a wider one.',
+          'No puzzle could be built at that required band. Try a wider one.',
           `spellingbee-build-board: ${MAX_SEED_ATTEMPTS} seeds all under ${MIN_REQUIRED_WORDS_COUNT} words`,
         )
       }

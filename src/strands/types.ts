@@ -391,7 +391,7 @@ export type GSetupValues = CoopTurnSetup & {
   // Dictionary ceiling for HINT words (1..6). A HIGHER band makes strands
   // EASIER: more words qualify, so hints come faster — the same direction as
   // spellingbee's `legal_band` and the opposite of waffle's tier, which is why
-  // the field's copy says so out loud. Gated on difficulty alone (the
+  // the field's copy says so out loud. Gated on the band alone (the
   // may-enter tier in docs/common.md).
   band: number
   // Hint words needed per hint. NYT plays 3.

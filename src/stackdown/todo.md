@@ -88,7 +88,7 @@
 - **The board generator can pick a band-2 word with no hint.**
   `reveal_next_hint` treats a missing `common.words.hint` as a fault, and one
   band-2 five-letter word flagged `american` has none
-  (`select word from common.words where len = 5 and difficulty <= 2 and hint is null`).
+  (`select word from common.words where len = 5 and band <= 2 and hint is null`).
   Add `and hint is not null` to the lexicon query in
   `supabase/scripts/generate-stackdown-boards.ts`. The shipped library is clean
   today. Separately, that word is a British spelling wrongly flagged

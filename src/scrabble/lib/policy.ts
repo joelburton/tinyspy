@@ -93,7 +93,7 @@ type PlayChoice =
 }
   | { kind: 'exchange'; tiles: string[] }
 
-/** Word-difficulty lookup over the rated trie (a word missing from the trie —
+/** Word-band lookup over the rated trie (a word missing from the trie —
  *  impossible for a generated move — reads as harder than any cap). The exact
  *  predicate the edge function uses. */
 function makeWordDifficulty(trie: Trie): (word: string) => number {

@@ -51,7 +51,7 @@ select is(
   'fixture: bitch is still flagged slur = 1'
 );
 select ok(
-  (select difficulty <= 3 from common.words where word = 'bitch'),
+  (select band <= 3 from common.words where word = 'bitch'),
   'fixture: bitch is still an easy-band word (so a real board would offer it)'
 );
 
@@ -107,7 +107,7 @@ select ok(
 -- lost the qual while moving it would leave every other assertion here
 -- green; 'zoo' above cannot catch it, since z and o are off the board.
 select ok(
-  (select difficulty <= 3 from common.words where word = 'egg'),
+  (select band <= 3 from common.words where word = 'egg'),
   'fixture: egg is still an easy-band word (so the exclusion below is real)'
 );
 select ok(

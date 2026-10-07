@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: wordle.submit_guess legality respects setup.legal_band
 -- ============================================================
--- A guess is "not a word" unless it's a real 5-letter word of difficulty ≤ the
+-- A guess is "not a word" unless it's a real 5-letter word at band ≤ the
 -- game's legal_band band. So the SAME word can be illegal in a strict game and
 -- legal in a permissive one. We use "moxie" (a real band-3 word, not on the
 -- Wordle answer list — so never the target when answer_band is 0).

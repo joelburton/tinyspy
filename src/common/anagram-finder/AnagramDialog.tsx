@@ -14,7 +14,7 @@ import { FailureLine } from '../forms/FailureLine'
 import { SimpleScrollableList } from '../lists/SimpleScrollableList'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
-type Result = { word: string; difficulty: number }
+type Result = { word: string; band: number }
 
 /** What `common.anagrams` puts in `data`. The words sit under a key rather
  *  than being the payload outright, so the branch can assert `result` — a
@@ -159,10 +159,10 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
         >
           {results.map((r) => (
             <li key={r.word} className={styles.resultRow}>
-              {/* The difficulty band LEADS the row — a fixed-width gutter, so
+              {/* The band LEADS the row — a fixed-width gutter, so
                   the words start on one line down the list and the number
                   reads as a column rather than as part of the word. */}
-              <span className={styles.resultBand}>{r.difficulty}</span>
+              <span className={styles.resultBand}>{r.band}</span>
               <DefinableWord word={r.word} className={styles.resultWord} />
             </li>
           ))}

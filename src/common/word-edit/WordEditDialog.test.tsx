@@ -38,7 +38,7 @@ import { errorUnder } from '../fields/errorUnder'
 const ROW = {
   definition: 'a gloss',
   hint: null,
-  difficulty: 2,
+  band: 2,
   crude: 0,
   slur: 0,
   slang: false,
@@ -88,7 +88,7 @@ describe('WordEditDialog', () => {
     await waitFor(() =>
       expect(mockRpc).toHaveBeenCalledWith('update_word', {
         target_word: 'acre',
-        patch: { difficulty: 5 },
+        patch: { band: 5 },
         note: 'too easy at 2',
       }),
     )
@@ -107,7 +107,7 @@ describe('WordEditDialog', () => {
     const [fn, args] = mockRpc.mock.calls[0]
     expect(fn).toBe('add_word')
     expect(args.new_word).toBe('zqnew')
-    expect(args.fields).toMatchObject({ difficulty: 3, american: true, slang: false })
+    expect(args.fields).toMatchObject({ band: 3, american: true, slang: false })
   })
 
   it('says so when the word is gone, rather than loading forever', async () => {

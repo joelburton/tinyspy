@@ -44,10 +44,10 @@ const FULL_BANDS: GBands = { dict2: 6, dict3plus: 6 }
 /** Build the rated trie from common.words — play_word's exact universe. */
 function loadRatedTrie(): Trie {
   const query = `
-    select difficulty, word
+    select band, word
     from common.words
     where len between 2 and 15 and (american or british)
-    order by difficulty, word
+    order by band, word
   `
   const raw = execFileSync('psql', ['-X', '-d', DB_URL, '-tAF', '\t', '-c', query], {
     encoding: 'utf8',

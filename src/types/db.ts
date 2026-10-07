@@ -630,13 +630,13 @@ isOneToOne: true
                   ]
                 },"words": {
                   Row: {
-                    "american": boolean,"australian": boolean,"british": boolean,"canadian": boolean,"crude": number,"definition": string | null,"definition_source": string | null,"difficulty": number,"hint": string | null,"len": number,"letter_mask": number | null,"root_word": string | null,"slang": boolean,"slur": number,"word": string,"wordle": boolean
+                    "american": boolean,"australian": boolean,"band": number,"british": boolean,"canadian": boolean,"crude": number,"definition": string | null,"definition_source": string | null,"hint": string | null,"len": number,"letter_mask": number | null,"root_word": string | null,"slang": boolean,"slur": number,"word": string,"wordle": boolean
                   }
                   Insert: {
-                    "american": boolean,"australian": boolean,"british": boolean,"canadian": boolean,"crude"?: number,"definition"?: string | null,"definition_source"?: string | null,"difficulty": number,"hint"?: string | null,"len": number,"letter_mask"?: never,"root_word"?: string | null,"slang"?: boolean,"slur"?: number,"word": string,"wordle"?: boolean
+                    "american": boolean,"australian": boolean,"band": number,"british": boolean,"canadian": boolean,"crude"?: number,"definition"?: string | null,"definition_source"?: string | null,"hint"?: string | null,"len": number,"letter_mask"?: never,"root_word"?: string | null,"slang"?: boolean,"slur"?: number,"word": string,"wordle"?: boolean
                   }
                   Update: {
-                    "american"?: boolean,"australian"?: boolean,"british"?: boolean,"canadian"?: boolean,"crude"?: number,"definition"?: string | null,"definition_source"?: string | null,"difficulty"?: number,"hint"?: string | null,"len"?: number,"letter_mask"?: never,"root_word"?: string | null,"slang"?: boolean,"slur"?: number,"word"?: string,"wordle"?: boolean
+                    "american"?: boolean,"australian"?: boolean,"band"?: number,"british"?: boolean,"canadian"?: boolean,"crude"?: number,"definition"?: string | null,"definition_source"?: string | null,"hint"?: string | null,"len"?: number,"letter_mask"?: never,"root_word"?: string | null,"slang"?: boolean,"slur"?: number,"word"?: string,"wordle"?: boolean
                   }
                   Relationships: [
                     
@@ -1278,13 +1278,13 @@ isOneToOne: false
                   ]
                 },"seeds": {
                   Row: {
-                    "difficulty": number,"letters": string,"mask": number | null,"word_a": string,"word_b": string
+                    "band": number,"letters": string,"mask": number | null,"word_a": string,"word_b": string
                   }
                   Insert: {
-                    "difficulty": number,"letters": string,"mask"?: never,"word_a": string,"word_b": string
+                    "band": number,"letters": string,"mask"?: never,"word_a": string,"word_b": string
                   }
                   Update: {
-                    "difficulty"?: number,"letters"?: string,"mask"?: never,"word_a"?: string,"word_b"?: string
+                    "band"?: number,"letters"?: string,"mask"?: never,"word_a"?: string,"word_b"?: string
                   }
                   Relationships: [
                     
@@ -1368,7 +1368,7 @@ isOneToOne: false
                            },
 "pick_seed":
 { Args: { "p_max_band": number }; Returns: {
-              "difficulty": number,"letters": string,"word_a": string,"word_b": string
+              "band": number,"letters": string,"word_a": string,"word_b": string
             }[]
                            },
 "replay_board":
@@ -1376,7 +1376,7 @@ isOneToOne: false
                            },
 "seed_for":
 { Args: { "p_board_letters": string }; Returns: {
-              "difficulty": number,"letters": string,"word_a": string,"word_b": string
+              "band": number,"letters": string,"word_a": string,"word_b": string
             }[]
                            },
 "stop_game":
@@ -2776,13 +2776,13 @@ isOneToOne: false
                   ]
                 },"pangrams": {
                   Row: {
-                    "difficulty": number,"has_rare_letters": boolean,"letters": string,"mask": number | null,"word_counts": NonNullable<Json>
+                    "band": number,"has_rare_letters": boolean,"letters": string,"mask": number | null,"word_counts": NonNullable<Json>
                   }
                   Insert: {
-                    "difficulty": number,"has_rare_letters": boolean,"letters": string,"mask"?: never,"word_counts": NonNullable<Json>
+                    "band": number,"has_rare_letters": boolean,"letters": string,"mask"?: never,"word_counts": NonNullable<Json>
                   }
                   Update: {
-                    "difficulty"?: number,"has_rare_letters"?: boolean,"letters"?: string,"mask"?: never,"word_counts"?: NonNullable<Json>
+                    "band"?: number,"has_rare_letters"?: boolean,"letters"?: string,"mask"?: never,"word_counts"?: NonNullable<Json>
                   }
                   Relationships: [
                     

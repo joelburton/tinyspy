@@ -90,7 +90,7 @@ spellingbee, via the shared `useFoundWordSubmit` hook). No `common.words`
 round-trip at guess time.
 
 - **Required words** — the set the board is **built and judged against**:
-  `difficulty ≤ band` plus the **clean filter** (`american, crude=0, slur=0,
+  `band ≤ the setup's` plus the **clean filter** (`american, crude=0, slur=0,
   slang=0`) and `len ≥ min_word_length`. The solver finds them all at board
   creation; every board constraint (word count, score, longest word) is measured
   **only** against this set, and the unfound ones are the "missed words" reveal.
@@ -114,10 +114,10 @@ round-trip at guess time.
 band and a legal band, with `legal_band ≥ band` (every required word is also
 legal). The required band carries the clean filter because it's the set that's
 *surfaced* (constraints, missed-words reveal). The legal band filters on
-**difficulty only** — any dialect (us/uk/au/ca) and any register (slurs, crude,
+**the band only** — any dialect (us/uk/au/ca) and any register (slurs, crude,
 slang) qualifies — because among friends a bonus is "any real word you can dig
 up" within the chosen obscurity ceiling. Raise the legal band to reward rarer
-finds; lower it to keep bonuses close to the required difficulty. Defaults:
+finds; lower it to keep bonuses close to the required band. Defaults:
 required ≤3 (familiar), legal ≤5.
 
 Enumerating the legal set costs one extra solver pass on the *accepted* board (a
@@ -163,7 +163,7 @@ solves, and reject-samples until a board meets the setup's constraints, then
 creates the game in one round-trip:
 
 1. Verify the JWT; read `{ target_club, setup, player_user_ids, mode }`.
-2. Get the **required trie** for `difficulty ≤ setup.band` (a view of the one
+2. Get the **required trie** for `band ≤ setup.band` (a view of the one
    trie built from the bundled word list — [§5](#5-dictionary-delivery) —
    memoized per band at module scope).
 3. Loop up to a try budget (also wall-clock-bounded so impossible constraints
@@ -177,7 +177,7 @@ creates the game in one round-trip:
      longest word in `[minLongest, maxLongest]`, all measured over the required
      set.
 4. On accept → enumerate the **bonus** set: get the **legal trie** for
-   `legal_band` (`legalTrie(legal_band)` — the *difficulty-only* set, so
+   `legal_band` (`legalTrie(legal_band)` — the *band-only* set, so
    crude/slur/slang/non-american words count; distinct from the clean
    `requiredTrie` the board was solved against) and run `listWords` once on the
    accepted board, minus the required set (`listBonusWords` in
@@ -262,7 +262,7 @@ queried at cold start:
   required-eligible filter `american, crude=0, slur=0, slang=0`), and writes
   `boggle-build-board/wordlist.ts` as a gzip+base64 blob (~283k words, ~1.25
   MB). `dict.ts` serves it as two sets: **`requiredTrie`** (clean — board
-  generation) and **`legalTrie`** (all, difficulty-only — bonus enumeration), so
+  generation) and **`legalTrie`** (all, band-only — bonus enumeration), so
   the legal net includes the crude/slur/slang/non-american words the clean
   filter drops. It reads the **table**, not `~/src/gamelist/output/words.tsv`
   (that file is only the `common.words` importer's input).
@@ -272,7 +272,7 @@ queried at cold start:
   several steps later. Run it manually (`gmake g-boggle-trie`) before
   `supabase functions serve` locally.
 - **Cold start (once per isolate):** decode the blob and build ONE trie of every
-  word, each terminal carrying its difficulty and clean flag. **Per band:** a
+  word, each terminal carrying its band and clean flag. **Per band:** a
   view of it — the same `children`, its own `eow` marking the words that set
   admits — memoized by band. A full trie is ~110 MB against a worker's 256 MB,
   so a separate trie per set cannot fit: band 6 would need two full ones.

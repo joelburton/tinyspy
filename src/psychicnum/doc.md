@@ -31,7 +31,7 @@ game area has, not anything about guessing words.
 ## Game rules
 
 **The board is one board.** N words (5–20, chosen at setup) sampled from
-`common.words` under a clean + American + non-slang + difficulty-band filter,
+`common.words` under a clean + American + non-slang + band filter,
 the same N for everyone in the game: five-letter words, plus exactly one
 nine-letter word for texture. **Three of them are secret**, the same
 three for everyone, and hidden server-side — a client cannot tell which, even
@@ -195,7 +195,7 @@ their sentence.)
 ### `psychicnum.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
 Deals a game. It samples `word_count` distinct words from `common.words` under
-a clean + American + difficulty-band filter (five-letter words plus one
+a clean + American + band filter (five-letter words plus one
 nine-letter word — see Game rules), picks three of them as the
 secrets, writes the `common.games` row and a per-player budget row, and writes
 the statuses. `p_mode` decides both the gametype string

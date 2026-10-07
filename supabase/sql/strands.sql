@@ -1276,12 +1276,12 @@ begin
     ) then
       v_result := 'duplicate';
     elsif exists (
-      -- The MAY-ENTER tier (docs/common.md): difficulty alone gates a word the
+      -- The MAY-ENTER tier (docs/common.md): the band alone gates a word the
       -- player CHOSE to type. No slur / crude / slang / dialect filter — we
       -- don't put those in front of you, and we don't stop you typing one.
       select 1 from common.words w
        where w.word = v_word
-         and w.difficulty <= g.band
+         and w.band <= g.band
     ) then
       v_result := 'hint_word';
     else

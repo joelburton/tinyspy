@@ -8,7 +8,7 @@ import { reportUnhandled } from '../supabase/dbEnvelope'
  *  levels, slang, wordle-list membership. Present on any in-list word; absent
  *  when `not-a-word`. Surfaced as the small muted line under a definition. */
 export type WordMeta = {
-  difficulty: number
+  band: number
   american: boolean
   british: boolean
   canadian: boolean

@@ -10,7 +10,7 @@
  *
  * **Terminals.** `eow[node]` is `0` for "not a word"; nonzero marks a word
  * ending. `buildTrie` stores `1` there, or the caller's own value when given
- * `ratings` — a difficulty, say — so one trie can answer "is this a word, and
+ * `ratings` — a band, say — so one trie can answer "is this a word, and
  * which kind?" at query time. Code that only asks "is this a word?" tests
  * `eow` for truthiness, and reads a rated trie and an unrated one alike.
  */

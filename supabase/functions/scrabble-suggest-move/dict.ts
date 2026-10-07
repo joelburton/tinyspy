@@ -5,7 +5,7 @@
  *
  * `wordlist.ts` is a gzip+base64 blob of the AI's word universe (len 2..15,
  * american OR british, all dictionary bands, minus slurs + profanity — one
- * line per word, `"<difficulty><word>"`). That last clause makes it NARROWER
+ * line per word, `"<band><word>"`). That last clause makes it NARROWER
  * than play_word's: a player may play a crude word, the AI may not (see
  * generate-scrabble-wordlist.ts, and docs/word-list.md → Which words a game may
  * use). It is GENERATED and git-ignored (~1.2 MB): run
@@ -13,7 +13,7 @@
  * `supabase functions serve`; `gmake deploy-funcs` does it automatically.
  *
  * Unlike boggle's dict.ts there are no per-band tries: we build ONE
- * all-bands trie whose terminals carry each word's difficulty (rated
+ * all-bands trie whose terminals carry each word's band (rated
  * terminals — see `src/shared/dict-trie/trie.ts`), and the per-game band
  * check happens at query time via the `isLegal` predicate. Memoised as a
  * per-isolate singleton, so warm invocations skip both the gzip decode and
@@ -40,7 +40,7 @@ async function decodeAndBuild(): Promise<Trie> {
   return buildTrie(words, ratings)
 }
 
-/** The one difficulty-rated, all-bands trie. Async only because the one-time
+/** The one band-rated, all-bands trie. Async only because the one-time
  *  gzip decode is; the promise is the memo, so concurrent cold-start calls
  *  share a single build. */
 export function ratedTrie(): Promise<Trie> {

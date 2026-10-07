@@ -132,7 +132,7 @@ select target::text as w from wordle.games where game_id = (select id from g3);
 create temp table valw3 on commit drop as
 select word, row_number() over (order by word) as rn
   from common.words
- where len = 5 and difficulty <= 4 and word <> (select w from tgt3)
+ where len = 5 and band <= 4 and word <> (select w from tgt3)
  order by word limit 5;
 grant select on valw3 to authenticated;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

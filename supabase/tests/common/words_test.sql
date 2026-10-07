@@ -38,7 +38,7 @@ select plan(10);
 -- start with no definition (definition_source NULL = never looked up).
 reset role;
 insert into common.words
-  (word, difficulty, american, british, canadian, australian, len,
+  (word, band, american, british, canadian, australian, len,
    definition, definition_source)
 values
   ('zzwordtestalpha', 1, true, true, true, true, 15,
@@ -122,7 +122,7 @@ select is(
 -- (9) definition_source CHECK rejects an unknown one-char code
 select throws_ok(
   $$ insert into common.words
-       (word, difficulty, american, british, canadian, australian, len,
+       (word, band, american, british, canadian, australian, len,
         definition_source)
      values ('zzwordtestbad', 1, true, true, true, true, 13, 'x') $$,
   '23514',

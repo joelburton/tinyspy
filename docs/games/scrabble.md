@@ -260,7 +260,7 @@ The legal word set is the shared `common.words` list (see [word-list.md → The
 word list](../word-list.md#the-word-list-commonwords)), gated by **two per-game
 dictionary bands** chosen at setup — one for **2-letter** words (`dict_2`) and
 one for **3+-letter** words (`dict_3plus`), both 1..6. A word is legal iff
-`difficulty ≤ the band for its length` and it's valid in the **american OR
+`band ≤ the band for its length` and it's valid in the **american OR
 british** dialect (the codebase's default-play convention). The two-band split
 (the same bananagrams uses) exists because 2-letter words are a thin, separate
 vocabulary you usually want to gate independently of the rest. No clean filter —
@@ -870,9 +870,9 @@ reuses:
 - `suggest.ts` — `generateMoves`: complete legal-move enumeration, the Appel &
   Jacobson 1988 recipe (anchors, cross-check masks, left parts) run across +
   transposed, over the shared flat trie (`shared/dict-trie/trie.ts`, whose
-  **rated terminals** carry each word's difficulty 1..6). Its `isLegal` is the
+  **rated terminals** carry each word's band 1..6). Its `isLegal` is the
   band predicate, applied to every formed word — main and cross-words alike:
-  `difficulty ≤ (len = 2 ? dict_2 : dict_3plus)`, matching `play_word`'s SQL by
+  `band ≤ (len = 2 ? dict_2 : dict_3plus)`, matching `play_word`'s SQL by
   construction. Verified by **exact move-set equality against a brute-force
   reference generator** in `suggest.test.ts`.
 - `rank.ts` — `rankMoves`: every candidate scored **through `evaluatePlay`**

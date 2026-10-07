@@ -181,7 +181,7 @@ export function SetupForm({
           name="legal_band"
           error={errors.legal_band}
           label="Legal (bonus) words"
-          help="How obscure a non-required word can be and still score as a bonus. These filter on difficulty only (any spelling or dialect counts), so a higher band rewards digging up rarer finds."
+          help="How obscure a non-required word can be and still score as a bonus. These filter on the band only (any spelling or dialect counts), so a higher band rewards digging up rarer finds."
           length={null}
           minBand={s.band}
           maxBand={6}

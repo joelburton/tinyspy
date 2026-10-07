@@ -6,11 +6,11 @@ import { setShownWordEditDialog } from '../word-edit/wordEditStore'
 import { parseDefinition } from './parseDefinition'
 import styles from './DefinitionView.module.css'
 
-/** The small muted tags under a definition: difficulty band, the dialects it's
+/** The small muted tags under a definition: the band, the dialects it's
  *  valid in (US/CA/UK/AU), any slur/crude level, a slang flag, and wordle-list
  *  membership. */
 function metaTags(m: WordMeta): string[] {
-  const tags = [`band ${m.difficulty}`]
+  const tags = [`band ${m.band}`]
   const dialects = [
     m.american && 'US',
     m.canadian && 'CA',

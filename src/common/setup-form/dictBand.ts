@@ -2,7 +2,7 @@
 
 /**
  * Dictionary bands (1..6), shared by every word game's setup. The
- * band IS `common.words.difficulty`; the labels + sample words here just SIGNAL
+ * band IS `common.words.band`; the labels + sample words here just SIGNAL
  * to a player roughly how obscure each band feels. They're illustrative only —
  * NOT a validated word list (a game may not even accept words this short).
  *

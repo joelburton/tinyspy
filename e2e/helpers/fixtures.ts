@@ -801,7 +801,7 @@ export async function createWordleGame(
 /**
  * Seed `n` accepted guesses on a wordle game so a test loads a board that already
  * has event-log rows (for the turn-history viewer). Picks `n` distinct legal words —
- * real 5-letter words of difficulty ≤ the game's `legal_band` band, EXCLUDING the
+ * real 5-letter words at band ≤ the game's `legal_band`, EXCLUDING the
  * hidden target so the game stays mid-play (a correct guess would end it) — then
  * submits each through `wordle.submit_guess` as the player (the same path the FE
  * uses, so the rows + colors are real). Returns the guessed words (upper-cased), in
@@ -832,7 +832,7 @@ export async function seedWordleGuesses(
   const [target, band] = q(`select target, legal_band from wordle.games where game_id = '${gameId}';`)[0].split('|')
   const words = q(
     `select word from common.words ` +
-      `where len = 5 and difficulty <= ${Number(band)} and word <> '${target}' limit ${Number(n)};`,
+      `where len = 5 and band <= ${Number(band)} and word <> '${target}' limit ${Number(n)};`,
   )
   if (words.length < n) throw new Error(`legal words: got ${words.length}/${n}`)
 

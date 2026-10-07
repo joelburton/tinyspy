@@ -67,8 +67,8 @@ describe('AnagramDialog', () => {
         data: {
           result: 'searched',
           words: [
-            { word: 'acer', difficulty: 4 },
-            { word: 'acre', difficulty: 1 },
+            { word: 'acer', band: 4 },
+            { word: 'acre', band: 1 },
           ],
         },
       },
@@ -186,7 +186,7 @@ describe('AnagramDialog — Escape with a definition open', () => {
   // the dialog's — it is what hears Escape first.
   async function defineAResult(onClose: () => void) {
     mockRpc.mockResolvedValue({
-      data: { type: 'ok', data: { result: 'searched', words: [{ word: 'acre', difficulty: 1 }] } },
+      data: { type: 'ok', data: { result: 'searched', words: [{ word: 'acre', band: 1 }] } },
       error: null,
     })
     const user = userEvent.setup()

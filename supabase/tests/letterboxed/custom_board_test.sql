@@ -52,12 +52,12 @@ select plan(11);
 -- `on conflict` because the real importer may already hold these twelve: the
 -- fixture has to be deterministic whether or not `gmake g-letterboxed-seeds`
 -- has run against this database.
-insert into letterboxed.seeds (letters, word_a, word_b, difficulty)
+insert into letterboxed.seeds (letters, word_a, word_b, band)
 values ('abcdefghijkl', 'adgjbehk', 'kcfil', 2)
 on conflict (letters) do update
   set word_a = excluded.word_a,
       word_b = excluded.word_b,
-      difficulty = excluded.difficulty;
+      band = excluded.band;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 

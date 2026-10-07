@@ -37,7 +37,7 @@ select target::text as w from wordle.games where game_id = (select id from g1);
 create temp table valw on commit drop as
 select word, row_number() over (order by word) as rn
   from common.words
- where len = 5 and difficulty <= 4 and word <> (select w from tgt)
+ where len = 5 and band <= 4 and word <> (select w from tgt)
  order by word limit 5;
 grant select on tgt to authenticated;
 grant select on valw to authenticated;

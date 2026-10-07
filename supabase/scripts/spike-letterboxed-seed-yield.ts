@@ -40,7 +40,7 @@ type Word = { word: string; band: number; mask: number; first: number; last: num
 console.log('loading pool…')
 const t0 = Date.now()
 const sql = `\\copy (
-  select word, difficulty from common.words
+  select word, band from common.words
    where american and british and crude = 0 and slur = 0 and not slang
      and length(word) >= ${MIN_LEN}
 ) to stdout with (format csv, delimiter E'\\t')`
@@ -109,7 +109,7 @@ console.log(
 // ── stage 2: exhaustive 2-word pair search ──────────────────────────────────
 // A seed is a 12-letter SET reachable as the union of a chained word pair.
 // Band of a seed = min over its solutions of max(bandA, bandB) — the easiest
-// pair that solves it, mirroring wordwheel.pangrams.difficulty.
+// pair that solves it, mirroring wordwheel.pangrams.band.
 console.log('\npair search…')
 const t1 = Date.now()
 type Seed = { band: number; a: string; b: string }

@@ -138,7 +138,7 @@ set search_path = wordiply, common, public, extensions
 as $$
   select w.word, w.len
     from common.words w
-   where w.difficulty <= p_legal_band
+   where w.band <= p_legal_band
      and w.american
      and not w.slang
      and w.slur = 0
@@ -176,7 +176,7 @@ as $$
       from (
         select word from common.words
          where american and not slang and slur = 0 and crude = 0
-           and difficulty <= p_source_band
+           and band <= p_source_band
            and len between 4 and 9
          order by random()
          limit p_n
@@ -640,7 +640,7 @@ drop function if exists wordiply.create_game(text, jsonb, uuid[], text, jsonb);
 -- checked.
 --
 -- Setup shape (server validates):
---   { "difficulty": 1..6 (the band the legal words are drawn from; default 5),
+--   { "dict_band": 1..6 (the band the legal words are drawn from; default 5),
 --     "custom_base": "moth" (optional, 2–4 letters: the player names the base
 --       instead of the builder sampling one; stripped from the club's saved
 --       default, since it is a one-off challenge, not a new baseline),

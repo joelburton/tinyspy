@@ -104,7 +104,7 @@ export type GRefusedMark = Mark<{
  *     the displayed goal words come from; `legal_band`
  *     (required_band..6) is the wider set of accepted/bonus words;
  *     it must contain the required band (see `legalError`). The seed
- *     pool is tagged by difficulty, so a random board's pangram is
+ *     pool is tagged by band, so a random board's pangram is
  *     findable at the required band, but a narrow `required_band` can
  *     still leave no board with 15 required words, which the edge
  *     function refuses under this field.

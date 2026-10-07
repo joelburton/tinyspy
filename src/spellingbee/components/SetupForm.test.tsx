@@ -114,7 +114,7 @@ describe('spellingbee setup — where a refusal lands', () => {
     // PN177, from the builder: it wants at least thirty words at the REQUIRED
     // band, so a narrow one starves it — and that select is the only lever the
     // player has over it.
-    const message = 'No puzzle could be built at that required difficulty. Try a wider one.'
+    const message = 'No puzzle could be built at that required band. Try a wider one.'
     draw({ errors: { required_band: message } })
     expect(errorUnder('required_band')).toBe(message)
   })

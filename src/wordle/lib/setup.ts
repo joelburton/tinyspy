@@ -30,7 +30,7 @@ export const WORD_LENGTH = 5
  * reach, since every possible answer has to be a word the game accepts as a
  * guess.
  *
- * The real bands 1..6 accumulate: band N is every word at difficulty N or
+ * The real bands 1..6 accumulate: band N is every word at band N or
  * easier, so band 2 contains all of band 1. An answer band of N therefore tops
  * out at N. Answer band 0 is not a band: it is the curated NYT-Wordle answer
  * list, which matches neither band 1 nor band 2 — but every word on it is at

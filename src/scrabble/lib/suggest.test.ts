@@ -26,8 +26,8 @@ describe('isLegal — the two-band legality predicate', () => {
   const legalityOf = (word: string) => isLegal(trie, bands, walkWord(trie, word), word.length)
 
   it('gates 2-letter words by dict2', () => {
-    expect(legalityOf('at')).toBe(true)  // difficulty 1 ≤ dict2 2
-    expect(legalityOf('xi')).toBe(false) // difficulty 4 > dict2 2
+    expect(legalityOf('at')).toBe(true)  // band 1 ≤ dict2 2
+    expect(legalityOf('xi')).toBe(false) // band 4 > dict2 2
   })
 
   it('gates 3+ words by dict3plus', () => {

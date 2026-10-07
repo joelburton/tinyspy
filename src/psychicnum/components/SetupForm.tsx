@@ -105,7 +105,7 @@ export function SetupForm({
       </SetupSection>
       <SetupSection label={dictLabel}>
         {/* Dictionary band: board words are drawn from common.words at
-            difficulty ≤ this (harder bands add more obscure words). */}
+            band ≤ this (harder bands add more obscure words). */}
         <DictBandField
           name="band"
           error={errors.band}

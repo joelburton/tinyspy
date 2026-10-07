@@ -57,7 +57,7 @@ const A = 'a'.charCodeAt(0)
 const BOARD_SIZE = 12
 /** Letter Boxed's own floor; shorter words aren't accepted anywhere. */
 const MIN_LEN = 3
-/** Ceiling for a SEED word's difficulty band — see the docstring. */
+/** Ceiling for a SEED word's band band — see the docstring. */
 const MAX_SEED_BAND = 2
 
 const popcount = (n: number): number => {
@@ -134,9 +134,9 @@ function main() {
   // -X skips ~/.psqlrc, which can print banner lines into stdout.
   console.log(`Loading band <= ${MAX_SEED_BAND} words from common.words...`)
   const sql = `\\copy (
-    select word, difficulty from common.words
+    select word, band from common.words
      where american and british and crude = 0 and slur = 0 and not slang
-       and difficulty <= ${MAX_SEED_BAND}
+       and band <= ${MAX_SEED_BAND}
        and length(word) >= ${MIN_LEN}
   ) to stdout with (format csv, delimiter E'\\t')`
   const raw = execFileSync('psql', [DB_URL, '-X', '-v', 'ON_ERROR_STOP=1', '-c', sql], {
@@ -207,11 +207,11 @@ function main() {
   }
 
   // ── the pair scan ───────────────────────────────────────────────────────
-  // A seed is a twelve-letter SET; its difficulty is the band of the EASIEST
+  // A seed is a twelve-letter SET; its band is the band of the EASIEST
   // pair producing it, so we keep the minimum over all pairs.
   console.log('Scanning for chained pairs...')
   const t0 = Date.now()
-  type Seed = { difficulty: number; a: string; b: string }
+  type Seed = { band: number; a: string; b: string }
   const seeds = new Map<number, Seed>()
   let tested = 0
 
@@ -224,10 +224,10 @@ function main() {
           tested++
           const union = mA | bucket[i]!.mask
           if (popcount(union) !== BOARD_SIZE) continue
-          const difficulty = Math.max(repA.band, bucket[i]!.band)
+          const band = Math.max(repA.band, bucket[i]!.band)
           const prev = seeds.get(union)
-          if (!prev || difficulty < prev.difficulty) {
-            seeds.set(union, { difficulty, a: repA.word, b: bucket[i]!.word })
+          if (!prev || band < prev.band) {
+            seeds.set(union, { band, a: repA.word, b: bucket[i]!.word })
           }
         }
       }
@@ -252,8 +252,8 @@ function main() {
       droppedUnpartitionable++
       continue
     }
-    byBand[seed.difficulty - 1]!++
-    rows.push([letters, seed.a, seed.b, seed.difficulty])
+    byBand[seed.band - 1]!++
+    rows.push([letters, seed.a, seed.b, seed.band])
   }
   console.log(
     `Kept ${rows.length.toLocaleString()} seeds ` +
@@ -265,7 +265,7 @@ function main() {
   console.log(`Loading ${rows.length.toLocaleString()} seed rows via COPY...`)
   // `mask` is a generated column — omitted from the COPY column list, it
   // self-fills from `letters`.
-  copyLoad(DB_URL, 'letterboxed.seeds', ['letters', 'word_a', 'word_b', 'difficulty'], rows)
+  copyLoad(DB_URL, 'letterboxed.seeds', ['letters', 'word_a', 'word_b', 'band'], rows)
   console.log('Done.')
 }
 

@@ -57,7 +57,7 @@ select is(
 reset role;
 -- A duplicate-letter multiset seed ('a' ×3) — `letters` is the PK; `mask` is
 -- GENERATED from it (the distinct-letter set), so it isn't in the column list.
-insert into wordwheel.pangrams (letters, difficulty, word_counts, has_rare_letters)
+insert into wordwheel.pangrams (letters, band, word_counts, has_rare_letters)
 values ('aaabcdefg', 1, '[0,0,0,0,0,0]'::jsonb, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

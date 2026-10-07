@@ -236,7 +236,7 @@ as $$
            (w.american and w.british
               and w.crude = 0 and w.slur = 0 and not w.slang) as is_clean
       from common.words w
-     where w.difficulty <= p_max_band
+     where w.band <= p_max_band
        and w.len >= 3
        and (w.letter_mask & ~p_board_mask) = 0
   )
@@ -269,15 +269,15 @@ drop function if exists letterboxed.pick_seed(int);
 -- 458k seeds over C(26,12) possible letter sets, a club would have to
 -- play for years to notice a repeat.
 create or replace function letterboxed.pick_seed(p_max_band int)
-returns table(letters text, word_a text, word_b text, difficulty int)
+returns table(letters text, word_a text, word_b text, band int)
 language sql
 stable
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
-  select s.letters::text, s.word_a, s.word_b, s.difficulty
+  select s.letters::text, s.word_a, s.word_b, s.band
     from letterboxed.seeds s
-   where s.difficulty <= p_max_band
+   where s.band <= p_max_band
    order by random()
    limit 1;
 $$;
@@ -313,13 +313,13 @@ drop function if exists letterboxed.seed_for(text);
 -- to authenticated` alone yields zero rows. Reading the pool has to go
 -- through a definer function.
 create or replace function letterboxed.seed_for(p_board_letters text)
-returns table(letters text, word_a text, word_b text, difficulty int)
+returns table(letters text, word_a text, word_b text, band int)
 language sql
 stable
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
-  select s.letters::text, s.word_a, s.word_b, s.difficulty
+  select s.letters::text, s.word_a, s.word_b, s.band
     from letterboxed.seeds s
    where s.letters = p_board_letters;
 $$;

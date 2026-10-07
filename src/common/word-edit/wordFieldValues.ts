@@ -8,7 +8,7 @@ import type { Database } from '@/types/db'
 export type WordFields = {
   definition: string
   hint: string
-  difficulty: string
+  band: string
   crude: string
   slur: string
   slang: boolean
@@ -26,7 +26,7 @@ export type WordFormValues = WordFields & { new_word: string; note: string }
 export const EMPTY_WORD_FIELDS: WordFields = {
   definition: '',
   hint: '',
-  difficulty: '',
+  band: '',
   crude: '0',
   slur: '0',
   slang: false,
@@ -42,7 +42,7 @@ export const DIALECTS = ['american', 'british', 'canadian', 'australian'] as con
  *  blocks — they differ only in name, caption and range, and writing that three
  *  times is how the caption and the range drift apart. */
 export const NUMBER_FIELDS = [
-  { key: 'difficulty', label: 'Band (1–6)', min: 1, max: 6 },
+  { key: 'band', label: 'Band (1–6)', min: 1, max: 6 },
   { key: 'crude', label: 'Crude (0–2)', min: 0, max: 2 },
   { key: 'slur', label: 'Slur (0–2)', min: 0, max: 2 },
 ] as const
@@ -55,14 +55,14 @@ type WordColumns = Pick<
 
 /** The select string for exactly those columns. */
 export const WORD_FIELD_COLUMNS =
-  'definition, hint, difficulty, crude, slur, slang, american, british, canadian, australian'
+  'definition, hint, band, crude, slur, slang, american, british, canadian, australian'
 
 /** A stored row as the form's starting values. */
 export function readFields(row: WordColumns): WordFields {
   return {
     definition: row.definition ?? '',
     hint: row.hint ?? '',
-    difficulty: String(row.difficulty),
+    band: String(row.band),
     crude: String(row.crude),
     slur: String(row.slur),
     slang: row.slang,
@@ -77,7 +77,7 @@ export function readFields(row: WordColumns): WordFields {
  *  null (clearing a definition or hint), booleans as they are. */
 export function toWireValue(key: keyof WordFields, value: WordFields[keyof WordFields]): unknown {
   if (typeof value === 'boolean') return value
-  if (key === 'difficulty' || key === 'crude' || key === 'slur') return Number(value)
+  if (key === 'band' || key === 'crude' || key === 'slur') return Number(value)
   return value === '' ? null : value
 }
 
@@ -105,7 +105,7 @@ export function makePatch(
  *
  * `add_word` and `update_word` take the ten columns as one jsonb argument, so a
  * validation about what is inside it can only name that argument — PN028 ("Pick
- * a difficulty") raises `column = 'fields'`. There is no box called `fields`,
+ * a band") raises `column = 'fields'`. There is no box called `fields`,
  * so the message goes on the form's own line rather than into an errors key
  * nothing renders. An envelope's `field` is null when the raise named no
  * column, which is the ordinary case.

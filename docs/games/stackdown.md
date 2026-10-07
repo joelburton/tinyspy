@@ -125,7 +125,7 @@ no-traps**; validate against *all* completions, not one.
 ### 2.5 The lexicon is a *generation-time* concern only
 
 The word list is chosen per generation run by a **band** — a
-`common.words.difficulty` level (`difficulty = band AND american AND slur = 0
+`common.words.band` level (`band = N AND american AND slur = 0
 AND crude = 0 AND len = 5`). `band 1` is the everyday set; `band 2` is the next
 tier, and a band-N board is made **entirely** of band-N words (no lower-band
 words mixed in). Whichever set a board is generated against is what the no-trap
@@ -225,7 +225,7 @@ Built as the standard sibling-manifest pair (`stackdown_coop`,
 
 | table | what it holds | visibility |
 |---|---|---|
-| `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `band int` (word-difficulty 1..6; the pool `create_game` filters on) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
+| `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `band int` (dictionary band 1..6; the pool `create_game` filters on) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
 | `stackdown.games` | one row per game, keyed `game_id` to `common.games`: `tiles` jsonb, `solution text[]`, `board_id` (provenance). The band is `setup.band`; the mode is `common.games.mode` | `tiles` granted; `solution` **column-excluded** |
 | `stackdown.players` | `(game_id, user_id)` → `n_found_words`, each player's own count in both modes. A solve is `common.game_players.solved_at` | club members |
 | `stackdown.events` | the durable game log, keyed by a `bigint identity` and read `order by id`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'spoiler'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint's clue or the word itself). `took_turn` is true on a `word` — accepted or refused — and on a `spoiler`, false on a `hint`: stackdown has no rotation, and the column is the record of turns taken regardless | club members |
@@ -480,7 +480,7 @@ re-run across hundreds of boards on every `db-reset`. So it's split, mirroring
 - **`gmake g-stackdown-genpuzzles COUNT=n [SEED=s] [BAND=b]`**
   (`generate-stackdown-boards.ts`) — the SLOW half, run rarely. `COUNT` is
   required — running with no count just prints usage and generates nothing.
-  Loads the 5-letter lexicon at the chosen `band` (`difficulty = band` exactly,
+  Loads the 5-letter lexicon at the chosen `band` (the word's `band` is the setup's, exactly,
   default 1) from `common.words` (read-only), generates N strictly-valid boards
   on the fixed geometry, and **appends** them to
   `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a committed,

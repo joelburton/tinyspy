@@ -25,7 +25,7 @@ type Props = AllFieldProps<number> & {
  * named the CONSEQUENCE, and named it ambiguously, since several of these games
  * have a separate difficulty knob that has nothing to do with vocabulary.
  *
- * The band is a `common.words.difficulty` value and the column keeps that name —
+ * The band is a `common.words.band` value —
  * it is the DB's word, and each game's RPC does the actual filtering. The
  * bands and their samples are `setup-form/dictBand.ts`'s.
  */

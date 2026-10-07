@@ -7,7 +7,7 @@ spell, each one click-to-define.
 
 A player holding a rack of letters wants to know what words are in it. This
 dialog answers that anywhere in the app: press ⌥~, type the letters, press
-Enter, and the words appear in a list, easiest first, with the difficulty band
+Enter, and the words appear in a list, easiest first, with the band
 beside each. The matching is the server's, in `common.anagrams`
 ([docs/word-list.md](../../../docs/word-list.md) → The anagram query); the dialog
 only tidies what was typed and shows the rows.

@@ -120,10 +120,10 @@ drop function if exists spellingbee._leaderboard(uuid, int);
 -- list is defined, on the 1..6 recognizability bands. Both bands are now a
 -- per-game setup choice (`required_band` 1..6, `legal_band` required..6), threaded in by
 -- the edge function:
---   - legal      difficulty <= p_legal_band  (returned at all = enterable). No
+--   - legal      band <= p_legal_band  (returned at all = enterable). No
 --                dialect / slang / crude / slur restriction — anything up
 --                to the legal band counts if you play it.
---   - required   difficulty <= p_required_band AND american AND NOT slang AND
+--   - required   band <= p_required_band AND american AND NOT slang AND
 --                clean (slur = 0 AND crude = 0) — the is_required flag; counts
 --                toward the displayed goal + rank denominator. Crude/slur
 --                words are legal but never required. Words that are legal
@@ -162,12 +162,12 @@ set search_path = spellingbee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= p_required_band and w.american and not w.slang
+         (w.band <= p_required_band and w.american and not w.slang
             and w.slur = 0 and w.crude = 0)
            as is_required
     from common.words w
    where w.len >= 4
-     and w.difficulty <= p_legal_band
+     and w.band <= p_legal_band
      -- Subset of puzzle: every letter bit of the word must be
      -- present in the puzzle's bitmask (reads the generated
      -- common.words.letter_mask). Not sargable, so this is a

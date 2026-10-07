@@ -115,7 +115,7 @@ describe('wordwheel setup — where a refusal lands', () => {
   it('puts an empty seed pool under Required words', () => {
     // PN195 and PN198: a band with no nine-letter seeds at all, and a band no
     // seed can clear the word-count gate at. Both are about that select.
-    const message = 'No pangram seeds at required difficulty 1'
+    const message = 'No pangram seeds at required band 1'
     draw({ errors: { required_band: message } })
     expect(errorUnder('required_band')).toBe(message)
   })
@@ -123,7 +123,7 @@ describe('wordwheel setup — where a refusal lands', () => {
   it('puts the unique-letters refusal on the checkbox that caused it', () => {
     // PN196 — the one refusal wordwheel has that spellingbee cannot make.
     const message =
-      'No unique-letter boards at required difficulty 1 — try a higher difficulty or turn off "unique letters only"'
+      'No unique-letter boards at required band 1 — try a higher band or turn off "unique letters only"'
     draw({ errors: { unique_letters: message } })
     expect(errorUnder('unique_letters')).toBe(message)
   })

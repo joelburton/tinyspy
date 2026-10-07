@@ -473,12 +473,12 @@ drop function if exists psychicnum.create_game(text, jsonb, uuid[], text);
 -- Setup shape (same in both modes):
 --   { "max_guesses": 1..9,
 --     "word_count": 5..20,           -- how many words on the board
---     "band": 1..6,                  -- dictionary band (common.words.difficulty)
+--     "band": 1..6,                  -- dictionary band (common.words.band)
 --     "timer":   { "kind": "none" | "countup" }
 --             |  { "kind": "countdown", "seconds": 1..3600 } }
 --
 -- The board is `word_count` distinct words sampled from common.words under a
--- clean + american + difficulty-≤-band filter — five-letter words and one
+-- clean + american + band filter — five-letter words and one
 -- nine-letter word; three of them become the hidden secrets.
 --
 -- max_guesses meaning, copied to `psychicnum.games.max_guesses`:
@@ -579,19 +579,19 @@ begin
   perform common._require_valid_timer(p_setup->'timer');
 
   -- The board: `word_count` distinct words sampled from the dictionary under a
-  -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter —
+  -- clean (no crude/slur), american, non-slang, band filter —
   -- five-letter words, plus exactly ONE nine-letter word. The odd one out is
   -- the board's texture: one tile whose word is visibly longer than the rest.
   select array_agg(word order by random()) into s_words
     from (
       (select word from common.words
         where slur = 0 and crude = 0 and american and not slang
-          and difficulty <= s_band and len = 5
+          and band <= s_band and len = 5
         order by random() limit s_word_count - 1)
       union all
       (select word from common.words
         where slur = 0 and crude = 0 and american and not slang
-          and difficulty <= s_band and len = 9
+          and band <= s_band and len = 9
         order by random() limit 1)
     ) picked;
 

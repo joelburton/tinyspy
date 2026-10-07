@@ -105,7 +105,7 @@ export type GAiLevel = 'beginner' | 'casual' | 'intermediate' | 'strong' | 'best
  * levers; `bingoMissProb` and `equityNoise` model not seeing the best move.
  */
 export type GStrengthKnobs = {
-  // Play only words whose difficulty is at most this (1..6); undefined is
+  // Play only words whose band is at most this (1..6); undefined is
   // every word. The game's dictionary stays the same at every level; only the
   // bot's willingness to play a word changes.
   vocabCap?: number
@@ -461,7 +461,7 @@ export type GMovePreviewRaw = {
 
 export type GSetupValues = CoopTurnSetup & {
   // The dictionary bands that gate a word, by its length (both 1..6,
-  // `common.words.difficulty`): 2-letter words are a thin vocabulary of their
+  // `common.words.band`): 2-letter words are a thin vocabulary of their
   // own. They ARE the acceptance bar — a lower band makes a stricter game. The
   // server bounds them.
   dict_2: number

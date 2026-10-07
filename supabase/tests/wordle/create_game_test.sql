@@ -107,7 +107,7 @@ select ok(
        and wordle),
   'answer_band 0 (default) draws the target from the curated Wordle list');
 
--- A difficulty-band answer source: target is band-1-or-easier; legal_band stored.
+-- A band answer source: target is band-1-or-easier; legal_band stored.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g1 on commit drop as
 select (wordle.create_game(
@@ -120,7 +120,7 @@ select is(
   (select legal_band from wordle.games where game_id = (select id from g1)),
   6, 'legal_band is stored on the games row');
 select ok(
-  (select difficulty from common.words
+  (select band from common.words
      where word = trim((select target from wordle.games where game_id = (select id from g1)))) <= 1,
   'answer_band 1 draws a band-1-or-easier target');
 

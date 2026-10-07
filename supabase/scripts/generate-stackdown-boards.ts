@@ -19,7 +19,7 @@
  *
  * What it does:
  *   1. Loads the lexicon at the chosen BAND — clean 5-letter american words
- *      with `difficulty = band` EXACTLY (`american AND slur = 0 AND crude = 0
+ *      with `band = band` EXACTLY (`american AND slur = 0 AND crude = 0
  *      AND NOT slang AND len = 5`) — from `common.words` over a direct psql connection
  *      (read-only). A band-N board is made of band-N words only. This IS the
  *      set the no-trap validation runs against — boards come out solvable and
@@ -48,8 +48,8 @@
  *           count    — how many boards to generate (REQUIRED; running with no
  *                      arguments just prints this help and generates nothing)
  *           baseSeed — first seed; board i uses baseSeed + i (default 1000)
- *           band     — word-difficulty band 1..6 (default 1). band N draws
- *                      words from `difficulty = N` EXACTLY, so a band-2 board
+ *           band     — dictionary band 1..6 (default 1). band N draws
+ *                      words from `band = N` EXACTLY, so a band-2 board
  *                      is made entirely of band-2 words (no band-1 mixed in).
  *                      The band is written onto each generated line so the
  *                      importer + create_game can key off it.
@@ -79,7 +79,7 @@ if (process.argv.length <= 2) {
       'Usage:  npm run _stackdown:gen -- <count> [baseSeed] [band]',
       '  count     how many boards to generate (required)',
       '  baseSeed  first seed; board i uses baseSeed + i (default 1000)',
-      '  band      word-difficulty band 1..6 (default 1) — band N uses difficulty = N exactly',
+      '  band      dictionary band 1..6 (default 1) — band N uses band = N exactly',
       '',
       'Example:  npm run _stackdown:gen -- 10 1000 2   # 10 band-2 boards',
       '(public entry: gmake g-stackdown-genpuzzles COUNT=10 SEED=1000 BAND=2)',
@@ -94,8 +94,8 @@ if (!Number.isInteger(COUNT) || COUNT < 1) {
   process.exit(1)
 }
 const BASE_SEED = Number(process.argv[3] ?? 1000)
-// Word-difficulty band: which common.words.difficulty a board is built from
-// (EXACTLY that difficulty — a band-N board is all band-N words). Default 1 =
+// Dictionary band: which common.words.band a board is built from
+// (EXACTLY that band — a band-N board is all band-N words). Default 1 =
 // the everyday set. Written onto every generated line.
 const BAND = Number(process.argv[4] ?? 1)
 if (!Number.isInteger(BAND) || BAND < 1 || BAND > 6) {
@@ -501,7 +501,7 @@ console.log(
 )
 
 // Load the lexicon: clean, 5-letter american words (plurals included) at
-// EXACTLY the chosen band — `difficulty = BAND`. A band-N board is made of
+// EXACTLY the chosen band — `band = BAND`. A band-N board is made of
 // band-N words only (band 1 = the everyday set; band 2 = the next tier, with
 // NO band-1 words mixed in). This is the set the no-trap validation runs
 // against, so generated boards are solvable and fork-free with respect to
@@ -517,7 +517,7 @@ const raw = execFileSync(
     '-X', // skip ~/.psqlrc — its echoed settings would leak in as junk "words"
     DB_URL,
     '-tAc',
-    `select word from common.words where slur = 0 and crude = 0 and american and not slang and difficulty = ${BAND} and len = 5`,
+    `select word from common.words where slur = 0 and crude = 0 and american and not slang and band = ${BAND} and len = 5`,
   ],
   { encoding: 'utf8' },
 )
@@ -525,7 +525,7 @@ const lexicon = new Set(
   raw.trim().split('\n').map((w) => w.trim().toUpperCase()).filter(Boolean),
 )
 if (lexicon.size === 0) {
-  console.error(`No difficulty-${BAND} words found — run \`gmake all-words ENV=local\` first.`)
+  console.error(`No band-${BAND} words found — run \`gmake all-words ENV=local\` first.`)
   process.exit(1)
 }
 console.log(`Lexicon: ${lexicon.size} band-${BAND} words.`)

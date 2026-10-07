@@ -538,7 +538,7 @@ drop function if exists wordle.create_game(text, jsonb, uuid[], text);
 -- Setup shape (server validates):
 --   { "max_guesses": 5..8 (default 6),
 --     "answer_band": 0..6 (0 = curated Wordle answer list; 1..6 =
---       that difficulty band of common.words),
+--       that band of common.words),
 --     "legal_band": 1..6 (the band a typed guess must exist in to
 --       count; default 4; must reach the answer's hardest band),
 --     "timer": (none | countup | countdown{seconds}),
@@ -629,7 +629,7 @@ begin
   -- american AND NOT slang` — because the target is a word every player is
   -- required to arrive at, which is the rule's whole domain (docs/word-list.md →
   -- Which words a game may use). The permissive half of that rule governs
-  -- GUESSES, not the answer: submit_guess deliberately filters on difficulty
+  -- GUESSES, not the answer: submit_guess deliberately filters on the band
   -- alone, so you may still type a slur at the board, it just won't be right.
   --
   -- answer_band 0: the curated 5-letter NYT answers. Clean-filtering the
@@ -648,13 +648,13 @@ begin
   else
     select word into v_target
       from common.words
-     where len = 5 and difficulty <= s_answer_band
+     where len = 5 and band <= s_answer_band
        and slur = 0 and crude = 0 and american and not slang
      order by random() limit 1;
   end if;
   if v_target is null then
     -- FAULT: can't pick an answer because no clean 5-letter words in PG. The
-    -- bands are cumulative (`difficulty <= n`), so no `answer_band` empties
+    -- bands are cumulative (`band <= n`), so no `answer_band` empties
     -- the pool on its own — every source fails together.
     raise exception 'BUG: Too few words on server to pick an answer'
       using errcode = 'PN057', hint = 'fault', column = '_',
@@ -977,7 +977,7 @@ begin
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
-  -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_band
+  -- Legal guess = a real 5-letter word at band ≤ the game's legal_band
   -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
   -- on guesses — only the dictionary band gates them).
   --
@@ -990,7 +990,7 @@ begin
   -- (banded_answer_test.sql).
   if norm <> lower(g_row.target) and not exists (
     select 1 from common.words
-     where word = norm and len = 5 and difficulty <= g_row.legal_band
+     where word = norm and len = 5 and band <= g_row.legal_band
   ) then
     return common._ok_envelope(
       jsonb_build_object('result', 'notAWord', 'n_guesses_used', v_used,

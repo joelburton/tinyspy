@@ -47,12 +47,12 @@ const boards: BoardLine[] = readFileSync(BOARDS_FILE, 'utf8')
   .map((l) => JSON.parse(l) as BoardLine)
 
 // The generator's lexicon rule, per band: clean 5-letter american words
-// at EXACTLY that difficulty. A board word that no longer satisfies its
+// at EXACTLY that band. A board word that no longer satisfies its
 // own band's rule is what we're looking for.
 const rows = execFileSync(
   'psql',
   ['-X', '-tAF', '\t', '-d', DB_URL, '-c',
-   `select difficulty, word from common.words
+   `select band, word from common.words
      where slur = 0 and crude = 0 and american and not slang and len = 5`],
   { encoding: 'utf8', maxBuffer: 1 << 26 },
 )

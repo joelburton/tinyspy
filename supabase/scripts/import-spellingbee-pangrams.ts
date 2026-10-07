@@ -24,7 +24,7 @@
  * diverse builder uses.
  *
  * Source: `common.words`, the shared master list (loaded by
- * `gmake all-words`). The required pool is: difficulty <=
+ * `gmake all-words`). The required pool is: band <=
  * REQUIRED_BAND, american, not slang, clean (slur 0 + crude 0), len >= 4, and
  * (defensively) no 's' (a board never contains 's', so an s-word can't
  * seed or fit one). Seeds are the band-1 subset of that pool. This
@@ -128,15 +128,15 @@ type PangramRow = {
 }
 
 /** Pull the REQUIRED pool out of common.words as (letter_mask,
- *  difficulty) pairs. letter_mask is the generated column — already
+ *  band) pairs. letter_mask is the generated column — already
  *  the 26-bit set we need. The band-1 subset seeds the pangrams; the
  *  whole pool is what each seed's word-count is taken over. psql -At
- *  gives tab-separated rows; we parse mask→BigInt, difficulty→number. */
-function loadRequiredPool(): { mask: bigint; difficulty: number }[] {
+ *  gives tab-separated rows; we parse mask→BigInt, band→number. */
+function loadRequiredPool(): { mask: bigint; band: number }[] {
   const query = `
-    select letter_mask, difficulty
+    select letter_mask, band
       from common.words
-     where difficulty <= ${REQUIRED_BAND}
+     where band <= ${REQUIRED_BAND}
        and american
        and not slang
        and slur = 0
@@ -146,23 +146,23 @@ function loadRequiredPool(): { mask: bigint; difficulty: number }[] {
   `
   // -X skips ~/.psqlrc (a user's \pset lines would otherwise echo
   // confirmation noise into stdout and corrupt the parse); -At gives
-  // unaligned, tuples-only output — one `mask|difficulty` per line.
+  // unaligned, tuples-only output — one `mask|band` per line.
   const out = execFileSync(
     'psql',
     ['-X', '-At', '-F', '|', DB_URL, '-c', query],
     { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 },
   )
-  const pool: { mask: bigint; difficulty: number }[] = []
+  const pool: { mask: bigint; band: number }[] = []
   for (const line of out.split('\n')) {
     if (line.length === 0) continue
-    const [mask, difficulty] = line.split('|')
-    pool.push({ mask: BigInt(mask), difficulty: Number(difficulty) })
+    const [mask, band] = line.split('|')
+    pool.push({ mask: BigInt(mask), band: Number(band) })
   }
   return pool
 }
 
 function main() {
-  console.log(`Loading required pool (difficulty <= ${REQUIRED_BAND}) from common.words...`)
+  console.log(`Loading required pool (band <= ${REQUIRED_BAND}) from common.words...`)
   const pool = loadRequiredPool()
   console.log(`  ${pool.length} required words.`)
   if (pool.length === 0) {
@@ -178,9 +178,9 @@ function main() {
   // from band 1 is what guarantees every board has a common pangram.
   console.log(`Finding band-${PANGRAM_BAND} pangram seed masks...`)
   const pangramCandidates = new Set<bigint>()
-  for (const { mask, difficulty } of pool) {
+  for (const { mask, band } of pool) {
     if (
-      difficulty <= PANGRAM_BAND &&
+      band <= PANGRAM_BAND &&
       popcount26(mask) === 7 &&
       isValidPuzzleMask(mask)
     ) {

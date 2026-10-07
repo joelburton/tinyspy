@@ -36,7 +36,7 @@
  * `source` is the one-char provenance code: seeded glosses ('s'/'e'/'m') are
  * the word list's compact format (parseDefinition handles it); 'w' is plain
  * Wiktionary prose (rendered verbatim + CC BY-SA attribution). `meta` carries
- * an in-list word's categorization — { difficulty, american, british,
+ * an in-list word's categorization — { band, american, british,
  * canadian, australian, slur, crude, slang, wordle } — for the small tag line
  * the FE shows under the definition.
  *
@@ -141,7 +141,7 @@ serve(async (req) => {
       .schema('common')
       .from('words')
       .select(
-        'definition, definition_source, difficulty, american, british, canadian, australian, slur, crude, slang, wordle',
+        'definition, definition_source, band, american, british, canadian, australian, slur, crude, slang, wordle',
       )
       .eq('word', word)
       .maybeSingle()
@@ -154,7 +154,7 @@ serve(async (req) => {
 
     // The word's categorization (every in-list response carries it).
     const meta = {
-      difficulty: row.difficulty,
+      band: row.band,
       american: row.american,
       british: row.british,
       canadian: row.canadian,

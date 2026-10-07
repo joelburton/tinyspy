@@ -30,7 +30,7 @@ import type { GCell, GPlacement, GRankedMove } from '../types.ts'
 
 type RankOptions = {
   topN?: number           // default 5
-  vocabCap?: number       // strength lever 1: only *play* words with difficulty <= cap
+  vocabCap?: number       // strength lever 1: only *play* words with band <= cap
   scoreFraction?: number  // strength lever 2: target this fraction of the best equity
   useLeave?: boolean      // strength lever 3: default true
 }

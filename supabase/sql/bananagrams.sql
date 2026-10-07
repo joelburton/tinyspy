@@ -485,7 +485,7 @@ begin
   --   'win'    — a WINNING peel additionally requires every word to be real.
   --   'strict' — EVERY peel requires it: you can't peel with an invalid board
   --              (see peel + _win_blockers). Connectivity is checked regardless
-  --              of this. The two obscurity ceilings (common.words difficulty)
+  --              of this. The two obscurity ceilings (common.words.band)
   --              are required unless 'off': dict_2 for 2-letter words (2..6 —
   --              band 1 has too few 2-letter words to be fun) and dict_3plus for
   --              longer words (1..6).
@@ -725,7 +725,7 @@ drop function if exists bananagrams._win_blockers(text, integer, integer, boolea
 --      scattered board isn't a real grid, so this holds even in trust-the-
 --      friends mode.
 --   2. WHEN p_check_words: every run of 2+ tiles (across and down) spells a
---      real word — one in common.words at difficulty ≤ the band for its
+--      real word — one in common.words at band ≤ the band for its
 --      LENGTH: `p_dict_2` for 2-letter words, `p_dict_3plus` for longer ones
 --      (2-letter words are a much thinner, separate vocabulary, so they get
 --      their own band). Single tiles aren't words, so they're never checked.
@@ -795,7 +795,7 @@ as $$
        and not exists (
          select 1 from common.words cw
           where cw.word = w.word
-            and cw.difficulty <= case when length(w.word) = 2 then p_dict_2 else p_dict_3plus end
+            and cw.band <= case when length(w.word) = 2 then p_dict_2 else p_dict_3plus end
        )
   )
   select coalesce(

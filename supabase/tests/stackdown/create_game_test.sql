@@ -62,7 +62,7 @@ select isnt(
 select is(
   (select (summary_data->>'band')::int from common.games where id = (select id from g)),
   1,
-  'the word-difficulty band reaches the summary (defaults to 1)');
+  'the dictionary band reaches the summary (defaults to 1)');
 
 select is(
   (select count(*)::int from stackdown.players where game_id = (select id from g)),
@@ -102,7 +102,7 @@ select throws_ok(
   '42501', null,
   'stackdown.games.solution is column-excluded from authenticated');
 
--- ── Word-difficulty band routing ───────────────────────────────
+-- ── Dictionary band routing ───────────────────────────────
 -- setup.psql seeded ONE band-1 board (claimed by g above, whose band is 1,
 -- asserted). Add a band-2 board and prove create_game claims BY band.
 reset role;
@@ -137,7 +137,7 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN051"}'::jsonb,
   'a band outside 1..6 names the band field');
 -- A band the library has no boards for (band 3 has none here). A validation
--- rather than an error: the fix is the other difficulty, and that is the field.
+-- rather than an error: the fix is the other band, and that is the field.
 select pg_temp.envelope_is(
   stackdown.create_game(
     (select handle from club),

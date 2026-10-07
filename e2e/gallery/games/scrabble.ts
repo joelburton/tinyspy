@@ -57,7 +57,7 @@ function wordFromRack(rack: string, band: number): { word: string; score: number
   const letters = [...new Set(rack.split(''))].join('')
   const rows = q(
     `select word from common.words
-      where length(word) between 3 and 5 and difficulty <= ${band}
+      where length(word) between 3 and 5 and band <= ${band}
         and word ~ '^[${letters}]+$'
       order by length(word) desc limit 400;`,
   )

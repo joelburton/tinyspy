@@ -53,7 +53,7 @@ select is(
   'coop', 'common.games stores mode coop');
 select is(
   (select dict_2 || '/' || dict_3plus from scrabble.games where game_id = (select id from gc)),
-  '3/3', 'both difficulty bands (2-letter / 3+) are recorded');
+  '3/3', 'both dictionary bands (2-letter / 3+) are recorded');
 select is(
   (select version from scrabble.games where game_id = (select id from gc)),
   0, 'version starts at 0');

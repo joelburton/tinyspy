@@ -101,7 +101,7 @@ function pickTricolorGuess(gameId: string): string {
     `select target, legal_band from wordle.games where game_id = '${gameId}';`,
   )[0].split('|')
   const words = psql(
-    `select word from common.words where len = 5 and difficulty <= ${Number(band)} ` +
+    `select word from common.words where len = 5 and band <= ${Number(band)} ` +
       `and word <> '${target}' limit 4000;`,
   )
   for (const w of words) {

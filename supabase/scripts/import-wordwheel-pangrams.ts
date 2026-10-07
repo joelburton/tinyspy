@@ -11,17 +11,17 @@
  * sorted-letter string (anagrams share a board). The multiset is the board's
  * identity, so the sorted string is the key — a bitmask can't be, because
  * masks collapse multiplicity. Unlike spellingbee (which forces a band-1
- * pangram), we TAG each seed with its `difficulty` and let the edge builder
+ * pangram), we TAG each seed with its `band` and let the edge builder
  * pick a seed matching the game's required band — so the pool scales with
- * difficulty.
+ * band.
  *
  * Per seed we store:
  *   - `letters`      — the nine letters sorted, e.g. 'aabcdeghi' (the PK; the
  *                      table's `mask` column is generated from it).
- *   - `difficulty`   — the min difficulty band of a required-quality 9-letter
+ *   - `band`   — the min band band of a required-quality 9-letter
  *                      word with this multiset (how hard the pangram itself is).
  *   - `word_counts`  — [n1..n6]: the number of REQUIRED-quality words (american,
- *                      not slang, slur 0, crude 0) at difficulty EXACTLY band k
+ *                      not slang, slur 0, crude 0) at band EXACTLY band k
  *                      whose per-letter counts FIT the multiset (each letter used
  *                      no more times than it has tiles), len>=4, CENTER-AGNOSTIC
  *                      (a real board fixes one center, so this over-counts — it's
@@ -61,7 +61,7 @@ const DB_URL =
 const WHEEL_SIZE = 9
 
 /** Puzzle-quality floor: a seed is kept only if a board built from it at its
- *  own difficulty band admits at least this many required words. Agrees with
+ *  own band band admits at least this many required words. Agrees with
  *  the gate in the edge function and wordwheel.create_game (provisional 15 —
  *  lower than spellingbee's 30 because spending a tile per use yields fewer
  *  words than unbounded reuse; tune against the printed distribution). */
@@ -105,7 +105,7 @@ type PoolWord = { word: string; mask: number; band: number }
  *  seed's tile counts). letter_mask is common.words' generated 26-bit set. */
 function loadPool(): PoolWord[] {
   const query = `
-    select word, letter_mask, difficulty
+    select word, letter_mask, band
       from common.words
      where american and not slang and slur = 0 and crude = 0 and len >= 4
   `
@@ -132,7 +132,7 @@ type MaskGroup = {
 
 type SeedRow = {
   letters: string
-  difficulty: number
+  band: number
   word_counts: string // jsonb text, e.g. "[1,2,3,4,5,6]"
   has_rare_letters: boolean
 }
@@ -170,24 +170,24 @@ function main() {
   console.log(`  ${byMask.size} distinct letter-masks in the pool.`)
 
   // Seed multisets: the 9-letter words, deduped by sorted letters.
-  // `difficulty` = the easiest (min band) 9-letter word with that multiset.
-  const seedDifficulty = new Map<string, number>()
+  // `band` = the easiest (min band) 9-letter word with that multiset.
+  const seedBand = new Map<string, number>()
   for (const w of pool) {
     if (w.word.length !== WHEEL_SIZE) continue
     const letters = [...w.word].sort().join('')
-    const prev = seedDifficulty.get(letters)
-    if (prev === undefined || w.band < prev) seedDifficulty.set(letters, w.band)
+    const prev = seedBand.get(letters)
+    if (prev === undefined || w.band < prev) seedBand.set(letters, w.band)
   }
-  console.log(`  ${seedDifficulty.size} distinct 9-letter multisets (seed candidates).`)
+  console.log(`  ${seedBand.size} distinct 9-letter multisets (seed candidates).`)
 
   // Per seed, count the fitting words by band → word_counts[0..5] for bands
   // 1..6, via submask enumeration over the mask groups.
   console.log('Counting fitting words per seed (center-agnostic, per band)...')
   const rows: SeedRow[] = []
   const distBuckets = [0, 0, 0, 0, 0, 0] // seed count by required-words tier, for reporting
-  const keptAtDifficulty: number[] = []
-  const droppedAtDifficulty: number[] = []
-  for (const [letters, difficulty] of seedDifficulty) {
+  const keptAtBand: number[] = []
+  const droppedAtBand: number[] = []
+  for (const [letters, band] of seedBand) {
     const seedMask = letterCounts(letters).reduce((m, c, i) => (c > 0 ? m | (1 << i) : m), 0)
     const seedCounts = letterCounts(letters)
     const counts = [0, 0, 0, 0, 0, 0]
@@ -214,36 +214,36 @@ function main() {
       if (sub === 0) break
       sub = (sub - 1) & seedMask
     }
-    // Floor: the required set at THIS seed's difficulty band (the smallest band
+    // Floor: the required set at THIS seed's band band (the smallest band
     // it can be played at) must clear the gate. A game at a higher required
     // band only adds words, so this guarantees the gate at every valid band.
-    const atDifficulty = counts.slice(0, difficulty).reduce((a, b) => a + b, 0)
+    const atBand = counts.slice(0, band).reduce((a, b) => a + b, 0)
     const total = counts.reduce((a, b) => a + b, 0)
     distBuckets[Math.min(5, Math.floor(total / 25))]!++
-    if (atDifficulty < MIN_REQUIRED_WORDS_COUNT) {
-      droppedAtDifficulty.push(atDifficulty)
+    if (atBand < MIN_REQUIRED_WORDS_COUNT) {
+      droppedAtBand.push(atBand)
       continue
     }
-    keptAtDifficulty.push(atDifficulty)
+    keptAtBand.push(atBand)
     rows.push({
       letters,
-      difficulty,
+      band,
       word_counts: `[${counts.join(',')}]`,
       has_rare_letters: maskHasRareLetters(seedMask),
     })
   }
   console.log(
-    `Kept ${rows.length} / ${seedDifficulty.size} seeds` +
-      ` (>= ${MIN_REQUIRED_WORDS_COUNT} required words at their own difficulty band).`,
+    `Kept ${rows.length} / ${seedBand.size} seeds` +
+      ` (>= ${MIN_REQUIRED_WORDS_COUNT} required words at their own band band).`,
   )
   console.log(`  seed word-count distribution (center-agnostic total, buckets of 25): ${distBuckets.join(' / ')}`)
   // The gate report: how comfortably do seeds clear (or miss) the ≥15 floor
   // at their own band? Read this to decide whether 15 is still the right gate.
-  console.log(`  required-at-own-band percentiles — kept:    ${percentiles(keptAtDifficulty)}`)
-  console.log(`  required-at-own-band percentiles — dropped: ${percentiles(droppedAtDifficulty)}`)
+  console.log(`  required-at-own-band percentiles — kept:    ${percentiles(keptAtBand)}`)
+  console.log(`  required-at-own-band percentiles — dropped: ${percentiles(droppedAtBand)}`)
   const byBand = [0, 0, 0, 0, 0, 0]
-  for (const r of rows) byBand[r.difficulty - 1]!++
-  console.log(`  kept seeds by pangram difficulty band 1..6: ${byBand.join(' / ')}`)
+  for (const r of rows) byBand[r.band - 1]!++
+  console.log(`  kept seeds by pangram band band 1..6: ${byBand.join(' / ')}`)
 
   console.log(`Loading ${rows.length} seed rows via COPY...`)
   // `mask` is a generated column — omitted from the COPY column list, it
@@ -251,8 +251,8 @@ function main() {
   copyLoad(
     DB_URL,
     'wordwheel.pangrams',
-    ['letters', 'difficulty', 'word_counts', 'has_rare_letters'],
-    rows.map((r) => [r.letters, r.difficulty, r.word_counts, r.has_rare_letters]),
+    ['letters', 'band', 'word_counts', 'has_rare_letters'],
+    rows.map((r) => [r.letters, r.band, r.word_counts, r.has_rare_letters]),
   )
   console.log('Done.')
 }

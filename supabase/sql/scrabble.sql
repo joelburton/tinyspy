@@ -1062,7 +1062,7 @@ begin
   v_rack := scrabble._remove_tiles(v_rack, v_consumed);
 
   -- ─── Dictionary check (the only server-side validation) ──
-  -- Legal iff difficulty <= the band for the word's LENGTH (dict_2 for
+  -- Legal iff band <= the band for the word's LENGTH (dict_2 for
   -- 2-letter words, dict_3plus for 3+) AND valid in american OR british
   -- (permissive).
   select array_agg(w) into bad_words
@@ -1070,7 +1070,7 @@ begin
    where not exists (
      select 1 from common.words cw
       where cw.word = w
-        and cw.difficulty <= (case when length(w) = 2 then g.dict_2 else g.dict_3plus end)
+        and cw.band <= (case when length(w) = 2 then g.dict_2 else g.dict_3plus end)
         and (cw.american or cw.british)
    );
   if array_length(bad_words, 1) > 0 then

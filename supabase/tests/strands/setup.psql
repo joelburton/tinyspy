@@ -98,7 +98,7 @@ begin
 end;
 $$;
 
--- The four hint words the tests spend, at difficulty 1 so any band accepts
+-- The four hint words the tests spend, at band 1 so any band accepts
 -- them. `american`/`slang`/`slur`/`crude` are set to the permissive end on
 -- purpose: strands gates hint words on DIFFICULTY ALONE (the may-enter tier in
 -- docs/common.md), and a test that also satisfied the must-reach filters
@@ -107,11 +107,11 @@ $$;
 -- `authenticated`.
 create function pg_temp.strands_hint_words() returns void
 language sql security definer as $$
-  insert into common.words (word, difficulty, len, american, british, canadian, australian,
+  insert into common.words (word, band, len, american, british, canadian, australian,
                             slang, slur, crude, wordle)
   select w, 1, 4, false, false, false, false, true, 0, 0, false
     from unnest(array['zzqa','zzqb','zzqc','zzqd']) w
-  on conflict (word) do update set difficulty = 1;
+  on conflict (word) do update set band = 1;
 $$;
 
 create function pg_temp.strands_setup(

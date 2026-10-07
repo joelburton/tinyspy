@@ -17,7 +17,7 @@ time rather than the live table.
 
 **The columns are the filtering knobs:**
 
-- **`difficulty`**, a 1–6 **recognizability band**: 1 universal, 2 common, 3
+- **`band`**, a 1–6 **recognizability band**: 1 universal, 2 common, 3
   familiar, 4 uncommon, 5 obscure, 6 expert (SOWPODS-only). It measures "would a
   player *know* this word", not how often it appears in text. Validation always
   allows the full 1–6 range; which bands a game *offers* is its own choice.
@@ -25,7 +25,7 @@ time rather than the live table.
   mostly a spelling filter. There is no app-wide default; a game that cares
   says which it wants.
 - **`crude` / `slur`** — levels 0 none, 1 mild, 2 strong. **`slang`** — chiefly
-  slang, independent of difficulty.
+  slang, independent of the band.
 - **`wordle`** — in the fixed Wordle answer/guess list.
 - **`len`**, **`root_word`** (the lemma of an inflected form).
 - **`hint`** — a clue that *hides* the word ("A hooded snake" → cobra), present

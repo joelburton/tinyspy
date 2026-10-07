@@ -75,7 +75,7 @@ const sql = `
 \\set ON_ERROR_STOP on
 begin;
 truncate common.words;
-\\copy common.words (word, difficulty, american, british, canadian, australian, crude, slur, slang, wordle, len, root_word, definition, definition_source, hint) from '${WORDS_PATH}' with (format text, null '\\N')
+\\copy common.words (word, band, american, british, canadian, australian, crude, slur, slang, wordle, len, root_word, definition, definition_source, hint) from '${WORDS_PATH}' with (format text, null '\\N')
 commit;
 select count(*) || ' words loaded' as result from common.words;
 `

@@ -62,7 +62,7 @@
 ## Someday
 
 - **`rank.test.ts` reads `trie.eow[walkWord(…)]` without checking for -1.** On
-  a miss that reads `eow[-1]`, which is `undefined` rather than a difficulty.
+  a miss that reads `eow[-1]`, which is `undefined` rather than a band.
   Every word the test asks about is in its trie, so nothing fails today; the
   helper would hide a miss rather than report one.
 

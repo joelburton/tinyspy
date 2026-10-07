@@ -227,7 +227,7 @@ export type GSetupValues = {
   // board generator guarantees are findable (clean: american, no slur/crude/slang)
   band: number
   // legal (bonus) dictionary band, `band`…6 — the ceiling for words that aren't
-  // required but still score. Filters on difficulty ONLY (any dialect/slur/
+  // required but still score. Filters on the band ONLY (any dialect/slur/
   // crude/slang qualifies), so it's the wider net of "real words you might find".
   legal_band: number
   min_word_length: number

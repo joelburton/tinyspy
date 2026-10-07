@@ -26,7 +26,7 @@ import type { Member } from '../members/member'
 
 /**
  * Write one field of the form. The setup body casts the loose `set` it is given
- * to this over its own values type, which is what makes `set('difficulty', 4)` a
+ * to this over its own values type, which is what makes `set('dict_band', 4)` a
  * compile error rather than a control that silently does nothing.
  */
 export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void

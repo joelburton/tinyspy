@@ -208,7 +208,7 @@ function makeDealt(
 }
 
 // ─── Board fill ─────────────────────────────────────────────
-export type WordRow = { word: string; difficulty: number }
+export type WordRow = { word: string; band: number }
 export type GenBoard = { solution: string; dealt: string; par: number }
 
 /**
@@ -228,10 +228,10 @@ export function buildWaffleBoard(
   band: number,
   maxAttempts = 2_000_000,
 ): GenBoard | null {
-  const candidates = rows.filter((r) => r.difficulty <= band)
+  const candidates = rows.filter((r) => r.band <= band)
   const words = candidates.map((r) => r.word)
   if (words.length === 0) return null
-  const diffOf = new Map(candidates.map((r) => [r.word, r.difficulty]))
+  const diffOf = new Map(candidates.map((r) => [r.word, r.band]))
 
   // Down-word lookup index: (char@0, char@2, char@4) → words.
   const byOuter = new Map<string, string[]>()

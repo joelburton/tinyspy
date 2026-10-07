@@ -38,7 +38,7 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   // A stored gloss ('m' = manual), so the define edge fn answers from the DB —
   // an invented word with no definition would send it to Wiktionary, which 404s.
   sql(`insert into common.words
-         (word, difficulty, american, british, canadian, australian, len,
+         (word, band, american, british, canadian, australian, len,
           definition, definition_source)
        values ('${fixtureWord}', 1, true, true, true, true, ${fixtureWord.length},
                'a word invented for the e2e run', 'm')`)
@@ -69,17 +69,17 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(band).toHaveCount(0) // dialog closed = saved
 
-  expect(sql(`select difficulty from common.words where word = '${fixtureWord}'`)).toBe('5')
+  expect(sql(`select band from common.words where word = '${fixtureWord}'`)).toBe('5')
   expect(
-    sql(`select kind || '|' || (new->>'difficulty') || '|' || note || '|' || edited_by_username
+    sql(`select kind || '|' || (new->>'band') || '|' || note || '|' || edited_by_username
            from common.words_edits where word = '${fixtureWord}'`),
   ).toBe(`update|5|e2e: way too obscure for band 1|${editor.username}`)
-  // The changed-fields discipline: only difficulty was touched, so `new`
+  // The changed-fields discipline: only band was touched, so `new`
   // must claim exactly that one column.
   expect(
     sql(`select array_to_string(array(select jsonb_object_keys(new) order by 1), ',')
            from common.words_edits where word = '${fixtureWord}'`),
-  ).toBe('difficulty')
+  ).toBe('band')
 
   // ── Add, via the account submenu ──
   const newWord = `zqa${suffix()}`
@@ -93,7 +93,7 @@ test('an editor edits + adds a word; the journal records both; a non-editor sees
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByLabel('Word', { exact: true })).toHaveCount(0)
   expect(
-    sql(`select difficulty || '|' || len from common.words where word = '${newWord}'`),
+    sql(`select band || '|' || len from common.words where word = '${newWord}'`),
   ).toBe(`3|${newWord.length}`)
   expect(sql(`select kind from common.words_edits where word = '${newWord}'`)).toBe('add')
 

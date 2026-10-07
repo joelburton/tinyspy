@@ -19,7 +19,7 @@
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
  *   2. As the caller, fetch the candidate 5-letter words from
- *      common.words (band ≤ difficulty, american, no slang, clean = slur 0 + crude 0).
+ *      common.words (band ≤ the setup's band, american, no slang, clean = slur 0 + crude 0).
  *   3. Build a board of exactly that band (fill 6 interlocking words +
  *      anchored scramble + exact-minSwaps par) — see gen.ts.
  *   4. Call waffle.create_game(target_club, setup, players, mode, board)
@@ -70,7 +70,7 @@ const DEFAULT_BAND = 2
  * Fetch the candidate 5-letter words for a band: the same filter the
  * board fill uses (band ≤ N, american, not slang, clean = slur 0 + crude 0). Paged to
  * defeat the max_rows cap (band 6 has ~12k candidates). Returns
- * `(word, difficulty)` — difficulty drives the "hardest word == band"
+ * `(word, band)` — the band drives the "hardest word == band"
  * tier check in the fill.
  */
 async function fetchCandidateWords(
@@ -82,13 +82,13 @@ async function fetchCandidateWords(
     const { data, error } = await supabase
       .schema('common')
       .from('words')
-      .select('word, difficulty')
+      .select('word, band')
       .eq('len', 5)
       .eq('american', true)
       .eq('slur', 0)
       .eq('crude', 0)
       .eq('slang', false)
-      .lte('difficulty', band)
+      .lte('band', band)
       // Order by the primary key so successive .range() windows are stable
       // pages of ONE ordering (without it Postgres gives no cross-statement
       // order guarantee — rows could be skipped or double-counted across pages).

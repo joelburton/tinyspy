@@ -28,7 +28,7 @@ import type { Trie } from '../../shared/dict-trie/trie.ts'
 /**
  * The legality predicate the whole suggester hangs on: is the word ending at
  * this trie node playable in this game? Mirrors `play_word`'s band SQL —
- * `difficulty <= (len = 2 ? dict_2 : dict_3plus)` — over a rated trie whose
+ * `band <= (len = 2 ? dict_2 : dict_3plus)` — over a rated trie whose
  * membership was decided at bundle time (`american OR british`, so the dialect
  * filter never appears here; see generate-scrabble-wordlist.ts).
  *

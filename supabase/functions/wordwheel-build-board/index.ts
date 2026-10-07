@@ -15,8 +15,8 @@
  *     words whose per-letter counts FIT the wheel's tile counts.
  *   • The pangram bonus is +15 (spellingbee's is +10). A pangram uses
  *     all nine tiles, so any 9-letter word that fits IS one.
- *   • The seed pool is difficulty-tagged: we sample only seeds whose
- *     `difficulty <= required_band`, so the pool scales with the game's
+ *   • The seed pool is band-tagged: we sample only seeds whose
+ *     `band <= required_band`, so the pool scales with the game's
  *     required band (src/wordwheel/doc.md → Schema).
  *   • 's' is allowed (a tile per use means 's' pluralizes at most once
  *     per 's' tile), so there is no 's' exclusion anywhere.
@@ -33,7 +33,7 @@
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
  *   2. As the caller, fetch:
- *        - wordwheel.pangrams rows with difficulty <= required_band
+ *        - wordwheel.pangrams rows with band <= required_band
  *        - the club's most-recent wordwheel.games row (overlap cap)
  *   3. Run the diverse-builder strategy in-process:
  *        a. Filter seeds by overlap cap against the previous board
@@ -144,7 +144,7 @@ type Setup = {
 const MIN_REQUIRED_WORDS_COUNT = 15
 /** How many seeds to try when a sampled seed has NO center that clears the
  *  word gate. A seed is gated at import to ≥15 required words center-agnostically
- *  at its own difficulty, but a specific center can fall short; re-sample the
+ *  at its own band, but a specific center can fall short; re-sample the
  *  seed only if none of its (distinct) centers clear the gate. */
 const MAX_SEED_ATTEMPTS = 25
 
@@ -153,8 +153,8 @@ const MAX_SEED_ATTEMPTS = 25
 // ───────────────────────────────────────────────────────────
 
 /** Sample a seed uniformly from the weighted pool. The pool is already gated
- *  at import time (≥15 required words at each seed's own difficulty) and
- *  again by the difficulty <= required_band fetch filter, so there's no
+ *  at import time (≥15 required words at each seed's own band) and
+ *  again by the band <= required_band fetch filter, so there's no
  *  per-row quality re-check here; and it is never empty, since PN197 has
  *  answered an empty one. */
 function sampleMask(weighted: PangramRow[]): PangramRow {
@@ -174,8 +174,8 @@ function sampleMask(weighted: PangramRow[]): PangramRow {
 const PAGE_SIZE = 10_000
 
 /** Fetches the pangram seeds eligible for this game — those whose pangram is
- *  gettable at the required band (difficulty <= required_band). The
- *  difficulty tag is what lets the pool grow with the game's band.
+ *  gettable at the required band (band <= required_band). The
+ *  band tag is what lets the pool grow with the game's band.
  *  Worst case (band 6) is the whole pool — a few round-trips at the 10k page
  *  size. */
 async function fetchPangrams(
@@ -188,7 +188,7 @@ async function fetchPangrams(
       .schema('wordwheel')
       .from('pangrams')
       .select('letters, mask, has_rare_letters')
-      .lte('difficulty', requiredBand)
+      .lte('band', requiredBand)
       // Order by the primary key so successive .range() windows are stable
       // pages of ONE ordering — without it Postgres gives no cross-statement
       // order guarantee, so rows could be skipped or double-counted across
@@ -243,7 +243,7 @@ async function fetchPreviousMask(
 
 /** Fetches every legal word that uses only puzzle letters AND contains the
  *  center letter, via wordwheel.candidate_words. The bitmask intersection
- *  (and wordwheel's difficulty/dialect/length slice of common.words) runs
+ *  (and wordwheel's band/dialect/length slice of common.words) runs
  *  server-side, so the response is only the matching rows (well under
  *  max_rows). One round-trip per center tried.
  *
@@ -371,7 +371,7 @@ serve(async (req) => {
 
       // 2. Sample a pangram mask — only seeds gettable at the required band.
       const allPangrams = await fetchPangrams(supabase, requiredBand)
-      console.log(`fetched ${allPangrams.length} pangram seeds (difficulty <= ${requiredBand})`)
+      console.log(`fetched ${allPangrams.length} pangram seeds (band <= ${requiredBand})`)
       if (allPangrams.length === 0) {
         // Player-reachable: a low required band can have zero nine-letter
         // seeds at all.

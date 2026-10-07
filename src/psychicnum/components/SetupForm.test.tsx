@@ -98,7 +98,7 @@ describe('psychicnum setup — where a refusal lands', () => {
   // the dialog's own line. These two test the WIRING rather than a live raise —
   // a field error that arrives renders under its own control, which is what a
   // future validation would need.
-  it('lets the difficulty picker carry a field error, if one ever lands', () => {
+  it('lets the band picker carry a field error, if one ever lands', () => {
     const message = 'Not enough words at that dictionary band for a board this size'
     draw({ errors: { band: message } })
     expect(errorUnder('band')).toBe(message)

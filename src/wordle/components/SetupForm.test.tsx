@@ -78,7 +78,7 @@ describe('wordle setup — what it offers', () => {
 
 describe('wordle setup — the two dictionaries', () => {
   it('offers the curated Wordle list as an answer source, below band 1', () => {
-    // `answer_band` 0 is not a difficulty at all — it is the published list —
+    // `answer_band` 0 is not a band at all — it is the published list —
     // which is why this field has an option the band ladder does not.
     draw()
     expect(screen.getByRole('option', { name: /0: Wordle/ })).toBeInTheDocument()

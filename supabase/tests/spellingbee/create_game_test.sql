@@ -300,7 +300,7 @@ select is(
 );
 
 -- ============================================================
--- (16b) Word-difficulty band validation
+-- (16b) Dictionary band validation
 -- ============================================================
 -- The setup carries two vocabulary bands: `required_band` (the goal
 -- words, 1..6) and `legal_band` (the wider accepted set,

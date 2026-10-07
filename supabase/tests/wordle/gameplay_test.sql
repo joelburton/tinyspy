@@ -34,7 +34,7 @@ create temp table tgt on commit drop as
 select target::text as w from wordle.games where game_id = (select id from g);
 create temp table valw on commit drop as
 select word from common.words
- where len = 5 and difficulty <= 4 and word <> (select w from tgt)
+ where len = 5 and band <= 4 and word <> (select w from tgt)
  order by word limit 1;
 -- The temp tables are created as postgres; grant so the personas
 -- (authenticated) can read them inside their submit_guess calls.

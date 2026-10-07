@@ -110,7 +110,7 @@ const SEED_BAND_CAP = 2
  *  than a couple of retries is already a signal something is wrong. */
 const MAX_ATTEMPTS = 8
 
-type Seed = { letters: string; word_a: string; word_b: string; difficulty: number }
+type Seed = { letters: string; word_a: string; word_b: string; band: number }
 
 type Board = {
   sides: string
@@ -186,7 +186,7 @@ async function attemptBoard(
 
   console.log(
     `${FN} board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
-      `band=${seed.difficulty} playable=${playable.length} clean=${cleanPlayable.length}`,
+      `band=${seed.band} playable=${playable.length} clean=${cleanPlayable.length}`,
   )
   return { sides, words: playable, solution: [seed.word_a, seed.word_b] }
 }
@@ -254,11 +254,11 @@ async function buildCustomBoard(
   // solution isn't in the board's words and create_game rejects the board. The
   // random path avoids this by asking pick_seed for `least(legal_band, 2)`; a
   // custom board doesn't get to choose its seed, so it reports instead.
-  if (seed.difficulty > legalBand) {
+  if (seed.band > legalBand) {
     console.log(
-      `${FN} reject: custom board ${sides} needs band ${seed.difficulty}, game is at ${legalBand}`,
+      `${FN} reject: custom board ${sides} needs band ${seed.band}, game is at ${legalBand}`,
     )
-    return { reject: 'board-needs-band', band: seed.difficulty }
+    return { reject: 'board-needs-band', band: seed.band }
   }
 
   const { data: candRows, error: candErr } = await supabase
@@ -285,7 +285,7 @@ async function buildCustomBoard(
 
   console.log(
     `${FN} custom board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
-      `band=${seed.difficulty} playable=${playable.length}`,
+      `band=${seed.band} playable=${playable.length}`,
   )
   return { sides, words: playable, solution: [seed.word_a, seed.word_b] }
 }

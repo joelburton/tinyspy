@@ -7,7 +7,7 @@
 -- The contract under test (see the function's header in sql/common.sql):
 -- exact-length anagrams of a pattern where lowercase letters float, '?' is
 -- a floating wildcard, and an UPPERCASE letter is PINNED to its position
--- ("Acer" finds acer + acre, never race). Results ordered difficulty, word.
+-- ("Acer" finds acer + acre, never race). Results ordered band, word.
 --
 -- Fixture words are invented q/z/x-heavy strings so they can't collide with
 -- the real dictionary's primary keys — and so the expected result SETS are
@@ -28,7 +28,7 @@ set search_path = common, public, extensions;
 select plan(11);
 
 -- The words from a result, in the order the RPC returned them. Ordering is part
--- of the contract (difficulty, then word), so `with ordinality` preserves it
+-- of the contract (band, then word), so `with ordinality` preserves it
 -- rather than letting the aggregate re-order.
 create function pg_temp.anagram_words(letters text)
 returns text[]
@@ -40,7 +40,7 @@ as $$
 $$;
 
 insert into common.words
-  (word, difficulty, american, british, canadian, australian, len, crude, slur, slang)
+  (word, band, american, british, canadian, australian, len, crude, slur, slang)
 values
   ('bzqx',  1, true, true, true, true, 4, 0, 0, false),
   ('bzxq',  2, true, true, true, true, 4, 0, 0, false),
@@ -53,7 +53,7 @@ values
 select is(
   pg_temp.anagram_words('xqzb'),
   array['bzqx', 'bzxq', 'zbqx'],
-  'a lowercase scramble finds all anagrams, ordered difficulty then word'
+  'a lowercase scramble finds all anagrams, ordered band then word'
 );
 
 -- ── Pins: an UPPERCASE letter fixes its position ──

@@ -371,7 +371,7 @@ No `setup` read after create, in SQL or the front end (the front end reads it on
 
 `letterboxed.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `chain`, `hints_used` — `hints_used` is the card's `hint-recorded` in coop.
 unchanged: `letterboxed.events` (`id`, `game_id`, `user_id`, `kind`, `word`, `letters_covered`, `created_at`, `took_turn`).
-unchanged: `letterboxed.seeds` (`letters`, `mask`, `word_a`, `word_b`, `difficulty`).
+unchanged: `letterboxed.seeds` (`letters`, `mask`, `word_a`, `word_b`, `band`).
 
 ### psychicnum
 
@@ -591,4 +591,4 @@ Not columns: `setup.answer_band` is read only by the summary (through `clubpage_
 
 Not columns: `status.required_words_count` and `required_words_score` are already columns; `status.found_words_count`, `found_words_score` and `rank_idx` (coop) come from `wordwheel.found_words`; the winner keys are end-of-game summary. `setup.custom_letters` is read only at create.
 
-unchanged: `wordwheel.found_words` (`game_id`, `user_id`, `word`, `points`, `is_pangram`, `is_bonus`, `found_at`), `wordwheel.pangrams` (`letters`, `mask`, `difficulty`, `word_counts`, `has_rare_letters`).
+unchanged: `wordwheel.found_words` (`game_id`, `user_id`, `word`, `points`, `is_pangram`, `is_bonus`, `found_at`), `wordwheel.pangrams` (`letters`, `mask`, `band`, `word_counts`, `has_rare_letters`).

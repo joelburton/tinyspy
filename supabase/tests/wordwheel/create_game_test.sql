@@ -304,7 +304,7 @@ select is(
 );
 
 -- ============================================================
--- (9) Word-difficulty band validation
+-- (9) Dictionary band validation
 -- ============================================================
 -- The setup carries two vocabulary bands: `required_band` (the goal words,
 -- 1..6) and `legal_band` (the wider accepted set, required_band..6). create_game

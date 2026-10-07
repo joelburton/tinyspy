@@ -204,7 +204,7 @@ export type GSetupValues = CoopTurnSetup & {
   // word of that dictionary band or easier (a higher band can yield an obscure
   // answer). 0 is not a real band; see `answerMaxBand`.
   answer_band: number
-  // What counts as a legal guess: any real 5-letter word of difficulty ≤ this
+  // What counts as a legal guess: any real 5-letter word at band ≤ this
   // (1..6). Must reach the answer's hardest band so every possible answer is
   // itself a legal guess — see `legalError` / `answerMaxBand`.
   legal_band: number

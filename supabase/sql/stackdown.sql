@@ -561,7 +561,7 @@ begin
   perform common._require_valid_mode(p_mode);
   perform common._require_valid_timer(p_setup->'timer');
 
-  -- Word-difficulty band (a common.words.difficulty ceiling). Defaults to 1
+  -- Dictionary band (a common.words.band ceiling). Defaults to 1
   -- (the everyday set); the setup form offers 1..2 today, but any 1..6 the
   -- library actually holds boards for is accepted.
   v_band := coalesce((p_setup->>'band')::int, 1);

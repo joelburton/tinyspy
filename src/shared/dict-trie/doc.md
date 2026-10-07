@@ -19,8 +19,8 @@ It is a trie rather than the smaller DAWG a dictionary is often squeezed into.
 A DAWG shares the endings of words, so one node can finish many of them; here
 every word ends on a node of its own. That is what lets boggle notice a word it
 has already found by marking its node, with no string built, and what lets each
-word carry a small value where it ends. Scrabble keeps the word's difficulty
-there, and boggle its difficulty and whether it is clean — American, and not
+word carry a small value where it ends. Scrabble keeps the word's band
+there, and boggle its band and whether it is clean — American, and not
 crude, a slur or slang — which is what a required word must be. A caller that
 only asks "is this a word?" reads the value as true or false and never sees it.
 
@@ -45,7 +45,7 @@ shared/dict-trie/trie.ts  (buildTrie · walkWord · Trie)
  │    └── boggle/lib/generate.ts        generateBoard · listBonusWords
  ├── functions/boggle-build-board/dict.ts    one trie, rated; requiredTrie / legalTrie are views of it
  ├── scrabble/lib/suggest.ts            generateMoves walks `children`; isLegal reads the rating
- ├── scrabble/lib/policy.ts             walkWord, for a word's difficulty
+ ├── scrabble/lib/policy.ts             walkWord, for a word's band
  ├── functions/scrabble-suggest-move/   dict.ts builds one rated trie; index.ts calls walkWord
  └── supabase/scripts/scrabble-selfplay.ts
 ```
@@ -61,8 +61,8 @@ shared/dict-trie/trie.ts  (buildTrie · walkWord · Trie)
 - **Terminal values.** `buildTrie` stores 1, or the caller's `ratings`. A
   rating must be an integer in 1..255, and `buildTrie` throws otherwise, because
   a 0 (or a value that wraps) would silently turn an accepted word into a
-  non-word. Scrabble's ratings are the word's difficulty, 1..6. Boggle's add a
-  clean bit: the difficulty in the low three bits, plus 8 when the word is
+  non-word. Scrabble's ratings are the word's band, 1..6. Boggle's add a
+  clean bit: the band in the low three bits, plus 8 when the word is
   clean (`boggle-build-board/dict.ts`).
 - **What `buildTrie` skips.** It lower-cases every word, and skips an empty word
   and any word with a character outside `a`–`z`. A skipped word's rating is

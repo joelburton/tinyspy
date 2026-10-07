@@ -345,9 +345,9 @@ export type GSetupValues = {
   // ends the game when it expires (coop → everyone loses, compete → no
   // winner), via the shared `stackdown.submit_timeout` RPC.
   timer: TimerMode
-  // Dictionary band — a `common.words.difficulty` level. `1` = the common
+  // Dictionary band — a `common.words.band` level. `1` = the common
   // everyday set; `2` = the next tier (a band-2 board is made entirely of
-  // difficulty-2 words, no band-1 mixed in). The form offers 1..2 today
+  // band-2 words, no band-1 mixed in). The form offers 1..2 today
   // (that's what the board library holds); create_game accepts any 1..6 it
   // has boards for.
   band: number

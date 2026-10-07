@@ -352,7 +352,7 @@ malformed-path shape still gets a *designed* answer rather than a raw cast error
 (`validation_test.sql` plants each one).
 
 The dictionary filter is the **may-enter tier** ([common.md](../common.md)):
-`difficulty <= band` and nothing else. No slur / crude / slang / dialect filter
+`w.band <= band` and nothing else. No slur / crude / slang / dialect filter
 — the player chose to type it.
 
 > **The band runs backwards from waffle's.** A *higher* band makes strands

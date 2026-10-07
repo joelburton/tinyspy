@@ -191,7 +191,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // ─── Enumerate the bonus set (post-acceptance, does NOT affect the board) ──
     // The full legal list = required ∪ bonus; the FE validates + scores guesses
-    // against it locally. bonus = LEGAL-trie traceable words (difficulty-only, so
+    // against it locally. bonus = LEGAL-trie traceable words (band-only, so
     // crude/slur/slang/non-american count) minus the required set. Note this is
     // usually non-empty EVEN WHEN legal_band == band: the required set is
     // clean-only, so the band's non-clean words are all bonus.
