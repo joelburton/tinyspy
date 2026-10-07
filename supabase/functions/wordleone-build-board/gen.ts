@@ -4,11 +4,8 @@
  * Pure Wordle in 1 puzzle generation: a starter word, its colors against a
  * hidden answer, and the answer, chosen so that the answer is the only word at
  * or below the game's band that makes those colors against the starter. No IO
- * and nothing Deno's or Node's, so the sheet script today and the edge function
- * later run the same code (plans/wordleone.md → Where the generator runs). It
- * sits beside the sheet script until the edge function exists, because a folder
- * under `supabase/functions/` with no `index.ts` breaks a deploy of every
- * function.
+ * and nothing Deno's or Node's, so the edge function (`index.ts`) and the
+ * printable sheet (`supabase/scripts/wordleone/sheet.ts`) run the same code.
  *
  * The caller hands in every five-letter word with the columns the filters read
  * (`WordRow`) and a random source; `buildPuzzle` picks an answer and searches

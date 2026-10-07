@@ -361,14 +361,11 @@ game uses, and the difficulty beside it.
 
 Before any game code, the generator itself, and a page to print its output:
 
-- **The generator is written once**: `supabase/scripts/wordleone/gen.ts`, a
-  pure module taking word rows in and a puzzle out, with no Deno or Node
-  import in it, so the sheet script today and the edge function later run the
-  same code. It will live in the edge function's folder as waffle's `gen.ts`
-  does; it waits beside the sheet script because a folder under
-  `supabase/functions/` with no `index.ts` breaks `functions deploy`, which
-  deploys every folder. Its test is vitest for now and becomes a `deno test`
-  when it moves.
+- **The generator is written once**:
+  `supabase/functions/wordleone-build-board/gen.ts`, a pure module taking
+  word rows in and a puzzle out, with no Deno or Node import in it, so the
+  sheet script and the edge function run the same code. Its test is a
+  `deno test` beside it.
 - **The sheet script**, `supabase/scripts/wordleone/sheet.ts` — the public
   entry is `gmake g-wordleone-sheet`, with `PER_CELL`, `SEED` and `SHEET`
   (the output path, default `~/Downloads/wordleone-sheet.html`) — reads the
@@ -393,8 +390,7 @@ Before any game code, the generator itself, and a page to print its output:
 
 ## Steps
 
-**Done:** the first step's code — `supabase/scripts/wordleone/gen.ts`, its
-vitest, `sheet.ts`, `gmake g-wordleone-sheet`, the `_wordleone:sheet` npm
+**Done:** the first step's code — the generator and its test, `sheet.ts`, `gmake g-wordleone-sheet`, the `_wordleone:sheet` npm
 script and its cheatsheet lines.
 
 Each step below ends at a stop: the work sits in the working tree for Joel to
@@ -548,28 +544,31 @@ only) is green.
 
 ### Step 4 — the edge function: `wordleone-build-board/` under `supabase/functions/`
 
-- `git mv supabase/scripts/wordleone/gen.ts` into it; its vitest becomes
-  `gen_test.ts` with `Deno.test`s and a local `eq` (as `waffle-build-board`'s,
-  no std import). `sheet.ts` imports the new path, so the sheet and the game
-  keep running one generator.
-- `index.ts`, in waffle's shape (`waffle-build-board/index.ts:110-173`):
-  `preflight` → `parseBuildBoardRequest` → band and tier from setup (bad →
-  `fault`) → fetch the words as the caller → `buildPuzzle` with `Math.random`
-  → null is a `formValidation` under the tier's key ("No puzzle at that
-  difficulty. Try another.") → `invokeCreateGame(supabase, 'wordleone', {…,
-  p_board: {starter, colors, answer}})` (the tier is the setup's `difficulty`) → `crash` in the catch.
+- `gen.ts` moved here from beside the sheet script, which now imports it from
+  here; its vitest became `gen_test.ts`, `Deno.test`s with local `eq` and
+  `ok` (as `waffle-build-board`'s, no std import), pinning each filter on a
+  planted word list.
+- `index.ts`, in waffle's shape: `preflight` → `parseBuildBoardRequest` →
+  `legal_band` and `difficulty` from setup, no defaults (bad → fault PN529,
+  PN530) → fetch the words as the caller (none → fault PN531) →
+  `buildPuzzle` with `Math.random` → null is a `formValidation` under
+  `difficulty`, PN532 ("No puzzle could be built at that difficulty. Try
+  another.") → `invokeCreateGame(supabase, 'wordleone', {…, p_board:
+  {starter, colors, answer}})` → `crash` in the catch.
 - The fetch differs from waffle's: **every** five-letter word at or below
   `max(band, STARTER_MAX_BAND)` (a band-1 game still draws starters from band
-  2), not clean-filtered (a guess isn't), selecting `word, band,
-  wordle, slur, crude, american, slang, root_word`, paged at 10,000 as
-  waffle's. An empty list is the "unseeded" fault.
-- Tests: each filter pinned by a planted word list — a non-unique pattern
-  skipped, four greens skipped, the positive-space ceiling, the tier honored,
-  a plural starter skipped, a band-1 game's starter from band 2 — and null
-  for an empty tier.
+  2), not clean-filtered (a guess isn't), selecting `word, band, wordle, slur,
+  crude, american, slang, root_word`, paged at 10,000 as waffle's.
+- The schema is exposed now, not in step 6: a local call cannot reach
+  `wordleone.create_game` without it. `supabase/config.toml`,
+  `supabase/deploy/env.sh` and the Makefile's `BACKUP_SCHEMAS` name it
+  (`deployLists.test.ts` keeps the three in step); the local stack reads
+  config.toml only on a restart.
 
 **Done when:** `npm run test:edge` and `deno check` on the folder are green,
-and a local call (`supabase functions serve`) creates a game.
+and a local call creates a game. Met 2026-10-07: a hard band-2 and an easy
+band-6 game each created in under a second, each puzzle with the tier's
+green count and exactly one fitting word.
 
 ### Step 5 — the frontend: a `wordleone/` folder under `src/`
 
@@ -635,10 +634,7 @@ green.
 
 - `src/gametypes.ts` — the import (keep the literal `from
   './wordleone/manifest'`; eslint finds games by it) and the array.
-- `supabase/config.toml:15` `[api] schemas`, `supabase/deploy/env.sh:92`
-  `EXPOSED_SCHEMAS`, `Makefile:491` `BACKUP_SCHEMAS` — all three checked by
-  `src/guards/deployLists.test.ts`. The local stack needs a restart to read
-  config.toml.
+- The three schema lists went with step 4, which needed them.
 - `src/types/db.ts` regenerated (`gmake dev-types`).
 - Guards that list games (`concedeLock.test.ts` and
   `gameDeletedFirst.test.ts` went with step 2, which turned them red):

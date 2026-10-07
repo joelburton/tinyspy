@@ -30,7 +30,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { mulberry32 } from '../../../src/common/utils/mulberry32.ts'
-import { buildPuzzle, type Puzzle, type Tier, type WordRow } from './gen.ts'
+import { buildPuzzle, type Puzzle, type Tier, type WordRow } from '../../functions/wordleone-build-board/gen.ts'
 
 const DB_URL = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
