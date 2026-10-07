@@ -273,7 +273,8 @@ $$;
 revoke execute on function bananagrams._make_json_game_data(uuid) from public;
 
 -- The game summed up: the one number a list of games shows for this one. The
--- winner is already the common part's `ending.winner`.
+-- winner is already in the common part's `players`: the one ranked first
+-- (`finalRanking` 1).
 create or replace function bananagrams._make_json_summary_data(
   p_game_id uuid,
   p_status_changed_at timestamptz

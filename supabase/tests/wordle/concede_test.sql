@@ -107,8 +107,8 @@ select is(
     where id = (select id from g2) and p->>'id' = 'bea22222-2222-2222-2222-222222222222'),
   'conceded', 'the ending concede runs the builder: the last conceder''s game_data player says conceded');
 select is(
-  (select summary_data->'ending'->'winner' from common.games where id = (select id from g2)),
-  'null'::jsonb, 'no winner recorded when all conceded');
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g2)),
+  '[]'::jsonb, 'nobody ranked first when all conceded');
 -- The two ways a race ends with nobody winning are both `lost`; the reason is
 -- what lets the club list tell "everyone burned their guesses" from "everyone
 -- walked away".
@@ -151,8 +151,8 @@ select is(
   (select game_ended_reason || '/' || game_ended_reason_detail from common.games where id = (select id from g3)),
   'resource_exhausted/exhausted', 'mixed table: one quit and one ran out reads exhausted, not conceded');
 select is(
-  (select summary_data->'ending'->'winner' from common.games where id = (select id from g3)),
-  'null'::jsonb, 'mixed table: nobody won');
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g3)),
+  '[]'::jsonb, 'mixed table: nobody won');
 
 -- ─── (4) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

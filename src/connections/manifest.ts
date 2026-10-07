@@ -6,6 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
@@ -190,7 +191,7 @@ export const connectionsCompeteGame: GameManifest = {
   // Compete's labels carry no counts: each racer's are their own, and this
   // line is readable by the whole club (the builder writes null counts in
   // compete for the same reason). The ended line names the winner
-  // (`ending.winner`), so review reads "Won by ada." Mode itself is the
+  // (the player ranked first), so review reads "Won by ada." Mode itself is the
   // card's <ModeBadge>.
   summaryFor: (data, members) => {
     const summary = data as GSummaryData
@@ -199,7 +200,7 @@ export const connectionsCompeteGame: GameManifest = {
     const outcome = summary.outcome!
     switch (outcome) {
       case 'won':
-        return wonBy(usernameOf(members, summary.ending.winner))
+        return wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))
       // "all conceded" already says nobody won; the others need spelling out.
       case 'lost':
         return summary.ending.reason === 'conceded'

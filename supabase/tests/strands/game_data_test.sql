@@ -35,7 +35,7 @@ set search_path = strands, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(24);
+select plan(25);
 
 select pg_temp.strands_hint_words();
 create temp table fix on commit drop as select pg_temp.strands_puzzle() as puzzle_id;
@@ -258,9 +258,13 @@ select is(
   jsonb_build_object(
     'reason', 'conceded',
     'detail', 'conceded',
-    'by',     'bea22222-2222-2222-2222-222222222222',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'compete: the last concession ended it, and the solver won'
+    'by',     'bea22222-2222-2222-2222-222222222222'),
+  'compete: the last concession ended it'
+);
+select is(
+  pg_temp.winner_ids(pg_temp.game_data(pg_temp.compete())),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  '… and the solver won, ranked first'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),

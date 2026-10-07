@@ -347,7 +347,8 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --                                           coop, whose one board is `team`'s
 --
 --   summary_data, connections' part (the common part names and dates the
---   game and carries its ending; the winner is `ending.winner`):
+--   game and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nMatchedCats, nMistakes}       the team's counts; null in compete, whose
 --                                           summary shows no progress
 --     maxMistakes

@@ -16,7 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -196,7 +196,7 @@ export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'nFoundPuzzleWords' | 'nHin
  *     tilesById
  *     puzzleWords: [puzzleWord, …]           # spangram first; null until the game ends
  *   turns: {holder}                          # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   events: [event, …]                       # my rows only, mid-race
@@ -257,12 +257,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>

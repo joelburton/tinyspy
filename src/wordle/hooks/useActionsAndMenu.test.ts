@@ -26,7 +26,7 @@ function gdWith(facts: ZTest_GameDataFacts = {}) {
 
 /** The coop game lost on its last guess, with me — its one player — lost. */
 const LOST: ZTest_GameDataFacts = {
-  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1' },
   outcome: 'lost',
   target: 'crane',
   players: [{ id: 'u1', username: 'me', outcome: 'lost' }],
@@ -34,7 +34,7 @@ const LOST: ZTest_GameDataFacts = {
 
 /** The coop game won, by me typing the word. */
 const WON: ZTest_GameDataFacts = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
   target: 'crane',
   players: [{ id: 'u1', username: 'me', outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],

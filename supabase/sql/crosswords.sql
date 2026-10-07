@@ -291,7 +291,8 @@ drop function if exists crosswords._write_statuses(uuid, boolean);
 --                                  null in compete
 --
 --   summary_data, crosswords' part (the common part names and dates the game
---   and carries its ending; the winner is `ending.winner`):
+--   and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     nCells                       the cells a player fills
 --     team: {nFilledCells}         coop's filled cells; null in compete
 

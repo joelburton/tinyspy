@@ -56,9 +56,13 @@ type ClubGamesRow = {
  * gametype this bundle doesn't know (the caller reports those), or a game
  * whose builder does not write `summary_data` yet (plans/seat-view.md → The
  * page is written, not assembled). `members` is the club's, for the summary
- * to name a user id with.
+ * to name a user id with; `myId` is the viewer's, for the summary to speak to.
  */
-function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame | null {
+function makeListedGame(
+  r: ClubGamesRow,
+  members: readonly Member[],
+  myId: string,
+): ListedGame | null {
   if (r.summary_data === null) return null
   const data = r.summary_data as SummaryData
   const manifest = manifestFor(data.gametype)
@@ -70,7 +74,7 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
     statusChangedAt: data.statusChangedAt,
     isGameEnded: data.ended,
     isCurrent: r.is_current_view,
-    summary: manifest.summaryFor(data, members),
+    summary: manifest.summaryFor(data, members, myId),
   }
 }
 
@@ -90,12 +94,14 @@ function makeListedGame(r: ClubGamesRow, members: readonly Member[]): ListedGame
  * where that delete was the nudge, so no second one is coming.
  *
  * Takes the club's handle, its members — which each row's `summaryFor` names a
- * user id from — and the page's global feedback slot; all three are stable, so
- * nothing here resubscribes on a render.
+ * user id from — my id, which a `summaryFor` may speak to, and the page's
+ * global feedback slot; all four are stable, so nothing here resubscribes on a
+ * render.
  */
 export function useClubGames(
   clubHandle: string,
   members: readonly Member[],
+  myId: string,
   globalFeedbackSlot: FeedbackSlot,
 ) {
   const [games, setGames] = useState<ListedGame[]>([])
@@ -163,7 +169,7 @@ export function useClubGames(
       // club still has a current game when this tab can't draw it.
       const currentId = rows.find((r) => r.is_current_view)?.id ?? null
       const listed = rows
-        .map((r) => makeListedGame(r, members))
+        .map((r) => makeListedGame(r, members, myId))
         .filter((g): g is ListedGame => g !== null)
       // Collected across the whole load, not reported per row: one fault for
       // one stale bundle, however many of its games the club has.
@@ -213,9 +219,10 @@ export function useClubGames(
       if (ch) void releaseChannel(ch)
     }
     // `globalFeedbackSlot` is created once and keeps its identity across
-    // renders (`useFeedbackSlot`), and `members` is fixed for the page's life
-    // (`ClubPageLoader`), so listing them rejoins nothing.
-  }, [clubHandle, members, globalFeedbackSlot])
+    // renders (`useFeedbackSlot`), `members` is fixed for the page's life
+    // (`ClubPageLoader`), and `myId` is the session's, so listing them rejoins
+    // nothing.
+  }, [clubHandle, members, myId, globalFeedbackSlot])
 
   const currentGame = games.find((g) => g.isCurrent) ?? null
 

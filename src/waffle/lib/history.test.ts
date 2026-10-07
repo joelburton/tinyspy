@@ -51,7 +51,7 @@ function makeEvents(mode: 'coop' | 'compete', events: GEventRaw[]) {
       mode,
       players: TWO,
       events,
-      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
       outcome: 'neutral',
     }),
     'u1',

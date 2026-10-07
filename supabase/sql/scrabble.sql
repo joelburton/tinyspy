@@ -278,10 +278,8 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 --   summary_data, scrabble's part:
 --     team: {score}                        null in compete
 --     nBagTiles
---     winnerIds                            every player ranked first; null in
---                                          coop, or with no winner
 --     winnerScore                          the score the winners share; null
---                                          likewise
+--                                          in coop, or with no winner
 
 -- The board as one string: the 225 cells in order, "." when empty, the letter
 -- when a tile sits there — uppercase when that tile was a blank.
@@ -435,11 +433,6 @@ as $$
     'team',        case when cg.mode = 'coop'
                         then jsonb_build_object('score', scrabble._team_score(p_game_id)) end,
     'nBagTiles',   coalesce(cardinality(g.bag), 0),
-    'winnerIds',   (select jsonb_agg(gp.user_id order by gp.turn_seat, gp.user_id)
-                      from common.game_players gp
-                     where gp.game_id = p_game_id
-                       and cg.mode = 'compete'
-                       and gp.final_ranking = 1),
     'winnerScore', (select max(sp.score)
                       from scrabble.players sp
                       join common.game_players gp

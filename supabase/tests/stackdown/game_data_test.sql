@@ -32,7 +32,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(25);
+select plan(26);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -240,9 +240,13 @@ select is(
   jsonb_build_object(
     'reason', 'reached_goal',
     'detail', 'cleared',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'compete: the first to clear ended it and won'
+    'by',     'ada11111-1111-1111-1111-111111111111'),
+  'compete: the first to clear ended it'
+);
+select is(
+  pg_temp.winner_ids(pg_temp.game_data(pg_temp.compete())),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  '… and won, ranked first'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),

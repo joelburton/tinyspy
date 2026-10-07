@@ -67,12 +67,12 @@ function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
 /** The solo coop game's two endings, with its one player as the server wrote
  *  them. */
 const SOLO_LOST: ZTest_GameDataFacts = {
-  ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+  ending: { reason: 'timeout', detail: 'timeout', by: null },
   outcome: 'lost',
   players: [{ ...ME, outcome: 'lost' }],
 }
 const SOLO_WON: ZTest_GameDataFacts = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
   players: [{ ...ME, outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],
 }

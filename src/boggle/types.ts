@@ -14,7 +14,7 @@
  * and `GFoundWord` / `GFoundWordRaw` are the same pair, one level down.
  */
 
-import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { SetupOf, SetupRow } from '../common/setup-form/types.ts'
@@ -142,7 +142,7 @@ export type GFoundWord = Omit<GFoundWordRaw, 'userId'> & {
  *     nBonusWords
  *     bonusWordsScore
  *   turns                                    # always null: no turn order
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   foundWords: [{by, word, points, bonus, at}, …]   # every find, by a player; my rows only, mid-race
@@ -189,12 +189,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   // Every find, by player, in the order found; mid-race in compete, my rows
   // only.
   foundWords: GFoundWord[]
-  ending: {
-    reason: NonNullable<GameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>

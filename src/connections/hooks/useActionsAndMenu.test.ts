@@ -27,7 +27,7 @@ function gdWith(facts: ZTest_GameDataFacts = {}): GGameData {
 
 /** A game that has ended as a Stop. */
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -94,7 +94,7 @@ describe('useActionsAndMenu — the reveal', () => {
 
   it('shows the solution unasked to a solver, whose board already carries every band', () => {
     const { result } = setup(gdWith({
-      ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+      ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
       outcome: 'won',
       players: [{ id: 'u1', username: 'me', color: 'red', solvedAt: '2026-06-15T00:05:00Z', outcome: 'won' }],
     }))

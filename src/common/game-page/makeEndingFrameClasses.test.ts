@@ -13,6 +13,7 @@ describe('makeEndingFrameClasses', () => {
   it('draws the frame in the ending\'s outcome', () => {
     expect(makeEndingFrameClasses('won', false)).toBe(`${shared.endingFrame} ${shared.endingFrame_won}`)
     expect(makeEndingFrameClasses('lost', false)).toBe(`${shared.endingFrame} ${shared.endingFrame_lost}`)
+    expect(makeEndingFrameClasses('near', false)).toBe(`${shared.endingFrame} ${shared.endingFrame_near}`)
   })
 
   it('draws a neutral ending in the neutral gray', () => {

@@ -1959,7 +1959,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 -- A JSON null means "no value right now"; every key is always present. A
 -- group that may not apply is null as a whole: `turns` in a free-for-all game,
 -- `ending` while the game is played, a player's `ending` while they play.
--- Links are ids in JSON (`turns.holder`, `ending.by`, `ending.winner`); the
+-- Links are ids in JSON (`turns.holder`, `ending.by`); the
 -- page turns them into players.
 --
 --   shell_data:
@@ -1975,7 +1975,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --   game_data, the common part:
 --     title
 --     turns: {holder}                      null: no turn order; in a turn game the holder is always a player
---     ending: {reason, detail, by, winner} null while playing; winner: the player ranked 1
+--     ending: {reason, detail, by}         null while playing; the winners are the players ranked 1
 --     ended, outcome                       outcome null until the game ends
 --     players: [player, …]                 seat order; by username in a free-for-all game
 --
@@ -1988,7 +1988,7 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --   summary_data, the common part:
 --     id, gametype, title
 --     statusChangedAt                      the same instant the builder writes to the column
---     ending: {reason, detail, by, winner} null while playing
+--     ending: {reason, detail, by}         null while playing
 --     ended, outcome                       outcome null until the game ends
 --     players: [{id, outcome, finalRanking, conceded}, …]   seat order, as game_data's
 
@@ -2081,8 +2081,8 @@ $$;
 revoke execute on function common._make_json_players(uuid) from public;
 
 -- How the game ended, or null while it is played. `by` is the player whose act
--- ended it (null for a timeout nobody's turn covers); `winner` the player
--- ranked first, null when nobody was.
+-- ended it (null for a timeout nobody's turn covers). The winners are not here:
+-- they are every player whose `finalRanking` is 1, and each player carries it.
 create or replace function common._make_json_ending(g common.games)
 returns jsonb
 language sql
@@ -2092,11 +2092,7 @@ as $$
   select case when g.ended_at is not null then jsonb_build_object(
     'reason', g.game_ended_reason,
     'detail', g.game_ended_reason_detail,
-    'by',     g.game_ended_by_user_id,
-    'winner', (select gp.user_id from common.game_players gp
-                where gp.game_id = g.id and gp.final_ranking = 1
-                order by gp.turn_seat, gp.user_id
-                limit 1)
+    'by',     g.game_ended_by_user_id
   ) end;
 $$;
 

@@ -31,7 +31,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(30);
+select plan(31);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -268,9 +268,13 @@ select is(
   jsonb_build_object(
     'reason', 'conceded',
     'detail', 'conceded',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'bea22222-2222-2222-2222-222222222222'),
-  'compete ended: the last racer''s concession ended it, and the one who scored is the winner'
+    'by',     'ada11111-1111-1111-1111-111111111111'),
+  'compete ended: the last racer''s concession ended it'
+);
+select is(
+  pg_temp.winner_ids(pg_temp.game_data(pg_temp.compete())),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  '… and the one who scored won, ranked first'
 );
 select is(
   (select jsonb_agg(pg_temp.track(p) order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.compete()) -> 'players') p),

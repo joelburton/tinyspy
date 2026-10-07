@@ -27,7 +27,7 @@ const TWO = [
 ]
 
 const WON_BY_MOTH = {
-  ending: { reason: 'reached_goal' as const, detail: 'solved', by: 'u2', winner: 'u2' },
+  ending: { reason: 'reached_goal' as const, detail: 'solved', by: 'u2' },
   outcome: 'won' as const,
 }
 
@@ -46,21 +46,23 @@ describe('crosswords makeGameData — the links become players', () => {
   })
 
   it('names who ended the game and the winner as players', () => {
-    const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players: TWO, ...WON_BY_MOTH }), 'u1')
+    const players = [TWO[0]!, { ...TWO[1]!, outcome: 'won' as const, finalRanking: 1 }]
+    const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'compete', players, ...WON_BY_MOTH }), 'u1')
     expect(gd.ending?.by).toBe(gd.playersById.u2)
-    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ending?.winners).toEqual([gd.playersById.u2])
+    expect(gd.ending?.winners[0]).toBe(gd.playersById.u2)
     expect(gd.ended).toBe(true)
   })
 
   it('a timeout is ended by nobody, with no winner', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
-        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        ending: { reason: 'timeout', detail: 'timeout', by: null },
         outcome: 'lost',
       }),
       'u1',
     )
-    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winner: null })
+    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winners: [] })
   })
 
   it('carries the puzzle as the blob does: no solution mid-game, the answer key once it ends', () => {

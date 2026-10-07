@@ -63,7 +63,7 @@ describe('makeGameData', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({
       mode: 'compete',
       players: PLAYERS,
-      ending: { reason: 'all_passed', detail: 'blocked', by: 'u2', winner: 'u2' },
+      ending: { reason: 'all_passed', detail: 'blocked', by: 'u2' },
       outcome: 'won',
     }), 'u1')
     expect(gd.playersById.u2!.rack).toEqual(['x', 'y'])
@@ -89,13 +89,13 @@ describe('makeGameData', () => {
   it('turns the turn and the ending\'s links into players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({
       mode: 'compete',
-      players: PLAYERS,
+      players: [PLAYERS[0], { ...PLAYERS[1], outcome: 'won', finalRanking: 1 }],
       turnHolderId: 'u2',
-      ending: { reason: 'all_passed', detail: 'blocked', by: 'u2', winner: 'u2' },
+      ending: { reason: 'all_passed', detail: 'blocked', by: 'u2' },
       outcome: 'won',
     }), 'u1')
     expect(gd.turns!.holder).toBe(gd.playersById.u2)
     expect(gd.ending!.by).toBe(gd.playersById.u2)
-    expect(gd.ending!.winner).toBe(gd.playersById.u2)
+    expect(gd.ending!.winners).toEqual([gd.playersById.u2])
   })
 })

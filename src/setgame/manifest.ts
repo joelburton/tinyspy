@@ -8,6 +8,7 @@ import { memberById } from '@/common/members/memberList'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
   DEFAULT_SETGAME_SETUP_COOP,
@@ -117,7 +118,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   switch (outcome) {
     case 'won': {
       // A won race has its winners and the sets they share.
-      const names = summary.winnerIds!.map((id) => memberById(members, id)?.username ?? 'someone')
+      const names = findWinnerIds(summary).map((id) => memberById(members, id)?.username ?? 'someone')
       const sets = count(summary.nWinnerSets!, 'set')
       return names.length > 1
         ? statusLine(verdict('Won', 'tied'), names.join(' & '), sets)

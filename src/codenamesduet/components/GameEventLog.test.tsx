@@ -97,7 +97,6 @@ function renderLog(o: {
           reason: 'stopped',
           detail: 'stopped',
           by: 'ada',
-          winner: null,
         }, outcome: 'neutral',
       } : {}),
     }),

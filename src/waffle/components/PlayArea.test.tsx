@@ -81,16 +81,16 @@ const ALL_GREEN = ZTest_SOLVED.colors
 /** The endings the tests reach for, each with the game's outcome beside it. */
 type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
 const COOP_WON: Ending = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: null },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
 }
 const COOP_LOST: Ending = {
-  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1' },
   outcome: 'lost',
 }
 /** A race somebody won: the last racer's act was a solve. */
 const raceWonBy = (winner: string): Ending => ({
-  ending: { reason: 'reached_goal', detail: 'solved', by: winner, winner },
+  ending: { reason: 'reached_goal', detail: 'solved', by: winner },
   outcome: 'won',
 })
 
@@ -551,7 +551,7 @@ describe('waffle PlayArea — the end', () => {
   it('names an all-conceded race for what it was', () => {
     render(<PlayAreaLoader {...makeCtx({
       mode: 'compete',
-      ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
+      ending: { reason: 'conceded', detail: 'conceded', by: 'u2' },
       outcome: 'lost',
       players: [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }],
     })} />)

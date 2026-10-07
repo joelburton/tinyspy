@@ -276,9 +276,9 @@ select is(
 );
 
 select is(
-  (select summary_data->'ending'->>'winner' from common.games where id = (select id from compete_g)),
-  'ada11111-1111-1111-1111-111111111111',
-  'compete: summary_data.ending.winner = caller who triggered the rank hit'
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from compete_g)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  'compete: summary_data ranks first the caller who triggered the rank hit'
 );
 
 -- ============================================================

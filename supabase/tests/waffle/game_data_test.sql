@@ -32,7 +32,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(28);
+select plan(29);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -241,9 +241,13 @@ select is(
   jsonb_build_object(
     'reason', 'conceded',
     'detail', 'conceded',
-    'by',     'bea22222-2222-2222-2222-222222222222',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'compete: the last racer''s concession ended it, and the solver won'
+    'by',     'bea22222-2222-2222-2222-222222222222'),
+  'compete: the last racer''s concession ended it'
+);
+select is(
+  pg_temp.winner_ids(pg_temp.game_data(pg_temp.compete())),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  '… and the solver won, ranked first'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),

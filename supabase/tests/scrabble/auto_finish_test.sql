@@ -91,7 +91,7 @@ select is((select final_ranking || '/' || outcome from common.game_players
 select is((select final_ranking || '/' || outcome from common.game_players
            where game_id = (select id from gcp) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   '2/near', 'the lower score is ranked second, near');
-select is((select summary_data->'winnerIds' from common.games where id = (select id from gcp)),
+select is((select pg_temp.winner_ids(summary_data) from common.games where id = (select id from gcp)),
   '["ada11111-1111-1111-1111-111111111111"]'::jsonb, 'the winner lands on the club line');
 -- Every scoring step is a row: the opponent's leftovers in their name, the
 -- going-out bonus in the out-player's.
@@ -156,7 +156,7 @@ select is((select final_ranking || '/' || outcome from common.game_players
 select is((select final_ranking || '/' || outcome from common.game_players
            where game_id = (select id from gtie) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   '1/won', 'tie: bea is ranked 1 too');
-select is((select summary_data->'winnerIds' from common.games where id = (select id from gtie)),
+select is((select pg_temp.winner_ids(summary_data) from common.games where id = (select id from gtie)),
   '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]'::jsonb,
   'a tie names both winners — the shared rank carries it');
 select is((select (summary_data->>'winnerScore')::int from common.games where id = (select id from gtie)),

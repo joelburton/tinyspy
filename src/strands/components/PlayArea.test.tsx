@@ -60,7 +60,7 @@ function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
 
 /** A game that has ended with nobody winning: a Stop. */
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
   players: [{ ...ME, outcome: 'neutral' }],
 }
@@ -230,7 +230,7 @@ describe('strands PlayArea — the reveal at the end', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u1' },
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2' },
           outcome: 'won',
           players: [
             { ...ME, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
@@ -249,7 +249,7 @@ describe('strands PlayArea — the reveal at the end', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          ending: { reason: 'conceded', detail: 'conceded', by: 'u1', winner: 'u2' },
+          ending: { reason: 'conceded', detail: 'conceded', by: 'u1' },
           outcome: 'won',
           players: [
             { ...ME, outcome: 'lost' },
@@ -269,7 +269,7 @@ describe('strands PlayArea — the reveal at the end', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u2' },
           outcome: 'won',
           players: [
             { ...ME, solvedAt: SOLVED.at, outcome: 'near', finalRanking: 2 },

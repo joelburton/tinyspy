@@ -225,9 +225,10 @@ export type GameManifest = {
   // A game whose builder does not write it yet is not listed.
   //
   // `members` is the club's roster, which the club page already has; an id
-  // in the blob (`ending.by`, `ending.winner`) is named with
-  // `memberById(members, id)`.
-  summaryFor: (summary: SummaryData, members: readonly Member[]) => string
+  // in the blob (`ending.by`, a player's `id`) is named with
+  // `memberById(members, id)`, and `findWinnerIds` finds the winners. `myId`
+  // is the viewer's, so a line may speak to them ("You conceded").
+  summaryFor: (summary: SummaryData, members: readonly Member[], myId: string) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
   // `useGameTimer.expired` flips true in countdown mode.

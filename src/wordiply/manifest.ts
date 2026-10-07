@@ -5,6 +5,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, tally, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -128,7 +129,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won': {
-      const winner = summary.ending.winner
+      const winner = findWinnerIds(summary)[0] ?? null
       const name = winner === null ? undefined : memberById(members, winner)?.username
       return statusLine(wonBy(name), percent(summary.winnerLengthScore))
     }

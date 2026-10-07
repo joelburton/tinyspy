@@ -24,7 +24,7 @@ const TWO = [
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
 const ENDED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 

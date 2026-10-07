@@ -49,7 +49,7 @@ export function buildBeeGameEndingMessage({
   // How I came out (`gd.me.outcome`): a compete loser's is `lost` while the
   // game's is `won`.
   playerOutcome: EndOutcome | null
-  // The player ranked first (`gd.ending.winner`), or null when nobody was.
+  // The player ranked first (`gd.ending.winners[0]`), or null when nobody was.
   winner: BeePlayer | null
   // My side's facts (`gd.me`): the team's in coop, my own in compete.
   facts: BeeFacts

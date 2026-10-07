@@ -153,7 +153,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | the common part alone: there is no puzzle, and the table refills in place |
 | `game_data` | `board: {tiles}` — the one table, shared in both modes, each tile `{id}`, its four digits as text, in slot order. `nTilesInDeck`, the tiles still to be dealt. `team: {nSetsFound, nHintsUsed}` — the team's own facts, the players' counts summed, sent once; null in compete. `events`, every row `{id, userId, kind, tiles, boardAfter, tookTurn, at}`. On each player their own `nSetsFound` and `nHintsUsed` |
-| `summary_data` | `team: {nSetsFound, nHintsUsed}`, the team's counts, null in compete; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `winnerIds`, every player ranked first, and `nWinnerSets`, the sets they share — both compete's |
+| `summary_data` | `team: {nSetsFound, nHintsUsed}`, the team's counts, null in compete; `nTableSetsFound`, the table's sets in both modes; `nTilesInDeck`; `perfectClear`, a coop win that left the table empty; `nWinnerSets`, the sets every player ranked first shares — compete's |
 
 **Every player carries the facts** (`GFacts`: `nSetsFound`, `nHintsUsed`,
 `board`, `nTilesInDeck`) twice: spread on, the side's — the team's in coop,
@@ -164,8 +164,9 @@ them on every player, the same table object on each; `gd` has no `board`,
 `nTilesInDeck` or `team` of its own.
 
 **Nothing is private to a seat**, so `useGame` has no seat rule: every row and
-count is public in both modes. `winnerIds` is a list because with no speed
-tiebreak a tie is an ordinary result, and the club card names each winner.
+count is public in both modes. With no speed tiebreak a tie is an ordinary
+result, and the club card names each winner: every player the summary's
+common `players` ranks first.
 
 ### How a game ends
 
@@ -271,7 +272,7 @@ The roster's usual `quality asc, solved_at asc` exists to separate players who
 crossed the *same* finish line. Here the count is the whole result, and breaking
 a 9–9 on who grabbed their last set first would crown reflexes the score
 deliberately doesn't measure. So the ranking uses `rank()`: every tied player is
-ranked 1 and won, the summary's `winnerIds` lists every one of them,
+ranked 1 and won, the summary's `players` lists every one of them,
 and each player reads their own outcome.
 
 **On timeout, compete RANKS BY SETS FOUND** — the leader at the whistle wins.

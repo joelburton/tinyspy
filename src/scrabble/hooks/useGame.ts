@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
@@ -49,13 +50,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
-  // a timeout.
-  const playerOf = (id: string | null) => (
-    id === null
-      ? null
-      : playersById[id]!)
-
   // Every row is a seated player's: a player's rows go with their profile
   // (`on delete cascade`), so the lookup cannot miss.
   const events: GEvent[] = raw.events.map(({ userId, placements, ...row }) => ({
@@ -71,14 +65,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: playerOf(ending.by),
-        winner: playerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     events,
     players,
     playersById,

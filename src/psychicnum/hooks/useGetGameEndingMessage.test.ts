@@ -18,11 +18,14 @@ function gdWith(o: {
   ending: GameDataRaw['ending']
   outcome?: EndOutcome | null
   myOutcome?: EndOutcome | null
+  // The player ranked first, if any.
+  winnerId?: string
 }): GGameData {
+  const ranked = (id: string) => (id === o.winnerId ? { finalRanking: 1 } : {})
   return makeGameData(
     ZTest_makeGameDataRaw({
       mode: o.mode ?? 'coop',
-      players: [{ ...ME, outcome: o.myOutcome ?? null }, MOTH],
+      players: [{ ...ME, outcome: o.myOutcome ?? null, ...ranked(ME.id) }, { ...MOTH, ...ranked(MOTH.id) }],
       ending: o.ending,
       outcome: o.outcome ?? (o.ending === null ? null : 'won'),
     }),
@@ -30,7 +33,7 @@ function gdWith(o: {
   )
 }
 
-const WON = { reason: 'reached_goal' as const, detail: 'solved', by: 'u1', winner: 'u1' }
+const WON = { reason: 'reached_goal' as const, detail: 'solved', by: 'u1' }
 
 describe('useGetGameEndingMessage', () => {
   it('is null while the game is played', () => {
@@ -47,7 +50,9 @@ describe('useGetGameEndingMessage', () => {
 
   it('names compete\'s winner when it is not me', () => {
     const { result } = renderHook(() =>
-      useGetGameEndingMessage(gdWith({ mode: 'compete', ending: { ...WON, by: 'u2', winner: 'u2' }, myOutcome: 'lost' })),
+      useGetGameEndingMessage(gdWith({
+        mode: 'compete', ending: { ...WON, by: 'u2' }, myOutcome: 'lost', winnerId: 'u2',
+      })),
     )
     expect(result.current?.infoColText).toBe('moth won')
   })
@@ -69,7 +74,7 @@ describe('useGetGameEndingMessage', () => {
     })
     const first = result.current
     rerender(gdWith({
-      ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+      ending: { reason: 'timeout', detail: 'timeout', by: null },
       outcome: 'lost',
       myOutcome: 'lost',
     }))

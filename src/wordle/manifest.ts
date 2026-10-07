@@ -6,6 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
@@ -194,7 +195,7 @@ export const wordleCompeteGame: GameManifest = {
     switch (outcome) {
       case 'won':
         return statusLine(
-          wonBy(usernameOf(members, summary.ending.winner)),
+          wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null)),
           count(summary.nWinnerGuesses, 'guess', 'guesses'),
           dict,
         )

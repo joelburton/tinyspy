@@ -80,7 +80,7 @@ describe('replayTurn', () => {
         words: WORDS,
         players: [ME, MOTH],
         events: [ZTest_guess(1, 'u', 'apple', true), ZTest_guess(2, 'v', 'berry', false), ZTest_guess(3, 'u', 'cedar', false)],
-        ending: { reason: 'stopped', detail: 'stopped', by: 'u', winner: null },
+        ending: { reason: 'stopped', detail: 'stopped', by: 'u' },
         outcome: 'neutral',
       }),
       'u',

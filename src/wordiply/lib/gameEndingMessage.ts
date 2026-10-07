@@ -66,7 +66,7 @@ export function buildGameEndingMessage({
       mode)
 
     if (gameEnding.outcome === 'won') {
-      // A won race has its winner (`ending.winner`, ranked first).
+      // A won race has its winner (`ending.winners[0]`, ranked first).
       const { lengthScore } = winner!
       if (playerOutcome === 'won') {
         return { pillText: `Won: ${lengthScore}%`, infoColText: 'You won!' }

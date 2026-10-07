@@ -1,6 +1,7 @@
 // cs-unmet
 
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { SetupRow } from '@/common/setup-form/types'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
@@ -153,7 +154,7 @@ export type BeeGameDataRaw<Setup> = Omit<GameDataRaw, 'setup' | 'players'> & {
  *   setupRows
  *   puzzle: {tiles, tilesById, centerLetter, outerLetters, words, nReqdWords, reqdWordsScore}
  *   turns                                            # always null: no turn order
- *   ending: {reason, detail, by, winner}             # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}            # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                          # null until the game ends
  *   foundWords: [{by, word, points, pangram, bonus, at}, …]   # every find, by a player; my rows only, mid-race
@@ -205,12 +206,7 @@ export type BeeGameData<Setup> = Omit<
   // Every find, by player, in the order found; mid-race in compete, my rows
   // only. The page filters it as a reader asks: mine, ours, required, bonus.
   foundWords: BeeFoundWord[]
-  ending: {
-    reason: NonNullable<GameDataRaw['ending']>['reason']
-    detail: string
-    by: BeePlayer | null
-    winner: BeePlayer | null
-  } | null
+  ending: GameEnding<BeePlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: BeePlayer[]
   playersById: Record<string, BeePlayer>
@@ -274,10 +270,6 @@ export function makeBeeGameData<Setup>(
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
-  // a timeout.
-  const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
-
   // Every find is a seated player's: a player's rows go with their profile
   // (`on delete cascade`), so the lookup cannot miss.
   const foundWords: BeeFoundWord[] = raw.foundWords
@@ -292,14 +284,7 @@ export function makeBeeGameData<Setup>(
     puzzle: { ...raw.puzzle, tilesById: new Map(raw.puzzle.tiles.map((t) => [t.id, t])) },
     setupRows: makeSetupRows(players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: playerOf(ending.by),
-        winner: playerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     foundWords,
     players,
     playersById,

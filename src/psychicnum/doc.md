@@ -146,7 +146,8 @@ own, on `psychicnum.players` and on their player in the blob, in both modes;
 in compete — and their own under `own`
 ([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)), so the state line and the
 board's move count read `gd.me` and pick nothing. Compete's summary
-carries no progress; the race's winner is the common `ending.winner`.
+carries no progress; the race's winner is the player the common `players` ranks
+first.
 `psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's
 blobs without re-dating them, for a shape change.
 
@@ -347,8 +348,9 @@ pause, chat — and unmounts this whole surface on pause.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
 `game_data` blob the page was handed (`GGameDataRaw`), with its
-links turned into players (`turns.holder`, `ending.by`, `ending.winner`, each
-tile's `decidedBy`), each tile's outcome read once, the setup rows built, and
+links turned into players (`turns.holder`, `ending.by`, each tile's
+`decidedBy`), `ending.winners` read off each player's `finalRanking`, each
+tile's outcome read once, the setup rows built, and
 the seat rule applied — in
 compete, mid-race, a rival's rows leave the log and their `board` is null. It
 is a pure function of the blob and who I am; no reads, no subscription. Every

@@ -630,6 +630,10 @@
 /* @@ */   --ending-frame: var(--outcomes-lost-endingFrame-color);
 }
 
+/* @@ */ .endingFrame_near {
+/* @@ */   --ending-frame: var(--outcomes-near-endingFrame-color);
+}
+
 /* @@ */ .endingFrame_neutral {
 /* @@ */   --ending-frame: var(--outcomes-neutral-endingFrame-color);
 }

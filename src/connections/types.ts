@@ -17,7 +17,7 @@
 import type { Action } from '@/common/actions/useBindAction'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -184,7 +184,7 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   setupRows
  *   puzzle: {date, cats, tiles, tilesById}  # frozen at create_game; public in both modes; a tile is {id, word}
  *   turns: {holder}                       # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners} # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                               # null until the game ends
  *   events: [{id, by, tiles, result, outcome, matched, matchedCatRank, at}, …]   # the log, by a player, its tiles the puzzle's; my rows only, mid-race
@@ -232,12 +232,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -502,7 +497,8 @@ export type GAnswer =
  * reads `game_data` instead (`GGameDataRaw`).
  *
  * `team` is the team's counts in coop, null in compete, whose summary shows
- * no progress (the winner is the common `ending.winner`).
+ * no progress (the winner is in the common `players`, ranked first:
+ * `findWinnerIds`).
  */
 export type GSummaryData = SummaryData & {
   team: Pick<GFacts, 'nMatchedCats' | 'nMistakes'> | null

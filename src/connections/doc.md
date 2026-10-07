@@ -176,7 +176,7 @@ carries. `useGame` puts the side's facts on every player — the team's in coop,
 their own in compete — and their own under `own`
 ([common-schema.md → A player's facts](../../docs/common-schema.md#a-players-facts--the-sides-and-their-own)), so the state line reads
 `gd.me`. Compete's summary carries no team, where a live count would leak
-how close a racer is; the winner is the common `ending.winner`.
+how close a racer is; the winner is the player the common `players` ranks first.
 `connections._rebuild_data_cols_for_all()` rewrites every connections game's
 blobs without re-dating them, for a shape change.
 
@@ -415,8 +415,9 @@ info column's state paragraph.
 
 **`gd`, the game data.** `useGame` hands the surface one object, `gd`: the
 `game_data` blob the page was handed (`GGameDataRaw`), with its links turned
-into players (`turns.holder`, `ending.by`, `ending.winner`, each log row's
-`by`), each row's wire word read once (`outcome`, `matched`), the setup rows
+into players (`turns.holder`, `ending.by`, each log row's `by`),
+`ending.winners` read off each player's `finalRanking`, each row's wire word
+read once (`outcome`, `matched`), the setup rows
 built, and the seat rule applied — in compete, mid-race, a rival's rows leave
 the log and their `board` is null. It is a pure function of the blob and who I
 am; no reads, no subscription. Every fact about a seat is on the player

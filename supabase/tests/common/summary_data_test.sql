@@ -109,8 +109,7 @@ select is(
     'ending',  jsonb_build_object(
       'reason', 'reached_goal',
       'detail', 'solved',
-      'by',     'ada11111-1111-1111-1111-111111111111',
-      'winner', 'ada11111-1111-1111-1111-111111111111'),
+      'by',     'ada11111-1111-1111-1111-111111111111'),
     'ended',   true,
     'outcome', 'won',
     'players', jsonb_build_array(

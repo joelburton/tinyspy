@@ -27,7 +27,7 @@
  * ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
-import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { SetupOf } from '../common/setup-form/types.ts'
@@ -544,7 +544,7 @@ export type GSummaryData = SummaryData & {
  *   puzzle                            # the template, frozen at create, and the solution, null until the game ends
  *   revision
  *   turns: null                       # no turn order
- *   ending: {reason, detail, by, winner}   # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}  # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                           # null until the game ends
  *   players: [player, …]
@@ -579,12 +579,7 @@ export type GSummaryData = SummaryData & {
  */
 export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'players'> & {
   turns: { holder: GPlayer } | null
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players by username, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>

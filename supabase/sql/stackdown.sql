@@ -203,7 +203,8 @@ drop function if exists stackdown._write_statuses(uuid, boolean);
 --                                          `team`'s
 --
 --   summary_data, stackdown's part (the common part names and dates the game
---   and carries its ending; the winner is `ending.winner`):
+--   and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nFoundWords, nHintsUsed, nSpoilersUsed}
 --                                          the team's counts; null in compete
 --     nReqdWords

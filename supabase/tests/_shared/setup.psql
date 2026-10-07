@@ -235,3 +235,20 @@ language sql
 as $$
   select common.create_club(club_name, member_usernames) -> 'data' ->> 'handle';
 $$;
+
+-- ============================================================
+-- pg_temp.winner_ids(blob) — who won, read off a page blob
+-- ============================================================
+--
+-- The ids of every player ranked first in a `game_data` or
+-- `summary_data` blob, in the blob's seat order, as a jsonb
+-- array: `[]` when nobody won. The blobs carry no winner of
+-- their own; a winner is a player whose `finalRanking` is 1.
+create function pg_temp.winner_ids(blob jsonb) returns jsonb
+language sql
+immutable
+as $$
+  select coalesce(jsonb_agg(t.p -> 'id' order by t.ord), '[]'::jsonb)
+    from jsonb_array_elements(blob -> 'players') with ordinality as t(p, ord)
+   where (t.p ->> 'finalRanking')::int = 1;
+$$;

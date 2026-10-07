@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -51,10 +52,7 @@ export function InfoCol({
    *  "out" once they have ended on their own — solved or conceded; and their
    *  verdict once the game has ended. */
   function getHintsOrOut(player: GPlayer) {
-    if (gd.ended) {
-      const verdict = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
-      return `${verdict} on ${player.nHintsUsed}`
-    }
+    if (gd.ended) return `${endingOutcomeVerb(player)} on ${player.nHintsUsed}`
     if (player.ending !== null) return 'out'
     return player.nHintsUsed
   }

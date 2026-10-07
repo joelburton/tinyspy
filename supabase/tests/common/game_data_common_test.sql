@@ -228,9 +228,8 @@ select is(
   jsonb_build_object(
     'reason', 'reached_goal',
     'detail', 'solved',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'the ending: reason pair, who ended it, the player ranked first'
+    'by',     'ada11111-1111-1111-1111-111111111111'),
+  'the ending: reason pair, who ended it'
 );
 select is(
   pg_temp.game_data(pg_temp.race()) ->> 'outcome',

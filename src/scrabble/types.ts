@@ -18,7 +18,7 @@
  * relative and ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
-import type { FactsApart, GameDataRaw, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '../common/setup-form/types.ts'
@@ -274,7 +274,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   setupRows
  *   version                                  # the move counter every move sends back
  *   turns: {holder}                          # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   events: [event, …]                       # every row, every player's
@@ -331,12 +331,7 @@ export type GGameData = Omit<GGameDataRaw, 'nBagTiles' | 'board' | 'team' | 'tur
   setupRows: SetupRow[]
   turns: { holder: GPlayer } | null
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -486,13 +481,12 @@ export type GSetup = SetupOf<GSetupValues>
  * Every key is always present, null when it has no value. The summary
  * (`manifest.ts`'s `summaryFor`) reads it as written.
  *
- * `team` is the team's score, null in compete. `winnerIds` is every player
- * ranked first — a compete tie shares rank 1 — and `winnerScore` the score
- * they share; both null in coop, or with no winner.
+ * `team` is the team's score, null in compete. `winnerScore` is the score
+ * every player ranked first shares — a compete tie shares rank 1 — null in
+ * coop, or with no winner.
  */
 export type GSummaryData = SummaryData & {
   team: { score: number } | null
   nBagTiles: number
-  winnerIds: string[] | null
   winnerScore: number | null
 }

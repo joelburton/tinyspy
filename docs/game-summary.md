@@ -48,9 +48,10 @@ Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 
 ## The summary
 
-`manifest.summaryFor(summary, members)`: a **pure, synchronous** function of the
+`manifest.summaryFor(summary, members, myId)`: a **pure, synchronous** function of the
 game's `summary_data` (see [`common/manifest`](../src/common/manifest/doc.md)),
-which ClubPage calls through the blob's gametype. Everything a summary needs
+which ClubPage calls through the blob's gametype, handing it the club's members
+to name a player with and the viewer's id to speak to. Everything a summary needs
 must therefore already be in the blob, which is why the game's builder writes it
 whole after every move. And because `summary_data` is club-readable, the rule
 for titles holds here too: a line says only what every player already sees.

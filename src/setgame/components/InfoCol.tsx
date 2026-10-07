@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import {
   InfoActionsRow,
@@ -54,15 +55,7 @@ export function InfoCol({
    *  "out" once they have conceded; and their verdict once the game has
    *  ended. */
   function getSetsOrOut(player: GPlayer) {
-    if (gd.ended) {
-      const verdict =
-        player.outcome === 'won'
-          ? 'Won'
-          : player.conceded
-            ? 'Conceded'
-            : 'Lost'
-      return `${verdict} · ${player.nSetsFound}`
-    }
+    if (gd.ended) return `${endingOutcomeVerb(player)} · ${player.nSetsFound}`
     if (player.ending !== null) return 'out'
     return `${player.nSetsFound}`
   }

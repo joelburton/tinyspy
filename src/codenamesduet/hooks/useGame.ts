@@ -1,6 +1,7 @@
 // cs-blessed-codenamesduet
 
 import { useMemo } from 'react'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
@@ -44,7 +45,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const players: GPlayer[] = raw.players.map((p) => ({ ...p, ...facts, own: facts }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   // Links that cannot miss get a bare lookup: every id the builder writes is a
-  // seated player's. An ending's `by` may be null for a timeout.
+  // seated player's. The turn's holder may be null in sudden death.
   const playerOf = (id: string) => playersById[id]!
   const maybePlayerOf = (id: string | null) => (id === null
     ? null
@@ -95,14 +96,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
         },
     },
     events,
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: maybePlayerOf(ending.by),
-        winner: maybePlayerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     players,
     playersById,
     me,

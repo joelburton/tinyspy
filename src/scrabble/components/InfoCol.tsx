@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import {
@@ -49,15 +50,7 @@ export function InfoCol({
    *  once the game has ended, the one thing telling a player who conceded from
    *  one who played on and lost. */
   function getScoreOrOut(player: GPlayer) {
-    if (gd.ended) {
-      const verdict =
-        player.outcome === 'won'
-          ? 'won'
-          : player.conceded
-            ? 'conceded'
-            : 'lost'
-      return `${player.score} (${verdict})`
-    }
+    if (gd.ended) return `${player.score} (${endingOutcomeVerb(player).toLowerCase()})`
     if (player.ending !== null) return 'out'
     return `${player.score}`
   }

@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { Actor } from '@/common/members/member'
@@ -117,7 +117,7 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   setupRows
  *   puzzle: {words, secrets}              # secrets null until the game ends
  *   turns: {holder}                       # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}  # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners} # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                               # null until the game ends
  *   events: [{id, by, word, correct, kind, at}, …]   # the log, by a player; my rows only, mid-race
@@ -172,12 +172,7 @@ export type GGameData =
   turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -384,7 +379,8 @@ export type GAnswer =
  * `game_data` instead (`GGameDataRaw`).
  *
  * `team` is the team's finds and guesses in coop, null in compete, whose
- * summary shows no progress. The race's winner is the common `ending.winner`.
+ * summary shows no progress. The race's winner is in the common `players`, ranked
+ * first (`findWinnerIds`).
  */
 export type GSummaryData = SummaryData & {
   team: Pick<GFacts, 'nFoundSecrets' | 'nGuessesUsed'> | null

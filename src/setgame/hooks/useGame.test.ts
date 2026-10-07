@@ -71,11 +71,11 @@ describe('makeGameData', () => {
   it('turns the ending\'s links into players', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({
       mode: 'compete',
-      players: PLAYERS,
-      ending: { reason: 'resource_exhausted', detail: 'cleared', by: 'u2', winner: 'u2' },
+      players: [PLAYERS[0], { ...PLAYERS[1], outcome: 'won', finalRanking: 1 }],
+      ending: { reason: 'resource_exhausted', detail: 'cleared', by: 'u2' },
       outcome: 'won',
     }), 'u1')
     expect(gd.ending!.by).toBe(gd.playersById.u2)
-    expect(gd.ending!.winner).toBe(gd.playersById.u2)
+    expect(gd.ending!.winners).toEqual([gd.playersById.u2])
   })
 })

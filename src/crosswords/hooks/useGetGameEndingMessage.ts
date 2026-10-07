@@ -10,7 +10,8 @@ import type { GGameData } from '../types'
  * the game is played.
  *
  * WHY it ended is the server's word (`gd.ending.reason`), never the browser
- * timer's, and who solved it first is the server's `ending.winner`.
+ * timer's, and who solved it first is the server's too: `ending.winners`, every player ranked
+ * first.
  *
  * The message keeps its identity for as long as the ending does, which is what
  * lets the effect that shows it show it once rather than on every reload of
@@ -22,8 +23,8 @@ export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const gameOutcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const winnerName = gd.ending?.winner?.username ?? null
-  const winnerColor = gd.ending?.winner?.color ?? null
+  const winnerName = gd.ending?.winners[0]?.username ?? null
+  const winnerColor = gd.ending?.winners[0]?.color ?? null
 
   return useMemo(
     () =>

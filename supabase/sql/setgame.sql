@@ -304,10 +304,8 @@ drop function if exists setgame._write_statuses(uuid, boolean);
 --     nTilesInDeck
 --     perfectClear                         a coop win that left the table
 --                                          empty; null unless a coop win
---     winnerIds                            every player ranked first — a tie
+--     nWinnerSets                          the sets the winners share — a tie
 --                                          is an ordinary result here; null
---                                          in coop, or with no winner
---     nWinnerSets                          the sets the winners share; null
 --                                          in coop, or with no winner
 
 -- Tiles, in the order given, each `{id}`.
@@ -420,11 +418,6 @@ as $$
     'nTilesInDeck',    setgame._deck_size(sg.deck_kind) - sg.deck_pos,
     'perfectClear', case when cg.mode = 'coop' and cg.game_ended_reason = 'reached_goal'
                          then cardinality(sg.board) = 0 end,
-    'winnerIds',    (select jsonb_agg(gp.user_id order by gp.turn_seat, gp.user_id)
-                       from common.game_players gp
-                      where gp.game_id = p_game_id
-                        and cg.mode = 'compete'
-                        and gp.final_ranking = 1),
     'nWinnerSets',  (select max(sp.n_sets_found)
                        from setgame.players sp
                        join common.game_players gp

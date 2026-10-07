@@ -81,8 +81,8 @@ select is(
 );
 
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g1)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g1)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
   'higher length_score: ada (longest 7) is the winner'
 );
 
@@ -155,8 +155,8 @@ select wordiply.submit_guess((select id from g2), 'are');
 
 reset role;
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g2)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g2)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
   'n_letters tiebreak: equal length_score → ada (more total letters) wins'
 );
 
@@ -207,8 +207,8 @@ select wordiply.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g3)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g3)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
   'timed tiebreak: equal length_score AND n_letters → earlier finisher (ada) wins'
 );
 
@@ -283,9 +283,9 @@ select is(
 );
 
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g4)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
-  'untimed tie: summary_data names ada'
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g4)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  'untimed tie: summary_data ranks ada first, alone'
 );
 
 -- ============================================================
@@ -309,8 +309,8 @@ select wordiply.submit_timeout((select id from g5));
 
 reset role;
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g5)),
-  'ada11111-1111-1111-1111-111111111111'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g5)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
   'submit_timeout compete: the leader on current scores (ada) wins'
 );
 
@@ -344,8 +344,8 @@ select is((select game_ended_reason || '/' || game_ended_outcome from common.gam
 select is((select count(*)::int from common.game_players
             where game_id = (select id from g6) and final_ranking is not null),
   0, 'nobody guessed: no player is ranked');
-select is((select summary_data->'ending'->>'winner' from common.games where id = (select id from g6)),
-  null, 'nobody guessed: no winner named');
+select is((select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g6)),
+  '[]'::jsonb, 'nobody guessed: nobody ranked first');
 
 -- ============================================================
 -- (7) REJECTS MUST NOT REACH ANY SCORE
@@ -399,8 +399,8 @@ select is(
   'rejects: the game still ends on five ACCEPTED guesses each'
 );
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g7)),
-  'bea22222-2222-2222-2222-222222222222'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g7)),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
   'rejects: a 7-letter REJECTED word does not win ada the game'
 );
 -- And the rows are all there — the log kept them, the score ignored them.

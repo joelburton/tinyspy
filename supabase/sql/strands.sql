@@ -206,7 +206,8 @@ drop function if exists strands._write_statuses(uuid, boolean);
 --                                          whose one board is `team`'s
 --
 --   summary_data, strands' part (the common part names and dates the game
---   and carries its ending; the winner is `ending.winner`):
+--   and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nFoundPuzzleWords, nHintsUsed, hintPoints}
 --                                          the team's counts and bar; null in compete
 --     nWinnerHints                         the hints the race was won on; null

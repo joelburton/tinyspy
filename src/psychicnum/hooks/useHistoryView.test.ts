@@ -23,7 +23,7 @@ function gdWith(mode: 'coop' | 'compete'): GGameData {
       words: ['apple', 'berry', 'cedar'],
       events: EVENTS,
       players: [{ id: 'u1', username: 'me', color: 'red' }, { id: 'u2', username: 'moth', color: 'blue' }],
-      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
       outcome: 'neutral',
     }),
     'u1',

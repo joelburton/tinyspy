@@ -58,7 +58,7 @@ function coopEnded(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts {
   return {
     events,
     players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
-    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1', winner: 'u1' },
+    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1' },
     outcome: 'won',
   }
 }
@@ -68,7 +68,7 @@ function raceLost(reason: 'conceded' | 'timeout' | 'resource_exhausted'): ZTest_
   return {
     mode: 'compete',
     players: [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'lost' }],
-    ending: { reason, detail: reason, by: null, winner: null },
+    ending: { reason, detail: reason, by: null },
     outcome: 'lost',
   }
 }
@@ -79,13 +79,13 @@ function raceMothWon(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts
     mode: 'compete',
     events,
     players: [{ ...ME, outcome: 'near', finalRanking: 2 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
-    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u2', winner: 'u2' },
+    ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u2' },
     outcome: 'won',
   }
 }
 
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -316,7 +316,7 @@ describe('wordiply PlayArea — the race\'s verdicts', () => {
         {...makeCtx({
           ...race,
           players: [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'near', finalRanking: 2 }],
-          ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1', winner: 'u1' },
+          ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1' },
           outcome: 'won',
         })}
       />,

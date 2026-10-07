@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -158,7 +158,7 @@ export type GPlayerRaw = PlayerRaw & GFactsRaw
  *   setup
  *   setupRows
  *   turns: {holder}                          # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   events: [event, …]                       # every row, every player's
@@ -203,12 +203,7 @@ export type GGameData = Omit<GGameDataRaw, 'board' | 'nTilesInDeck' | 'team' | '
   setupRows: SetupRow[]
   turns: { holder: GPlayer } | null
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -309,15 +304,13 @@ export type GSetup = SetupOf<GSetupValues>
  * `nTableSetsFound` is the sets the whole table has taken, in both modes — the
  * one count the club card reads.
  * `perfectClear` is a coop win that left the table empty, null unless a coop
- * win. `winnerIds` is every player ranked first — a tie is an ordinary result
- * here — and `nWinnerSets` the sets they share; both null in coop, or with no
- * winner.
+ * win. `nWinnerSets` is the sets every player ranked first shares — a tie is
+ * an ordinary result here — null in coop, or with no winner.
  */
 export type GSummaryData = SummaryData & {
   team: GFactsRaw | null
   nTableSetsFound: number
   nTilesInDeck: number
   perfectClear: boolean | null
-  winnerIds: string[] | null
   nWinnerSets: number | null
 }

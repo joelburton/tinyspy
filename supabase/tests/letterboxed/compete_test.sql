@@ -61,9 +61,9 @@ select is(
   'the ending names the solver'
 );
 select is(
-  (select (summary_data->'ending'->>'winner') || '/' || (summary_data->>'nWinnerWords')
+  (select pg_temp.winner_ids(summary_data)::text || '/' || (summary_data->>'nWinnerWords')
      from common.games where id = (select id from g)),
-  'ada11111-1111-1111-1111-111111111111/2',
+  '["ada11111-1111-1111-1111-111111111111"]/2',
   'the summary carries the winner and their chain length (no follow-up query)'
 );
 select is(

@@ -8,6 +8,7 @@ import { memberById } from '@/common/members/memberList'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
@@ -92,7 +93,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   switch (outcome) {
     case 'won': {
       // A won race has its winners and the score they share.
-      const names = summary.winnerIds!.map((id) => memberById(members, id)?.username ?? 'someone')
+      const names = findWinnerIds(summary).map((id) => memberById(members, id)?.username ?? 'someone')
       const score = `${summary.winnerScore!} pts`
       return names.length > 1
         ? statusLine(verdict('Won', 'tied'), names.join(' & '), score)

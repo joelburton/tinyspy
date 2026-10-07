@@ -125,7 +125,7 @@ describe('codenamesduet Board — my key card', () => {
 
 describe('codenamesduet Board — my partner’s key card', () => {
   const ENDED: ZTest_GameDataFacts = {
-    ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+    ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
     outcome: 'neutral',
   }
   const keySquares = (over: Over, facts: ZTest_GameDataFacts) =>

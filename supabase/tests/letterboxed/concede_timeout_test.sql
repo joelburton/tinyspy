@@ -112,10 +112,10 @@ select is(
 );
 
 select is(
-  (select summary_data->'ending'->>'winner' from common.games
+  (select pg_temp.winner_ids(summary_data) from common.games
     where id = (select id from ga)),
-  'bea22222-2222-2222-2222-222222222222',
-  '…and the summary names the racer as the winner, not the best coverage'
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  '…and the summary ranks the racer first, not the best coverage'
 );
 
 -- ============================================================

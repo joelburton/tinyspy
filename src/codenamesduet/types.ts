@@ -16,7 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -231,7 +231,7 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *     holder                                 # null in sudden death with words on both sides
  *     num                                    # the turn being played, from 1
  *     currClue: {word, count, fromAi, by}    # given until the guessing ends; null while it is being written
- *   ending: {reason, detail, by, winner}
+ *   ending: {reason, detail, by, winners}
  *   ended
  *   outcome
  *   events: [event, …]                       # every clue, guess, pass and hint, in order
@@ -293,12 +293,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   puzzle: { tiles: GPuzzleTile[]; tilesById: ReadonlyMap<string, GPuzzleTile> }
   turns: GTurns
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, A then B, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>

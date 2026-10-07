@@ -36,7 +36,7 @@ const EVENTS = [
   ZTest_guess(3, 'u2', ZTest_rowIds(5, 4), 'invalid'),
   ZTest_hint(4, 'u2', ZTest_rowIds(2)),
 ]
-const STOPPED = { ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null }, outcome: 'neutral' } as const
+const STOPPED = { ending: { reason: 'stopped', detail: 'stopped', by: 'u1' }, outcome: 'neutral' } as const
 
 describe('strands makeGameData — the links become players and tiles', () => {
   it('me is my own entry in players — the same object', () => {
@@ -56,14 +56,14 @@ describe('strands makeGameData — the links become players and tiles', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         mode: 'compete',
-        players: TWO,
-        ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: 'u1' },
+        players: [{ ...TWO[0], outcome: 'won', finalRanking: 1 }, TWO[1]],
+        ending: { reason: 'conceded', detail: 'conceded', by: 'u2' },
         outcome: 'won',
       }),
       'u1',
     )
     expect(gd.ending?.by).toBe(gd.playersById.u2)
-    expect(gd.ending?.winner).toBe(gd.me)
+    expect(gd.ending?.winners).toEqual([gd.me])
     expect(gd.ended).toBe(true)
   })
 
@@ -71,12 +71,12 @@ describe('strands makeGameData — the links become players and tiles', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         players: TWO,
-        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        ending: { reason: 'timeout', detail: 'timeout', by: null },
         outcome: 'lost',
       }),
       'u1',
     )
-    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winner: null })
+    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winners: [] })
   })
 
   it('gives each log row its player, and its tiles in trace order', () => {

@@ -207,8 +207,8 @@ select is(
      from common.game_players where game_id = (select id from g2)),
   array['2/near', '1/won'], 'tie on guesses: the race still ranks one player first');
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g2)),
-  'bea22222-2222-2222-2222-222222222222'::uuid,
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g2)),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
   'tie on guesses: the earlier solved_at wins, not the first to call');
 
 select * from finish();

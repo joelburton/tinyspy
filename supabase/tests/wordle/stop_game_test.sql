@@ -97,9 +97,9 @@ select is(
   (select game_ended_outcome from common.games where id = (select id from g4)),
   'lost', 'compete timeout with nobody solved → lost');
 select is(
-  (select game_ended_reason || ':' || coalesce(summary_data->'ending'->>'winner', 'none')
+  (select game_ended_reason || ':' || pg_temp.winner_ids(summary_data)::text
      from common.games where id = (select id from g4)),
-  'timeout:none', 'compete timeout: reason timeout, no winner recorded');
+  'timeout:[]', 'compete timeout: reason timeout, nobody ranked first');
 
 -- ── Manual end (stop_game) → neutral, stopped ────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

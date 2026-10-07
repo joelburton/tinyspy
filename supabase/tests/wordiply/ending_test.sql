@@ -391,9 +391,9 @@ select is(
 );
 
 select is(
-  (select summary_data->'ending'->>'winner' || '/' || (summary_data->>'winnerLengthScore')
+  (select pg_temp.winner_ids(summary_data)::text || '/' || (summary_data->>'winnerLengthScore')
      from common.games where id = (select id from done_g)),
-  'ada11111-1111-1111-1111-111111111111/100',
+  '["ada11111-1111-1111-1111-111111111111"]/100',
   'concede-after-finish: summary_data names ada and her length score'
 );
 

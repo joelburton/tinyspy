@@ -26,7 +26,7 @@ function gdWith(isCompete: boolean) {
       players: TWO,
       events: EVENTS,
       ...(isCompete
-        ? { ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' }, outcome: 'won' }
+        ? { ending: { reason: 'reached_goal', detail: 'solved', by: 'u2' }, outcome: 'won' }
         : {}),
     }),
     'u1',

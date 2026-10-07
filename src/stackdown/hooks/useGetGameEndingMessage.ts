@@ -10,7 +10,7 @@ import type { GGameData } from '../types'
  * or null while the game is played.
  *
  * WHY it ended is the server's word (`gd.ending.reason`), never the browser
- * clock's, and who won is the server's (`gd.ending.winner`, each player's
+ * clock's, and who won is the server's (`gd.ending.winners`, each player's
  * `outcome`).
  *
  * The message keeps its identity for as long as the ending does, which is what
@@ -23,8 +23,8 @@ export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
   // The winner by name and color, so the memo keys on strings.
-  const winnerName = gd.ending?.winner?.username ?? null
-  const winnerColor = gd.ending?.winner?.color ?? null
+  const winnerName = gd.ending?.winners[0]?.username ?? null
+  const winnerColor = gd.ending?.winners[0]?.color ?? null
 
   return useMemo(
     () =>

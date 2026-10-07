@@ -146,9 +146,9 @@ select is(
 );
 
 select is(
-  (select (summary_data->'ending'->>'winner')::uuid from common.games where id = (select id from g)),
-  'cade3333-3333-3333-3333-333333333333'::uuid,
-  'compete: the summary names the caller (cade) as the winner'
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g)),
+  '["cade3333-3333-3333-3333-333333333333"]'::jsonb,
+  'compete: the summary ranks the caller (cade) first'
 );
 
 select is(

@@ -27,7 +27,7 @@ const TWO = [
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -126,7 +126,7 @@ describe('buildStackdownPrintModel — one track per board', () => {
     const all = ZTest_SOLUTION.map((w, i) => ZTest_word(i + 1, 'u1', w))
     const cleared = printFrom({
       events: all,
-      ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1', winner: null },
+      ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
       outcome: 'won',
     })
     // Every tile gone => put them all back; a blank page is nothing to review.

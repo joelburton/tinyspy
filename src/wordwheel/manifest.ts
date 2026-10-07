@@ -7,6 +7,7 @@ import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_WORDWHEEL_SETUP_COMPETE,
@@ -208,7 +209,7 @@ export const wordwheelCompeteGame: GameManifest = {
     const outcome = summary.outcome!
     switch (outcome) {
       case 'won':
-        return `${wonBy(usernameOf(members, summary.ending.winner))} at "${rank}"`
+        return `${wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))} at "${rank}"`
       // The two collective losses, told apart by the reason: the last racer
       // dropped out, or the clock beat everyone to the rank.
       case 'lost':

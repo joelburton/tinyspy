@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; step 1, the rename, is done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done, step 4 (each game) is next.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -48,29 +48,29 @@ always shows MY outcome.
 
 Storage is already right: every player's `final_ranking` and `outcome` are on
 `common.game_players`, every ranking uses `rank()` (ties share, the next
-skips), and every coop win ranks the whole team 1. The single winner is made
-in `common._make_json_ending` (`limit 1`), and the rest is the page.
+skips), and every coop win ranks the whole team 1. Steps 2 and 3 made the
+blobs carry the ranking and no winner; what is left is the page.
 
 ### Server
 
-| gametype | co-winners possible | ranking stored at the end | club line names the winner from |
+| gametype | co-winners possible | ranking stored at the end | club line names |
 |---|---|---|---|
-| bananagrams | no: a race | the winner only | `ending.winner` |
-| boggle | **yes**: compete with no target, at a `timeout` (score) | with no target, the full ranking; with one, the winner only | `ending.winner`: one of a tie |
+| bananagrams | no: a race | the winner only | the first winner |
+| boggle | **yes**: compete with no target, at a `timeout` (score) | with no target, the full ranking; with one, the winner only | the first winner: one of a tie |
 | codenamesduet | coop only | the team | nobody (coop) |
-| connections | no: a race | the winner only | `ending.winner` |
-| crosswords | no: a race | the winner only | `ending.winner` |
-| letterboxed | **yes**: a compete `timeout` (letters, then words) | at a `timeout`, the full ranking; on a solve, the winner only | `ending.winner`: one of a tie |
-| psychicnum | no: a race | the winner only | `ending.winner` |
-| scrabble | **yes**: score | the full ranking | `winnerIds`: every winner |
-| setgame | **yes**: sets found | the full ranking | `winnerIds`: every winner |
-| spellingbee | no: a race to the target | the winner only | `ending.winner` |
-| stackdown | no: a race | the winner only | `ending.winner` |
+| connections | no: a race | the winner only | the first winner |
+| crosswords | no: a race | the winner only | the first winner |
+| letterboxed | **yes**: a compete `timeout` (letters, then words) | at a `timeout`, the full ranking; on a solve, the winner only | the first winner: one of a tie |
+| psychicnum | no: a race | the winner only | the first winner |
+| scrabble | **yes**: score | the full ranking | every winner |
+| setgame | **yes**: sets found | the full ranking | every winner |
+| spellingbee | no: a race to the target | the winner only | the first winner |
+| stackdown | no: a race | the winner only | the first winner |
 | strands | in effect no: the earlier solve breaks ties | the full ranking | nobody ("Won · N hints") |
-| waffle | in effect no: the earlier solve | the full ranking | `ending.winner` |
-| wordiply | in effect no: the earlier last guess | the full ranking | `ending.winner` |
-| wordle | in effect no: the earlier solve | the full ranking | `ending.winner` |
-| wordwheel | no: a race to the target | the winner only | `ending.winner` |
+| waffle | in effect no: the earlier solve | the full ranking | the first winner |
+| wordiply | in effect no: the earlier last guess | the full ranking | the first winner |
+| wordle | in effect no: the earlier solve | the full ranking | the first winner |
+| wordwheel | no: a race to the target | the winner only | the first winner |
 
 "The winner only" leaves a race's other players unranked, so they come out
 `lost`, never `near`.
@@ -138,7 +138,9 @@ Also:
    every winner. boggle, spellingbee and wordwheel's hard-coded `'lost'` first:
    they color a `near` player red today. Each game also closes its gaps
    against `plans/game-cards.md` and answers "what should the club-page
-   summary be?".
+   summary be?". Its strip reads neutral for a player who neither won nor
+   lost — a `stopped` or `no-result` game, unless they conceded — where
+   `endingOutcomeVerb` says "Lost" today.
 
 ## Overlaps
 
@@ -150,3 +152,5 @@ one home. Its → Renames → "Terminal" → "ended" points here.
 
 - **The `near` line's words.** "2nd place" is decided; a tied place ("2nd
   place, tied"?) and what the line says beside it are not.
+- **The strip's neutral word.** A player who neither won nor lost reads
+  neutral (decided); the word is not.

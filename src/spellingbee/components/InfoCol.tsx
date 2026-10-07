@@ -1,6 +1,7 @@
 // cs-blessed-spellingbee
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -39,8 +40,7 @@ export function InfoCol({
   // "Lost at Amazing" vs "Won at Genius".
   function getRankOrOut(player: GPlayer) {
     if (!gd.ended) return player.ending ? 'out' : player.rankName
-    const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
-    return `${verb} at ${player.rankName}`
+    return `${endingOutcomeVerb(player)} at ${player.rankName}`
   }
 
   const wordRows = makeWordRows(gd)

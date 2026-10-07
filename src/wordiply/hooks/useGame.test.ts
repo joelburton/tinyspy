@@ -32,7 +32,7 @@ const EVENTS = [
   ZTest_guess(3, 'u2', 'hangars'),
 ]
 const STOPPED = {
-  ending: { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped' as const, detail: 'stopped', by: 'u1' },
   outcome: 'neutral' as const,
 }
 
@@ -57,14 +57,14 @@ describe('wordiply makeGameData — the links become players', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         mode: 'compete',
-        players: TWO,
-        ending: { reason: 'conceded', detail: 'conceded', by: 'u1', winner: 'u2' },
+        players: [TWO[0], { ...TWO[1], outcome: 'won', finalRanking: 1 }],
+        ending: { reason: 'conceded', detail: 'conceded', by: 'u1' },
         outcome: 'won',
       }),
       'u1',
     )
     expect(gd.ending?.by).toBe(gd.me)
-    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ending?.winners).toEqual([gd.playersById.u2])
     expect(gd.ended).toBe(true)
   })
 
@@ -72,12 +72,12 @@ describe('wordiply makeGameData — the links become players', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         players: TWO,
-        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        ending: { reason: 'timeout', detail: 'timeout', by: null },
         outcome: 'lost',
       }),
       'u1',
     )
-    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winner: null })
+    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winners: [] })
   })
 
   it('gives each log row its player, rejects included', () => {

@@ -19,7 +19,7 @@
  * tile is an instance the builder writes).
  */
 
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -177,7 +177,7 @@ export type GBoard = {
  *   setup
  *   setupRows
  *   turns: null                       # no turn order
- *   ending: {reason, detail, by, winner}   # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}  # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                           # null until the game ends
  *   events: [event, …]
@@ -219,12 +219,7 @@ export type GGameData = Omit<GGameDataRaw, 'nBunchTiles' | 'nBagTiles' | 'team' 
   setupRows: SetupRow[]
   turns: { holder: GPlayer } | null
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players by username, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -293,7 +288,8 @@ export type GAnswer =
  * `common.games.summary_data`, as `bananagrams._rebuild_data_cols` writes it
  * (supabase/sql/bananagrams.sql): the common part, and the bunch's count beside
  * it. Every key is always present. The summary (`manifest.ts`'s `summaryFor`)
- * reads it as written; the race's winner is the common `ending.winner`.
+ * reads it as written; the race's winner is the player the common `players`
+ * ranks first (`findWinnerIds`).
  */
 export type GSummaryData = SummaryData & {
   nBunchTiles: number

@@ -336,8 +336,7 @@ common part:
 |---|---|
 | `team` | coop's `{score}`; null in compete |
 | `nBagTiles` | the tiles left in the bag |
-| `winnerIds` | every player ranked first — a compete tie shares rank 1; null in coop, or with no winner |
-| `winnerScore` | the score the winners share; null likewise |
+| `winnerScore` | the score every player ranked first shares — a compete tie shares rank 1; null in coop, or with no winner |
 
 **Every player carries the facts** (`GFacts`: `score`, `rack`, `nRackTiles`,
 `board`, `nBagTiles`) twice: spread on, the side's — the team's in coop, their

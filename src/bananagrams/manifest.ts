@@ -5,6 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
@@ -36,7 +37,7 @@ const BRAND = 'MonkeyGrams'
 /**
  * The club line. While the game is on it counts the tiles left in the bunch,
  * which every peel draws down, so it says how near the race is to its end. A
- * race's one winner is the common `ending.winner`; the two no-winner losses,
+ * race's one winner is the player the common `players` ranks first; the two no-winner losses,
  * the timer running out and everyone conceding, are told apart by the ending's
  * reason.
  */
@@ -51,7 +52,7 @@ function makeLabel(summary: GSummaryData, members: readonly Member[]): string {
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won':
-      return wonBy(memberById(members, summary.ending.winner!)?.username)
+      return wonBy(memberById(members, findWinnerIds(summary)[0]!)?.username)
     case 'lost':
       return summary.ending.reason === 'conceded'
         ? verdict('Lost', 'all conceded')

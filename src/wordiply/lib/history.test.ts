@@ -12,7 +12,7 @@ const TWO = [
 
 /** The log of a game, read through `gd`, so each row carries its player. */
 function eventsOf(mode: 'coop' | 'compete', guesses: ReturnType<typeof ZTest_guess>[]) {
-  const ended = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winner: null }
+  const ended = { reason: 'stopped' as const, detail: 'stopped', by: 'u1' }
   return makeGameData(
     ZTest_makeGameDataRaw({ mode, players: TWO, events: guesses, ending: ended, outcome: 'neutral' }),
     'u1',

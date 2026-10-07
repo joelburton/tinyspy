@@ -215,9 +215,8 @@ select is(
   (pg_temp.game_data(pg_temp.game('compete')) -> 'ending') - 'detail',
   jsonb_build_object(
     'reason', 'reached_goal',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'the won race: the word that reached the target ended it, and its finder is the winner'
+    'by',     'ada11111-1111-1111-1111-111111111111'),
+  'the won race: the word that reached the target ended it, by its finder'
 );
 select is(
   (pg_temp.player(pg_temp.game('compete'), 'ada11111-1111-1111-1111-111111111111') ->> 'outcome')

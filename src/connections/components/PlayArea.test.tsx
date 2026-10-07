@@ -113,15 +113,15 @@ const conceded = (id: string, name: string, color: string): ZTest_PlayerFacts =>
 /** The endings the tests reach for, each with the game's outcome beside it. */
 type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
 const COOP_LOST: Ending = {
-  ending: { reason: 'resource_exhausted', detail: 'mistakes', by: 'u1', winner: null },
+  ending: { reason: 'resource_exhausted', detail: 'mistakes', by: 'u1' },
   outcome: 'lost',
 }
 const SOMEONE_WON: Ending = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
 }
 const ALL_CONCEDED: Ending = {
-  ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
+  ending: { reason: 'conceded', detail: 'conceded', by: 'u2' },
   outcome: 'lost',
 }
 

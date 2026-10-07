@@ -114,8 +114,8 @@ select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ended' - 'outcome' - 'ending'
                        - 'players'
      from common.games where id = (select id from g where mode = 'coop')),
-  '{"team": {"score": 0}, "nBagTiles": 93, "winnerIds": null, "winnerScore": null}'::jsonb,
-  'a fresh coop summary: the team''s score, the bag, no winners');
+  '{"team": {"score": 0}, "nBagTiles": 93, "winnerScore": null}'::jsonb,
+  'a fresh coop summary: the team''s score, the bag, no winning score');
 select is(
   (select summary_data->'team' from common.games where id = (select id from g where mode = 'compete')),
   'null'::jsonb, 'a race''s summary has no team');
@@ -176,9 +176,9 @@ select scrabble.play_word((select id from g where mode = 'compete'), 0,
     {"x":8,"y":7,"letter":"t","blank":false}]'::jsonb, array['at'], 2);
 reset role;
 select is(
-  (select summary_data->'winnerIds' from common.games where id = (select id from g where mode = 'compete')),
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g where mode = 'compete')),
   '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
-  'a race names its winners');
+  'a race ranks its winners first');
 select is(
   (select (summary_data->>'winnerScore')::int from common.games where id = (select id from g where mode = 'compete')),
   22, 'and the score they won on: 2 played + 20 of the bot''s leftovers');

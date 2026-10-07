@@ -63,16 +63,16 @@ const lost = (p: ZTest_PlayerFacts): ZTest_PlayerFacts => ({ ...p, outcome: 'los
 /** The two game endings the tests reach for: the set completed, and every
  *  budget spent — each with the game's outcome beside it. */
 const GAME_WON: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
 }
 const GAME_LOST: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
-  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1' },
   outcome: 'lost',
 }
 /** The same game, won by moth. */
 const MOTH_WON: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
-  ending: { ...(GAME_WON.ending as NonNullable<GameDataRaw['ending']>), by: 'u2', winner: 'u2' },
+  ending: { ...(GAME_WON.ending as NonNullable<GameDataRaw['ending']>), by: 'u2' },
   outcome: 'won',
 }
 

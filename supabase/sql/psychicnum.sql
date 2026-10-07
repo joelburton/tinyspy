@@ -141,7 +141,8 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          whose one board is `team`'s
 --
 --   summary_data, psychicnum's part (the common part names and dates the game
---   and carries its ending; the winner is `ending.winner`):
+--   and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nFoundSecrets, nGuessesUsed}
 --                                          the team's counts; null in compete, whose
 --                                          summary shows no progress

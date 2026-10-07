@@ -7,6 +7,7 @@ import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
@@ -112,7 +113,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won': {
-      const who = wonBy(usernameOf(members, summary.ending.winner))
+      const who = wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))
       // A target win reads "Won by alice at 65%" — one phrase. A score race
       // has no bar to name, so the winning score goes in the facts slot.
       return summary.ending.reason === 'reached_goal' && pct !== null

@@ -41,10 +41,10 @@ type Family = {
  * converts onto the page blobs (plans/seat-view.md). The families still in the old shape above
  * convert one game at a time, and this becomes the only shape once the last does.
  *
- * An ending case names the outcome and reason, and the winner where the summary names one;
- * `ending.by` is always alice.
+ * An ending case names the outcome and reason, and the winners where the summary names them —
+ * every player ranked first, so a tie lists two; `ending.by` is always alice.
  */
-type EndingCase = { outcome: EndOutcome; reason: GameEndedReason; detail?: string; winner?: string }
+type EndingCase = { outcome: EndOutcome; reason: GameEndedReason; detail?: string; winners?: string[] }
 type GameEndingCase = [ending: EndingCase, summary: Record<string, unknown>, note: string]
 type GameEndingFamily = {
   /** The mid-game `summary_data`, every key present as the builder writes it. */
@@ -60,6 +60,9 @@ const MEMBERS: Member[] = [
   { id: 'u-alice', username: 'alice', color: 'red' },
   { id: 'u-bob', username: 'bob', color: 'blue' },
 ]
+
+/** Who reads every label: bob, who wins nothing unless a case ties him with alice. */
+const MY_ID = 'u-bob'
 
 /** A family in the new shape, told apart from an old one by its `live` blob. */
 function isGameEndingFamily(fam: Family | GameEndingFamily): fam is GameEndingFamily {
@@ -96,7 +99,7 @@ const BEE_CASES: GameEndingFamily = {
     [{ outcome: 'neutral', reason: 'stopped' }, BEE_LIVE, 'Stop'],
   ],
   compete: [
-    [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, BEE_RACE, 'someone hit the target'],
+    [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, BEE_RACE, 'someone hit the target'],
     [{ outcome: 'lost', reason: 'timeout' }, BEE_RACE, 'timeout'],
     [{ outcome: 'lost', reason: 'conceded' }, BEE_RACE, 'all conceded'],
     [{ outcome: 'neutral', reason: 'stopped' }, BEE_RACE, 'Stop'],
@@ -132,7 +135,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundPuzzleWords: 2, nHintsUsed: 1, hintPoints: 1 }, nWinnerHints: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, nWinnerHints: 0 }, 'won on 0 hints'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, nWinnerHints: 0 }, 'won on 0 hints'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, nWinnerHints: null }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, nWinnerHints: null }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nWinnerHints: null }, 'Stop'],
@@ -150,7 +153,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundSecrets: 2, nGuessesUsed: 4 }, nReqdSecrets: 3, maxGuesses: 7 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, nReqdSecrets: 3, maxGuesses: 7 }, 'won the race'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, nReqdSecrets: 3, maxGuesses: 7 }, 'won the race'],
       [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, nReqdSecrets: 3, maxGuesses: 7 }, 'budgets exhausted'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, nReqdSecrets: 3, maxGuesses: 7 }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, nReqdSecrets: 3, maxGuesses: 7 }, 'all conceded'],
@@ -168,7 +171,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nMatchedCats: 2, nMistakes: 1 }, maxMistakes: 4 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, maxMistakes: 4 }, 'won the race'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, maxMistakes: 4 }, 'won the race'],
       [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxMistakes: 4 }, 'everyone hit four mistakes'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxMistakes: 4 }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxMistakes: 4 }, 'all conceded'],
@@ -185,14 +188,14 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   boggle: {
     live: { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'reached the target'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'reached the target'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'timeout, target set'],
       [{ outcome: 'neutral', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: null, topScore: null }, 'timeout, no target'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, targetWinPercent: 65, topScore: 70 }, 'reached the target'],
-      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, targetWinPercent: null, topScore: 90 }, 'top score at the buzzer (no target)'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, targetWinPercent: 65, topScore: 70 }, 'reached the target'],
+      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { team: null, targetWinPercent: null, topScore: 90 }, 'top score at the buzzer (no target)'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: 65, topScore: 40 }, 'timeout, target set'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: null, topScore: 0 }, 'timeout, nobody scored'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, targetWinPercent: null, topScore: 0 }, 'all conceded'],
@@ -204,7 +207,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   bananagrams: {
     live: { nBunchTiles: 12 },
     shared: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'complete', winner: 'u-alice' }, { nBunchTiles: 0 }, 'someone went out'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'complete', winners: ['u-alice'] }, { nBunchTiles: 0 }, 'someone went out'],
       [{ outcome: 'lost', reason: 'timeout' }, { nBunchTiles: 12 }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { nBunchTiles: 12 }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { nBunchTiles: 12 }, 'Stop'],
@@ -221,7 +224,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: 8 }, 'someone won'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: 8 }, 'someone won'],
       [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'everyone out of swaps'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'all conceded'],
@@ -240,7 +243,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3 }, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winner: 'u-alice' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: 4 }, 'someone won'],
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: 4 }, 'someone won'],
       [{ outcome: 'lost', reason: 'resource_exhausted' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'everyone out of guesses'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null }, 'all conceded'],
@@ -259,7 +262,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nFoundWords: 3, nHintsUsed: 1, nSpoilersUsed: 0 }, nReqdWords: 6, band: 3 }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared', winner: 'u-alice' }, { team: null, nReqdWords: 6, band: 3 }, 'first to clear'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared', winners: ['u-alice'] }, { team: null, nReqdWords: 6, band: 3 }, 'first to clear'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, nReqdWords: 6, band: 3 }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, nReqdWords: 6, band: 3 }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nReqdWords: 6, band: 3 }, 'Stop'],
@@ -269,17 +272,17 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // winners and the score they share are compete's. The bag played out is coop's `won` — every
   // teammate ranked first — and still reads "Ended"; a compete tie shares rank 1.
   scrabble: {
-    live: { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null },
+    live: { team: { score: 152 }, nBagTiles: 47, winnerScore: null },
     coop: [
-      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { score: 312 }, nBagTiles: 0, winnerIds: null, winnerScore: null }, 'bag played out'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { score: 152 }, nBagTiles: 47, winnerIds: null, winnerScore: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete' }, { team: { score: 312 }, nBagTiles: 0, winnerScore: null }, 'bag played out'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { score: 152 }, nBagTiles: 47, winnerScore: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { score: 152 }, nBagTiles: 47, winnerScore: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winner: 'u-alice' }, { team: null, nBagTiles: 0, winnerIds: ['u-alice'], winnerScore: 312 }, 'highest score'],
-      [{ outcome: 'won', reason: 'all_passed', detail: 'blocked', winner: 'u-alice' }, { team: null, nBagTiles: 0, winnerIds: ['u-alice', 'u-bob'], winnerScore: 280 }, 'tied — co-winners'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nBagTiles: 30, winnerIds: null, winnerScore: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nBagTiles: 30, winnerIds: null, winnerScore: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winners: ['u-alice'] }, { team: null, nBagTiles: 0, winnerScore: 312 }, 'highest score'],
+      [{ outcome: 'won', reason: 'all_passed', detail: 'blocked', winners: ['u-alice', 'u-bob'] }, { team: null, nBagTiles: 0, winnerScore: 280 }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nBagTiles: 30, winnerScore: null }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nBagTiles: 30, winnerScore: null }, 'Stop'],
     ],
   },
   // crosswords._make_json_summary_data: `team` holds coop's filled-cell count and is null in
@@ -293,7 +296,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { nCells: 180, team: { nFilledCells: 108 } }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { nCells: 180, team: null }, 'first to finish'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { nCells: 180, team: null }, 'first to finish'],
       [{ outcome: 'lost', reason: 'timeout' }, { nCells: 180, team: null }, 'timeout'],
       [{ outcome: 'lost', reason: 'conceded' }, { nCells: 180, team: null }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { nCells: 180, team: null }, 'Stop'],
@@ -304,19 +307,19 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // roster doesn't have: a coop win that STRANDS tiles (the normal ending; a full clear is ~2% of
   // games and says so), and a compete tie, a real result because there is no speed tiebreak.
   setgame: {
-    live: { team: { nSetsFound: 6, nHintsUsed: 1 }, nTableSetsFound: 6, nTilesInDeck: 45, perfectClear: null, winnerIds: null, nWinnerSets: null },
+    live: { team: { nSetsFound: 6, nHintsUsed: 1 }, nTableSetsFound: 6, nTilesInDeck: 45, perfectClear: null, nWinnerSets: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 24, nHintsUsed: 1 }, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: false, winnerIds: null, nWinnerSets: null }, 'deck cleared'],
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 27, nHintsUsed: 1 }, nTableSetsFound: 27, nTilesInDeck: 0, perfectClear: true, winnerIds: null, nWinnerSets: null }, 'perfect clear'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 24, nHintsUsed: 1 }, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: false, nWinnerSets: null }, 'deck cleared'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'cleared' }, { team: { nSetsFound: 27, nHintsUsed: 1 }, nTableSetsFound: 27, nTilesInDeck: 0, perfectClear: true, nWinnerSets: null }, 'perfect clear'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, nWinnerSets: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSetsFound: 9, nHintsUsed: 1 }, nTableSetsFound: 9, nTilesInDeck: 42, perfectClear: null, nWinnerSets: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'cleared', winner: 'u-alice' }, { team: null, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: null, winnerIds: ['u-alice'], nWinnerSets: 14 }, 'most sets'],
-      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, nTableSetsFound: 24, nTilesInDeck: 30, perfectClear: null, winnerIds: ['u-alice', 'u-bob'], nWinnerSets: 12 }, 'tied — co-winners'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'all conceded'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nTableSetsFound: 0, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'nobody scored'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, winnerIds: null, nWinnerSets: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'cleared', winners: ['u-alice'] }, { team: null, nTableSetsFound: 24, nTilesInDeck: 0, perfectClear: null, nWinnerSets: 14 }, 'most sets'],
+      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice', 'u-bob'] }, { team: null, nTableSetsFound: 24, nTilesInDeck: 30, perfectClear: null, nWinnerSets: 12 }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, nWinnerSets: null }, 'all conceded'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, nTableSetsFound: 0, nTilesInDeck: 30, perfectClear: null, nWinnerSets: null }, 'nobody scored'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, nWinnerSets: null }, 'Stop'],
     ],
   },
   // letterboxed._make_json_summary_data: `team` holds coop's chain and is null in compete; the
@@ -333,8 +336,8 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winner: 'u-alice' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 12, nWinnerWords: 3, nWinnerCoveredLetters: 12 }, 'first to finish'],
-      [{ outcome: 'won', reason: 'timeout', winner: 'u-alice' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 9, nWinnerWords: null, nWinnerCoveredLetters: 9 }, 'timeout, most letters'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 12, nWinnerWords: 3, nWinnerCoveredLetters: 12 }, 'first to finish'],
+      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 9, nWinnerWords: null, nWinnerCoveredLetters: 9 }, 'timeout, most letters'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'all conceded'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
     ],
@@ -349,7 +352,7 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: { nGuessesUsed: 3, lengthScore: 60, nLetters: 14 }, maxGuesses: 5, winnerLengthScore: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winner: 'u-alice' }, { team: null, maxGuesses: 5, winnerLengthScore: 60 }, 'someone won'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'complete', winners: ['u-alice'] }, { team: null, maxGuesses: 5, winnerLengthScore: 60 }, 'someone won'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'all conceded'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'timeout, nobody scored'],
       [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'complete' }, { team: null, maxGuesses: 5, winnerLengthScore: null }, 'out of guesses, nobody scored'],
@@ -378,7 +381,12 @@ const makeSummaryData = (
   statusChangedAt: '2026-09-01T00:00:00Z',
   ended: ending !== null,
   outcome: ending?.outcome ?? null,
-  ending: ending && { reason: ending.reason, detail: ending.detail ?? ending.reason, by: 'u-alice', winner: ending.winner ?? null },
+  ending: ending && { reason: ending.reason, detail: ending.detail ?? ending.reason, by: 'u-alice' },
+  // Each club member, ranked first when the case names them a winner.
+  players: MEMBERS.map((member) => {
+    const won = ending?.winners?.includes(member.id) ?? false
+    return { id: member.id, outcome: won ? 'won' : null, finalRanking: won ? 1 : null, conceded: false }
+  }),
   ...own,
 })
 
@@ -401,7 +409,7 @@ function buildTable(): string {
     if (!fam) continue
     if (isGameEndingFamily(fam)) {
       const labelOf = (ending: EndingCase | null, own: Record<string, unknown>) =>
-        m.summaryFor(makeSummaryData(m.gametype, ending, own), MEMBERS)
+        m.summaryFor(makeSummaryData(m.gametype, ending, own), MEMBERS, MY_ID)
       lines.push(`| **${m.gametype}** | playing | \`${labelOf(null, fam.live)}\` |`)
       for (const [ending, own, note] of casesFor(m.mode, fam)) {
         lines.push(
@@ -411,7 +419,7 @@ function buildTable(): string {
       continue
     }
     const label = (state: string, status: Record<string, unknown>) =>
-      m.summaryFor(row(m.gametype, state, status, fam.setup ?? {}), MEMBERS)
+      m.summaryFor(row(m.gametype, state, status, fam.setup ?? {}), MEMBERS, MY_ID)
     lines.push(`| **${m.gametype}** | playing | \`${label('playing', fam.playing)}\` |`)
     for (const [state, status, note] of casesFor(m.mode, fam)) {
       lines.push(`| | ${state} — ${note} | \`${label(state, status)}\` |`)
@@ -467,13 +475,13 @@ describe('game status labels', () => {
           outcome: 'an_outcome_from_the_future',
           reason: 'a_reason_from_the_future',
         } as unknown as EndingCase
-        const playing = m.summaryFor(makeSummaryData(m.gametype, null, fam.live), MEMBERS)
-        unknown = m.summaryFor(makeSummaryData(m.gametype, futureEnding, fam.live), MEMBERS)
+        const playing = m.summaryFor(makeSummaryData(m.gametype, null, fam.live), MEMBERS, MY_ID)
+        unknown = m.summaryFor(makeSummaryData(m.gametype, futureEnding, fam.live), MEMBERS, MY_ID)
         readsAsLive = unknown === playing
       } else {
         const setup = fam.setup ?? {}
-        const playing = m.summaryFor(row(m.gametype, 'playing', fam.playing, setup), MEMBERS)
-        unknown = m.summaryFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup), MEMBERS)
+        const playing = m.summaryFor(row(m.gametype, 'playing', fam.playing, setup), MEMBERS, MY_ID)
+        unknown = m.summaryFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup), MEMBERS, MY_ID)
         readsAsLive = unknown === playing
       }
       if (readsAsLive && !UNKNOWN_READS_AS_LIVE.has(m.gametype)) {

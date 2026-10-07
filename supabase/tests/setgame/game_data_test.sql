@@ -101,7 +101,7 @@ select is(
     'team', '{"nSetsFound": 0, "nHintsUsed": 0}'::jsonb,
     'nTableSetsFound', 0,
     'nTilesInDeck', 81 - cardinality((select board from opening where mode = 'coop')),
-    'perfectClear', null, 'winnerIds', null, 'nWinnerSets', null),
+    'perfectClear', null, 'nWinnerSets', null),
   'a fresh summary: the team, the deck''s count, and no ending''s keys');
 
 -- ─── (2) Mid-game coop: ada claims a set; bea asks a hint ───
@@ -165,9 +165,9 @@ select is(
 select pg_temp.sg_play_out((select id from g where mode = 'compete'),
                            array['ada11111-1111-1111-1111-111111111111'::uuid]);
 select is(
-  (select summary_data->'winnerIds' from common.games where id = (select id from g where mode = 'compete')),
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g where mode = 'compete')),
   '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
-  'a race names its winners');
+  'a race ranks its winners first');
 select is(
   (select (summary_data->>'nWinnerSets')::int from common.games where id = (select id from g where mode = 'compete')),
   (select n_sets_found from setgame.players
@@ -198,9 +198,9 @@ select is(
   cardinality(pg_temp.sg_board((select id from g where mode = 'coop'))) = 0,
   'and is a perfect clear only when the table ended empty');
 select is(
-  (select summary_data->'winnerIds' from common.games where id = (select id from g where mode = 'coop')),
-  'null'::jsonb,
-  'coop names no winners — the team won');
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g where mode = 'coop')),
+  '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  'a coop clear ranks the whole team first');
 
 -- ─── (5) A Restart empties it all again ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

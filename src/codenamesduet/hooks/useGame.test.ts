@@ -86,12 +86,12 @@ describe('codenamesduet makeGameData — the links become players and tiles', ()
 
   it('names who ended the game as a player', () => {
     const raw = ZTest_makeGameDataRaw({
-      ending: { reason: 'fatal_move', detail: 'assassin', by: 'u2', winner: null },
+      ending: { reason: 'fatal_move', detail: 'assassin', by: 'u2' },
       outcome: 'lost',
     })
     const gd = makeGameData(raw, 'u1')
     expect(gd.ending!.by).toBe(gd.partner)
-    expect(gd.ending!.winner).toBeNull()
+    expect(gd.ending!.winners).toEqual([])
   })
 
   it('builds the setup rows once, naming who gives the first clue', () => {
@@ -122,7 +122,7 @@ describe('codenamesduet makeGameData — the seat rule', () => {
 
   it("the game's end opens both keys", () => {
     const raw = ZTest_makeGameDataRaw({
-      ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
       outcome: 'neutral',
     })
     expect(makeGameData(raw, 'u1').puzzle.tilesById.get('15')!.key.u2).toBe('A')

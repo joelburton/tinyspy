@@ -325,7 +325,8 @@ drop function if exists wordiply._write_statuses(uuid, boolean);
 --                                          whose one board is `team`'s
 --
 --   summary_data, wordiply's part (the common part names and dates the game and
---   carries its ending; the winner is `ending.winner`):
+--   carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nGuessesUsed, lengthScore, nLetters}
 --                                          the team's track, less the longest word's
 --                                          length; null in compete

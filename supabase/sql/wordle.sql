@@ -201,7 +201,8 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --                                          count); null in coop and until the end
 --
 --   summary_data, wordle's part (the common part names and dates the game and
---   carries its ending; the winner is `ending.winner`):
+--   carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nGuessesUsed}                 the team's count; null in compete, whose
 --                                          summary shows no progress
 --     maxGuesses

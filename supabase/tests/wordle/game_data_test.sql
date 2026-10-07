@@ -274,9 +274,8 @@ select is(
   jsonb_build_object(
     'reason', 'conceded',
     'detail', 'conceded',
-    'by',     'bea22222-2222-2222-2222-222222222222',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'the won race: the last racer''s concession ended it, and the solver is the winner'
+    'by',     'bea22222-2222-2222-2222-222222222222'),
+  'the won race: the last racer''s concession ended it'
 );
 select is(
   (pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'solved')::boolean
@@ -305,17 +304,17 @@ select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
     || '{"team": null, "maxGuesses": 5, "answerBand": 0, "nWinnerGuesses": 2}'::jsonb,
-  'compete: the summary names the winner''s count, and its ending names the winner'
+  'compete: the summary names the winner''s count'
 );
 select is(
-  pg_temp.summary_data(pg_temp.compete()) -> 'ending' ->> 'winner',
-  'ada11111-1111-1111-1111-111111111111',
-  '… the winner being the common ending''s'
+  pg_temp.winner_ids(pg_temp.summary_data(pg_temp.compete())),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  '… the winner being the player its common part ranks first'
 );
 select is(
-  pg_temp.summary_data(pg_temp.coop()) -> 'ending' -> 'winner',
-  'null'::jsonb,
-  'coop: the stopped game''s summary names no winner'
+  pg_temp.winner_ids(pg_temp.summary_data(pg_temp.coop())),
+  '[]'::jsonb,
+  'coop: the stopped game''s summary ranks nobody first'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,

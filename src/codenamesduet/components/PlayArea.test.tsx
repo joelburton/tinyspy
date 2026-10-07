@@ -82,13 +82,13 @@ const AS_CLUE_GIVER: ZTest_GameDataFacts = { clueSeat: 'B', events: [] }
 const SUDDEN_DEATH: ZTest_GameDataFacts = { turnNum: 10, clueSeat: null, events: [] }
 /** The assassin ended the game. */
 const LOST: ZTest_GameDataFacts = {
-  ending: { reason: 'fatal_move', detail: 'assassin', by: 'u2', winner: null },
+  ending: { reason: 'fatal_move', detail: 'assassin', by: 'u2' },
   outcome: 'lost',
   clueSeat: null,
 }
 /** The pair found every agent. */
 const WON: ZTest_GameDataFacts = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: null },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
   clueSeat: null,
 }

@@ -23,7 +23,7 @@ const TWO = [
   { id: 'u2', username: 'moth', color: 'blue' },
 ]
 const STOPPED: Pick<ZTest_GameDataFacts, 'ending' | 'outcome'> = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -140,7 +140,7 @@ describe('buildWordiplyPrintModel — compete', () => {
       mode: 'compete',
       events: [ZTest_guess(1, 'u1', 'cars'), ZTest_guess(2, 'u2', 'hangars')],
       players: [TWO[0]!, { ...TWO[1]!, outcome: 'won', finalRanking: 1 }],
-      ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u2', winner: 'u2' },
+      ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u2' },
       outcome: 'won',
     })
     expect(m.scores).toEqual([

@@ -48,9 +48,9 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   '1/won', 'the player with the most sets wins');
 select is(
-  (select summary_data->'winnerIds' from common.games where id = (select id from g)),
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g)),
   '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
-  'a single winner is the summary''s one winner');
+  'a single winner is the summary''s one player ranked first');
 select is(
   (select game_ended_by_user_id from common.games where id = (select id from g)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -88,14 +88,14 @@ select setgame.submit_timeout((select id from g2));
 
 reset role;
 select is(
-  (select jsonb_array_length(summary_data->'winnerIds') from common.games where id = (select id from g2)),
+  (select jsonb_array_length(pg_temp.winner_ids(summary_data)) from common.games where id = (select id from g2)),
   2, 'a tie lists both winners — picking one would tell the other they lost');
 select is(
   (select count(*)::int from common.game_players
     where game_id = (select id from g2) and final_ranking = 1 and outcome = 'won'),
   2, 'both tied players are ranked 1, won');
 select is(
-  (select (summary_data->>'winnerIds') || '/' || (summary_data->>'nWinnerSets')
+  (select pg_temp.winner_ids(summary_data)::text || '/' || (summary_data->>'nWinnerSets')
      from common.games where id = (select id from g2)),
   '["ada11111-1111-1111-1111-111111111111", "bea22222-2222-2222-2222-222222222222"]/1',
   'the summary lists both tied winners and the count they share');
@@ -119,7 +119,7 @@ select setgame.submit_timeout((select id from g3));
 
 reset role;
 select is(
-  (select summary_data->'winnerIds' from common.games where id = (select id from g3)),
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g3)),
   '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
   'the conceder does not win, even holding more sets');
 select is(

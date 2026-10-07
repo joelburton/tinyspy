@@ -34,8 +34,8 @@ export type StaticGameDataRaw = {
  * player. Bare names, since these are common's; a game's wear the `G`
  * (docs/code-conventions.md → A game's types).
  *
- * Links are ids here (`turns.holder`, `ending.by`, `ending.winner`); a game's
- * `useGame` turns them into its players.
+ * Links are ids here (`turns.holder`, `ending.by`); a game's `useGame` turns
+ * them into its players.
  */
 export type GameDataRaw = StaticGameDataRaw & {
   title: string
@@ -55,14 +55,27 @@ export type GameDataRaw = StaticGameDataRaw & {
 /**
  * How a game ended, as `common._make_json_ending` writes it into game_data and
  * summary_data. `by` is the player whose act ended it, null for a timeout
- * nobody's turn covers; `winner` the player ranked first, null when nobody was.
+ * nobody's turn covers. It names no winner: the winners are the players whose
+ * `finalRanking` is 1.
  */
 export type GameEndingRaw = {
   reason: GameEndedReason
   // The game's own word for the act: 'solved', 'exhausted', 'stopped'.
   detail: string
   by: string | null
-  winner: string | null
+}
+
+/**
+ * How a game ended, as a game reads it: `GameEndingRaw` with its links turned
+ * into the game's players. `makeEnding` builds it.
+ */
+export type GameEnding<P> = {
+  reason: GameEndedReason
+  detail: string
+  by: P | null
+  // Every player ranked first, in seat order: none when nobody won, the whole
+  // team in a coop win, every co-winner in a tie.
+  winners: P[]
 }
 
 /**

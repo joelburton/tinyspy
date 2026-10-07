@@ -49,15 +49,15 @@ describe('makeBeeGameData — the links become players', () => {
     const gd = makeBeeGameData(
       ZTest_makeBeeGameDataRaw(GAME, {
         mode: 'compete',
-        players: TWO,
-        ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+        players: [TWO[0], { ...TWO[1], outcome: 'won', finalRanking: 1 }],
+        ending: { reason: 'reached_goal', detail: 'target', by: 'u2' },
         outcome: 'won',
       }),
       'u1',
       noRows,
     )
     expect(gd.ending?.by).toBe(gd.playersById.u2)
-    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ending?.winners).toEqual([gd.playersById.u2])
     expect(gd.ended).toBe(true)
   })
 
@@ -65,14 +65,14 @@ describe('makeBeeGameData — the links become players', () => {
     const gd = makeBeeGameData(
       ZTest_makeBeeGameDataRaw(GAME, {
         players: TWO,
-        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        ending: { reason: 'timeout', detail: 'timeout', by: null },
         outcome: 'neutral',
       }),
       'u1',
       noRows,
     )
     expect(gd.ending?.by).toBeNull()
-    expect(gd.ending?.winner).toBeNull()
+    expect(gd.ending?.winners).toEqual([])
   })
 
   it('gives each find its finder', () => {
@@ -137,7 +137,7 @@ describe('makeBeeGameData — the seat rule', () => {
 
   it("the race's end opens everything", () => {
     const gd = makeBeeGameData(
-      race({ ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' }, outcome: 'won' }),
+      race({ ending: { reason: 'reached_goal', detail: 'target', by: 'u2' }, outcome: 'won' }),
       'u1',
       noRows,
     )

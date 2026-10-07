@@ -65,7 +65,7 @@ describe('wordle replayTurn', () => {
       ZTest_guess(22, 'u2', 'crane', 'yxxxg'),
       ZTest_guess(23, 'u1', 'point', 'ggggg'),
     ],
-    ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+    ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
     outcome: 'won',
   }
 

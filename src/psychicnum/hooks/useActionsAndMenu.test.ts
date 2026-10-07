@@ -20,7 +20,7 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const ME = { id: 'u1', username: 'me', color: 'red' }
 const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
-const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1', winner: null }
+const STOPPED = { reason: 'stopped' as const, detail: 'stopped', by: 'u1' }
 
 /** A game in play, with the facts the actions read overridable. */
 function gdWith(over: { ended?: boolean; outOfTheRace?: boolean } = {}): GGameData {

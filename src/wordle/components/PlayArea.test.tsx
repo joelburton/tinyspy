@@ -90,16 +90,16 @@ function finished(
 /** The endings the tests reach for, each with the game's outcome beside it. */
 type Ending = Pick<ZTest_GameDataFacts, 'ending' | 'outcome'>
 const COOP_WON: Ending = {
-  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
   outcome: 'won',
 }
 const COOP_LOST: Ending = {
-  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1', winner: null },
+  ending: { reason: 'resource_exhausted', detail: 'exhausted', by: 'u1' },
   outcome: 'lost',
 }
 /** A race somebody won: the last racer's act was a solve; `winner` names who. */
 const raceWonBy = (winner: string, reason: 'reached_goal' | 'timeout' = 'reached_goal'): Ending => ({
-  ending: { reason, detail: reason === 'timeout' ? 'timeout' : 'solved', by: reason === 'timeout' ? null : 'u2', winner },
+  ending: { reason, detail: reason === 'timeout' ? 'timeout' : 'solved', by: reason === 'timeout' ? null : winner },
   outcome: 'won',
 })
 
@@ -554,7 +554,7 @@ describe('wordle PlayArea — the ending', () => {
       <PlayAreaLoader
         {...makeCtx({
           mode: 'compete',
-          ending: { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null },
+          ending: { reason: 'conceded', detail: 'conceded', by: 'u2' },
           outcome: 'lost',
           target: 'crane',
           players: [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }],

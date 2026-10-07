@@ -4,6 +4,7 @@ import { lazy } from 'react'
 import type { FormErrors } from '@/common/forms/formState'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
 import { verdict, statusLine, wonBy } from '@/common/manifest/summary'
@@ -146,7 +147,7 @@ function makeCoopLabel(summary: GSummaryData): string {
 
 /**
  * The compete club line: no per-racer progress, and the race's one winner is
- * the common `ending.winner`. The two no-winner losses, the timer and the last
+ * the player the common `players` ranks first. The two no-winner losses, the timer and the last
  * racer conceding, are told apart by the ending's reason.
  */
 function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
@@ -155,7 +156,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won':
-      return wonBy(memberById(members, summary.ending.winner!)?.username)
+      return wonBy(memberById(members, findWinnerIds(summary)[0]!)?.username)
     case 'lost':
       return summary.ending.reason === 'conceded'
         ? verdict('Lost', 'all conceded')

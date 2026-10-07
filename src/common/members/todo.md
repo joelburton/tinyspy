@@ -37,8 +37,7 @@
 - **Delete `GamePlayerLegacy` and `gamePlayer.fixture.ts` with the last
   unconverted game.** `Player` is an alias of `Member` again (Joel,
   2026-10-02), and the blob's `PlayerRaw` extends it; the old row-plus-standing
-  shape was renamed `Legacy` so no reader takes it for the live one, and
-  `endingOutcomeVerb` goes with it.
+  shape was renamed `Legacy` so no reader takes it for the live one.
 
 ## Maybe
 

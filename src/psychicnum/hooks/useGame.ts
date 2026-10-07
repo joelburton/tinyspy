@@ -1,6 +1,7 @@
 // cs-blessed-psychicnum
 
 import { useMemo } from 'react'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { getGuessOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
@@ -66,10 +67,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players[i]!.own.board = board
   }
 
-  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
-  // a timeout.
-  const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
-
   const events: GEvent[] = raw.events
     .filter((e) => seeRival || isMine(e.userId))
     .map(({ userId, ...row }) => ({ ...row, by: playersById[userId]! }))
@@ -81,14 +78,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     ...rest,
     setupRows: makeSetupRows(raw.setup, raw.mode, players),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: playerOf(ending.by),
-        winner: playerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     events,
     players,
     playersById,

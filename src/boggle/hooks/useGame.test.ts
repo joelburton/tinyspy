@@ -46,14 +46,15 @@ describe('boggle makeGameData — the links become players', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         mode: 'compete',
-        players: TWO,
-        ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+        players: [TWO[0]!, { ...TWO[1]!, outcome: 'won', finalRanking: 1 }],
+        ending: { reason: 'reached_goal', detail: 'target', by: 'u2' },
         outcome: 'won',
       }),
       'u1',
     )
     expect(gd.ending?.by).toBe(gd.playersById.u2)
-    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ending?.winners).toEqual([gd.playersById.u2])
+    expect(gd.ending?.winners[0]).toBe(gd.playersById.u2)
   })
 
   it('looks a tile up by its id', () => {
@@ -96,7 +97,7 @@ describe('boggle makeGameData — the seat rule', () => {
         mode: 'compete',
         players: TWO,
         foundWords: FINDS,
-        ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+        ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
         outcome: 'neutral',
       }),
       'u1',

@@ -193,10 +193,10 @@ select is(
   '{"userId": "ada11111-1111-1111-1111-111111111111", "kind": "went_out", "tile": null, "nDrawn": 0}'::jsonb,
   'the log ends with the going-out row, which drew nothing');
 select is(
-  (select jsonb_build_object('winner', game_data->'ending'->'winner', 'ended', game_data->'ended')
+  (select jsonb_build_object('winners', pg_temp.winner_ids(game_data), 'ended', game_data->'ended')
      from common.games where id = (select id from g)),
-  '{"winner": "ada11111-1111-1111-1111-111111111111", "ended": true}'::jsonb,
-  'the ending names the peeler as the winner');
+  '{"winners": ["ada11111-1111-1111-1111-111111111111"], "ended": true}'::jsonb,
+  'the game ended with the peeler ranked first');
 select is(
   (select array_agg(p->>'outcome' order by p->>'username')
      from common.games, jsonb_array_elements(game_data->'players') p
@@ -204,9 +204,9 @@ select is(
   array['won', 'lost'],
   'the peeler won; the other racer lost');
 select is(
-  (select summary_data->'ending'->>'winner' from common.games where id = (select id from g)),
-  'ada11111-1111-1111-1111-111111111111',
-  'the summary''s ending names the winner too');
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g)),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  'the summary ranks the peeler first too');
 
 -- ─── (5) Every seat is in the blob ───
 select is(

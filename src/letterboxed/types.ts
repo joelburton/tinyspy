@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -178,7 +178,7 @@ export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'maxWords' | 'nHintsUsed' |
  *     nParWords
  *     solution: [wordA, wordB]               # null until the game ends
  *   turns: {holder}                          # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   events: [event, …]                       # my rows only, mid-race
@@ -235,12 +235,7 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
   turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -401,7 +396,8 @@ export type GSetup = SetupOf<GSetupValues>
  *
  * `team` is the coop chain's two counts, null in compete. The other three are
  * compete's, null in coop: the best chain's coverage so far, and the
- * winner's chain (the winner is the common `ending.winner`) — its length once
+ * winner's chain (the winner is in the common `players`, ranked first:
+ * `findWinnerIds`) — its length once
  * a racer has solved, its coverage on a solve or a timeout. `band` is the
  * setup's dictionary band.
  */

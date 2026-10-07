@@ -211,9 +211,8 @@ select is(
   (pg_temp.game_data(pg_temp.compete()) -> 'ending') - 'detail',
   jsonb_build_object(
     'reason', 'reached_goal',
-    'by',     'ada11111-1111-1111-1111-111111111111',
-    'winner', 'ada11111-1111-1111-1111-111111111111'),
-  'the won race: the word that reached the target ended it, and its finder is the winner'
+    'by',     'ada11111-1111-1111-1111-111111111111'),
+  'the won race: the word that reached the target ended it, by its finder'
 );
 select is(
   (pg_temp.player(pg_temp.compete(), 'ada11111-1111-1111-1111-111111111111') ->> 'outcome')
@@ -227,9 +226,9 @@ select is(
   '… and the winner''s rank is at least the target'
 );
 select is(
-  pg_temp.summary_data(pg_temp.compete()) -> 'ending' ->> 'winner',
-  'ada11111-1111-1111-1111-111111111111',
-  'compete: the summary''s ending names the winner'
+  pg_temp.winner_ids(pg_temp.summary_data(pg_temp.compete())),
+  '["ada11111-1111-1111-1111-111111111111"]'::jsonb,
+  'compete: the summary ranks the winner first'
 );
 select is((pg_temp.shell_data(pg_temp.compete()) ->> 'ended')::boolean, true, '… and shell_data says the game has ended');
 
@@ -243,7 +242,7 @@ select is(
   'stopped/neutral',
   'coop: a Stop ends the game with no result'
 );
-select is(pg_temp.summary_data(pg_temp.coop()) -> 'ending' -> 'winner', 'null'::jsonb, 'coop: the stopped game''s summary names no winner');
+select is(pg_temp.winner_ids(pg_temp.summary_data(pg_temp.coop())), '[]'::jsonb, 'coop: the stopped game''s summary ranks nobody first');
 select is(
   pg_temp.summary_data(pg_temp.coop()) -> 'team',
   jsonb_build_object('nFoundWords', 2, 'foundWordsScore', 6,

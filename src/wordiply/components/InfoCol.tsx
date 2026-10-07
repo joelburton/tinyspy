@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import {
   InfoActionsRow,
   type InfoActionsMessage,
@@ -52,10 +53,7 @@ export function InfoCol({
     if (!gd.ended) return player.ending
       ? 'out'
       : `${player.nGuessesUsed}/${player.maxGuesses}`
-    const verb = player.outcome === 'won' ? 'Won' : player.conceded
-      ? 'Conceded'
-      : 'Lost'
-    return `${verb} · ${player.lengthScore}%`
+    return `${endingOutcomeVerb(player)} · ${player.lengthScore}%`
   }
 
   // Once the race has ended, every rival's words are mine to see.

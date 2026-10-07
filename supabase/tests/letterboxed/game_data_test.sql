@@ -269,10 +269,10 @@ select is(
 );
 select is(
   jsonb_build_array(
-    pg_temp.game_data(pg_temp.game('timed')) -> 'ending' -> 'winner',
+    pg_temp.winner_ids(pg_temp.game_data(pg_temp.game('timed'))),
     pg_temp.summary_data(pg_temp.game('timed')) -> 'nWinnerWords',
     pg_temp.summary_data(pg_temp.game('timed')) -> 'nWinnerCoveredLetters'),
-  '["ada11111-1111-1111-1111-111111111111", null, 3]'::jsonb,
+  '[["ada11111-1111-1111-1111-111111111111"], null, 3]'::jsonb,
   'a timeout: the winner''s letters, and no word count, since nobody solved'
 );
 select is(

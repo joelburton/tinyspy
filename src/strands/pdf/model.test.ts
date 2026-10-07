@@ -24,7 +24,7 @@ const TWO = [
   { id: 'u1', username: 'ada', color: 'red' },
   { id: 'u2', username: 'bea', color: 'blue' },
 ]
-const STOPPED = { ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null }, outcome: 'neutral' } as const
+const STOPPED = { ending: { reason: 'stopped', detail: 'stopped', by: 'u1' }, outcome: 'neutral' } as const
 
 /** The model for these facts, as Print builds it, the solution shown or not. */
 function print(facts: ZTest_GameDataFacts, solutionShown = false) {

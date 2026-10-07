@@ -90,7 +90,7 @@ export function ClubPage({
   const globalFeedbackSlot = useFeedbackSlot('global')
 
   const clubGametypes = useClubGametypes(initialGametypes)
-  const clubGames = useClubGames(club.handle, members, globalFeedbackSlot)
+  const clubGames = useClubGames(club.handle, members, myId, globalFeedbackSlot)
   const pageActions = useClubPageActions({ globalFeedbackSlot })
 
   const startListRef = useRef<HTMLDivElement | null>(null)

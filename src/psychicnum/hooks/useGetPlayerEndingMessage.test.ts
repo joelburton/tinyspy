@@ -29,7 +29,7 @@ function gdWith(over: {
         },
         { id: 'u2', username: 'moth', color: 'blue' },
       ],
-      ending: over.ended ? { reason: 'stopped', detail: 'stopped', by: 'u2', winner: null } : null,
+      ending: over.ended ? { reason: 'stopped', detail: 'stopped', by: 'u2' } : null,
       outcome: over.ended ? 'neutral' : null,
     }),
     'u1',

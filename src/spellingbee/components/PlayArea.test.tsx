@@ -63,7 +63,7 @@ const CONCEDED: Partial<ZTest_PlayerFacts> = {
 
 /** A stopped game: the common ending, every player neutral. */
 const STOPPED: Partial<ZTest_GameDataFacts> = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -272,7 +272,7 @@ describe('spellingbee PlayArea — compete ending verdicts', () => {
   const endedRace = (reason: 'conceded' | 'timeout' | 'stopped', outcome: 'lost' | 'neutral') =>
     makeCtx(race({
       players: [me({ outcome }), moth({ outcome })],
-      ending: { reason, detail: reason, by: null, winner: null },
+      ending: { reason, detail: reason, by: null },
       outcome,
     }))
 
@@ -302,9 +302,9 @@ describe('spellingbee PlayArea — the celebration', () => {
   /** My pangram: 17 of the board's 18 points, rank 6. */
   const myPangram = ZTest_find('u1', 'abcdefg', 17, { pangram: true })
   const coopWon: ZTest_GameDataFacts = {
-    players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'won', solvedAt: 't' })],
+    players: [me({ outcome: 'won', finalRanking: 1, solvedAt: 't' }), moth({ outcome: 'won', finalRanking: 1, solvedAt: 't' })],
     foundWords: [myPangram],
-    ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+    ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
     outcome: 'won',
   }
   const coopTeam: ZTest_GameDataFacts = { players: [me(), moth()], targetRankIdx: 5 }
@@ -328,9 +328,9 @@ describe('spellingbee PlayArea — the celebration', () => {
     rerender(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'lost' })],
+          players: [me({ outcome: 'won', finalRanking: 1, solvedAt: 't' }), moth({ outcome: 'lost' })],
           foundWords: [myPangram],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
           outcome: 'won',
         }))}
       />,
@@ -344,9 +344,9 @@ describe('spellingbee PlayArea — the celebration', () => {
     rerender(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', solvedAt: 't' })],
+          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', finalRanking: 1, solvedAt: 't' })],
           foundWords: [ZTest_find('u2', 'abcdefg', 17, { pangram: true })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u2' },
           outcome: 'won',
         }))}
       />,
@@ -702,10 +702,10 @@ describe('spellingbee PlayArea — concede', () => {
           players: [
             me({ outcome: 'lost' }),
             moth({ ...CONCEDED }),
-            { id: 'u3', username: 'cade', color: 'green', outcome: 'won', solvedAt: 't' },
+            { id: 'u3', username: 'cade', color: 'green', outcome: 'won', finalRanking: 1, solvedAt: 't' },
           ],
           foundWords: [ZTest_find('u3', 'abcdefg', 17, { pangram: true })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u3', winner: 'u3' },
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u3' },
           outcome: 'won',
         }))}
       />,

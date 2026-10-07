@@ -33,7 +33,7 @@ function buildModelFor(facts: ZTest_GameDataFacts, solutionRevealed = false) {
 }
 
 const STOPPED = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 } as const
 

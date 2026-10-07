@@ -15,7 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
-import type { FactsApart, GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
+import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
 import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
@@ -141,7 +141,7 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *     parSwaps
  *     solution                               # [{id, letter}, …]; null until the game ends
  *   turns: {holder}                          # null: no turn order; holder is a player
- *   ending: {reason, detail, by, winner}     # null while playing; by and winner are players
+ *   ending: {reason, detail, by, winners}    # null while playing; by and winners are players; winners is every player ranked first
  *   ended
  *   outcome                                  # null until the game ends
  *   events: [event, …]                       # every swap; my rows only, mid-race
@@ -184,12 +184,7 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
   turns: { holder: GPlayer } | null
   // The log, by player; mid-race in compete, my rows only.
   events: GEvent[]
-  ending: {
-    reason: NonNullable<GGameDataRaw['ending']>['reason']
-    detail: string
-    by: GPlayer | null
-    winner: GPlayer | null
-  } | null
+  ending: GameEnding<GPlayer> | null
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
   playersById: Record<string, GPlayer>
@@ -310,8 +305,8 @@ export type GSetup = SetupOf<GSetupValues>
  *
  * `team` is the team's count in coop, null in compete, whose summary shows no
  * progress; the winner's count is compete's, null until the race is won and
- * always null in coop (the winner is the common `ending.winner`). `band` is
- * the setup's dictionary band.
+ * always null in coop (the winner is whoever the common `players` ranks
+ * first). `band` is the setup's dictionary band.
  */
 export type GSummaryData = SummaryData & {
   team: Pick<GFacts, 'nSwapsUsed'> | null

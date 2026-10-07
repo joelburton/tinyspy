@@ -109,7 +109,8 @@ drop function if exists boggle._write_statuses(uuid, boolean);
 --   alone; the strip and a race with no target count them all.
 --
 --   summary_data, boggle's part (the common part names and dates the game and
---   carries its ending; the winner is `ending.winner`):
+--   carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team                the same group; null in compete
 --     targetWinPercent    the share of the required points that wins; null for none
 --     topScore            compete's best score among those who did not concede;

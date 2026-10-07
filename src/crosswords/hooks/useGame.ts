@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { makeCellId } from '../lib/cellId'
 import type {
@@ -86,27 +87,13 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     players[i]!.own.board = board
   })
 
-  // Links that cannot miss get a bare lookup; an ending's `by` is null for a
-  // timeout.
-  const playerOf = (id: string | null) => (
-    id === null
-      ? null
-      : playersById[id]!)
-
   // The gate has checked that I am seated, and my own grid is never withheld.
   const me = playersById[myId]! as GGameData['me']
 
   return {
     ...rest,
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: playerOf(ending.by),
-        winner: playerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     players,
     playersById,
     me,

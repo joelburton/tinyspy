@@ -1,6 +1,7 @@
 // cs-blessed-connections
 
 import { useMemo } from 'react'
+import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { eventToOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
@@ -43,10 +44,6 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
-  // Links that cannot miss get a bare lookup; an ending's `by` may be null for
-  // a timeout.
-  const playerOf = (id: string | null) => (id === null ? null : playersById[id]!)
-
   // The puzzle's tiles by id, beside the list, as `playersById` sits beside
   // `players`: what a hook holds is an id, and what it hands back is the tile.
   const tilesById = new Map(raw.puzzle.tiles.map((t) => [t.id, t]))
@@ -76,14 +73,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     puzzle,
     setupRows: makeSetupRows(raw.setup, raw.mode, players, raw.puzzle.date),
     turns: turns === null ? null : { holder: playersById[turns.holder]! },
-    ending: ending === null
-      ? null
-      : {
-        reason: ending.reason,
-        detail: ending.detail,
-        by: playerOf(ending.by),
-        winner: playerOf(ending.winner),
-      },
+    ending: makeEnding(ending, players),
     events,
     players,
     playersById,

@@ -225,7 +225,8 @@ drop function if exists spellingbee._write_statuses(uuid, boolean);
 --       targetRankIdx                             the rank that wins; the same on every player
 --
 --   summary_data, spellingbee's part (the common part names and dates the
---   game and carries its ending; the winner is `ending.winner`):
+--   game and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nFoundWords, foundWordsScore, rankIdx, targetRankIdx}   the same group; null in compete
 --     nReqdWords, reqdWordsScore, targetRankIdx
 

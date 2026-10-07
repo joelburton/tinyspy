@@ -61,7 +61,7 @@ const moth = (over: Partial<ZTest_PlayerFacts> = {}): ZTest_PlayerFacts => ({ id
 
 /** A stopped game: the common ending, every player neutral. */
 const STOPPED: Partial<ZTest_GameDataFacts> = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
 
@@ -169,7 +169,7 @@ describe('boggle PlayArea — render smoke', () => {
       <PlayAreaLoader
         {...makeCtx({
           players: [me({ outcome: 'won', solvedAt: 't' })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
           outcome: 'won',
         })}
       />,
@@ -181,8 +181,8 @@ describe('boggle PlayArea — render smoke', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'lost' })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+          players: [me({ outcome: 'won', finalRanking: 1, solvedAt: 't' }), moth({ outcome: 'lost' })],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
           outcome: 'won',
         }))}
       />,
@@ -194,8 +194,8 @@ describe('boggle PlayArea — render smoke', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', solvedAt: 't' })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', finalRanking: 1, solvedAt: 't' })],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u2' },
           outcome: 'won',
         }))}
       />,
@@ -236,7 +236,7 @@ describe('boggle PlayArea — the celebration', () => {
   const coopWon: ZTest_GameDataFacts = {
     players: [me({ outcome: 'won', solvedAt: 't' }), moth({ outcome: 'won', solvedAt: 't' })],
     foundWords: [ZTest_find('u1', 'cat', 1)],
-    ending: { reason: 'reached_goal', detail: 'target', by: 'u1', winner: 'u1' },
+    ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
     outcome: 'won',
   }
 
@@ -258,8 +258,8 @@ describe('boggle PlayArea — the celebration', () => {
     rerender(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'won' }), moth({ outcome: 'lost' })],
-          ending: { reason: 'timeout', detail: 'timeout', by: null, winner: 'u1' },
+          players: [me({ outcome: 'won', finalRanking: 1 }), moth({ outcome: 'lost' })],
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
           outcome: 'won',
         }))}
       />,
@@ -272,8 +272,8 @@ describe('boggle PlayArea — the celebration', () => {
     rerender(
       <PlayAreaLoader
         {...makeCtx(race({
-          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', solvedAt: 't' })],
-          ending: { reason: 'reached_goal', detail: 'target', by: 'u2', winner: 'u2' },
+          players: [me({ outcome: 'lost' }), moth({ outcome: 'won', finalRanking: 1, solvedAt: 't' })],
+          ending: { reason: 'reached_goal', detail: 'target', by: 'u2' },
           outcome: 'won',
         }))}
       />,
@@ -560,7 +560,7 @@ describe('boggle PlayArea — concede', () => {
             { id: 'u3', username: 'cade', color: 'green', outcome: 'won', finalRanking: 1 },
           ],
           foundWords: [ZTest_find('u2', 'dog', 2), ZTest_find('u3', 'cat', 1)],
-          ending: { reason: 'timeout', detail: 'timeout', by: null, winner: 'u3' },
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
           outcome: 'won',
         }))}
       />,

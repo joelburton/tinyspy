@@ -383,7 +383,8 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --                                          one board is `team`'s
 --
 --   summary_data, waffle's part (the common part names and dates the game and
---   carries its ending; the winner is `ending.winner`):
+--   carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nSwapsUsed}                   the team's count; null in compete
 --     maxSwaps
 --     band                                 the dictionary band, `setup.difficulty`

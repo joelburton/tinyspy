@@ -54,13 +54,13 @@ function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
 
 /** A game that has ended with nobody winning: a Stop. */
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
   players: [{ ...ME, outcome: 'neutral' }],
 }
 /** A solo coop game the timer beat. */
 const SOLO_LOST: ZTest_GameDataFacts = {
-  ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+  ending: { reason: 'timeout', detail: 'timeout', by: null },
   outcome: 'lost',
   players: [{ ...ME, outcome: 'lost' }],
 }
@@ -337,7 +337,7 @@ describe('stackdown PlayArea — the solution reveal', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1', winner: null },
+          ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
           outcome: 'won',
           players: [{ ...ME, outcome: 'won', finalRanking: 1, solvedAt: '2026-09-03T00:00:00Z' }],
         })}

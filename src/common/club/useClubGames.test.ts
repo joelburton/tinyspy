@@ -42,13 +42,18 @@ const { mockReadRows, mockReportUnknown, realtime, REGISTRY, SYRUP } = vi.hoiste
       members: readonly { id: string; username: string }[],
     ) => `ended by ${members.find((m) => m.id === summary.ending?.by)?.username ?? 'nobody'}`,
   }
+  // A label that speaks to the viewer.
+  const VIEWER = {
+    ...manifest('viewer_coop', 'Viewer'),
+    summaryFor: (_summary: unknown, _members: unknown, myId: string) => `seen by ${myId}`,
+  }
   return {
     mockReadRows: vi.fn(),
     mockReportUnknown: vi.fn(),
     // The `changed` handler the hook registers, so a test can fire the nudge
     // that actually drives a refetch.
     realtime: { onChange: null as (() => void) | null },
-    REGISTRY: [WORDLE, SYRUP, NAMER],
+    REGISTRY: [WORDLE, SYRUP, NAMER, VIEWER],
     SYRUP,
   }
 })
@@ -147,7 +152,7 @@ function slot() {
 async function load(rows: Envelope<unknown>) {
   mockReadRows.mockResolvedValue(rows)
   const showed = slot()
-  const view = renderHook(() => useClubGames('trio', MEMBERS, showed.slot))
+  const view = renderHook(() => useClubGames('trio', MEMBERS, 'u-moth', showed.slot))
   await waitFor(() => expect(mockReadRows).toHaveBeenCalled())
   return { ...view, ...showed }
 }
@@ -174,7 +179,7 @@ describe('useClubGames — what an answer becomes', () => {
     const { result } = await load(
       ok([game({
         id: 'g1', gametype: 'syrup_coop', outcome: 'won',
-        ending: { reason: 'reached_goal', detail: 'solved', by: null, winner: null },
+        ending: { reason: 'reached_goal', detail: 'solved', by: null },
       })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
@@ -187,11 +192,17 @@ describe('useClubGames — what an answer becomes', () => {
     const { result } = await load(
       ok([game({
         id: 'g1', gametype: 'namer_coop', outcome: 'neutral',
-        ending: { reason: 'stopped', detail: 'stopped', by: 'u-moth', winner: null },
+        ending: { reason: 'stopped', detail: 'stopped', by: 'u-moth' },
       })]),
     )
     await waitFor(() => expect(result.current.games).toHaveLength(1))
     expect(result.current.games[0]!.summary).toBe('ended by moth')
+  })
+
+  it('hands each label my id, to speak to the viewer', async () => {
+    const { result } = await load(ok([game({ id: 'g1', gametype: 'viewer_coop' })]))
+    await waitFor(() => expect(result.current.games).toHaveLength(1))
+    expect(result.current.games[0]!.summary).toBe('seen by u-moth')
   })
 
   it('picks the current game out by is_current_view', async () => {
@@ -291,7 +302,7 @@ describe('useClubGames — a failed read', () => {
       ok([game({ id: 'g1', gametype: 'wordle_coop', title: 'Alpha' })]),
     )
     const showed = slot()
-    const { result } = renderHook(() => useClubGames('trio', MEMBERS, showed.slot))
+    const { result } = renderHook(() => useClubGames('trio', MEMBERS, 'u-moth', showed.slot))
     await waitFor(() => expect(result.current.games).toHaveLength(1))
 
     // A nudge arrives and its refetch fails. Writing `[]` here would

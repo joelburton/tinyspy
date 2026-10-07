@@ -6,6 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import { DEFAULT_STACKDOWN_SETUP } from './lib/setup'
@@ -95,7 +96,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): st
   const outcome = summary.outcome!
   switch (outcome) {
     case 'won': {
-      const winner = summary.ending.winner
+      const winner = findWinnerIds(summary)[0] ?? null
       return statusLine(wonBy(winner === null ? undefined : memberById(members, winner)?.username), dict)
     }
     case 'lost':

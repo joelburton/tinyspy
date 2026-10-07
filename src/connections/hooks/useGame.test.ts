@@ -59,14 +59,15 @@ describe('connections makeGameData — the links become players', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         mode: 'compete',
-        players: TWO,
-        ending: { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' },
+        players: [TWO[0]!, { ...TWO[1]!, outcome: 'won', finalRanking: 1 }],
+        ending: { reason: 'reached_goal', detail: 'solved', by: 'u2' },
         outcome: 'won',
       }),
       'u1',
     )
     expect(gd.ending?.by).toBe(gd.playersById.u2)
-    expect(gd.ending?.winner).toBe(gd.playersById.u2)
+    expect(gd.ending?.winners).toEqual([gd.playersById.u2])
+    expect(gd.ending?.winners[0]).toBe(gd.playersById.u2)
     expect(gd.ended).toBe(true)
   })
 
@@ -74,12 +75,12 @@ describe('connections makeGameData — the links become players', () => {
     const gd = makeGameData(
       ZTest_makeGameDataRaw({
         players: TWO,
-        ending: { reason: 'timeout', detail: 'timeout', by: null, winner: null },
+        ending: { reason: 'timeout', detail: 'timeout', by: null },
         outcome: 'lost',
       }),
       'u1',
     )
-    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winner: null })
+    expect(gd.ending).toEqual({ reason: 'timeout', detail: 'timeout', by: null, winners: [] })
   })
 
   it('gives each log row its player, and reads it once: its outcome, and whether it matched', () => {
@@ -131,7 +132,7 @@ describe('connections makeGameData — the seat rule', () => {
 
   it('the race\'s end opens everything', () => {
     const gd = makeGameData(
-      race({ ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null }, outcome: 'neutral' }),
+      race({ ending: { reason: 'stopped', detail: 'stopped', by: 'u1' }, outcome: 'neutral' }),
       'u1',
     )
     expect(gd.events).toHaveLength(3)

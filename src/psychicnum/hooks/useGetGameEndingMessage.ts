@@ -23,7 +23,7 @@ export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const outcome = gd.outcome
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
-  const winnerName = gd.ending?.winner?.username ?? 'Someone'
+  const winnerName = gd.ending?.winners[0]?.username ?? 'Someone'
   return useMemo(
     () =>
       outcome === null || reason === null

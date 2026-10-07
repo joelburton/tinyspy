@@ -43,7 +43,7 @@ const MOTH = { id: 'u2', username: 'moth', color: 'blue' }
 /** The game won by me going out. */
 const WON_BY_ME: Pick<ZTest_GameDataFacts, 'ending' | 'outcome' | 'players'> = {
   players: [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'lost' }],
-  ending: { reason: 'reached_goal', detail: 'complete', by: 'u1', winner: 'u1' },
+  ending: { reason: 'reached_goal', detail: 'complete', by: 'u1' },
   outcome: 'won',
 }
 

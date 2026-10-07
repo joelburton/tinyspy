@@ -42,7 +42,7 @@ export function buildGameEndingMessage({
   // How I came out (`gd.me.outcome`).
   playerOutcome: EndOutcome | null
   conceded: boolean
-  // The player ranked first (`gd.ending.winner`), or null when nobody was.
+  // The player ranked first (`gd.ending.winners[0]`), or null when nobody was.
   winner: GPlayer | null
   // The game was played to a share of the required points.
   hasTarget: boolean

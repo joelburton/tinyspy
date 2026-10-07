@@ -6,6 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
@@ -217,7 +218,7 @@ export const psychicnumCompeteGame: GameManifest = {
     const outcome = summary.outcome!
     switch (outcome) {
       case 'won':
-        return wonBy(usernameOf(members, summary.ending.winner))
+        return wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))
       case 'lost':
         return statusLine(
           verdict('Lost', LOSS[summary.ending.reason] ?? null),

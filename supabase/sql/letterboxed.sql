@@ -376,7 +376,8 @@ drop function if exists letterboxed._write_statuses(uuid, boolean);
 --       board: {words}                     a racer's own chain; null in coop
 --
 --   summary_data, letterboxed's part (the common part names and dates the game
---   and carries its ending; the winner is `ending.winner`):
+--   and carries its ending; the winners are its `players` ranked first,
+--   `finalRanking` 1):
 --     team: {nWordsUsed, nCoveredLetters}  the coop chain's counts; null in compete
 --     maxWords
 --     band                                 the dictionary band, `legal_band`
@@ -621,8 +622,8 @@ $$;
 revoke execute on function letterboxed._make_json_static_game_data(uuid) from public;
 
 -- The game summed up: the numbers a list of games shows for this one. The
--- winner is the one `ending.winner` names (common._make_json_ending), so a
--- timeout's tied winners read the same racer in both.
+-- winner it reads is one player ranked first; a timeout's tied winners are
+-- level on the counts it reads, so any one gives the same numbers.
 create or replace function letterboxed._make_json_summary_data(
   p_game_id uuid,
   p_status_changed_at timestamptz

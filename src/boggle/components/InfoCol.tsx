@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
+import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -36,11 +37,10 @@ export function InfoCol({
 
   // A racer's cell in the strip: their score, bonus included; a racer who has
   // ended reads "out" while the race runs, and once it has ended the outcome
-  // verb leads — "Conceded at 12" vs "Lost at 12" vs "Won at 40".
+  // word leads — "Conceded at 12" vs "2nd at 31" vs "Won at 40".
   function getScoreOrOut(player: GPlayer) {
     if (!gd.ended) return player.ending ? 'out' : player.foundWordsScore
-    const verb = player.outcome === 'won' ? 'Won' : player.conceded ? 'Conceded' : 'Lost'
-    return `${verb} at ${player.foundWordsScore}`
+    return `${endingOutcomeVerb(player)} at ${player.foundWordsScore}`
   }
 
   return (

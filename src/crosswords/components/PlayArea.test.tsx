@@ -151,7 +151,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   })
 
   it('once the game has ended the tools go and Back to club is there', () => {
-    render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+    render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won'))} />)
     expect(screen.getAllByRole('button', { name: /back to club/i }).length).toBeGreaterThan(0)
     expect(control('act-stop-game')).toBeNull()
     expect(control('act-check-word')).toBeNull()
@@ -159,30 +159,30 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
 
   describe('the verdicts, read off the ending the server wrote', () => {
     it('coop solved', () => {
-      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won'))} />)
       expect(screen.getAllByText('Won: grid complete').length).toBeGreaterThan(0)
     })
 
     it('a race lost to a rival names them', () => {
-      const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u2', winner: 'u2' }, 'won')
-      facts.players = [{ ...TWO[0]!, outcome: 'lost' }, { ...TWO[1]!, outcome: 'won' }]
+      const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u2' }, 'won')
+      facts.players = [{ ...TWO[0]!, outcome: 'lost' }, { ...TWO[1]!, outcome: 'won', finalRanking: 1 }]
       render(<PlayAreaLoader {...makeCtx(facts)} />)
       expect(screen.getAllByText('solved it first').length).toBeGreaterThan(0)
       expect(screen.getAllByText('moth').length).toBeGreaterThan(0)
     })
 
     it('compete all-conceded says so', () => {
-      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'conceded', detail: 'conceded', by: 'u2', winner: null }, 'lost'))} />)
+      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'conceded', detail: 'conceded', by: 'u2' }, 'lost'))} />)
       expect(screen.getAllByText('Lost: all conceded').length).toBeGreaterThan(0)
     })
 
     it('compete timeout blames the clock', () => {
-      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'timeout', detail: 'timeout', by: null, winner: null }, 'lost'))} />)
+      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'timeout', detail: 'timeout', by: null }, 'lost'))} />)
       expect(screen.getAllByText('Out of time — no winner').length).toBeGreaterThan(0)
     })
 
     it('coop clock is a plain loss', () => {
-      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'timeout', detail: 'timeout', by: null, winner: null }, 'lost'))} />)
+      render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'timeout', detail: 'timeout', by: null }, 'lost'))} />)
       expect(screen.getAllByText('Lost: out of time').length).toBeGreaterThan(0)
     })
   })
@@ -288,7 +288,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(rowsById(playing).get('act-print-solution')?.disabled).toBe(true)
     unmount()
 
-    const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won')
+    const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won')
     const done = makeCtx(facts)
     render(<PlayAreaLoader {...done} />)
     expect(rowsById(done).get('act-print-solution')?.disabled).toBe(false)
@@ -421,7 +421,7 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   })
 
   it('⌥ shortcuts are inert once the game has ended (read-only board)', () => {
-    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won'))} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
     expect(rpcNames()).not.toContain('check_cells')
   })
@@ -481,7 +481,7 @@ describe('crosswords PlayArea — the page chords', () => {
 
   it('+ once the game has ended goes to the club’s setup dialog with no question', async () => {
     window.history.replaceState(null, '', '/')
-    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1', winner: 'u1' }, 'won'))} />)
+    render(<WithKeys {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won'))} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the navigation proves none was asked.

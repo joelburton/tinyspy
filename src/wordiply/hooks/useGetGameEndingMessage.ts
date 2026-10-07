@@ -22,7 +22,7 @@ export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   // A coop player's side is the team.
   const teamLengthScore = gd.coop ? gd.me.lengthScore : null
   const teamNLetters = gd.coop ? gd.me.nLetters : null
-  const winner = gd.ending?.winner ?? null
+  const winner = gd.ending?.winners[0] ?? null
   const winnerId = winner?.id ?? null
   const winnerName = winner?.username ?? null
   const winnerColor = winner?.color ?? null

@@ -176,9 +176,9 @@ select scrabble._finish((select id from gwin), 'resource_exhausted', 'complete',
   (select id from bot), (select id from bot));
 select scrabble._rebuild_data_cols((select id from gwin), true);
 
-select is((select summary_data->'winnerIds' from common.games where id = (select id from gwin)),
+select is((select pg_temp.winner_ids(summary_data) from common.games where id = (select id from gwin)),
   jsonb_build_array((select id from bot)),
-  'a bot winner is named by uuid like any other winner');
+  'a bot winner is ranked first by uuid like any other winner');
 select is((select (summary_data->>'winnerScore')::int from common.games where id = (select id from gwin)),
   50, 'the club line carries the bot winner''s score');
 select is((select game_ended_by_user_id from common.games where id = (select id from gwin)),

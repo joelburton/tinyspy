@@ -19,7 +19,7 @@ export function useGetGameEndingMessage(gd: GGameData): EndingMessage | null {
   const reason = gd.ending?.reason ?? null
   const playerOutcome = gd.me.outcome
   const conceded = gd.me.conceded
-  const winner = gd.ending?.winner ?? null
+  const winner = gd.ending?.winners[0] ?? null
   const hasTarget = gd.setup.win_percent !== null
   const tally = `${gd.me.nFoundWords} words, ${gd.me.foundWordsScore} points`
   return useMemo(

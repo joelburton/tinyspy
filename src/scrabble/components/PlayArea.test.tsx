@@ -66,7 +66,7 @@ const RACE: ZTest_GameDataFacts = { mode: 'compete', players: [ME, MOTH] }
 
 /** A coop table that stopped. */
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
   players: [{ ...ME, outcome: 'neutral' }],
 }
@@ -138,7 +138,7 @@ describe('scrabble PlayArea — what it draws', () => {
       <PlayAreaLoader
         {...ZTest_makeScrabbleCtx({
           ...RACE,
-          ending: { reason: 'all_passed', detail: 'blocked', by: 'u2', winner: 'u2' },
+          ending: { reason: 'all_passed', detail: 'blocked', by: 'u2' },
           outcome: 'won',
           players: [{ ...ME, outcome: 'near', finalRanking: 2 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
         })}
@@ -226,7 +226,7 @@ describe('scrabble PlayArea — the strip', () => {
             ZTest_word(2, 'u2', ['9,7:s'], ['ats'], 12),
             ZTest_word(3, 'u3', ['7,8:a'], ['aa'], 40),
           ],
-          ending: { reason: 'all_passed', detail: 'blocked', by: 'u3', winner: 'u3' },
+          ending: { reason: 'all_passed', detail: 'blocked', by: 'u3' },
           outcome: 'won',
           players: [
             { ...ME, outcome: 'near', finalRanking: 2 },
@@ -236,7 +236,7 @@ describe('scrabble PlayArea — the strip', () => {
         })}
       />,
     )
-    expect(screen.getByText('5 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('5 (2nd)')).toBeInTheDocument()
     expect(screen.getByText('12 (conceded)')).toBeInTheDocument()
     expect(screen.getByText('40 (won)')).toBeInTheDocument()
   })

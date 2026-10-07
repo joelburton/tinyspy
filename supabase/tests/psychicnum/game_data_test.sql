@@ -303,9 +303,8 @@ select is(
   jsonb_build_object(
     'reason', 'reached_goal',
     'detail', 'solved',
-    'by',     'bea22222-2222-2222-2222-222222222222',
-    'winner', 'bea22222-2222-2222-2222-222222222222'),
-  'the won race: the finder ended it and is the winner'
+    'by',     'bea22222-2222-2222-2222-222222222222'),
+  'the won race: the finder ended it'
 );
 select is(
   (select jsonb_agg(t ->> 'word') from jsonb_array_elements(
@@ -327,14 +326,14 @@ select is(
   'the conceder conceded and lost'
 );
 select is(
-  pg_temp.summary_data(pg_temp.compete()) -> 'ending' ->> 'winner',
-  'bea22222-2222-2222-2222-222222222222',
-  'compete: the summary''s ending names the winner'
+  pg_temp.winner_ids(pg_temp.summary_data(pg_temp.compete())),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  'compete: the summary ranks the winner first'
 );
 select is(
-  pg_temp.summary_data(pg_temp.coop()) -> 'ending' -> 'winner',
-  'null'::jsonb,
-  'coop: the summary''s ending names no winner'
+  pg_temp.winner_ids(pg_temp.summary_data(pg_temp.coop())),
+  '[]'::jsonb,
+  'coop: the summary ranks nobody first'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,
@@ -407,9 +406,9 @@ select is(
   '… and no game is re-dated'
 );
 select is(
-  pg_temp.game_data(pg_temp.compete()) -> 'ending' ->> 'winner',
-  'bea22222-2222-2222-2222-222222222222',
-  '… the rebuilt race still names its winner'
+  pg_temp.winner_ids(pg_temp.game_data(pg_temp.compete())),
+  '["bea22222-2222-2222-2222-222222222222"]'::jsonb,
+  '… the rebuilt race still ranks its winner first'
 );
 
 select * from finish();

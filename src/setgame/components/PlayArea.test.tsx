@@ -44,7 +44,7 @@ const MOTH: ZTest_PlayerFacts = { id: 'u2', username: 'moth', color: 'blue' }
 
 /** A game that has ended with nobody winning: a Stop. */
 const STOPPED: ZTest_GameDataFacts = {
-  ending: { reason: 'stopped', detail: 'stopped', by: 'u1', winner: null },
+  ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
   players: [{ ...ME, outcome: 'neutral' }],
 }

@@ -497,7 +497,7 @@ sizing).
 - **Once the game has ended** — no modal carries the verdict ([ui.md →
   Endings](../ui.md#endings--the-moment-vs-the-record)): the ending's
   terse text (`lib/gameEndingMessage.ts`, read off `gd.outcome`,
-  `gd.ending.reason`, `gd.me.outcome` and `gd.ending.winner`) lands as the
+  `gd.ending.reason`, `gd.me.outcome` and `gd.ending.winners`) lands as the
   filled verdict in the active-clue bar (the local slot's `<FeedbackPill>` —
   "Won: grid complete" / "Won: solved it first" / a compete loss naming the
   winner as the message's `actor` — "● moth solved it first"; the last racer
