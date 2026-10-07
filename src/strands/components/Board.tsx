@@ -19,6 +19,8 @@ type BoardMarks = {
   // The tiles a typed letter matched when it matched MORE THAN ONE — ringed
   // red for a beat, meaning "several of these; click the one you meant".
   ambiguousTileIds: ReadonlySet<string>
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }
 
 /** A tile's center in the drawing layer's cell units. */
@@ -104,6 +106,7 @@ export function Board({
         shared.boardSeal,
         styles.board,
         isViewingHistory && history.historyFrame,
+        marks.myTurnJustStarted && shared.yourTurnFlash,
         makeEndingFrameClasses(endingOutcome, isViewingHistory),
       )}
       data-board

@@ -243,6 +243,18 @@ describe('scrabble PlayArea — the strip', () => {
   })
 })
 
+describe('scrabble PlayArea — the turn arriving', () => {
+  it('flashes the board when the move becomes mine, and not on mount', () => {
+    const board = () => document.querySelector('[data-board]')!
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ ...RACE, turnHolderId: 'u2' })} />)
+    // An EVENT, so never on mount: opening a game on your own turn is not
+    // being handed it.
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ ...RACE, turnHolderId: 'u1' })} />)
+    expect(board().className).toMatch(/yourTurnFlash/)
+  })
+})
+
 describe('scrabble PlayArea — the ending', () => {
   /** A coop table that went out: every tile played. */
   const WENT_OUT: ZTest_GameDataFacts = {

@@ -436,7 +436,9 @@ at its top.
 
 `PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
 ending label: `lib/endingLabel.ts`, on every `gd` player), `useShowTeammateMoves` (a teammate's claim in
-the header, free-for-all coop only), `useHistoryView` and `useActionsAndMenu`.
+the header, free-for-all coop only), `useTurnStartFlash` (the bell, and the
+board's flash, as the turn becomes mine), `useHistoryView` and
+`useActionsAndMenu`.
 `BoardCol`'s: `usePickedTiles` (the picks, held as ids), `useSubmitClaim` (the
 trip to `submit_set`, and the in-flight tiles), `useSpendHint` (the ring and
 the ladder; `record_hint`) and `useBoardColActions` (the letter key, ⌫ and Hint,

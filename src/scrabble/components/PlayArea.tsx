@@ -12,6 +12,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
 import { useCelebration } from '@/common/ending/useCelebration'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useDriveAiTurns } from '../hooks/useDriveAiTurns'
@@ -111,6 +112,9 @@ function PlayArea({
     holder: gd.turns?.holder ?? null,
   })
 
+  // The board frame flashes and the bell rings the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
+
   // ─── Narration ─────────────────────────────────────────
   // An opponent's turn, in the header slot.
   useShowOpponentMoves(gd, globalFeedbackSlot)
@@ -154,6 +158,7 @@ function PlayArea({
         localFeedbackSlot={localFeedbackSlot}
         sendPreview={sendPreview}
         registerSuggestionApplier={suggestion.registerApplier}
+        myTurnJustStarted={turnFlash}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

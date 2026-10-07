@@ -158,7 +158,13 @@ in its turn in step 4; none is open here.
    - its strip as "metric (word)", its `summaryFor` on the label;
    - names every winner; "2nd place"; the frame on both endings;
    - outcomes read, never worked out; the Stop chosen by its reason;
-   - the turn bell and the your-turn flash, as the games that have them do;
+   - **THE TURN BELL AND THE YOUR-TURN FLASH — check it in every game, every
+     time.** A game with turn order (`common._advance_turn` anywhere in its
+     SQL) calls `useTurnStartFlash(gd.me.onTurn)` in its PlayArea, and its
+     board's box wears `shared.yourTurnFlash` while it is true, with a
+     PlayArea test that it flashes on the turn's arrival and not on mount.
+     setgame, scrabble and strands shipped without it and had to be gone back
+     to;
    - its gaps against `plans/game-cards.md`, closed in the code or the card;
      **a rule that changes changes its card in the same work**, and every
      sibling card that shares the rule.
@@ -190,6 +196,8 @@ in its turn in step 4; none is open here.
    what lost it — "2nd (more hints)", or "2nd (solved later)" on as many
    hints — read from the new `nHintsUsedById` in its summary; a compete win
    and a loss are the word alone; the board gains the ending frame.
+   setgame, scrabble and strands then gained the turn bell and the your-turn
+   flash, which all three take turns for and had been missed.
 
 ## Overlaps
 

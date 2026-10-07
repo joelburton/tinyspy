@@ -54,6 +54,7 @@ export function BoardCol({
   missedPuzzleWords,
   historyView,
   localFeedbackSlot,
+  myTurnJustStarted,
 }: {
   gd: GGameData
   // The board to show — PlayArea picks it: a past turn's while the history
@@ -66,6 +67,8 @@ export function BoardCol({
   // the puzzle's title, whose turn, the verdict — the pill takes the word-entry
   // row's place.
   localFeedbackSlot: FeedbackSlot
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }) {
   // ─── Which board is on screen ─────────────────────────────────
   // Live, or a past turn's (PlayArea picks); everything that would write to the
@@ -151,7 +154,7 @@ export function BoardCol({
         // hadn't reached it.
         missedPuzzleWords={historyView.isViewing ? [] : missedPuzzleWords}
         traceTiles={historyView.isViewing ? NO_TILES : trace.tiles}
-        marks={{ litTileIds, ambiguousTileIds }}
+        marks={{ litTileIds, ambiguousTileIds, myTurnJustStarted }}
         cursor={tileCursor.cell}
         // Not `!canPick`: over a past turn the letters stay live, because a
         // click there is how the board goes back to the live one.

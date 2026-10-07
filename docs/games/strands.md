@@ -628,8 +628,9 @@ at its top.
 ```
 
 `PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
-ending label: `lib/endingLabel.ts`, on every `gd` player), `useHistoryView` and
-`useActionsAndMenu`.
+ending label: `lib/endingLabel.ts`, on every `gd` player), `useTurnStartFlash`
+(the bell, and the board's flash, as the turn becomes mine), `useHistoryView`
+and `useActionsAndMenu`.
 `BoardCol`'s: `useTrace` (the trace, held as tile ids), `useSubmitTrace` (its
 trip to `submit_path`), `useSpendHint`, `useBoardColActions` (Submit, ⌫, a typed
 letter and Hint, with the gate `canPick` and the ambiguous-letter rings) and

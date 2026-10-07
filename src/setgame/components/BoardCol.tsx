@@ -48,6 +48,7 @@ export function BoardCol({
   shownTiles,
   historyView,
   localFeedbackSlot,
+  myTurnJustStarted,
 }: {
   gd: GGameData
   // The table to show — PlayArea picks it: a past turn's, or the live one.
@@ -56,6 +57,8 @@ export function BoardCol({
   // PlayArea's below-board slot: a refused claim or hint, the ending, "you're
   // out", the your-turn prompt.
   localFeedbackSlot: FeedbackSlot
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }) {
   // ─── Which table is on screen ─────────────────────────────────
   // The board responds to me: the move is mine, on the live table — a click or
@@ -113,6 +116,7 @@ export function BoardCol({
             ? NO_TILES
             : submission.inFlightTileIds,
           isWaitingForTurn: gd.me.waitingForTurn,
+          myTurnJustStarted,
         }}
         canPick={actions.canPick}
         isViewingHistory={historyView.isViewing}

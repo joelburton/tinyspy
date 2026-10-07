@@ -11,6 +11,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
 import { useCelebration } from '@/common/ending/useCelebration'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -123,6 +124,9 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isMyMove])
 
+  // The board frame flashes and the bell rings the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
+
   // ─── Narration ─────────────────────────────────────────
   // A teammate's claim, in the header slot.
   useShowTeammateMoves(gd, globalFeedbackSlot)
@@ -160,6 +164,7 @@ function PlayArea({
         shownTiles={shownTiles}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
+        myTurnJustStarted={turnFlash}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

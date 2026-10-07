@@ -24,6 +24,8 @@ type BoardMarks = {
   // the board also takes no pick at every ending and while a past turn is
   // open, and neither fades (both are states people sit and study).
   isWaitingForTurn: boolean
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }
 
 /**
@@ -98,6 +100,7 @@ export function Board({
       className={cls(shared.boardSeal,
         styles.board,
         marks.isWaitingForTurn && !canPick && styles.waiting,
+        marks.myTurnJustStarted && shared.yourTurnFlash,
         makeEndingFrameClasses(endingOutcome, isViewingHistory))}
       style={{ '--cols': widest } as React.CSSProperties}
     >

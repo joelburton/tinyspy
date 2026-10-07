@@ -21,6 +21,7 @@ function renderBoard(marks: Partial<Parameters<typeof Board>[0]['marks']> = {}) 
         historyLitCellIds: new Set(),
         liftedCellId: null,
         dropCellId: null,
+        myTurnJustStarted: false,
         ...marks,
       }}
       cursor={{ x: 0, y: 0, dir: 'h' }}

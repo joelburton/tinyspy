@@ -27,6 +27,8 @@ type BoardMarks = {
   liftedCellId: string | null
   // The cell a drag is over.
   dropCellId: string | null
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }
 
 /**
@@ -62,6 +64,7 @@ export function Board({
         shared.boardSeal,
         styles.board,
         isViewingHistory && history.historyFrame,
+        marks.myTurnJustStarted && shared.yourTurnFlash,
         makeEndingFrameClasses(endingOutcome, isViewingHistory),
       )}
     >

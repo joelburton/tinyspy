@@ -210,6 +210,18 @@ describe('strands PlayArea — the three phases', () => {
  * is the half a consumed board can't give you: strands draws PATHS and never
  * spells anything out.
  */
+describe('strands PlayArea — the turn arriving', () => {
+  it('flashes the board when the move becomes mine, and not on mount', () => {
+    const board = () => document.querySelector('[data-board]')!
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u2' })} />)
+    // An EVENT, so never on mount: opening a game on your own turn is not
+    // being handed it.
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+    rerender(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u1' })} />)
+    expect(board().className).toMatch(/yourTurnFlash/)
+  })
+})
+
 describe('strands PlayArea — the ending', () => {
   it('coop: every word found wins, in the won frame', () => {
     render(

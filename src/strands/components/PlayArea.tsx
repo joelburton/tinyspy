@@ -6,6 +6,7 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
 import { useCelebration } from '@/common/ending/useCelebration'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
 import { useShowWaitingMessage } from '@/common/feedback/useShowWaitingMessage'
@@ -91,6 +92,9 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
     holder: gd.turns?.holder ?? null,
   })
 
+  // The board frame flashes and the bell rings the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
+
   // ─── The turn-history view ─────────────────────────────
   // Which past turn, if any, is open on the board, and its board replayed.
   const historyView = useHistoryView(gd)
@@ -128,6 +132,7 @@ function PlayArea({ gd, goToFollowUpGame, menu }: PlayAreaProps) {
         missedPuzzleWords={missedPuzzleWords}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
+        myTurnJustStarted={turnFlash}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

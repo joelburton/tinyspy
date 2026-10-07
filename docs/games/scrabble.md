@@ -710,7 +710,8 @@ sketch at its top), or in `reactTypes.ts` for the one that reaches React.
 
 `PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
 ending label: `lib/endingLabel.ts`, on every `gd` player), `useShowOpponentMoves` (each opponent's turn in
-the header, compete only), `useHistoryView`, `useMovePreview` (the Broadcast),
+the header, compete only), `useTurnStartFlash` (the bell, and the board's
+flash, as the turn becomes mine), `useHistoryView`, `useMovePreview` (the Broadcast),
 `useSuggestMove` (coop's suggester and its action), `useDriveAiTurns` (pokes
 `scrabble-ai-move` while a bot holds the turn) and `useActionsAndMenu`.
 `BoardCol`'s: `useSubmitMove` (the three move RPCs, the claim on the rack, the

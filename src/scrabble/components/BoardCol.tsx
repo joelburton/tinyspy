@@ -59,6 +59,7 @@ export function BoardCol({
   localFeedbackSlot,
   sendPreview,
   registerSuggestionApplier,
+  myTurnJustStarted,
 }: {
   gd: GGameData
   // The board to show — PlayArea picks it: a past turn's, or the live one.
@@ -70,6 +71,8 @@ export function BoardCol({
   sendPreview: (payload: GMovePreviewRaw) => void
   // Hand PlayArea the way a picked suggestion is staged; null on unmount.
   registerSuggestionApplier: (fn: ((placements: GPlacement[]) => void) | null) => void
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }) {
   // ─── Which board is on screen ─────────────────────────────────
   // I may lay a move out — on another player's turn too — while I'm still
@@ -157,6 +160,7 @@ export function BoardCol({
     pointer.hover === null
       ? null
       : makeCellId(pointer.hover.x, pointer.hover.y),
+    myTurnJustStarted,
   }
 
   return (
