@@ -264,6 +264,17 @@ g-stackdown-genpuzzles: .make/local/words.stamp ## generate COUNT=n BAND=b board
 	@echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
 	SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _stackdown:gen -- $(COUNT) $(SEED) $(BAND)
 
+# A printable sheet of Wordle in 1 puzzles to try by hand (plans/wordleone.md →
+# First step). Pinned local like the generator above: it reads the local
+# dictionary and writes one HTML file on this machine. SEED defaults to the
+# clock, so every run is a fresh sheet; pass SEED=n to repeat one.
+PER_CELL ?= 4
+SHEET    ?= $(HOME)/Downloads/wordleone-sheet.html
+.PHONY: g-wordleone-sheet
+g-wordleone-sheet: .make/local/words.stamp ## write a printable sheet of Wordle in 1 puzzles (PER_CELL=n SEED=n SHEET=path)
+	@echo "── $(PER_CELL) puzzles per band × tier, seed $(SEED) → $(SHEET)"
+	SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run -s _wordleone:sheet -- $(PER_CELL) $(SEED) > "$(SHEET)"
+
 $(STACKDOWN_JSONL):
 	@echo "── $(STACKDOWN_JSONL) is missing (fresh clone?) — generating a starter set"
 	$(MAKE) g-stackdown-genpuzzles COUNT=25 BAND=1

@@ -32,6 +32,7 @@
     "scrabble:selfplay": "npx tsx supabase/scripts/scrabble-selfplay.ts",
     "_stackdown:gen": "npx tsx supabase/scripts/generate-stackdown-boards.ts",
     "_stackdown:import": "npx tsx supabase/scripts/import-stackdown-boards.ts",
+    "_wordleone:sheet": "npx tsx supabase/scripts/wordleone/sheet.ts",
     "_crosswords:import": "npx tsx supabase/scripts/import-crosswords-puzzles.ts",
     "_strands:fetch": "npx tsx supabase/scripts/fetch-strands-puzzles.ts",
     "_strands:import": "npx tsx supabase/scripts/import-strands-puzzles.ts",

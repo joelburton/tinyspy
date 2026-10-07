@@ -88,7 +88,7 @@ definition. The full list:
 | **writes prod with `ENV=prod`** | `all-words`, `all-pangrams`, `g-spellingbee-pangrams`, `g-wordwheel-pangrams`, `g-letterboxed-seeds`, `g-stackdown-puzzles`, `g-connections-puzzles`, `g-crosswords-puzzles`, `g-strands-puzzles`, `db-data`, `db-schema`, `db-sql`, `db`, `db-add-user` (the one that writes a person, not a table — `DRY=1` previews it) |
 | **prod by definition** | every `project-*`, `deploy-*`, `deploy`. Note the `project-*` ones **ignore `ENV`** rather than checking it — they act on the project named by the secrets file / the CLI link, and `supabase … --linked` doesn't read a connection string at all. The two destructive ones demand `ENV=prod` explicitly, precisely because ENV can't protect them on its own |
 | **reads prod with `ENV=prod`** | `g-stackdown-audit` |
-| **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `g-strands-fetch` (no `ENV` at all — it writes only the local archive file, from the NYT endpoint), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
+| **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles`, `g-wordleone-sheet` (pinned local — they build local files from the local dictionary), `g-strands-fetch` (no `ENV` at all — it writes only the local archive file, from the NYT endpoint), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
 | **reads OR writes, you choose** | `db-psql` — a prompt on whichever database `ENV` names; it announces the target before connecting |
 
 Two that destroy rather than write: **`project-db-destroy`** and
@@ -107,6 +107,8 @@ gmake all-tries                              # both edge-function word bundles �
 gmake g-stackdown-genpuzzles COUNT=50 BAND=2 # generate boards — APPENDS to the library
 gmake g-stackdown-puzzles ENV=local          # delete + reload the table (generates iff missing)
 gmake g-stackdown-audit ENV=local            # boards holding words we'd no longer pick
+gmake g-wordleone-sheet PER_CELL=4           # a printable sheet of Wordle in 1 puzzles →
+                                             #   ~/Downloads (SHEET=path, SEED=n to repeat one)
 gmake g-connections-puzzles ENV=local        # the NYT Connections archive (idempotent)
 gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.ipuz (idempotent
                                              #   via content_hash; NYT-by-date games skip this)
