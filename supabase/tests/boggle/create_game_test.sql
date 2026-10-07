@@ -4,13 +4,13 @@
 -- Test: boggle.create_game
 -- ============================================================
 -- Covers: coop happy path (header + per-game row + page blob), compete happy path,
--- and the validation guards (mode, compete player floor, band, ladder, dice_set,
--- non-member).
+-- and the validation guards (mode, compete player floor, a compete game with no
+-- target and no countdown, band, ladder, dice_set, non-member).
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(18);
+select plan(20);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -111,6 +111,26 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN136",
     "message":"BUG: race with fewer than two players"}'::jsonb,
   'compete with 1 player is rejected');
+
+-- A compete game with no target needs a countdown: nothing else could crown a
+-- winner. Refused under the target, the field the form shows it at.
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"form-validation","field":"win_percent","dbcode":"PN512",
+    "message":"A compete game with no target needs a countdown"}'::jsonb,
+  'compete with no target and no timer is refused');
+
+select pg_temp.envelope_is(
+  boggle.create_game((select handle from club),
+    pg_temp.boggle_setup() || '{"timer": {"kind": "countup"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete', pg_temp.boggle_board()),
+  '{"type":"not-ok","severity":"form-validation","field":"win_percent","dbcode":"PN512",
+    "message":"A compete game with no target needs a countdown"}'::jsonb,
+  'compete with no target and a count-up timer is refused too');
 
 select pg_temp.envelope_is(
   boggle.create_game((select handle from club),

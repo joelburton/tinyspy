@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum is done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum and boggle are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -141,10 +141,6 @@ Also:
    `timeout-ranks-by-progress`, and the `final-ranking` rule for a
    `score-only-contest`, leave a player with no progress unranked (`lost`).
    boggle and setgame drop them.
-2. **boggle's card has no `co-winners`.** With no target, a compete `timeout`
-   ranks by score and two equal top scores are both 1; the card's
-   `timeout-result` line names no tie, where letterboxed's, scrabble's and
-   setgame's do.
 
 ## The work
 
@@ -168,13 +164,18 @@ Also:
    - names every winner; "2nd place"; the frame on both endings;
    - outcomes read, never worked out; the Stop chosen by its reason;
    - the turn bell and the your-turn flash, as the games that have them do;
-   - its gaps against `plans/game-cards.md`.
+   - its gaps against `plans/game-cards.md`, closed in the code or the card;
+     **a rule that changes changes its card in the same work**, and every
+     sibling card that shares the rule.
 
    **Done:** psychicnum. It added to common `endingLabel.ts`
    (`makeEndingLabelWord`, `makeEndingMessage`), the summary players' `ending`,
    `solved` and `stillPlaying`, and `findUsername` in `members/memberList.ts`.
-   **Next:** boggle, spellingbee and wordwheel, which color a `near` player red
-   today.
+   boggle. It added the `ended` label type, a no-result ending the game words
+   ("Ended (out of time)"), and closed its two card gaps: every required word
+   is the goal with no target, and a compete game with no target needs a
+   countdown (`PN512`); its card gained `co-winners`.
+   **Next:** spellingbee and wordwheel, which color a `near` player red today.
 
 ## Overlaps
 

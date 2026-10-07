@@ -8,7 +8,9 @@ import type { Member } from '@/common/members/member'
 import { findUsername } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
+import { makeEndingLabel } from './lib/endingLabel'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -68,65 +70,94 @@ function teamTally(summary: GSummaryData): [string | null, string] {
 }
 
 
-/**
- * boggle coop. A game with a TARGET can be won or lost against it; a game
- * without one is an exercise, so any ending is neutral — the same rule
- * spellingbee applies to its rank target (boggle._finish ranks the players,
- * this just words it).
- */
-function makeCoopLabel(summary: GSummaryData): string {
-  const pct = summary.targetWinPercent
-  if (summary.ending === null) return statusLine(verdict('Playing'), ...teamTally(summary))
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return statusLine(verdict('Won', pct !== null ? `reached ${pct}%` : null), ...teamTally(summary))
-    case 'lost':
-      return statusLine(verdict('Lost', 'out of time'), ...teamTally(summary))
-    case 'neutral':
-      return statusLine(
-        verdict('Ended', summary.ending.reason === 'timeout' ? 'out of time' : null),
-        ...teamTally(summary),
-      )
-    default:
-      return outcome
+/** The game's ending as an ending label reads it, from the summary. */
+function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
+  return {
+    mode,
+    ended: summary.ended,
+    reason: summary.ending?.reason ?? null,
+    detail: summary.ending?.detail ?? null,
+    winPercent: summary.targetWinPercent,
   }
 }
 
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
+/** The winners other than me, named: "bea", "bea & cade", "bea, cade & dee". */
+function makeOtherWinnerNames(summary: GSummaryData, members: readonly Member[], myId: string) {
+  const names = findWinnerIds(summary)
+    .filter((id) => id !== myId)
+    .map((id) => findUsername(members, id) ?? 'someone')
+  if (names.length <= 1) return names.join('')
+  return `${names.slice(0, -1).join(', ')} & ${names.at(-1)}`
+}
+
 /**
- * boggle compete. Two shapes of win: crossing the target first, and — in a
- * game with no target — holding the top score when the timer stops. A target
- * game whose timer runs out is a loss for everyone: nobody reached the bar,
- * however high the scores got. No racer's own score reaches the listing.
+ * boggle coop. The team comes out as one, so the line leads with the team's
+ * ending label (mine, when I played) and ends with the team's tally.
  */
-function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+function makeCoopLabel(summary: GSummaryData, myId: string): string {
+  if (summary.ending === null) return statusLine(verdict('Playing'), ...teamTally(summary))
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  const endingLabel = makeEndingLabel(player, makeGameFacts(summary, 'coop'))!
+  return statusLine(makeLead(endingLabel), ...teamTally(summary))
+}
+
+/**
+ * boggle compete, led by my ending label once I am out of play. Two shapes of
+ * win: reaching the goal first ("Won by bea at 65%", or the score when the
+ * goal was every required word), and — with no target — the top score when the
+ * timer stops, which ties share. A target game whose timer runs out has no
+ * winner, however high the scores got. No player's own score reaches the
+ * listing until the game ends.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
   const pct = summary.targetWinPercent
-  if (summary.ending === null) {
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeEndingLabel(me, makeGameFacts(summary, 'compete'))
+  if (summary.ending === null && myEndingLabel === null) {
     return statusLine(verdict('Playing'), pct !== null ? `race to ${pct}%` : null)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won': {
-      const who = wonBy(findUsername(members, findWinnerIds(summary)[0] ?? null))
-      // A target win reads "Won by alice at 65%" — one phrase. A score race
-      // has no bar to name, so the winning score goes in the facts slot.
-      return summary.ending.reason === 'reached_goal' && pct !== null
-        ? `${who} at ${pct}%`
-        : statusLine(who, summary.topScore !== null ? `${summary.topScore} pts` : null)
+
+  // A target win names the bar; any other win, the winning score.
+  const isTargetWin = summary.ending?.detail === 'target'
+  const winningScore = !isTargetWin && summary.topScore !== null ? `${summary.topScore} pts` : null
+  const wonByOthers = (names: string) => (isTargetWin ? `${wonBy(names)} at ${pct}%` : wonBy(names))
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      const others = makeOtherWinnerNames(summary, members, myId)
+      if (myEndingLabel.labelType === 'won') {
+        const lead = others === '' ? makeLead(myEndingLabel) : `${makeLead(myEndingLabel)}, tied with ${others}`
+        return statusLine(lead, winningScore)
+      }
+      // Someone else won: name them, beside my place or my concession.
+      if (myEndingLabel.labelType === 'placed' || myEndingLabel.labelType === 'conceded') {
+        return statusLine(makeLead(myEndingLabel), wonByOthers(others), winningScore)
+      }
+      return statusLine(wonByOthers(others), winningScore)
     }
-    // The two collective losses, told apart by the reason: the last racer
-    // dropped out, or the timer beat everyone to the target.
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
+    case 'won':
+      return statusLine(wonByOthers(makeOtherWinnerNames(summary, members, myId)), winningScore)
     case 'lost':
-      return summary.ending.reason === 'conceded'
+      return summary.ending!.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
-        : statusLine(verdict('Lost', 'out of time'), 'no winner')
-    // The one neutral race ending, the players agreeing to stop.
+        : statusLine(verdict('Lost', 'out of time'), noWinner)
     case 'neutral':
-      return statusLine(verdict('Ended'), 'no winner')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -156,7 +187,7 @@ export const boggleCoopGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('coop'),
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, _members, myId) => makeCoopLabel(data as GSummaryData, myId),
   submitTimeout,
   stopGame,
 }
@@ -183,7 +214,7 @@ export const boggleCompeteGame: GameManifest = {
     validate: (setup) => boggleSetupError(setup as GSetup),
   },
   startGameInClub: startGameInClubFactory('compete'),
-  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
   submitTimeout,
   stopGame,
 }

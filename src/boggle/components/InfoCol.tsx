@@ -1,7 +1,6 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -35,12 +34,12 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A racer's cell in the strip: their score, bonus included; a racer who has
-  // ended reads "out" while the race runs, and once it has ended the outcome
-  // word leads — "Conceded at 12" vs "2nd at 31" vs "Won at 40".
-  function getScoreOrOut(player: GPlayer) {
-    if (!gd.ended) return player.ending ? 'out' : player.foundWordsScore
-    return `${endingOutcomeVerb(player)} at ${player.foundWordsScore}`
+  // A player's cell in the strip: their score, bonus included; once they are
+  // out of play — on their own or with the game — how they came out after it:
+  // "40 (won)", "31 (2nd)", "12 (conceded)".
+  function getScoreAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.foundWordsScore
+    return `${player.foundWordsScore} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -53,7 +52,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Score"
-            metricFor={getScoreOrOut}
+            metricFor={getScoreAndResult}
           />
         )}
 

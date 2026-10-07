@@ -226,7 +226,9 @@ score toward an optional target; bonus words score too.
       - without: `timeout-no-result`
     - compete:
       - with target: `timeout-ranks-by-goal`
-      - without: `timeout-ranks-by-progress`
+      - without: `timeout-ranks-by-progress`:
+        1. the highest score
+        2. `co-winners`
 - **hints** — none
 
 **Mismatches** — none.

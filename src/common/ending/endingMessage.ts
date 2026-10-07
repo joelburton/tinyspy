@@ -1,7 +1,7 @@
 // cs-blessed-feedback
 
-import type { Actor } from '../members/member'
-import type { EndOutcome } from './gameEnding'
+import type { Actor } from '../members/member.ts'
+import type { EndOutcome } from './gameEnding.ts'
 
 /**
  * What a game says once it is over. Each game builds its own, in a pure helper

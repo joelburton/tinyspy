@@ -12,7 +12,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(24);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -141,23 +141,48 @@ reset role; select set_config('request.jwt.claims', '', true);
 select is((select ended_at from common.games where id = (select id from gb)), null,
   'a bonus find (even a big one) does not cross the target — required score only');
 
--- ── (4) No target (win_percent null) never auto-ends ──────────
+-- ── (4) No target (win_percent null): every required word wins ──
+-- The game's own goal (docs/win-lose.md → goal-intrinsic): the team in coop,
+-- the one who finds them all in compete. One word short is still playing.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gn on commit drop as
 select (boggle.create_game(
   (select handle from club), pg_temp.boggle_setup(),   -- no win_percent
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
--- Find the entire required set (all 9 pts) — with no target, still playing.
 select boggle.submit_word((select id from gn), 'cat', 1, false);
 select boggle.submit_word((select id from gn), 'car', 1, false);
 select boggle.submit_word((select id from gn), 'arc', 1, false);
 select boggle.submit_word((select id from gn), 'cart', 1, false);
 select boggle.submit_word((select id from gn), 'scare', 2, false);
-select boggle.submit_word((select id from gn), 'traces', 3, false);
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select ended_at from common.games where id = (select id from gn)), null,
-  'no target: finding everything does not auto-end the game');
+  'no target: one required word short is still playing');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select boggle.submit_word((select id from gn), 'traces', 3, false);
+reset role; select set_config('request.jwt.claims', '', true);
+select is(
+  (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
+     from common.games where id = (select id from gn)),
+  'reached_goal/solved/won',
+  'no target, coop: every required word found wins, as solved');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gnc on commit drop as
+select (boggle.create_game(
+  (select handle from club), pg_temp.boggle_setup(),   -- no win_percent; a countdown
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
+select boggle.submit_word((select id from gnc), w, p, false)
+  from (values ('cat', 1), ('car', 1), ('arc', 1), ('cart', 1), ('scare', 2), ('traces', 3)) v(w, p);
+reset role; select set_config('request.jwt.claims', '', true);
+select is(
+  (select final_ranking from common.game_players
+    where game_id = (select id from gnc) and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  1,
+  'no target, compete: the first to find every required word wins, ranked 1');
 
 -- ── (5) The timer, with and without a target ─────────────────
 -- With a target, running out of time means the bar was never reached — a

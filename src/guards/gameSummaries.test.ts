@@ -188,14 +188,17 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   boggle: {
     live: { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'reached the target'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'target' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'reached the target'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: BOGGLE_TEAM, targetWinPercent: null, topScore: null }, 'every required word (no target)'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'timeout, target set'],
       [{ outcome: 'neutral', reason: 'timeout' }, { team: BOGGLE_TEAM, targetWinPercent: null, topScore: null }, 'timeout, no target'],
       [{ outcome: 'neutral', reason: 'stopped' }, { team: BOGGLE_TEAM, targetWinPercent: 65, topScore: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, targetWinPercent: 65, topScore: 70 }, 'reached the target'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'target', winners: ['u-alice'] }, { team: null, targetWinPercent: 65, topScore: 70 }, 'reached the target'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, targetWinPercent: null, topScore: 80 }, 'every required word first (no target)'],
       [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { team: null, targetWinPercent: null, topScore: 90 }, 'top score at the buzzer (no target)'],
+      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice', 'u-bob'] }, { team: null, targetWinPercent: null, topScore: 90 }, 'tied — co-winners (no target)'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: 65, topScore: 40 }, 'timeout, target set'],
       [{ outcome: 'lost', reason: 'timeout' }, { team: null, targetWinPercent: null, topScore: 0 }, 'timeout, nobody scored'],
       [{ outcome: 'lost', reason: 'conceded' }, { team: null, targetWinPercent: null, topScore: 0 }, 'all conceded'],

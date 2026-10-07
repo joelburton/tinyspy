@@ -2,6 +2,8 @@
 
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import shared from '@/common/game-page/playArea.module.css'
 import { useBoardRotation } from '../hooks/useBoardRotation'
@@ -19,6 +21,7 @@ export function Board({
   tiles,
   boardSideSize,
   marks,
+  endingOutcome,
   isInteractive,
   onTileTap,
 }: {
@@ -36,6 +39,8 @@ export function Board({
     // The nonce keys them, so refusing the same word again replays the shake.
     refused: { ids: ReadonlySet<string>; outcome: Outcome; nonce: number } | null
   }
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
   // The board responds to me; when false no tile takes a tap.
   isInteractive: boolean
   onTileTap: (tile: GTile) => void
@@ -46,7 +51,14 @@ export function Board({
   const isTyping = marks.pathIds.length === 0
 
   return (
-    <div className={cls(shared.boardSeal, styles.grid)}>
+    <div
+      className={cls(
+        shared.boardSeal,
+        styles.grid,
+        // boggle has no history viewer, so the frame never steps aside for one.
+        makeEndingFrameClasses(endingOutcome, false),
+      )}
+    >
       {rotation.drawnTiles.map((tile) => {
         const step = marks.pathIds.indexOf(tile.id)
         const refused = marks.refused?.ids.has(tile.id) ? marks.refused : null

@@ -20,10 +20,12 @@
 --     word itself, and submit_word trusts what it sends (trusting-commit).
 --   - Words are required (at the setup's band) or bonus (up to the legal
 --     band). Only required points count toward a target.
---   - A game may have a target, a share of the required points. Reaching it
---     wins at once (the team in coop, the crosser in compete). Without one, a
---     compete race is ranked by score when the timer stops, and a coop game
---     is an exercise with no result.
+--   - A game may have a target, a share of the required points. Without one,
+--     the goal is every required word. Reaching the goal wins at once (the
+--     team in coop, the one who reached it in compete). When the timer stops
+--     first, a game without a target ranks a compete game by score, and leaves
+--     a coop game with no result; a compete game without a target must have a
+--     countdown, or nothing could crown a winner.
 --   - What a racer may see of a rival's finds mid-race is the page's rule,
 --     applied to game_data; the tables carry no mode arm.
 --
@@ -503,6 +505,17 @@ begin
       detail = 'win_percent must be 50..100 in steps of 5, or null';
   end if;
 
+  -- A compete game needs something that can crown a winner: a target, or a
+  -- countdown whose timeout ranks the players by score. With neither, only a
+  -- Stop or everyone conceding could end it, and neither has a winner. The
+  -- form offers the combination; Start refuses it, under the target.
+  if p_mode = 'compete' and s_win_percent is null
+     and p_setup->'timer'->>'kind' is distinct from 'countdown' then
+    raise exception 'A compete game with no target needs a countdown'
+      using errcode = 'PN512', hint = 'form-validation', column = 'win_percent',
+      detail = 'compete with no win_percent needs timer.kind = countdown';
+  end if;
+
   -- ─── Board validation (built by the edge function) ───────
   b_board := p_board->>'board';
   b_n := (p_board->>'n')::int;
@@ -615,14 +628,16 @@ drop function if exists boggle._finish(uuid, text, uuid);
 -- ============================================================
 -- boggle._finish — end the game on a target or the timer
 -- ============================================================
--- The two endings boggle decides for itself (a Stop is common._stop's, and
+-- The endings boggle decides for itself (a Stop is common._stop's, and
 -- everyone conceding is common._concede's). `p_reason_detail` is 'target'
--- (a target was reached, by `p_ended_by_user_id`) or 'timeout'. Rankings
+-- (a target was reached, by `p_ended_by_user_id`), 'solved' (with no target,
+-- every required word was found — the game's own goal) or 'timeout'. Rankings
 -- (docs/win-lose.md):
 --
---   target, coop      the team, every player ranked 1
---   target, compete   the crosser alone ranked 1: the race ends when decided,
---                     so the rest are short of the goal
+--   target or solved, coop      the team, every player ranked 1
+--   target or solved, compete   the one who reached it alone ranked 1: the
+--                               race ends when decided, so the rest are short
+--                               of the goal
 --   timeout, a target set    nobody reached the bar, however high the
 --                            scores: nobody ranked, everyone lost
 --   timeout, no target, compete   a score race: every player who didn't
@@ -652,7 +667,7 @@ begin
     from boggle.games bg join common.games cg on cg.id = bg.game_id
    where bg.game_id = p_game_id;
 
-  if p_reason_detail = 'target' then
+  if p_reason_detail in ('target', 'solved') then
     if v_mode = 'coop' then
       update common.game_players set solved_at = now() where game_id = p_game_id;
       select jsonb_object_agg(user_id::text, 1) into v_rankings
@@ -686,7 +701,7 @@ begin
 
   perform common._end_game(
     p_game_id,
-    case when p_reason_detail = 'target' then 'reached_goal' else 'timeout' end,
+    case when p_reason_detail in ('target', 'solved') then 'reached_goal' else 'timeout' end,
     p_reason_detail, p_ended_by_user_id,
     p_is_no_result => v_no_result,
     p_final_rankings => v_rankings
@@ -795,22 +810,26 @@ begin
   insert into boggle.found_words (game_id, user_id, word, points, is_bonus)
     values (p_game_id, caller_id, w_lower, coalesce(p_points, 0), coalesce(p_is_bonus, false));
 
-  -- Win-on-target: if this game has a score bar and the caller (compete) or the
-  -- team (coop) has now reached it, END the game with a win. The threshold is
-  -- win_percent% of the required-words score, measured against the score of the
-  -- REQUIRED words found ONLY — bonus points do NOT count (so 100% means every
-  -- required word, and 50% means required finds worth half the required total).
-  -- In compete this is a RACE — the player who just crossed wins immediately;
-  -- the ended check above makes a near-simultaneous second crosser the
-  -- game-over race.
-  if g_win_percent is not null then
-    threshold := ceil(g_win_percent::numeric / 100 * g_req_score)::int;
+  -- Win on the goal: if the caller (compete) or the team (coop) has now reached
+  -- it, END the game with a win. The goal is the target when one is set, else
+  -- every required word (docs/win-lose.md → goal-intrinsic). Both are measured
+  -- against the score of the REQUIRED words found ONLY — bonus points do NOT
+  -- count — so a target is win_percent% of the required-words score, and every
+  -- required word is all of it. A board with no required words has no goal of
+  -- its own to reach. In compete this is a RACE — the player who just crossed
+  -- wins immediately; the ended check above makes a near-simultaneous second
+  -- crosser the game-over race.
+  if g_win_percent is not null or g_req_score > 0 then
+    threshold := ceil(coalesce(g_win_percent, 100)::numeric / 100 * g_req_score)::int;
     select coalesce(sum(fw.points), 0) into total_score
       from boggle.found_words fw
      where fw.game_id = p_game_id and not fw.is_bonus
        and (v_mode = 'coop' or fw.user_id = caller_id);
     if total_score >= threshold then
-      perform boggle._finish(p_game_id, 'target', caller_id);
+      perform boggle._finish(
+        p_game_id,
+        case when g_win_percent is null then 'solved' else 'target' end,
+        caller_id);
     end if;
   end if;
 

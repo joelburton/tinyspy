@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { makeTraceBoard } from '../lib/board'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GFacts, GFoundWord, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -39,7 +40,14 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nFoundBonusWords: p.nFoundBonusWords,
       foundBonusWordsScore: p.foundBonusWordsScore,
     }
-    return { ...p, ...(team ?? own), own }
+    const endingLabel = makeEndingLabel(p, {
+      mode: raw.mode,
+      ended: raw.ended,
+      reason: ending?.reason ?? null,
+      detail: ending?.detail ?? null,
+      winPercent: raw.setup.win_percent,
+    })
+    return { ...p, ...(team ?? own), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

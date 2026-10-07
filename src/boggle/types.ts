@@ -14,6 +14,7 @@
  * and `GFoundWord` / `GFoundWordRaw` are the same pair, one level down.
  */
 
+import type { EndingLabel } from '../common/ending/endingLabel.ts'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
@@ -98,6 +99,9 @@ export type GPlayerRaw = PlayerRaw & GFacts
  *  spread on, their side's; under `own`, their own (docs/common-schema.md → A player's facts). */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** One found word, as the blob carries it: `gd` turns `userId` into the
@@ -160,6 +164,8 @@ export type GFoundWord = Omit<GFoundWordRaw, 'userId'> & {
  *   foundBonusWordsScore
  *   own: {nFoundWords, foundWordsScore, nFoundReqdWords, foundReqdWordsScore, nFoundBonusWords, foundBonusWordsScore}
  *                                            # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * tile:                                      # puzzle.tiles[], row by row
  *   id                                       # the cell's index, as text

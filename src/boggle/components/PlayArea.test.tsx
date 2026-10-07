@@ -25,7 +25,7 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
-import { DEFAULT_BOGGLE_SETUP_COOP } from '../lib/setup'
+import { DEFAULT_BOGGLE_SETUP_COMPETE, DEFAULT_BOGGLE_SETUP_COOP } from '../lib/setup'
 import {
   ZTest_CONCEDED,
   ZTest_find,
@@ -61,6 +61,8 @@ const moth = (over: Partial<ZTest_PlayerFacts> = {}): ZTest_PlayerFacts => ({ id
 
 /** A stopped game: the common ending, every player neutral. */
 const STOPPED: Partial<ZTest_GameDataFacts> = {
+  // A Stop writes every player neutral.
+  players: [{ id: 'u1', username: 'me', color: 'red', outcome: 'neutral' }],
   ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
   outcome: 'neutral',
 }
@@ -159,38 +161,49 @@ describe('boggle PlayArea — render smoke', () => {
     expect(screen.getByText('Score:')).toBeInTheDocument()
   })
 
-  it('renders a stopped coop game as a neutral end', () => {
+  it('renders a stopped coop game as a neutral end, and says it stopped', () => {
     render(<PlayAreaLoader {...makeCtx(STOPPED)} />)
-    expect(screen.getAllByText(/Game ended/).length).toBeGreaterThan(0)
+    // The pill and the info column's line say the same word.
+    expect(screen.getAllByText('Stopped').length).toBeGreaterThan(0)
   })
 
   it('coop: reaching the score target reads as a win, not a neutral end', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
+          setup: { ...DEFAULT_BOGGLE_SETUP_COOP, win_percent: 65 },
           players: [me({ outcome: 'won', solvedAt: 't' })],
           ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
           outcome: 'won',
         })}
       />,
     )
-    expect(screen.getAllByText(/Target reached/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Won (reached 65%)').length).toBeGreaterThan(0)
   })
 
-  it('compete: the crosser sees "You won"', () => {
+  it('frames the board in my outcome once I am out of play, mid-race too', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx(race({ players: [me(ZTest_CONCEDED), moth()] }))} />)
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx(race())} />)
+    expect(document.querySelector('[class*="endingFrame"]')).toBeNull()
+  })
+
+  it('compete: the crosser sees the win, at the target', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
+          setup: { ...DEFAULT_BOGGLE_SETUP_COMPETE, win_percent: 65 },
           players: [me({ outcome: 'won', finalRanking: 1, solvedAt: 't' }), moth({ outcome: 'lost' })],
           ending: { reason: 'reached_goal', detail: 'target', by: 'u1' },
           outcome: 'won',
         }))}
       />,
     )
-    expect(screen.getAllByText(/You won/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Won (reached 65%)').length).toBeGreaterThan(0)
   })
 
-  it('compete: a beaten racer sees the winner named', () => {
+  it('compete: a beaten player sees their loss', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
@@ -200,16 +213,17 @@ describe('boggle PlayArea — render smoke', () => {
         }))}
       />,
     )
-    expect(screen.getAllByText(/moth won/).length).toBeGreaterThan(0)
+    // My result; the winner is named on the club line and in the strip.
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
   })
 
   it('compete: a race the friends stopped is neutral, whoever was ahead', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
+          ...STOPPED,
           players: [me({ outcome: 'neutral' }), moth({ outcome: 'neutral' })],
           foundWords: [ZTest_find('u2', 'dog', 2, { bonus: true })],
-          ...STOPPED,
         }))}
       />,
     )
@@ -538,19 +552,22 @@ describe('boggle PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded rival "out" in the strip (mid-game)', () => {
+  /** The strip's text, label and cells. */
+  const stripText = () => screen.getByText('Score:').parentElement!.textContent
+
+  it('marks a conceded rival conceded in the strip, beside their score (mid-game)', () => {
     render(<PlayAreaLoader {...makeCtx(race({ players: [me(), moth(ZTest_CONCEDED)] }))} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(stripText()).toMatch(/moth:\s*0 \(conceded\)/)
   })
 
-  it('shows "You conceded" once I concede, and Stop takes Concede\'s place', () => {
+  it('shows my concession once I concede, and Stop takes Concede\'s place', () => {
     render(<PlayAreaLoader {...makeCtx(race({ players: [me(ZTest_CONCEDED), moth()] }))} />)
-    expect(screen.getAllByText('You conceded').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Conceded (game continues)').length).toBeGreaterThan(0)
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 
-  it('distinguishes Conceded / Lost / Won at the end in the strip', () => {
+  it('distinguishes conceded / lost / won at the end in the strip', () => {
     render(
       <PlayAreaLoader
         {...makeCtx(race({
@@ -565,9 +582,29 @@ describe('boggle PlayArea — concede', () => {
         }))}
       />,
     )
-    expect(screen.getByText(/Conceded at/)).toBeInTheDocument()
-    expect(screen.getByText(/Won at/)).toBeInTheDocument()
-    expect(screen.getByText(/Lost at/)).toBeInTheDocument()
+    expect(stripText()).toMatch(/You:\s*0 \(lost\)/)
+    expect(stripText()).toMatch(/moth:\s*2 \(conceded\)/)
+    expect(stripText()).toMatch(/cade:\s*1 \(won\)/)
+  })
+
+  it('places a player below first, and shares a tie, in a game ranked by score', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx(race({
+          players: [
+            me({ outcome: 'near', finalRanking: 3 }),
+            moth({ outcome: 'won', finalRanking: 1 }),
+            { id: 'u3', username: 'cade', color: 'green', outcome: 'won', finalRanking: 1 },
+          ],
+          foundWords: [ZTest_find('u1', 'at', 1), ZTest_find('u2', 'dog', 2), ZTest_find('u3', 'cat', 2)],
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
+          outcome: 'won',
+        }))}
+      />,
+    )
+    expect(stripText()).toMatch(/You:\s*1 \(3rd\)/)
+    expect(stripText()).toMatch(/moth:\s*2 \(won\)/)
+    expect(stripText()).toMatch(/cade:\s*2 \(won\)/)
   })
 })
 

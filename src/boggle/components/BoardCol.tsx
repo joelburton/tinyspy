@@ -62,6 +62,7 @@ export function BoardCol({
         tiles={gd.puzzle.tiles}
         boardSideSize={gd.puzzle.boardSideSize}
         marks={traced.marks}
+        endingOutcome={gd.me.outcome}
         isInteractive={isInteractive}
         onTileTap={traced.tapTile}
       />

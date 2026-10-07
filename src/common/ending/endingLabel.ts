@@ -1,12 +1,13 @@
 // cs-unmet
 
-import type { EndOutcome, GameEndedReason } from './gameEnding'
-import { buildStoppedMessage, type EndingMessage } from './endingMessage'
-import type { PlayerRaw } from '../game-page/gameData'
+import type { EndOutcome, GameEndedReason } from './gameEnding.ts'
+import { buildStoppedMessage, type EndingMessage } from './endingMessage.ts'
+import type { PlayerRaw } from '../game-page/gameData.ts'
 
 /**
  * What kind of result a label says. Every place below first is `placed`; the
- * word carries which ("2nd").
+ * word carries which ("2nd"). `ended` is a `no-result` ending — neutral, not a
+ * Stop — which only a game can word, so `makeEndingLabelWord` never returns it.
  */
 export type EndingLabelType =
   | 'won'
@@ -15,6 +16,7 @@ export type EndingLabelType =
   | 'stopped'
   | 'solved'
   | 'finished'
+  | 'ended'
   | 'lost'
 
 /**

@@ -7,24 +7,6 @@
   `resolve(…)` (TS2345). The script still runs, but under Deno's own checker
   it does not type-check.
 
-## Someday
-
-- **Compete with no target needs a countdown.** The rule for every compete
-  word hunt (plans/cross-game-consistency.md → "A compete word hunt needs
-  a target, a countdown, or both"). Today an untimed compete game with no
-  `win_percent` can be created, and nothing but a Stop or everyone conceding
-  ends it, so nobody can win it. The change: `create_game` refuses it, and
-  the setup form offers None in compete only with a countdown.
-
-- **Every required word is the `goal-intrinsic`: a game with no target wins
-  on it.** With no `win_percent` chosen, the game's goal is every required
-  word (docs/win-lose.md → `goal-intrinsic`), as spellingbee's and
-  wordwheel's todos have it. Today only a 100% target reads a full clear.
-  The change: with no target, finding every required word wins — the team
-  in coop, the first player to do it in compete. The timeouts stay as they
-  are: coop's is the neutral `timeout-no-result`, compete's crowns the top
-  score.
-
 ## Maybe
 
 - **A compete "dupes-cancel" mode: a word more than one player finds scores

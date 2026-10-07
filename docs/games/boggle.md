@@ -56,12 +56,15 @@ minimum length.
   mean, and bonus words that scored nothing would be no fun to find. Compete
   is a race — the first player to cross wins outright, regardless of the
   others' scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
-- **Ending.** With no win target, you hunt until the timer expires or a player
-  hits **Stop game**. Stop is a neutral end; so is coop's timeout, while
-  compete's timeout ranks the racers by score, and a compete game everyone
-  conceded is lost. With a target set, reaching it ends the game as a win
-  (`reached_goal`, detail `target`). Either way the end-of-game reveal
-  lists the **required** words nobody found.
+- **Ending.** The goal is the target when one is set, else every required
+  word. Reaching it ends the game as a win (`reached_goal`, detail `target` or
+  `solved`): the team's in coop, the first to reach it in compete. Otherwise
+  you hunt until the timer expires or a player hits **Stop game**. Stop is a
+  neutral end; so is coop's timeout with no target, while compete's ranks the
+  racers by score, and a compete game everyone conceded is lost. A compete
+  game with no target needs a countdown — nothing else could crown a winner —
+  so Start refuses one without (`PN512`, under the target). Either way the
+  end-of-game reveal lists the **required** words nobody found.
 
 ### Modes (sibling-manifest pair)
 
@@ -342,7 +345,9 @@ every move and ending rewrites them.
 - **`create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)`** — called
   by the edge function. Validates club membership, player count, timer, `band`
   (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9),
-  `win_percent` (null or 50..100 in steps of 5), and the board structure;
+  `win_percent` (null or 50..100 in steps of 5; null in compete only with a
+  countdown, else `PN512`, a `form-validation` under `win_percent`), and the
+  board structure;
   inserts the `common.games` header + the `boggle.games` row (`band` and
   `win_percent` copied to their columns) and writes the page blobs; titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the
   board's first `n` faces, with a multiface die expanded to the two letters a
@@ -357,11 +362,12 @@ every move and ending rewrites them.
   1. locks the game row and enforces the game is live (else `gameOver`);
   2. dedups against the caller's scope (coop = team, compete = self);
   3. inserts the row;
-  4. **checks the win target** (if `target_win_percent` is set): the threshold
-     is `ceil(target_win_percent% × reqd_words_score)`; when the score of
-     the **required words found** (`not is_bonus`) by the team (coop) or the
-     caller (compete) reaches it — bonus finds don't count — it calls
-     `_finish(…, 'target', caller)` to end the game as a win. Compete is a race,
+  4. **checks the goal**: the threshold is `ceil(target_win_percent% ×
+     reqd_words_score)`, or every required word's score when no target is set;
+     when the score of the **required words found** (`not is_bonus`) by the
+     team (coop) or the caller (compete) reaches it — bonus finds don't count —
+     it calls `_finish(…, 'target' or 'solved', caller)` to end the game as a
+     win. Compete is a race,
      and the lock plus the ended check make a near-simultaneous second crosser
      the game-over race;
   5. rebuilds the page blobs.
@@ -382,26 +388,27 @@ every move and ending rewrites them.
   | `PN483` "Already conceded" | `race` | the shared race (`common._raise_already_conceded`); a refusal for the same reason: it is what releases the optimistically-accepted word |
   | `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
 
-  `create_game`'s eleven refusals (**PN136**–**PN146**) are all faults, and all
+  `create_game`'s eleven refusals **PN136**–**PN146** are all faults, and all
   `BUG:` — the setup dialog composes every field and the edge function builds
   the board, so any of them means a broken client or a builder that broke its
-  own contract.
+  own contract. **PN512** is the one the dialog can reach: a compete game with
+  no target and no countdown, which the form allows and Start refuses.
 - **`_finish(p_game_id, p_reason_detail, p_ended_by_user_id)`** — the two
   endings boggle decides itself, through `common._end_game`. A Stop is
   `common._stop`'s and everyone conceding is `common._concede`'s. The rankings
   depend on whether a TARGET was set ([win-lose.md](../win-lose.md)):
 
-  | | reached the target | timer ran out |
+  | | reached the goal | timer ran out |
   |---|---|---|
-  | **coop, target set** | `reached_goal`: the team ranked 1 — won | `timeout`: nobody ranked — lost |
-  | **coop, no target** | — | `timeout`, no result — neutral |
-  | **compete, target set** | `reached_goal`: the crosser alone ranked 1; the race ends when decided, so the rest are short of the goal and lost | `timeout`: nobody ranked, however high the scores got — lost |
-  | **compete, no target** | — | `timeout`: every non-conceder who scored ranked by score, ties sharing; nobody scored → nobody ranked, lost |
+  | **coop, target set** | `reached_goal` / `target`: the team ranked 1 — won | `timeout`: nobody ranked — lost |
+  | **coop, no target** | `reached_goal` / `solved`: every required word; the team ranked 1 — won | `timeout`, no result — neutral |
+  | **compete, target set** | `reached_goal` / `target`: the crosser alone ranked 1; the race ends when decided, so the rest are short of the goal and lost | `timeout`: nobody ranked, however high the scores got — lost |
+  | **compete, no target** | `reached_goal` / `solved`: the first to find every required word, alone ranked 1; the rest lost | `timeout`: every non-conceder who scored ranked by score, ties sharing; nobody scored → nobody ranked, lost |
 
-  A game with something to reach can be won or lost against it; a coop game
-  with nothing to reach is an exercise, and its ending has no result. A target
-  reached is a solve, stamped on `common.game_players.solved_at`: every teammate
-  in coop, the crosser alone in compete. The
+  A coop game's timeout with no target has no result: the goal was all of it,
+  and finding less is neither a win nor a loss. The goal reached is a solve,
+  stamped on `common.game_players.solved_at`: every teammate in coop, the
+  crosser alone in compete. The
   nobody-scored race ranks nobody because a score race's win test, "your
   score is the best score", is true of everyone when every score is 0.
 - **`stop_game`** — any player's Stop, in either mode: locks the row, then
@@ -565,12 +572,14 @@ event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
   KIND/WHO filter ([common/word-list/doc.md](../../src/common/word-list/doc.md)).
   Its rows are `lib/wordRows.ts`'s, the same call the screen and the printer
   make; once the game has ended the missed words fold in, bonus ones too.
-- **The ending** is the pill and the row's line (`lib/endingMessage.ts`), the
-  inert board, and the list with its missed words. Verdicts lead with the
-  outcome word: coop's `Won: 12 words, 30 points` at its target, `Lost: …` when
-  the timer beat it, `Ended: …` with no target or a Stop; a race's `Won: …`,
-  `Lost: conceded`, `Lost: ran out of time`, `Lost: no words found`, and a loss
-  to a named player carried as the message's `actor` — `● alice won`. A win
+- **The ending** is my ending label (`lib/endingLabel.ts`, on each `gd`
+  player) — the pill and the row's line, through `hooks/useGetEndingMessage.ts`
+  — the board's frame in my outcome, the inert board, and the list with its
+  missed words. The words: `Won (reached 65%)`, `Won` for every required word,
+  `Lost (out of time)`, `Ended (out of time)` for coop's no-target timeout,
+  `2nd`, `Lost (no words found)`, `Conceded (game continues)`, and the shared
+  `Stopped`. The compete strip shows each player's score and, once they are
+  out of play, their word: `31 (2nd)`. A win
   celebrates once, as `gd.me.outcome` turns `won` — the team's in coop, and in a
   race only the winner's screen; nothing pops for any other ending, or for a
   game opened already won.
