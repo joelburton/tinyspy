@@ -158,27 +158,38 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   })
 
   describe('the verdicts, read off the ending the server wrote', () => {
-    it('coop solved', () => {
+    it('coop solved, in the won frame', () => {
       render(<PlayAreaLoader {...makeCtx(endedFacts('coop', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won'))} />)
-      expect(screen.getAllByText('Won: grid complete').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Solved').length).toBeGreaterThan(0)
+      expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
     })
 
-    it('a race lost to a rival names them', () => {
+    it('a race lost to a rival is a bare loss: the club line names them', () => {
       const facts = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u2' }, 'won')
       facts.players = [{ ...TWO[0]!, outcome: 'lost' }, { ...TWO[1]!, outcome: 'won', finalRanking: 1 }]
       render(<PlayAreaLoader {...makeCtx(facts)} />)
-      expect(screen.getAllByText('solved it first').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('moth').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
+      expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
     })
 
     it('compete all-conceded says so', () => {
-      render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'conceded', detail: 'conceded', by: 'u2' }, 'lost'))} />)
-      expect(screen.getAllByText('Lost: all conceded').length).toBeGreaterThan(0)
+      const facts = endedFacts('compete', { reason: 'conceded', detail: 'conceded', by: 'u2' }, 'lost')
+      facts.players = TWO.map((p) => ({ ...p, ...ZTest_CONCEDED }))
+      render(<PlayAreaLoader {...makeCtx(facts)} />)
+      expect(screen.getAllByText('Conceded').length).toBeGreaterThan(0)
     })
 
     it('compete timeout blames the clock', () => {
       render(<PlayAreaLoader {...makeCtx(endedFacts('compete', { reason: 'timeout', detail: 'timeout', by: null }, 'lost'))} />)
-      expect(screen.getAllByText('Out of time — no winner').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Lost: out of time').length).toBeGreaterThan(0)
+    })
+
+    it('a race I won celebrates, at the moment it ends', () => {
+      const race = endedFacts('compete', { reason: 'reached_goal', detail: 'solved', by: 'u1' }, 'won')
+      race.players = [{ ...TWO[0]!, outcome: 'won', finalRanking: 1 }, { ...TWO[1]!, outcome: 'lost' }]
+      const { rerender } = render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: TWO })} />)
+      rerender(<PlayAreaLoader {...makeCtx(race)} />)
+      expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
     })
 
     it('coop clock is a plain loss', () => {
@@ -518,7 +529,7 @@ describe('crosswords PlayArea — the page chords', () => {
 
   it('a conceded racer keeps the one flag — Stop for all, not a hidden Concede', () => {
     render(<WithKeys {...makeCtx(concededFacts())} />)
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })

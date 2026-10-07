@@ -496,18 +496,17 @@ sizing).
   for the architecture.
 - **Once the game has ended** — no modal carries the verdict ([ui.md →
   Endings](../ui.md#endings--the-moment-vs-the-record)): the ending's
-  terse text (`lib/gameEndingMessage.ts`, read off `gd.outcome`,
-  `gd.ending.reason`, `gd.me.outcome` and `gd.ending.winners`) lands as the
-  filled verdict in the active-clue bar (the local slot's `<FeedbackPill>` —
-  "Won: grid complete" / "Won: solved it first" / a compete loss naming the
-  winner as the message's `actor` — "● moth solved it first"; the last racer
-  conceding reads "Lost: all conceded"; a countdown expiring reads "Lost: out
-  of time" in coop and "Out of time — no winner" in compete, the roster's
-  shared phrasing). While the others race on, a racer who conceded reads
-  "Conceded — race continues" (`lib/playerEndingMessage.ts`). A **coop solve**
-  pops the shared `<CelebrationBlockingModal>` (`useCelebration(gd.coop &&
-  gd.outcome === 'won')`), at the moment of the flip, never on opening an
-  already-solved game. The board is **not** auto-revealed at game end: the
+  words come from my ending label (`lib/endingLabel.ts`, on every `gd`
+  player) and land as the filled verdict in the active-clue bar (the local
+  slot's `<FeedbackPill>`): "Solved" for a coop win, "Won" for my compete
+  solve, a bare "Lost" when someone else solved it first (the club line names
+  them), "Lost: out of time" when the countdown expires, "Conceded" for the
+  last racer out. While the others race on, a racer who conceded reads
+  "Conceded: game continues". The grid wears the ending frame in my outcome,
+  with no space reserved for it. My win — the team's coop solve, or my solve
+  first in a race — pops the shared `<CelebrationBlockingModal>`
+  (`useCelebration(gd.me.outcome === 'won')`), at the moment of the flip,
+  never on opening an already-solved game. The board is **not** auto-revealed at game end: the
   blanks stay blank until THIS viewer picks the **"Reveal solution"** game-menu
   item, which draws `gd.puzzle.solution` — the author's grid **exactly as
   shipped** —
@@ -537,7 +536,7 @@ sizing).
   desktop (1400×950) and tablet (1024×768) widths.
 
   **The strip has three states** (`ToolStrip`), swapping in place: the control
-  bar while playing; an `<InfoActionsRow>` "You conceded" line for a conceded
+  bar while playing; an `<InfoActionsRow>` "Conceded (game continues)" line for a conceded
   compete player, with an inert Reveal (the solution waits for the end of the
   game) and Stop in Concede's place; and once the game has ended an action row
   of **Reveal solution / Hide solution** (the same toggle as the menu item) ·
@@ -585,7 +584,7 @@ sketch near its end) and, for the ones that reach React,
         ├── ActiveClueBar      the slot's pill, else the clue under the cursor
         ├── InfoSheet ←        on a phone, the lists and the strip
         │     ├── ClueLists    Across | Down
-        │     └── ToolStrip    the three states: Controls · "You conceded" · the ended row
+        │     └── ToolStrip    the three states: Controls · my concession · the ended row
         ├── CrosswordsNumberJumpBlockingModal · CrosswordsNoteCompanion · CrosswordsExplainCompanion
         └── CelebrationBlockingModal ←
 
@@ -602,8 +601,8 @@ on one grid — has nothing to split between two columns. `PlayArea`'s hooks:
 - one per trip to the server: `useCheckCells`, `useRevealCells`,
   `useExportSolution`, `useExplainClue`;
 - the teammates: `usePeerCursors` and `useTeammateFills`;
-- the endings: `useGetGameEndingMessage`, `useGetPlayerEndingMessage`, shown by
-  the shared `useShowEndingFeedback`;
+- the ending: `useGetEndingMessage`, my ending label's message, shown by the
+  shared `useShowEndingFeedback`;
 - `useActionsAndMenu`: every command, bound once, and the menu. A run reads the
   board and the cursor when it is pressed, so the prints, the download and the
   explainer take what is on screen.

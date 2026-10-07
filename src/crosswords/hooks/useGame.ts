@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { makeCellId } from '../lib/cellId'
+import { makeEndingLabel } from '../lib/endingLabel'
 import type {
   GBoard,
   GBoardRaw,
@@ -76,7 +77,13 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // Each carries the grid twice (docs/common-schema.md → A player's facts):
   // spread on, the side's; under `own`, their own — in coop the team's, which
   // is nobody's in particular.
-  const players: GPlayer[] = raw.players.map((p) => ({ ...p, board: null, own: { board: null } }))
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
+  const players: GPlayer[] = raw.players.map((p) => ({
+    ...p,
+    board: null,
+    own: { board: null },
+    endingLabel: makeEndingLabel(p, gameFacts),
+  }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   const teamBoard = team === null ? null : makeBoard(team.board, raw.puzzle, players)

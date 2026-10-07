@@ -50,7 +50,7 @@ function drawGrid({
       puzzle={ZTest_PUZZLE}
       board={board}
       entry={ENTRY}
-      marks={{ wordCellIds, peerCursorColors: new Map(), fillFlashColors }}
+      marks={{ wordCellIds, peerCursorColors: new Map(), fillFlashColors, endingOutcome: null }}
       solution={solution}
       collapseRebus={collapseRebus}
     />,

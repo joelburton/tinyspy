@@ -28,6 +28,7 @@
  */
 
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
+import type { EndingLabel } from '../common/ending/endingLabel.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
 import type { SetupOf } from '../common/setup-form/types.ts'
@@ -555,6 +556,8 @@ export type GSummaryData = SummaryData & {
  *   the common player
  *   board: {cells, cellsById}         # the side's grid: coop's one on every player; a rival's null mid-race
  *   own: {board}                      # this player's own; in coop the team's
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                     # how they came out; null while they play
  *
  * cell:
  *   id                                # "r,c"
@@ -596,6 +599,9 @@ export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'player
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** A seat's grid as `gd` holds it: a cell for every open, non-given cell, in

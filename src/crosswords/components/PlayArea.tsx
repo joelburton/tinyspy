@@ -16,8 +16,7 @@ import { useCheckCells } from '../hooks/useCheckCells'
 import { useExplainClue } from '../hooks/useExplainClue'
 import { useExportSolution } from '../hooks/useExportSolution'
 import { useGame } from '../hooks/useGame'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useGridEntry } from '../hooks/useGridEntry'
 import { usePeerCursors } from '../hooks/usePeerCursors'
 import { usePendingWrites } from '../hooks/usePendingWrites'
@@ -75,9 +74,9 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
   const infoSheet = useInfoSheet()
   const closeInfoSheet = infoSheet.close
 
-  // Confetti at the moment the team completes the grid. Coop only: a race's
-  // winner gets the verdict pill.
-  const celebration = useCelebration(gd.coop && gd.outcome === 'won')
+  // Confetti the moment the win is MINE, as the server ranked it: the team's
+  // completed grid in coop, my solve first in a race.
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
   // Display-only, persisted per browser: a multi-letter rebus drawn as its
   // first letter.
@@ -97,9 +96,14 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
   // ─── The local slot ────────────────────────────────────
   // Messages about ME: a refusal, the pencil note, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
-  useShowEndingFeedback(localFeedbackSlot, { gameEndingMessage, playerEndingMessage })
+  // My ending's message: the game's once it has ended, mine while I have
+  // conceded and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
+  const playerEndingMessage = endedBy === 'player' ? endingMessage : null
+  useShowEndingFeedback(localFeedbackSlot, {
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage,
+  })
 
   // ─── The move ──────────────────────────────────────────
   // My writes show at once, laid over the blob's board until it carries them.
@@ -197,7 +201,7 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
             puzzle={gd.puzzle}
             board={pendingWrites.board}
             entry={entry}
-            marks={{ wordCellIds, peerCursorColors, fillFlashColors }}
+            marks={{ wordCellIds, peerCursorColors, fillFlashColors, endingOutcome: gd.me.outcome }}
             solution={solutionReveal.revealed ? gd.puzzle.solution : null}
             collapseRebus={collapseRebus}
           />
@@ -255,8 +259,8 @@ function PlayArea({ gd, menu }: PlayAreaProps) {
 
       {celebration.isOpen && (
         <CelebrationBlockingModal
-          title="Solved! 🎉"
-          body="The grid is complete."
+          title={gd.coop ? 'Solved! 🎉' : 'You win! 🎉'}
+          body={gd.coop ? 'The grid is complete.' : 'You solved it first.'}
           onClose={celebration.close}
         />
       )}

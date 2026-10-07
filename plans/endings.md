@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed, wordiply and codenamesduet are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed, wordiply, codenamesduet and crosswords are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -129,8 +129,6 @@ Also:
 - The seven strips above work out their word in the component, through the
   shared `endingOutcomeVerb`; each moves to its players' `endingLabel` in its
   turn, and `endingOutcomeVerb` goes with the last.
-- crosswords celebrates only a coop win (`gd.coop && gd.outcome === 'won'`);
-  a compete winner gets none.
 
 ### The game cards against the code
 
@@ -235,6 +233,12 @@ in its turn in step 4; none is open here.
    the bell, the flash, the frame and the celebration; coop only, so no strip.
    A win is the word alone; a loss says its cause ("assassin", "out of turns",
    "out of time").
+   crosswords, whose card the code already matched; it takes no turns, and
+   has no strip or info column, by design, but carries the same label on its
+   `gd` players, its ToolStrip showing a concession's line. A coop win reads
+   "Solved" (outcome still won); a compete solve, and a loss to it, are the
+   word alone. A compete winner now celebrates too, and the grid gains the
+   ending frame with no space reserved for it.
 
 ## Overlaps
 

@@ -9,7 +9,9 @@ import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
 import { verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeEndingLabel } from './lib/endingLabel'
 import { CROSSWORDS_DEFAULTS } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
@@ -119,53 +121,70 @@ const validate = (setup: unknown): FormErrors => {
   return s.puzzle_id ? {} : puzzle('Pick a puzzle to start.')
 }
 
+/** The game's ending as an ending label reads it, from the summary. */
+function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
+  return { mode, ended: summary.ended, reason: summary.ending?.reason ?? null }
+}
+
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
 /**
  * The coop club line. While the grid is being solved it says how much of it is
  * filled; no puzzle name, which is the game's TITLE, one line above on the same
- * card. The timer running out on an unfinished grid is coop's one loss.
+ * card. Once it ends, the team's ending label (mine, when I played): "Solved",
+ * or the timer running out on an unfinished grid, coop's one loss.
  */
-function makeCoopLabel(summary: GSummaryData): string {
+function makeCoopLabel(summary: GSummaryData, myId: string): string {
   if (summary.ending === null) {
     // Coop always has its team count.
     const percent = Math.round((summary.team!.nFilledCells / summary.nCells) * 100)
     return statusLine(verdict('Playing'), `${percent}% filled`)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return verdict('Won')
-    case 'lost':
-      return verdict('Lost', 'out of time')
-    // A Stop.
-    case 'neutral':
-      return verdict('Ended')
-    default:
-      return outcome
-  }
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  return makeLead(makeEndingLabel(player, makeGameFacts(summary, 'coop'))!)
 }
 
 /**
  * The compete club line: no per-racer progress, and the race's one winner is
- * the player the common `players` ranks first. The two no-winner losses, the timer and the last
- * racer conceding, are told apart by the ending's reason.
+ * named once it is won. It leads with my ending label once I am out of play.
  */
-function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
-  if (summary.ending === null) return verdict('Playing')
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeEndingLabel(me, makeGameFacts(summary, 'compete'))
+  if (summary.ending === null && myEndingLabel === null) return verdict('Playing')
+
+  const winnerName = findUsername(members, findWinnerIds(summary).find((id) => id !== myId) ?? null)
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      if (myEndingLabel.labelType === 'won') return makeLead(myEndingLabel)
+      // Someone else won: name them, beside my concession; a loss to their
+      // solve is said by naming them.
+      return myEndingLabel.labelType === 'conceded'
+        ? statusLine(makeLead(myEndingLabel), wonBy(winnerName))
+        : wonBy(winnerName)
+    }
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
     case 'won':
-      return wonBy(memberById(members, findWinnerIds(summary)[0]!)?.username)
+      return wonBy(winnerName)
     case 'lost':
-      return summary.ending.reason === 'conceded'
+      return summary.ending!.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
         : statusLine(verdict('Lost', 'out of time'), 'no winner')
-    // A Stop.
     case 'neutral':
-      return verdict('Ended')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -194,7 +213,7 @@ export const crosswordsCoopGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('coop'),
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, _members, myId) => makeCoopLabel(data as GSummaryData, myId),
   submitTimeout,
   // Coop has a whole-table "stop now" (a neutral mutual give-up).
   stopGame,
@@ -222,7 +241,7 @@ export const crosswordsCompeteGame: GameManifest = {
     validate,
   },
   startGameInClub: startGameInClubFactory('compete'),
-  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
   submitTimeout,
   // Compete has BOTH, as every race does: `concede` is one racer dropping out
   // (a loss on their record), Stop is the whole table agreeing to stop with no

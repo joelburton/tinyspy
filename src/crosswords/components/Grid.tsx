@@ -3,6 +3,8 @@
 import { useMemo } from 'react'
 import shared from '@/common/game-page/playArea.module.css'
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { makeCellId } from '../lib/cellId'
 import { computeBorderMask } from '../lib/cursor'
 import type { GGridEntry } from '../reactTypes'
@@ -40,6 +42,8 @@ type GridMarks = {
   peerCursorColors: Map<string, string>
   // A teammate's fresh fill (coop): the cell → their CSS color.
   fillFlashColors: Map<string, string>
+  // How I came out, for the ended grid's frame; null while I still play.
+  endingOutcome: EndOutcome | null
 }
 
 type Props = {
@@ -86,7 +90,14 @@ export function Grid({ puzzle, board, entry, marks, solution, collapseRebus }: P
 
   return (
     <div
-      className={cls(shared.boardSeal, styles.board)}
+      className={cls(
+        shared.boardSeal,
+        styles.board,
+        // No history viewer here, so the frame never steps aside for one. No
+        // space is reserved for it: the outline may run a little past the
+        // viewport.
+        makeEndingFrameClasses(marks.endingOutcome, false),
+      )}
       style={{
         ['--cw-cell' as string]: cellSize,
         ['--cw-cell-mobile' as string]: cellSizeMobile,
