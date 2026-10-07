@@ -28,6 +28,26 @@
   cursor: pointer;
   user-select: none;
   line-height: 1;
+  /* The hover's circle (`::before`) is placed against the button. */
+  position: relative;
+  transition: transform 80ms ease;
+}
+
+/* The hover's circle: a tile's edge and shadow, with no background, the size
+ * of the board's disc (r 0.38 of a cell, so 76% across). Always there and
+ * invisible at rest, so the hover only fades it in. It paints over the letter,
+ * which is harmless: it has no fill, and its edge and shadow lie outside the
+ * glyph. */
+/* @@ */ .tile::before {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: var(--tile-edge-width) solid var(--tile-slot-edge-color);
+  border-radius: 50%;
+  box-shadow: var(--tile-shadow);
+  opacity: 0;
+  /* The shadow deepens with the lift, as on the shared `.tile`. */
+  transition: opacity 80ms ease, box-shadow 80ms ease;
 }
 
 /* @@ */ .tile:disabled {
@@ -73,13 +93,42 @@
   color: var(--strands-on-disc);
 }
 
-/* Hover only where a click can do something — and only on a device that really
+/* Hover: the letter shows as a round tile — the circle above — and lifts like
+ * one: the shared `.tile`'s hover (common/game-page/playArea.module.css), the
+ * piece rising 2px as its shadow deepens. Only on hover, since a grid of tiles
+ * at rest would bury the board's discs and lines. A `transform`, so nothing on
+ * the board reflows.
+ *
+ * Only where a click can do something — and only on a device that really
  * hovers. A touchscreen keeps `:hover` on the last-tapped element until you tap
- * somewhere else, so ungated this leaves one dimmed tile sitting on the board
+ * somewhere else, so ungated this leaves one raised letter sitting on the board
  * after every submission. Same `(hover: hover)` gate, for the same reason, as
  * the tooltip bubble (common/tooltips/doc.md). */
 @media (hover: hover) {
 /* @@ */   .tile:not(:disabled):hover {
-    opacity: 0.75;
+    transform: translateY(-2px);
+  }
+/* @@ */   .tile:not(:disabled):hover::before {
+    opacity: 1;
+    box-shadow: var(--tile-hover-shadow);
+  }
+}
+
+/* Press: the letter comes back down, shrinks and darkens — the shared `.tile`'s
+ * press, taken further because a letter is small. Ungated: a tap is the one
+ * feedback a touchscreen gets, and it ends with the touch. */
+/* @@ */ .tile:not(:disabled):active {
+  transform: scale(0.9);
+  filter: brightness(0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+/* @@ */   .tile::before {
+    transition: none;
+  }
+  .tile:not(:disabled):hover,
+/* @@ */   .tile:not(:disabled):active {
+    transform: none;
   }
 }
