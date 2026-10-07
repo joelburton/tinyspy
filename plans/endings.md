@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections and stackdown are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown and waffle are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -206,6 +206,12 @@ in its turn in step 4; none is open here.
    bell or flash is owed. A coop win reads "Won (stack cleared)"; a compete win
    and a loss to the first to clear are the word alone; the strip drops the
    winner's ✓, which "(won)" now says; the board gains the ending frame.
+   waffle, whose card the code already matched, and which already had the
+   bell, the flash, the frame and the celebration. The coop win reads against
+   par ("Won (par +2)"); a place below first says what lost it ("2nd (more
+   swaps)" / "2nd (solved later)"), read from the summary's new
+   `nSwapsUsedById` and `parSwaps`; a player with no place says what ran
+   out.
 
 ## Overlaps
 

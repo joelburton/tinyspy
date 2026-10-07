@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -155,6 +156,8 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   maxSwaps
  *   board: {tiles}                           # coop's one board on every player; null for a rival mid-race
  *   own: {nSwapsUsed, maxSwaps, board}       # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * tile:                                      # GTile
  *   id                                       # the cell's position, as text: '0'…'24', holes left out
@@ -200,6 +203,9 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat sees: the 21 tiles, by position. */
@@ -311,6 +317,10 @@ export type GSetup = SetupOf<GSetupValues>
 export type GSummaryData = SummaryData & {
   team: Pick<GFacts, 'nSwapsUsed'> | null
   maxSwaps: number
+  // The deal's par.
+  parSwaps: number
   band: number
   nWinnerSwaps: number | null
+  // Each racer's swaps, by id; null in coop.
+  nSwapsUsedById: Record<string, number> | null
 }

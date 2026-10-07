@@ -224,19 +224,19 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // waffle._make_json_summary_data: `team` holds coop's swaps and is null in compete; the
   // winner's count is compete's alone; the band is the setup's.
   waffle: {
-    live: { team: { nSwapsUsed: 4 }, maxSwaps: 12, band: 3, nWinnerSwaps: null },
+    live: { team: { nSwapsUsed: 4 }, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nSwapsUsed: 9 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'solved'],
-      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: { nSwapsUsed: 12 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'out of swaps'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nSwapsUsed: 9 }, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: { nSwapsUsed: 12 }, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: null }, 'out of swaps'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nSwapsUsed: 5 }, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: 8 }, 'someone won'],
-      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'everyone out of swaps'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'timeout'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxSwaps: 12, band: 3, nWinnerSwaps: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: 8, nSwapsUsedById: { 'u-alice': 8, 'u-bob': 12 } }, 'someone won'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'exhausted' }, { team: null, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: { 'u-alice': 9, 'u-bob': 12 } }, 'everyone out of swaps'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: { 'u-alice': 9, 'u-bob': 12 } }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: { 'u-alice': 9, 'u-bob': 12 } }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxSwaps: 12, parSwaps: 7, band: 3, nWinnerSwaps: null, nSwapsUsedById: { 'u-alice': 9, 'u-bob': 12 } }, 'Stop'],
     ],
   },
   // wordle._make_json_summary_data: `team` holds the used count in coop and is null in compete

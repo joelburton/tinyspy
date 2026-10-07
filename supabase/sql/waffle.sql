@@ -387,8 +387,10 @@ drop function if exists waffle._write_statuses(uuid, boolean);
 --   `finalRanking` 1):
 --     team: {nSwapsUsed}                   the team's count; null in compete
 --     maxSwaps
+--     parSwaps                             the deal's par
 --     band                                 the dictionary band, `setup.difficulty`
 --     nWinnerSwaps                         compete's, once the race is won; null in coop
+--     nSwapsUsedById                       each racer's swaps, public in a race; null in coop
 
 -- A board's 21 tiles, by position: the cell's id, its letter, and — given the
 -- board's colors — its color. The holes ('.') are left out.
@@ -575,6 +577,7 @@ as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
     'team',         waffle._make_json_team_counts(p_game_id),
     'maxSwaps',     wg.max_swaps,
+    'parSwaps',     wg.par_swaps,
     'band',         coalesce((cg.setup->>'difficulty')::int, 2),
     'nWinnerSwaps', case when cg.mode = 'compete' then
                       (select wp.n_swaps_used
@@ -584,7 +587,12 @@ as $$
                         where gp.game_id = p_game_id and gp.final_ranking = 1
                         order by gp.solved_at
                         limit 1)
-                    end)
+                    end,
+    'nSwapsUsedById', case when cg.mode = 'compete' then
+                        (select jsonb_object_agg(wp.user_id::text, wp.n_swaps_used)
+                           from waffle.players wp
+                          where wp.game_id = p_game_id)
+                      end)
     from waffle.games wg
     join common.games cg on cg.id = wg.game_id
    where wg.game_id = p_game_id;

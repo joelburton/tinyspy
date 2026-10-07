@@ -44,8 +44,8 @@ presence-pause, friends-on-a-Zoom-call model.
   difficulty knob (fewer extra swaps = harder). Validated + bounded server-side.
 - **Win** = all 6 words correct (whole board green). **Lose** = budget
   exhausted before solving.
-- **Par verdict** (FE): the coop win reads against par — "Won: par +2", or
-  "Won: par!" on par.
+- **Par verdict** (FE): the coop win reads against par — "Won (par +2)", or
+  "Won (par)" on par.
 
 ## Modes (sibling-manifest pair)
 
@@ -159,7 +159,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | `puzzle: {dealtTiles, parSwaps}` — the deal as `{id, letter}` tiles, and par |
 | `game_data` | `puzzle: {solution}` — the solution as `{id, letter}` tiles, null until the game ends; `team`, the team's facts sent once — the sum of the players' own counts and the one board, read off any row since they are in lock-step — null in compete; `events`, every swap `{id, userId, swaps: [{id, letter}, {id, letter}], colors, at}` — each of the two cells with the letter it held before; on each player their own facts: `maxSwaps`, `nSwapsUsed`, and a racer's `board: {tiles}` as `GTile`s, null on a coop player |
-| `summary_data` | `team: {nSwapsUsed}`, the team's count, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `nWinnerSwaps`, compete's once the race is won, null in coop |
+| `summary_data` | `team: {nSwapsUsed}`, the team's count, null in compete; `maxSwaps`; `band` (`setup.difficulty`); `parSwaps`, the deal's par; `nWinnerSwaps`, compete's once the race is won, null in coop; `nSwapsUsedById`, each racer's swaps, null in coop |
 
 **The builder writes every board and every swap.** What a racer may not see yet
 — a rival's swaps and board mid-race — is withheld by `useGame` (below), not by
@@ -446,7 +446,7 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
         │           ├── StateLine   "Swaps 3/12 (9 left) · Par 10"
         │           ├── TurnStatusLine ←   turn-by-turn coop only
         │           ├── SolutionReveal     the six words, each once it is green
-        │           ├── OpponentStrip ←    compete only: each racer's swaps, ✓, or "out"
+        │           ├── OpponentStrip ←    compete only: each racer's swaps, then how they came out ("6 (solved)")
         │           ├── InfoActionsRow ←   one row, every action, in the menu's order
         │           ├── SetupDisclosure ←
         │           └── GameEventLog       every swap I may see
@@ -466,8 +466,8 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   subscribes to nothing.
 - **`PlayArea` picks the board to show:** a past swap's while one is open
   (`useHistoryView`), else the revealed solution, else `gd.me.board`. It wires
-  the ending messages (`useGetGameEndingMessage`, `useGetPlayerEndingMessage`,
-  from `lib/gameEndingMessage.ts` and `lib/playerEndingMessage.ts`), the waiting
+  my ending's message (`useGetEndingMessage`, from my ending label:
+  `lib/endingLabel.ts`, on every `gd` player), the waiting
   line, a rival's solve or spent budget in the header (`useShowOppsEndedMessages`
   — `peerMilestone`s, so a chat line can't bury them) and the commands
   (`useActionsAndMenu`, which also publishes the menu and builds the printout
@@ -552,12 +552,14 @@ line), and the action row offers Restart right there. The shared
 **`CelebrationBlockingModal`** (confetti + jingle) pops for **my** win — every
 teammate's on a coop solve, the winner's in a race — only at the moment it
 lands (`useCelebration`); opening an already-won game shows nothing. The coop
-win's verdict is measured **against par** — "Won: par +2", or "Won: par!" for
+win's verdict is measured **against par** — "Won (par +2)", or "Won (par)" for
 matching it (par is the generator's minimum, so under par can't happen) —
 rather than a generic "Solved!": the celebration carries the moment; the
-lasting verdict carries the score. A race reads "Won: fewest swaps" /
-"Lost: beaten on swaps", and a race nobody won says why: "Out of time — no
-winner", "All conceded — no winner", or "Nobody solved".
+lasting verdict carries the score. In a race a win is the word alone; a place
+below first says what lost it — "2nd (more swaps)" when someone above used
+fewer, "2nd (solved later)" when they used as many; a player with no place
+says what ran out — "Lost (out of swaps)", "Lost (out of time)"; a solver
+waiting on the rest reads "Solved (waiting on the rest)".
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (connections' peer-selection trick) is a deferred
@@ -638,7 +640,7 @@ from solved):
 | file | pins |
 |---|---|
 | `hooks/useGame.test` | `gd` from the blob — the links become players, the setup rows with par, each player's own count and the team's, the state line's pick, the solution at the end; the seat rule mid-race and at its end; the memo on the blob |
-| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — the par verdict, coop's two losses, a race won or lost, a race nobody won for each cause; a racer solved, spent or conceded |
+| `lib/endingLabel.test` | every ending's label and my outcome — the par verdict, coop's two losses, a race won, a place and what lost it, a race nobody won for each cause; a racer solved, spent or conceded |
 | `lib/history.test` | the replay: the board after the viewed swap with that row's colors, its two tiles lit, the label's number as given, the author's own board in compete |
 | `lib/waffle.test` · `lib/boardShape.test` | the geometry, the words read off tiles, the progressive reveal; the cursor's shape |
 | `components/PlayArea.test` | the surface on the fixture: the tiles and `data-tile`; the par verdict; Concede and Stop; New game; Reveal and Hide; the action row in each state and the menu's order; the strip; help on my move; the celebration on my win; a rival's solve and spent budget in the header; the history view; the swap in flight; the keys and the selection cursor |

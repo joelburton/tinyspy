@@ -57,18 +57,12 @@ export function InfoCol({
     ? boardWords(solution)
     : solvedWords(gd.me.board.tiles)
 
-  // A racer who dropped out or ran out of swaps reads "out"; everyone else
-  // shows their swaps, a solver waiting on the rest with a ✓.
-  function getSwapsOrOut(player: GPlayer) {
-    const endedReason = player.ending?.reason
-    if (endedReason === 'conceded' || endedReason ===
-      'resource_exhausted') return 'out'
-    return (
-      <>
-        {player.nSwapsUsed}
-        {player.solved && ' ✓'}
-      </>
-    )
+  // A player's cell in the strip: the swaps they have used; once they are out
+  // of play — on their own or with the game — how they came out after it:
+  // "8 (won)", "10 (2nd)", "6 (solved)", "15 (lost)".
+  function getSwapsAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nSwapsUsed
+    return `${player.nSwapsUsed} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -98,7 +92,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Swaps"
-            metricFor={getSwapsOrOut}
+            metricFor={getSwapsAndResult}
           />
         )}
 

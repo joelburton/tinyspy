@@ -133,14 +133,16 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nSwapsUsed": 0}, "maxSwaps": 6, "band": 2, "nWinnerSwaps": null}'::jsonb,
-  'the fresh coop game''s summary: the common part, a team with nothing used, the budget, the band'
+    || '{"team": {"nSwapsUsed": 0}, "maxSwaps": 6, "parSwaps": 1, "band": 2, "nWinnerSwaps": null,
+         "nSwapsUsedById": null}'::jsonb,
+  'the fresh coop game''s summary: the common part, a team with nothing used, the budget, par, the band'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxSwaps": 6, "band": 2, "nWinnerSwaps": null}'::jsonb,
-  'the fresh compete game''s summary has no team, so no progress'
+    || '{"team": null, "maxSwaps": 6, "parSwaps": 1, "band": 2, "nWinnerSwaps": null,
+         "nSwapsUsedById": {"ada11111-1111-1111-1111-111111111111": 0, "bea22222-2222-2222-2222-222222222222": 0}}'::jsonb,
+  'the fresh compete game''s summary has no team, so no progress; each racer''s swaps at 0'
 );
 
 -- ─── (2) Mid-game coop: ada swaps cells 2 and 3 ───
@@ -252,8 +254,10 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxSwaps": 6, "band": 2, "nWinnerSwaps": 3}'::jsonb,
-  'compete: the summary names the winner''s count'
+    || jsonb_build_object('team', null, 'maxSwaps', 6, 'parSwaps', 1, 'band', 2, 'nWinnerSwaps', 3,
+         'nSwapsUsedById', (select jsonb_object_agg(user_id::text, n_swaps_used)
+                              from waffle.players where game_id = pg_temp.compete())),
+  'compete: the summary names the winner''s count, and each racer''s'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,

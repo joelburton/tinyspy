@@ -188,14 +188,16 @@ describe('waffle PlayArea — render smoke', () => {
   })
 
   it('renders the coop win with the par verdict, in the pill and the info column', () => {
-    // 11 swaps against par 9 → "Won: par +2".
+    // 11 swaps against par 9 → "par +2", in each surface's form.
     render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, parSwaps: 9, maxSwaps: 14, players: [won(ME, 11)] })} />)
-    expect(screen.getAllByText('Won: par +2')).toHaveLength(2)
+    expect(screen.getByText('Won: par +2')).toBeInTheDocument()
+    expect(screen.getByText('Won (par +2)')).toBeInTheDocument()
   })
 
-  it('renders an even-par coop win as "Won: par!"', () => {
+  it('renders an even-par coop win as "Won (par)"', () => {
     render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, parSwaps: 9, maxSwaps: 14, players: [won(ME, 9)] })} />)
-    expect(screen.getAllByText('Won: par!')).toHaveLength(2)
+    expect(screen.getByText('Won: par')).toBeInTheDocument()
+    expect(screen.getByText('Won (par)')).toBeInTheDocument()
   })
 })
 
@@ -227,16 +229,16 @@ describe('waffle PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded rival "out" in the strip', () => {
+  it('marks a conceded rival conceded in the strip, beside their swaps', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText(/^\d+ \(conceded\)$/)).toBeInTheDocument()
   })
 
   it('shows my ending after I concede, in the action row and the pill, as a loss', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
     // The server wrote `lost` for a concede, and the line wears it.
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
-    expect(screen.getByText('Conceded — race continues')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
+    expect(screen.getByText('Conceded: game continues')).toBeInTheDocument()
   })
 
   it('bands my board with my outcome once I am out, while the others race on', () => {
@@ -438,7 +440,7 @@ describe('waffle PlayArea — the action row', () => {
 })
 
 describe('waffle PlayArea — the opponent strip', () => {
-  it('a racer out of swaps reads "out"; a solver waiting shows their count with a ✓', () => {
+  it('a racer out of swaps reads lost; a solver waiting reads solved, each beside their swaps', () => {
     render(<PlayAreaLoader {...makeCtx({
       mode: 'compete',
       players: [
@@ -446,8 +448,8 @@ describe('waffle PlayArea — the opponent strip', () => {
         { ...MOTH, ...SPENT, nSwapsUsed: 6 },
       ],
     })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
-    expect(screen.getByText(/^3 ✓$/)).toBeInTheDocument()
+    expect(screen.getByText('6 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('3 (solved)')).toBeInTheDocument()
   })
 })
 
@@ -534,7 +536,7 @@ describe('waffle PlayArea — the end', () => {
       players: [won(ME), lost(MOTH)],
     })} />)
     expect(screen.getByRole('dialog', { name: 'Solved it! 🧇' })).toBeInTheDocument()
-    expect(screen.getByText('You won!')).toBeInTheDocument()
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
   })
 
   it('does not celebrate the race I lost', () => {
@@ -545,7 +547,21 @@ describe('waffle PlayArea — the end', () => {
       players: [lost(ME), won(MOTH)],
     })} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
+  })
+
+  it('a 2nd place says what lost it: more swaps than the winner', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ...raceWonBy('u2'),
+      players: [
+        { ...ME, outcome: 'near', finalRanking: 2, solvedAt: T, nSwapsUsed: 9 },
+        won(MOTH, 7),
+      ],
+    })} />)
+    expect(screen.getByText('2nd (more swaps)')).toBeInTheDocument()
+    expect(screen.getByText('9 (2nd)')).toBeInTheDocument()
+    expect(screen.getByText('7 (won)')).toBeInTheDocument()
   })
 
   it('names an all-conceded race for what it was', () => {
@@ -555,7 +571,8 @@ describe('waffle PlayArea — the end', () => {
       outcome: 'lost',
       players: [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }],
     })} />)
-    expect(screen.getByText('All conceded')).toBeInTheDocument()
+    // Every player conceded, and each label reads that.
+    expect(screen.getAllByText('Conceded').length).toBeGreaterThan(0)
   })
 })
 

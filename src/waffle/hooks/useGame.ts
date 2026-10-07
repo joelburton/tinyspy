@@ -5,6 +5,7 @@ import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
+import { findFewestSwapsAhead, makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -33,10 +34,22 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. Coop's one board is the same object on every
   // player; a racer's own is theirs alone to see mid-race.
+  const gameFacts = {
+    mode: raw.mode,
+    ended: raw.ended,
+    reason: ending?.reason ?? null,
+    parSwaps: raw.puzzle.parSwaps,
+  }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    // In coop the swaps against par are the team's.
+    const endingLabel = makeEndingLabel(
+      { ...p, nSwapsUsed: team?.nSwapsUsed ?? p.nSwapsUsed },
+      gameFacts,
+      findFewestSwapsAhead(p, raw.players),
+    )
     const board = team?.board ?? (seeRival || isMine(p.id) ? p.board : null)
     const own: GFacts = { nSwapsUsed: p.nSwapsUsed, maxSwaps: p.maxSwaps, board }
-    return { ...p, ...(team ?? own), board, own }
+    return { ...p, ...(team ?? own), board, own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
