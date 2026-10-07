@@ -21,13 +21,21 @@ puzzle is lives in the generator alone, so the printable sheet
 
 A guess comes back one of four ways. The starter or a word already guessed is
 a duplicate, and a word outside the legal band is not a word: both cost
-nothing and write nothing, and shake the typed row as wordle's do — a
-duplicate orange, a non-word red. A legal wrong word is a miss: logged with no
-colors, counted, and shaken red. Every one of the three clears the typed row
-once its shake ends. The answer solves, and its all-green row lands under the
-starter. Guesses are unlimited, so the board is two rows — the starter and the
-row the guess is typed into — and every miss lives in the event log, drawn
-uncolored.
+nothing and shake the typed row as wordle's do — a duplicate orange, a
+non-word red. A duplicate writes nothing; a non-word is logged, so the players
+can see what was tried, but counts no miss and keeps the turn. A legal wrong
+word is a miss: logged with no colors, counted, and shaken red. Every one of
+the three clears the typed row once its shake ends. The answer solves, and its
+all-green row lands under the starter. Guesses are unlimited, so the board is
+two rows — the starter and the row the guess is typed into — and every miss
+and non-word lives in the event log, drawn uncolored.
+
+Once a game has ended, a short survey takes the keyboard's place — how hard
+it felt, what band the answer should be in beside the band it has, how long
+it took, a comment — and saving it adds a row to `wordleone.ratings` beside
+the puzzle, the answer's band, the generator's scores and the player's play.
+It names the answer only while the board shows it. It is temporary, there to tune the generator
+(plans/wordleone.md → The ratings).
 
 Coop is one board and one miss count, ending on the solve; turn order is an
 opt-in, a miss handing the turn on. Compete is the same puzzle on private
@@ -48,7 +56,7 @@ miss, the starter, the two-row board, the setup, and the printout.
 | **legal band** | `legal_band`, 1–6: the words you may guess, and the pool the answer is unique in — one band, both jobs |
 | **difficulty** | the tier the puzzle was built to, by the starter's greens: easy three, medium one or two, hard none, any whatever comes |
 | **miss** | a legal word that is not the answer. Logged with no colors and counted; tells you nothing else |
-| **soft reject** | a duplicate (the starter, or a word already guessed — anyone's in coop, your own in compete) or a word outside the legal band. Costs nothing, writes nothing |
+| **soft reject** | a duplicate (the starter, or a word already guessed — anyone's in coop, your own in compete), which writes nothing, or a word outside the legal band, which is logged. Both cost nothing |
 
 ### Coop
 
@@ -104,9 +112,10 @@ reads the page blobs.
 
 | table | holds |
 |---|---|
-| `wordleone.games` | one row per game, keyed `game_id` to `common.games`: `starter`, `starter_colors`, `target` (the column grant leaves it out), `legal_band`, `difficulty` |
+| `wordleone.games` | one row per game, keyed `game_id` to `common.games`: `starter`, `starter_colors`, `target` (the column grant leaves it out), `legal_band`, `difficulty`, and the generator's `positive_space` and `load_bearing` (for the survey) |
 | `wordleone.players` | one row per player: `n_misses`, their own in both modes. A solve is `common.game_players.solved_at` |
-| `wordleone.events` | the guess log: `word`, `colors`, `is_correct`; `kind` `guess`, `took_turn` true. `colors` is `ggggg` for the solve and null for a miss, a check holding the two together |
+| `wordleone.events` | the guess log: `word`, `colors`, `verdict` (`correct` · `miss` · `not_a_word`) and `is_correct` worked out from it; `kind` `guess`; `took_turn` true but for a non-word. `colors` is `ggggg` for the solve and null otherwise, a check holding the two together |
+| `wordleone.ratings` | the temporary survey's rows: the puzzle, the answer's band then (`answer_band`) and the generator's view copied, what the player said (`suggested_band` among it), and their play — `solved_at`, the seconds from start to solve (an un-restarted game), misses, guesses logged. No grant: psql reads it. A printout's row has no game or user |
 
 **The page blobs**, written by `wordleone._rebuild_data_cols` at create,
 Restart and every move:
@@ -114,7 +123,7 @@ Restart and every move:
 | blob | wordleone's part |
 |---|---|
 | `static_game_data` | `puzzle: {starter, colors}` |
-| `game_data` | `puzzle: {target}`, null until the game ends; `team: {nMisses, board}`, null in compete; `events`; each player's `nMisses`, `board` (compete) and `tieBrokenByClock` |
+| `game_data` | `puzzle: {target, targetBand}`, null until the game ends (the band is the answer's in the word list, for the survey); `team: {nMisses, board}`, null in compete; `events`; each player's `nMisses`, `board` (compete) and `tieBrokenByClock` |
 | `summary_data` | `team: {nMisses}`, null in compete; `legalBand`, `difficulty`, `nWinnerMisses`, `nMissesById` |
 
 A board is the starter, then the answer all green once that side has solved.
@@ -144,8 +153,15 @@ guess after your own solve (PN528) are faults.
 
 `concede`, `stop_game`, `submit_timeout` and `replay_board` (Restart, the same
 puzzle) are wordle's, with misses where wordle counts guesses. `_sync_title`
-titles a coop game with its latest guess, a compete game with a placeholder
-until the race ends; only a solve spells the answer.
+titles a coop game with its latest guess, a non-word included, a compete game
+with a placeholder until the race ends; only a solve spells the answer.
+
+`rate_puzzle(p_game_id, p_rated_difficulty?, p_seconds_reported?, p_comment?,
+p_suggested_band?)` is the temporary survey's: a player of an ended game adds
+a ratings row, the server copying everything but those four. Faults before
+the end (PN533), for a rating outside 1–7 (PN534) and a band outside 1–6
+(PN537); a negative seconds or an over-long comment is a validation under its
+field (PN535, PN536).
 
 ## FE submissions
 
@@ -158,8 +174,11 @@ an empty row cannot be submitted. Everything else is the server's.
 | `miss` / `miss_peer` | me / a coop teammate | `Not it` / `guessed CRANE — not it` | `lost` | shakes, then clears |
 | `solved_peer` | about a compete opponent | `solved it` | `won` | |
 | `duplicate` | me | `Already guessed` | `warning` | shakes, then clears |
-| `not_a_word` | me | `Not in word list` | `lost` | shakes, then clears |
+| `not_a_word` / `not_a_word_peer` | me / a coop teammate | `Not in word list` / `tried ZZZZZ — not a word` | `lost` / `warning` | shakes, then clears |
 | `too_short` | me | `Not enough letters` | `warning` | stays |
+
+The log draws a non-word with the warning bar: it is there to be seen, not
+counted.
 
 A refusal the server never judged the word for — not your turn, a race with
 the game's end — rings in the envelope's outcome and keeps the word. Start and
@@ -205,6 +224,7 @@ the hidden column:
 | `create_game_test` | the stored row; the column grant; the setup's faults; each puzzle refusal; a caller not among the players |
 | `gameplay_test` | the four answers, a miss logged uncolored and counted, the solve's ending and title, the game-over race, a banded-out answer still solving, the band gate, a deleted game |
 | `compete_test` | private boards, the starter a duplicate on every board, the ranking and its tie-break |
+| `rate_puzzle_test` | the survey: refused before the end and to a non-player; the puzzle, the answer's band, the generator's scores and the caller's play copied; a blank rating; a second save; the checks; the table unreadable to clients; the ratings outliving a deleted game |
 | `concede_test` · `stop_game_test` · `turn_order_test` | wordle's, with a miss handing the turn on |
 | `replay_test` | Restart keeps the puzzle and its static blob; a stopped game is titled by its last guess |
 | `game_data_test` · `rebuild_data_cols_test` | the blobs whole, the green row on a solved board, `tieBrokenByClock`; the rebuild's date and assignment |

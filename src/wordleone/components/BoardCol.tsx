@@ -10,6 +10,7 @@ import { useTypedGuess } from '../hooks/useTypedGuess'
 import { makeKeyColors } from '../lib/colors'
 import { BOARD_ROWS } from '../lib/setup'
 import { Board } from './Board'
+import { RatingForm } from './RatingForm'
 import styles from './BoardCol.module.css'
 import type { GGameData, GHistoryView } from '../types'
 
@@ -99,16 +100,22 @@ export function BoardCol({
           <FeedbackPill slot={localFeedbackSlot} />
         </div>
         <div className={styles.moveArea}>
-          {/* Stays once the game has ended, disabled. Its caps hold the color
-              every letter earned from the board — the starter's, and the
-              solve's once it lands; a miss earns nothing. */}
-          <GuessKeyboard
-            keyColors={makeKeyColors(gd.me.board.rows)}
-            onKey={entry.typeLetter}
-            actSubmit={entry.actions.actSubmit}
-            actDelete={entry.actions.actDeleteLast}
-            disabled={!canGuess}
-          />
+          {/* Once the game has ended, the puzzle-feedback survey takes the
+              keyboard's place (temporary; plans/wordleone.md → The ratings).
+              Until then the caps hold the color every letter earned from the
+              board — the starter's, and the solve's once it lands; a miss
+              earns nothing. */}
+          {gd.ended ? (
+            <RatingForm gameId={gd.id} shownAnswer={solution} targetBand={gd.puzzle.targetBand} />
+          ) : (
+            <GuessKeyboard
+              keyColors={makeKeyColors(gd.me.board.rows)}
+              onKey={entry.typeLetter}
+              actSubmit={entry.actions.actSubmit}
+              actDelete={entry.actions.actDeleteLast}
+              disabled={!canGuess}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,39 @@
+/* cs-unmet */
+
+/* The puzzle-feedback form, in the keyboard's place once the game has ended.
+ * The keyboard's own width (GuessKeyboard.module.css, capped by the space
+ * beside the info column) and at least its height, so the swap moves nothing
+ * unless a field's error line needs the room. */
+/* @@ */ .ratingForm {
+  width: min(var(--avail-w), 30rem);
+  min-height: var(--guessKeyboard-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacer-4);
+}
+
+/* @@ */ .heading {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* The heading's second half: a fact, not a title. */
+/* @@ */ .answerBand {
+  font-weight: 400;
+}
+
+/* A line of fields, aligned on their inputs' bottom edge; it wraps only when a
+ * narrow phone leaves too little room. */
+/* @@ */ .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacer-3);
+}
+
+/* The comment takes whatever Save leaves. */
+/* @@ */ .comment {
+  flex: 1;
+  min-width: 8rem;
+}

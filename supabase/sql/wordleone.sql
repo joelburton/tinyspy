@@ -130,12 +130,13 @@ revoke execute on function wordleone._sync_title(uuid) from public;
 --                                          sees from the first paint
 --
 --   game_data, wordleone's part:
---     puzzle: {target}                     null until the game ends
+--     puzzle: {target, targetBand}         both null until the game ends
 --     team: {nMisses, board}               the team's facts, once; null in compete
 --                                          (docs/common-schema.md → A player's facts)
---     events: [{id, userId, word, colors, correct, at}, …]
---                                          every player's; `colors` is 'ggggg' for
---                                          the solve and null for a miss
+--     events: [{id, userId, word, colors, verdict, correct, at}, …]
+--                                          every player's; `verdict` is correct,
+--                                          miss or not_a_word; `colors` is 'ggggg'
+--                                          for the solve and null otherwise
 --     players: [player, …]                 the common player, plus:
 --       nMisses                            this player's own
 --       board: {rows: [{word, colors}, …]} a racer's own: the starter, then the
@@ -152,20 +153,25 @@ revoke execute on function wordleone._sync_title(uuid) from public;
 --     nWinnerMisses                        compete's, once the race is won; null in coop
 --     nMissesById                          each racer's misses; null in coop
 
--- The answer, once the game has ended.
+-- The answer, once the game has ended, and its band in `common.words` today
+-- (for the ratings survey; plans/wordleone.md → The ratings).
 create or replace function wordleone._make_json_puzzle(wg wordleone.games, p_ended boolean)
 returns jsonb
 language sql
-immutable
+stable
 set search_path = wordleone, common, public, extensions
 as $$
   select jsonb_build_object(
-    'target', case when p_ended then wg.target::text end);
+    'target',     case when p_ended then wg.target::text end,
+    'targetBand', case when p_ended then
+                    (select w.band from common.words w where w.word = wg.target::text) end);
 $$;
 
 revoke execute on function wordleone._make_json_puzzle(wordleone.games, boolean) from public;
 
--- The log: every miss and the solve, in the order of play.
+-- The log: every miss, every word outside the band, and the solve, in the
+-- order of play. `correct` is `verdict = 'correct'`, kept for the readers that
+-- ask only that.
 create or replace function wordleone._make_json_events(p_game_id uuid)
 returns jsonb
 language sql
@@ -177,6 +183,7 @@ as $$
            'userId',  e.user_id,
            'word',    e.word::text,
            'colors',  e.colors::text,
+           'verdict', e.verdict,
            'correct', e.is_correct,
            'at',      e.created_at) order by e.id), '[]'::jsonb)
     from wordleone.events e
@@ -464,7 +471,8 @@ revoke execute on function wordleone._rebuild_data_cols_for_all() from public;
 -- wordleone.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)
 -- ============================================================
 -- Called by the `wordleone-build-board` edge function, as the player, with the
--- puzzle it built: `p_board` is {starter, colors, answer}. The parameter is
+-- puzzle it built: `p_board` is {starter, colors, answer}, and the generator's
+-- scores {positive_space, load_bearing}, which are kept as given. The parameter is
 -- `p_board` because the shared `invokeCreateGame` passes every build-board
 -- game's puzzle under that name.
 --
@@ -598,8 +606,13 @@ begin
     perform common._assign_turn_order(new_id, first_turn);
   end if;
 
-  insert into wordleone.games (game_id, starter, starter_colors, target, legal_band, difficulty)
-  values (new_id, b_starter, b_colors, b_answer, s_legal_band, s_difficulty);
+  -- The generator's scores ride along unchecked: they describe the puzzle and
+  -- decide nothing (plans/wordleone.md → The ratings).
+  insert into wordleone.games
+    (game_id, starter, starter_colors, target, legal_band, difficulty, positive_space, load_bearing)
+  values
+    (new_id, b_starter, b_colors, b_answer, s_legal_band, s_difficulty,
+     (p_board->>'positive_space')::int, (p_board->>'load_bearing')::int);
 
   insert into wordleone.players (game_id, user_id)
   select new_id, uid from unnest(p_player_user_ids) uid;
@@ -705,9 +718,10 @@ revoke execute on function wordleone._maybe_finish_compete(uuid, text, text, uui
 -- ============================================================
 -- wordleone.submit_guess — the core move
 -- ============================================================
--- Soft rejections (an `ok`: nothing counted, no row written) are a word
--- already on this board — the starter, or an earlier guess — ('duplicate')
--- and a word outside the legal band ('notAWord'). The answer solves; any
+-- Soft rejections (an `ok`: nothing counted, no turn spent) are a word
+-- already on this board — the starter, or an earlier guess — ('duplicate'),
+-- which writes nothing, and a word outside the legal band ('notAWord'), which
+-- is logged so the players can see what was tried. The answer solves; any
 -- other legal word is a miss: logged with no colors and counted. Hard
 -- rejections (raised): not a player, the game has ended, out of turn, the
 -- caller conceded, a malformed entry, the caller already solved.
@@ -813,11 +827,16 @@ begin
   -- ─── Soft reject: not in the legal band ──────────────────
   -- The answer is compared first, before the dictionary, as wordle's is: the
   -- band is read live, so a re-band mid-game must not make the answer "not a
-  -- word".
+  -- word". Logged, so the players can see what was tried, but it counts no
+  -- miss and keeps the turn: `took_turn` false.
   if norm <> lower(g_row.target) and not exists (
     select 1 from common.words
      where word = norm and len = 5 and band <= g_row.legal_band
   ) then
+    insert into wordleone.events (game_id, user_id, word, verdict, kind, took_turn)
+    values (p_game_id, caller_id, norm, 'not_a_word', 'guess', false);
+    perform wordleone._sync_title(p_game_id);
+    perform wordleone._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
     return common._ok_envelope(
       jsonb_build_object('result', 'notAWord', 'n_misses', v_misses,
                          'solved', false, 'game_ended', false));
@@ -828,10 +847,11 @@ begin
 
   -- Both spend a go: `took_turn` is a literal.
   insert into wordleone.events
-    (game_id, user_id, word, colors, is_correct, kind, took_turn)
+    (game_id, user_id, word, colors, verdict, kind, took_turn)
   values
     (p_game_id, caller_id, norm,
-     case when did_solve then 'ggggg' end, did_solve, 'guess', true);
+     case when did_solve then 'ggggg' end,
+     case when did_solve then 'correct' else 'miss' end, 'guess', true);
 
   if not did_solve then
     update wordleone.players
@@ -1090,3 +1110,106 @@ $$;
 
 revoke execute on function wordleone.replay_board(uuid) from public;
 grant execute on function wordleone.replay_board(uuid) to authenticated;
+
+-- ============================================================
+-- wordleone.rate_puzzle — the puzzle-feedback survey
+-- ============================================================
+-- Temporary (plans/wordleone.md → The ratings). A player of an ended game
+-- rates its puzzle: how hard it felt (1–7), the band they think the answer
+-- belongs in (1–6), how long they say it took, a comment — each optional.
+-- Every other column of the row is copied here from the game, so the row
+-- stands without it: the puzzle, the answer's band today, the generator's tier
+-- and scores, and the caller's own play — when they solved, their misses, and every
+-- guess they sent that the server logged (misses, words outside the band, the
+-- solve). The measured time is the game's start to their solve, and only for a
+-- game never restarted, since a Restart keeps `started_at`.
+--
+-- No once-only rule: a second save is a second row. Nothing reads the table
+-- but psql, so it has no grant and no select policy.
+create or replace function wordleone.rate_puzzle(
+  p_game_id          uuid,
+  -- Each optional: a field left blank is left out of the call.
+  p_rated_difficulty int  default null,
+  p_seconds_reported int  default null,
+  p_comment          text default null,
+  p_suggested_band   int  default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = wordleone, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g_row     wordleone.games%rowtype;
+  v_comment text := nullif(trim(coalesce(p_comment, '')), '');
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  select * into g_row from wordleone.games where game_id = p_game_id;
+  if not found then
+    perform common._raise_game_deleted('wordleone');
+  end if;
+
+  caller_id := common._require_game_player(p_game_id);
+
+  -- The form shows only once the game has ended.
+  if (select ended_at from common.games where id = p_game_id) is null then
+    raise exception 'BUG: a rating before the game ended'
+      using errcode = 'PN533', hint = 'fault', column = '_',
+      detail = 'rate_puzzle is offered only once the game has ended';
+  end if;
+  if p_rated_difficulty is not null and (p_rated_difficulty < 1 or p_rated_difficulty > 7) then
+    raise exception 'BUG: a difficulty rating of %', p_rated_difficulty
+      using errcode = 'PN534', hint = 'fault', column = '_',
+      detail = 'p_rated_difficulty must be 1..7 or null';
+  end if;
+  if p_suggested_band is not null and (p_suggested_band < 1 or p_suggested_band > 6) then
+    raise exception 'BUG: a suggested band of %', p_suggested_band
+      using errcode = 'PN537', hint = 'fault', column = '_',
+      detail = 'p_suggested_band must be 1..6 or null';
+  end if;
+  if p_seconds_reported is not null and p_seconds_reported < 0 then
+    raise exception 'Seconds can''t be negative'
+      using errcode = 'PN535', hint = 'form-validation', column = 'seconds_reported',
+      detail = format('p_seconds_reported %s', p_seconds_reported);
+  end if;
+  if length(v_comment) > 1000 then
+    raise exception 'Keep the comment under 1000 characters'
+      using errcode = 'PN536', hint = 'form-validation', column = 'comment',
+      detail = format('comment of %s characters', length(v_comment));
+  end if;
+
+  insert into wordleone.ratings (
+    user_id, game_id, starter, starter_colors, answer, legal_band, answer_band,
+    difficulty_asked, positive_space, load_bearing,
+    rated_difficulty, suggested_band, seconds_reported, comment,
+    solved_at, seconds_measured, n_misses, n_submits)
+  select caller_id, p_game_id, g_row.starter, g_row.starter_colors, g_row.target, g_row.legal_band,
+         (select w.band from common.words w where w.word = g_row.target::text),
+         g_row.difficulty, g_row.positive_space, g_row.load_bearing,
+         p_rated_difficulty, p_suggested_band, p_seconds_reported, v_comment,
+         gp.solved_at,
+         case when cg.restart_count = 0 and gp.solved_at is not null
+              then greatest(0, extract(epoch from gp.solved_at - cg.started_at))::int end,
+         wp.n_misses,
+         (select count(*)::int from wordleone.events e
+           where e.game_id = p_game_id and e.user_id = caller_id)
+    from common.games cg
+    join common.game_players gp on gp.game_id = cg.id and gp.user_id = caller_id
+    join wordleone.players wp on wp.game_id = cg.id and wp.user_id = caller_id
+   where cg.id = p_game_id;
+
+  return common._ok_envelope(jsonb_build_object('result', 'rated'));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
+$$;
+
+revoke execute on function wordleone.rate_puzzle(uuid, int, int, text, int) from public;
+grant execute on function wordleone.rate_puzzle(uuid, int, int, text, int) to authenticated;

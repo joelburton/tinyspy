@@ -288,7 +288,7 @@ and the end of every move:
 | blob | wordleone's part |
 |---|---|
 | `static_game_data` | `puzzle: {starter, colors}` — the half of the puzzle every player sees from the first paint; the one game so far whose static blob carries more than the common part |
-| `game_data` | `puzzle: {target}` (null until the game ends); `team`, the team's facts sent once, null in compete; `events`; on each player their own facts and `tieBrokenByClock` |
+| `game_data` | `puzzle: {target, targetBand}` (null until the game ends); `team`, the team's facts sent once, null in compete; `events`; on each player their own facts and `tieBrokenByClock` |
 | `summary_data` | `team: {nMisses}`, null in compete; `legalBand`, `difficulty`, `nWinnerMisses` |
 
 `GFacts` is `nMisses` and `board: {rows}`, where the rows are the starter and,
@@ -364,6 +364,39 @@ game uses, and the difficulty beside it.
 4. **The starter pool**: band ≤ 2 clean non-plurals, following the NYT's two
    off-list starters. Band ≤ 1 would be purer and costs yield; the table above
    is at ≤ 2.
+
+## The ratings
+
+A **temporary** survey (Joel, 2026-10-07), to tune the generator from real
+play: once a game has ended, the keyboard's place holds a short form, and a
+save adds a row to `wordleone.ratings`. Rows typed in from the printable sheet
+go in by hand, with no game or user. When it goes, the table, the two score
+columns on `wordleone.games`, `rate_puzzle` and the form go; `events.verdict`
+and the logged non-words stay.
+
+- **The form** (every field optional): how hard it felt, 1 very easy to 7 very
+  hard — a scale of its own, so the setup's tier names don't steer it; the
+  band the answer should be in, beside the band it has ("BETEL is band 2
+  (Common)."), so an obscure answer can be told from a hard puzzle and the
+  banding learns from it too; the seconds it took, as the player reckons; a
+  one-line comment. Two rows of fields under that line, at the keyboard's
+  width and at least its height. The answer is named only while the board
+  shows it (a solve or a reveal); on a loss it is "The answer". A save leaves
+  "Saved — thanks!" in the form's place; the server would take a second row,
+  but the page offers none.
+- **The row**, besides those four: the puzzle (starter, colors, answer, legal
+  band, and the answer's own band in the word list then — copied, since a band
+  can move);
+  the generator's view (the tier asked, the green count, positive space and
+  load-bearing tiles, kept on `wordleone.games` since migration
+  20261007000007); and the caller's play from the server — when they solved
+  (solved means never revealed, since Reveal opens only at the end), the
+  seconds from the game's start to that solve (an un-restarted game only),
+  their misses, and every guess the server logged for them.
+- **Words outside the band are logged** (`events.verdict = 'not_a_word'`), so
+  the players can see what they tried and the count includes them; they keep
+  the turn, count no miss, and wear the warning bar in the log. A duplicate
+  is still not logged.
 
 ## First step — a sheet of puzzles to try by hand
 

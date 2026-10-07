@@ -117,7 +117,7 @@ select is(
     'ending',   null,
     'ended',    false,
     'outcome',  null,
-    'puzzle',   jsonb_build_object('target', null),
+    'puzzle',   jsonb_build_object('target', null, 'targetBand', null),
     'team',     jsonb_build_object('nMisses', 0, 'board', pg_temp.starter_board()),
     'events',   '[]'::jsonb,
     'players',  jsonb_build_array(
@@ -147,8 +147,8 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select jsonb_agg(e - 'id' - 'at') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'events') e),
-  '[{"userId": "ada11111-1111-1111-1111-111111111111", "word": "crane", "colors": null, "correct": false}]'::jsonb,
-  'the log carries the miss, with no colors'
+  '[{"userId": "ada11111-1111-1111-1111-111111111111", "word": "crane", "colors": null, "verdict": "miss", "correct": false}]'::jsonb,
+  'the log carries the miss, with its verdict and no colors'
 );
 select is(
   (select jsonb_agg(p -> 'nMisses' order by p ->> 'id') from jsonb_array_elements(pg_temp.game_data(pg_temp.coop()) -> 'players') p),
@@ -204,8 +204,9 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'puzzle',
-  '{"target": "verse"}'::jsonb,
-  'the target arrives once the game has ended'
+  jsonb_build_object('target', 'verse',
+                     'targetBand', (select band from common.words where word = 'verse')),
+  'the target and its band in the word list arrive once the game has ended'
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) -> 'team',

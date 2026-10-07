@@ -83,7 +83,8 @@ export function buildPrintModel(o: {
 }): PrintModel {
   const track = (who: string, guesses: GEvent[], solved: boolean): PrintTrack => {
     const solve = guesses.find((g) => g.correct)
-    const nMisses = guesses.filter((g) => !g.correct).length
+    // A word outside the band is listed below but is no miss.
+    const nMisses = guesses.filter((g) => g.verdict === 'miss').length
     // The board's rows: the starter, then the solve all green. A miss is not a
     // row, on paper as on screen.
     const boardRows: GBoardRow[] = solve ? [o.starter, { word: solve.word, colors: 'ggggg' }] : [o.starter]
@@ -140,7 +141,7 @@ export function buildPrintModel(o: {
     date: o.date,
     summary:
       o.mode === 'coop'
-        ? `Co-op · ${misses(o.events.filter((g) => !g.correct).length)}`
+        ? `Co-op · ${misses(o.events.filter((g) => g.verdict === 'miss').length)}`
         : `Compete · ${o.players.length} players`,
     setupRows: o.setupRows,
     mode: o.mode,

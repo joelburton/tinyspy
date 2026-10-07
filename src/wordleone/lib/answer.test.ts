@@ -29,6 +29,8 @@ describe('answerMessage', () => {
     [{ answerType: 'duplicate' }, 'warning', 'Already guessed'],
     // Red beside the amber duplicate, as wordle's — the reason is in answer.ts.
     [{ answerType: 'not_a_word' }, 'lost', 'Not in word list'],
+    // A teammate's, now logged: the warning, since it costs nothing.
+    [{ answerType: 'not_a_word_peer', guess: 'zzzzz' }, 'warning', 'tried ZZZZZ — not a word'],
     [{ answerType: 'too_short' }, 'warning', 'Not enough letters'],
   ]
 
@@ -43,22 +45,25 @@ describe('answerMessage', () => {
     const listed = new Set(CASES.map(([a]) => a.answerType))
     const all: GAnswer['answerType'][] = [
       'correct', 'correct_peer', 'miss', 'miss_peer', 'solved_peer',
-      'duplicate', 'not_a_word', 'too_short',
+      'duplicate', 'not_a_word', 'not_a_word_peer', 'too_short',
     ]
     expect([...listed].sort()).toEqual([...all].sort())
   })
 })
 
 describe('eventToOutcome and peerAnswerMessage', () => {
-  it('reads a row as its outcome: the solve won, a miss lost', () => {
-    expect(eventToOutcome({ correct: true, word: 'verse' })).toBe('won')
-    expect(eventToOutcome({ correct: false, word: 'crane' })).toBe('lost')
+  it('reads a row as its outcome: the solve won, a miss lost, a logged non-word a warning', () => {
+    expect(eventToOutcome({ verdict: 'correct', word: 'verse' })).toBe('won')
+    expect(eventToOutcome({ verdict: 'miss', word: 'crane' })).toBe('lost')
+    expect(eventToOutcome({ verdict: 'not_a_word', word: 'zzzzz' })).toBe('warning')
   })
 
   it('gives a peer row the twin words and the same color', () => {
-    expect(peerAnswerMessage({ correct: true, word: 'verse' }))
+    expect(peerAnswerMessage({ verdict: 'correct', word: 'verse' }))
       .toEqual({ outcome: 'won', text: 'guessed VERSE' })
-    expect(peerAnswerMessage({ correct: false, word: 'slate' }))
+    expect(peerAnswerMessage({ verdict: 'miss', word: 'slate' }))
       .toEqual({ outcome: 'lost', text: 'guessed SLATE — not it' })
+    expect(peerAnswerMessage({ verdict: 'not_a_word', word: 'zzzzz' }))
+      .toEqual({ outcome: 'warning', text: 'tried ZZZZZ — not a word' })
   })
 })

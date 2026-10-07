@@ -77,7 +77,7 @@ describe('wordleone makeGameData — the links become players', () => {
       }),
       'u1',
     )
-    expect(gd.puzzle).toEqual({ starter: 'sieve', colors: 'yxyyg', target: null })
+    expect(gd.puzzle).toEqual({ starter: 'sieve', colors: 'yxyyg', target: null, targetBand: null })
     // The team's two misses on every player; my own one under `own`.
     expect(gd.me.nMisses).toBe(2)
     expect(gd.playersById.u2!.nMisses).toBe(2)
@@ -156,7 +156,7 @@ describe('wordleone useGame', () => {
       outcome: 'neutral',
     })
     const { result } = renderHook(() => useGame(ctx))
-    expect(result.current.gd.puzzle).toEqual({ starter: 'sieve', colors: 'yxyyg', target: 'verse' })
+    expect(result.current.gd.puzzle).toEqual({ starter: 'sieve', colors: 'yxyyg', target: 'verse', targetBand: null })
   })
 
   it('keeps gd while the blob is the same, and rebuilds it for a new one', () => {

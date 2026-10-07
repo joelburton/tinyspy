@@ -4,9 +4,9 @@
 -- Test: wordleone.submit_guess (coop) — the four answers, the shared board
 -- ============================================================
 -- A guess is one of four: a duplicate (the starter, or a word already
--- guessed) and a word outside the legal band cost nothing and write nothing;
--- any other legal word is a miss, logged with no colors and counted; the
--- answer solves. A malformed entry is a fault, the frontend having refused it
+-- guessed) costs nothing and writes nothing; a word outside the legal band
+-- costs nothing and is logged, keeping the turn; any other legal word is a
+-- miss, logged with no colors and counted; the answer solves. A malformed entry is a fault, the frontend having refused it
 -- first. A guess into a game a friend deleted is the shared race (PN485).
 
 begin;
@@ -15,7 +15,7 @@ set search_path = wordleone, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(24);
+select plan(25);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -34,7 +34,7 @@ select pg_temp.envelope_is(
     "message":"BUG: guess that was not five letters"}'::jsonb,
   'a too-short entry is a fault');
 
--- ── The soft rejects: nothing counted, nothing written ──────
+-- ── The soft rejects: nothing counted ───────────────────────
 -- Every `ok` carries no outcome and no message: what each answer is worth is
 -- decided once, in the frontend's lib/answer.ts.
 select pg_temp.envelope_is(
@@ -54,11 +54,18 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select count(*) from wordleone.events where game_id = (select id from g)),
-  0::bigint, 'the soft rejects wrote no row');
+  (select array_agg(word || ':' || verdict || ':' || took_turn || ':' || coalesce(colors, '-') order by id)
+     from wordleone.events where game_id = (select id from g)),
+  array['zzzzz:not_a_word:false:-', 'moxie:not_a_word:false:-'],
+  'the two non-words are logged, uncolored, spending no go; the duplicate writes nothing');
 select is(
   (select sum(n_misses)::int from wordleone.players where game_id = (select id from g)),
   0, '… and counted no miss');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  wordleone.submit_guess((select id from g), 'zzzzz')->'data'->>'result',
+  'duplicate', 'a non-word already tried is a duplicate the second time');
+reset role;
 
 -- ── A miss ──────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -70,10 +77,11 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select colors from wordleone.events where game_id = (select id from g)),
+  (select colors from wordleone.events where game_id = (select id from g) and verdict = 'miss'),
   null, 'a miss is logged with no colors');
 select is(
-  (select kind || ':' || took_turn || ':' || is_correct from wordleone.events where game_id = (select id from g)),
+  (select kind || ':' || took_turn || ':' || is_correct from wordleone.events
+    where game_id = (select id from g) and verdict = 'miss'),
   'guess:true:false', '… as a guess that spent a go');
 select is(
   (select array_agg(n_misses order by user_id) from wordleone.players where game_id = (select id from g)),

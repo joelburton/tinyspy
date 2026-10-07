@@ -44,6 +44,8 @@ export type ZTest_GameDataFacts = {
   starter?: { word: string; colors: string }
   // Null while the game is played, as the builder withholds it.
   target?: string | null
+  // The answer's band, likewise withheld until the end.
+  targetBand?: number | null
   // The whole log — every player's rows, as the blob carries it.
   events?: GEventRaw[]
   players?: ZTest_PlayerFacts[]
@@ -74,9 +76,15 @@ export function ZTest_guess(id: number, userId: string, word: string, correct = 
     userId,
     word,
     colors: correct ? 'ggggg' : null,
+    verdict: correct ? 'correct' : 'miss',
     correct,
     at: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
   }
+}
+
+/** A word outside the legal band, as the log keeps it: no colors, no miss. */
+export function ZTest_notAWord(id: number, userId: string, word: string): GEventRaw {
+  return { ...ZTest_guess(id, userId, word), verdict: 'not_a_word' }
 }
 
 /**
@@ -95,6 +103,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     setup = { legal_band: 2, difficulty: 'medium', timer: { kind: 'none' } },
     starter = { word: 'sieve', colors: 'yxyyg' },
     target = null,
+    targetBand = null,
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
     turnHolderId,
@@ -105,7 +114,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
   const missesOf = (p: ZTest_PlayerFacts) =>
-    p.misses ?? events.filter((e) => e.userId === p.id && !e.correct).length
+    p.misses ?? events.filter((e) => e.userId === p.id && e.verdict === 'miss').length
   const makeBoard = (rows: GEventRaw[]) => ({
     rows: [
       starter,
@@ -158,7 +167,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     ending,
     ended,
     outcome,
-    puzzle: { starter: starter.word, colors: starter.colors, target },
+    puzzle: { starter: starter.word, colors: starter.colors, target, targetBand },
     team,
     events,
     players,
@@ -188,7 +197,7 @@ export function ZTest_makeWordleoneCtx(
     players: raw.players.map((p) => ({
       id: p.id, username: p.username, color: p.color, ai: p.ai, stillPlaying: p.stillPlaying,
     })),
-    gameData: { ...changing, puzzle: { target: puzzle.target } },
+    gameData: { ...changing, puzzle: { target: puzzle.target, targetBand: puzzle.targetBand } },
     staticGameData: {
       id, gametype, brand, club, mode, coop, compete, setup,
       puzzle: { starter: puzzle.starter, colors: puzzle.colors },

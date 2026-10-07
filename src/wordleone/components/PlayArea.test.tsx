@@ -301,8 +301,6 @@ describe('wordleone PlayArea — icon-only action row', () => {
     for (const tile of tiles) expect(tile.className).toMatch(/wordleGreen/)
     // It appears without the flip, which is for a word guessed.
     for (const tile of tiles) expect(tile.className).not.toMatch(/reveal/)
-    // The keyboard keeps what was earned: R was never played.
-    expect(screen.getByRole('button', { name: /^r$/i }).className).not.toMatch(/wordleGreen/)
 
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(secondRow().textContent).toBe('')
@@ -610,9 +608,10 @@ describe('wordleone PlayArea — input gating', () => {
     expect(keyboardKey()).toBeEnabled()
   })
 
-  it('the on-screen keyboard is blocked once the game has ended', () => {
+  it('the on-screen keyboard gives way to the rating form once the game has ended', () => {
     render(<PlayAreaLoader {...makeCtx(SOLO_WON)} />) // gate closed
-    expect(keyboardKey()).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^a$/i })).not.toBeInTheDocument()
+    expect(screen.getByText('How was this puzzle?')).toBeInTheDocument()
   })
 })
 
@@ -837,20 +836,13 @@ describe('wordleone PlayArea — the board-scope marks', () => {
   // of it is game logic, and all of it is invisible to a type check: a mark
   // that stops being applied looks exactly like a mark that was never asked
   // for.
-  it('bands the finished board in its outcome and disables the keyboard', () => {
+  it("bands the finished board in its outcome, the rating form in the keyboard's place", () => {
     render(<PlayAreaLoader {...makeCtx({ ...SOLO_WON, events: [ZTest_guess(1, 'u1', 'verse', true)] })} />)
 
     expect(board().className).toMatch(/endingFrame/)
     expect(board().className).toMatch(/endingFrame_won/)
-
-    // The keyboard STAYS, disabled: its caps hold the color every letter
-    // earned, which is the record of the game just played. Both halves are
-    // pinned, since a keyboard that is present but still typable would pass the
-    // first assertion alone.
-    expect(keyboard()).toBeInTheDocument()
-    for (const cap of within(keyboard()).getAllByRole('button')) {
-      expect(cap).toBeDisabled()
-    }
+    expect(screen.queryByLabelText('Keyboard')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
   })
 
   it('bands a lost board in the losing tone', () => {

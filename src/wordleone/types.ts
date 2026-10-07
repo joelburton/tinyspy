@@ -53,6 +53,9 @@ export type GPuzzle = {
   colors: string
   // The answer. Null until the game ends.
   target: string | null
+  // The answer's band in the word list today, for the ratings survey. Null
+  // until the game ends.
+  targetBand: number | null
 }
 
 /**
@@ -81,12 +84,18 @@ export type GEventRaw = {
   userId: string
   // The five-letter word guessed.
   word: string
-  // 'ggggg' for the solve; null for a miss, which tells the player nothing but
-  // that it was wrong.
+  // 'ggggg' for the solve; null otherwise — a miss tells the player nothing
+  // but that it was wrong.
   colors: string | null
+  verdict: GVerdict
+  // `verdict === 'correct'`, for the readers that ask only that.
   correct: boolean
   at: string
 }
+
+/** What one logged guess was: the answer, a legal wrong word (counted), or a
+ *  word outside the legal band (logged so it can be seen, costing nothing). */
+export type GVerdict = 'correct' | 'miss' | 'not_a_word'
 
 /** A player as wordleone's game_data shows them: the common player, with
  *  their own facts and the clock's tie-break. */
@@ -324,8 +333,11 @@ export type GAnswer =
 
   // Refused by the server: this word is already on the board.
   | { answerType: 'duplicate' }
-  // Refused by the server: not in the legal slice of the dictionary.
+  // Refused by the server: not in the legal slice of the dictionary. Logged,
+  // but it costs nothing.
   | { answerType: 'not_a_word' }
+  // A coop teammate's was.
+  | { answerType: 'not_a_word_peer'; guess: string }
   // Refused here: fewer than five letters.
   | { answerType: 'too_short' }
 
