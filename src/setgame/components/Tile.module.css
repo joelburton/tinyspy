@@ -3,11 +3,12 @@
 /* What `Tile.tsx` wears: one tile face.
  *
  * The tile is a <button> so a click is a click and a disabled board is
- * genuinely inert, but it carries none of the shared `.tile` styling, which is
- * a warm game piece with a letter on it; this one is white, like a playing
- * card. Borrowed are the SELECTED vocabulary — the thick black edge — so "I
- * picked this" reads the same as it does everywhere else, and the shared
- * marks: the in-flight dim, the attention flash, the won color. */
+ * genuinely inert. Its box is its own — card-shaped, sized by the board, with
+ * no padding around the drawing — but it wears the warm tile ramp's lightest
+ * shade and edge, and the shared `.tile` beside it for the hover, the press and
+ * the pointer, so it handles like every other game's tile. Borrowed too are the
+ * PICKED vocabulary — the thick black edge — and the shared marks: the
+ * in-flight dim, the attention flash, the won color. */
 
 /* @@ */ .tile {
   /* Sized entirely by the board's --tile-w. The ratio matches TILE_BOX in
@@ -22,19 +23,14 @@
    * `aspect-ratio` and the tile stayed 94 tall while every calc around it had
    * moved to 86. Zeroing the floor lets the declared ratio win. */
   min-height: 0;
-  /* The shared overlays (the in-flight dim, the attention flash) reach out
-   * over the piece's border by this much. */
-  --tile-edge-width: 1px;
   padding: 0;
-  border: 1px solid var(--setgame-tile-border);
+  /* The shared tile's edge width, which the shared overlays (the in-flight dim,
+   * the attention flash) also reach out over. */
+  border: var(--tile-edge-width) solid var(--tile-1-edge-color);
   border-radius: var(--radius-md);
-  background: var(--setgame-tile-bg);
-  box-shadow: var(--setgame-tile-shadow);
-  cursor: pointer;
+  background: var(--tile-1-fill-color);
+  box-shadow: var(--tile-shadow);
   display: block;
-  /* Only the fill, the ring and the lift animate. Nothing here may animate SIZE
-   * or POSITION: tiles must not move under a player mid-scan. */
-  transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
 }
 
 /* @@ */ .face {
@@ -47,46 +43,37 @@
   z-index: 1;
 }
 
-/* Scoped to the <button> form: a readOnly tile is a div and must not react to
- * the pointer at all. */
-/* @@ */ button.tile:hover:not(:disabled) {
-  background: var(--setgame-tile-hover-bg);
-}
-
-/* @@ */ .tile:disabled {
-  cursor: default;
-  /* Override the global disabled fade (`--chrome-disabled-opacity`). A tile's
-   * COLORS are one of its four attributes, so dimming them doesn't read as
-   * "you can't press this", it reads as a different tile. The board is
-   * disabled at every ending, which is exactly when people are studying it. */
-  opacity: 1;
-}
-
-/* A readout tile: same face, no interaction at all. */
+/* A readout tile — the event log's rows, the last-set panel: the same drawing
+ * as a plain outline, with no game-piece look and no interaction at all. */
 /* @@ */ .readOnly {
+  border: 1px solid var(--setgame-tile-border);
+  background: none;
+  box-shadow: none;
   cursor: default;
 }
 
-/* Picked: the tile's EDGE thickens and goes black, which is the shared
- * "this piece is part of the move I'm building" mark — the same two tokens
- * `.tile.picked` sets in common/game-page/playArea.module.css, restated here
- * because this piece does not wear the shared `.tile`. Never a fill: a fill
- * would bury the symbols,
- * and the symbols are the entire content of the tile. Universal
- * `box-sizing: border-box` means the thicker edge eats INWARD, so the tile does
- * not grow and the board does not move.
+/* Picked: the shared `.tile.picked` thickens the edge and turns it black
+ * (common/game-page/playArea.module.css); setgame adds a lift, as far as the
+ * hover lifts and so with the hover's shadow. The lift is a transform inside the
+ * tile's own box, so it cannot nudge a neighbor.
  *
- * A border rather than an outline, and that is load-bearing: a tile can be
+ * The pick being a border rather than an outline is load-bearing: a tile can be
  * picked and hinted at once, the hint owns `outline` (below), and an element
- * gets exactly one of those.
- *
- * The small lift is inside the tile's own box (transform, not layout), so it
- * cannot nudge a neighbor. */
+ * gets exactly one of those. */
 /* @@ */ .picked {
-  border-width: var(--tile-picked-edge-width);
-  border-color: var(--tile-picked-edge-color);
   transform: translateY(-2px);
-  box-shadow: var(--setgame-tile-lift-shadow);
+  box-shadow: var(--tile-hover-shadow);
+}
+
+/* Refused: a claim that is not a set. The edge takes the picked width in the
+ * lost red (`--verdict-edge`, the shared `.verdictLost`'s) and the face the lost
+ * wash, while the tile wears the shared shake; all of it goes with the mark
+ * when the shake ends. A wash and not the verdict fill: the symbols stay
+ * readable on it. */
+/* @@ */ .refused {
+  border-width: var(--tile-picked-edge-width);
+  border-color: var(--verdict-edge);
+  background: var(--outcomes-lost-wash-color);
 }
 
 /* The ring, worn by TWO things: a live coop hint, and the tiles a viewed past
@@ -104,19 +91,15 @@
 }
 
 /* The set a claim just found, held on screen for its beat: a ring in the won
- * color, outside the edge like the hint's. A ring and not a fill: a fill would
- * hide the colored symbols. Solid where the hint's is dashed, so the two never
- * read as one mark; placed after it, so a hinted tile that is found wears the
- * found ring. `--verdict-line` is the shared `.verdictWon`'s. */
+ * color, outside the edge like the hint's, and the face the won wash. A wash
+ * and not the verdict fill: a fill would hide the colored symbols. Solid where
+ * the hint's ring is dashed, so the two never read as one mark; placed after
+ * it, so a hinted tile that is found wears the found ring. `--verdict-line` is
+ * the shared `.verdictWon`'s. */
 /* @@ */ .found {
   outline: 4px solid var(--verdict-line);
   outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-/* @@ */   .tile {
-    transition: none;
-  }
+  background: var(--outcomes-won-wash-color);
 }
 
 /* ── Phones and portrait tablets ──────────────────────────────────────────

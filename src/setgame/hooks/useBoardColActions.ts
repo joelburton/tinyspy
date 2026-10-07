@@ -1,6 +1,8 @@
 // cs-unmet
 
 import { useBindAction, type Action } from '@/common/actions/useBindAction'
+import { useMark } from '@/common/board-marks/useMark'
+import { VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { answerMessage } from '../lib/answer'
@@ -8,6 +10,9 @@ import { slotForKey } from '../lib/letters'
 import { CLAIM_SIZE, toggleTile } from '../lib/picks'
 import { isSet } from '../lib/tiles'
 import type { GGameData, GTile } from '../types'
+
+/** No tiles — the refusal's resting value. */
+const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
  * The board column's commands: a letter picks the tile in its slot, ⌫ drops
@@ -18,9 +23,10 @@ import type { GGameData, GTile } from '../types'
  *
  * A pick toggles: a second click or letter un-picks. The third pick completes
  * a claim, and the frontend can judge it — the whole table is face-up — so a
- * non-set is refused here instead of round-tripping to be told the same
- * thing. The picks clear either way: a refused pick is not a state worth
- * keeping around to correct.
+ * non-set is refused here instead of round-tripping to be told the same thing:
+ * its three tiles take the lost edge and wash and shake for the shake's beat
+ * (`refusedTileIds`). The picks clear either way: a refused pick is not a state
+ * worth keeping around to correct. No pick lands while a refusal shakes.
  */
 export function useBoardColActions({
   gd,
@@ -48,14 +54,21 @@ export function useBoardColActions({
 }): {
   canPick: boolean
   pickTile: (tile: GTile) => void
+  // A refused claim's three tiles, while they shake.
+  refusedTileIds: ReadonlySet<string>
   actHint: Action
 } {
   // Not gated on a claim being in flight: the rest of the table stays live so
   // a fast player can start their next set while this one travels.
   const canPick = isInteractive
 
+  // A refused claim's tiles, for the shake's beat.
+  const [refused, showRefused] = useMark<{ tileIds: ReadonlySet<string> }>(
+    VERDICT_SHAKE_MS)
+
   function pickTile(tile: GTile) {
     if (!canPick || inFlightTileIds.has(tile.id)) return
+    if (refused !== null) return
     // A pick is the next move, like a keystroke.
     localFeedbackSlot.dismiss()
     const next = toggleTile(picks.tileIds, tile)
@@ -65,14 +78,15 @@ export function useBoardColActions({
     }
     picks.clear()
     // Every pick is on the table: `picks.tileIds` is the live picks.
-    const [a, b, c] = next.map((id) =>
-      gd.me.board.tilesById[id]!) as [GTile, GTile, GTile]
+    const claim = next.map((id) => gd.me.board.tilesById[id]!)
+    const [a, b, c] = claim as [GTile, GTile, GTile]
     if (isSet(a, b, c)) {
-      void submitClaim([a, b, c])
-    } else {
-      const { outcome, text } = answerMessage({ answerType: 'not_a_set' })
-      localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+      void submitClaim(claim)
+      return
     }
+    showRefused({ tileIds: new Set(claim.map((t) => t.id)) })
+    const { outcome, text } = answerMessage({ answerType: 'not_a_set' })
+    localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
   }
 
   // A letter under each tile, bound to the SLOT. A pattern action, handed
@@ -110,5 +124,10 @@ export function useBoardColActions({
     run: spendHint,
   })
 
-  return { canPick, pickTile, actHint }
+  return {
+    canPick,
+    pickTile,
+    refusedTileIds: refused?.value.tileIds ?? NO_TILES,
+    actHint,
+  }
 }

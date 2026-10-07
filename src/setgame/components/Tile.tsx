@@ -22,6 +22,8 @@ type TileMarks = {
   isRinged: boolean
   // In a claim on its way to the server.
   isInFlight: boolean
+  // In a claim just refused, while it shakes.
+  isRefused: boolean
   // In the set a claim just found, held on screen for its beat.
   isFound: boolean
   // Dealt by the claim that just landed.
@@ -85,11 +87,14 @@ export function Tile({
 
   const className = cls(
     styles.tile,
+    // The shared hover, press and pointer; a readout takes none of them.
+    !readOnly && shared.tile,
     readOnly && styles.readOnly,
-    marks?.isPicked && styles.picked,
+    marks?.isPicked && cls(shared.picked, styles.picked),
     marks?.isRinged && styles.ringed,
     marks?.isFound && cls(shared.verdictWon, styles.found),
     marks?.isInFlight && shared.dimInFlight,
+    marks?.isRefused && cls(shared.verdictLost, shared.verdictShake, styles.refused),
     marks?.isNew && shared.attentionFlash,
   )
 

@@ -20,6 +20,8 @@ type BoardMarks = {
   ringTileIds: ReadonlySet<string>
   // A claim's tiles on their way to the server.
   inFlightTileIds: ReadonlySet<string>
+  // A refused claim's tiles, while they shake.
+  refusedTileIds: ReadonlySet<string>
   // A teammate holds the move: the board fades. Its own mark, not `canPick`:
   // the board also takes no pick at every ending and while a past turn is
   // open, and neither fades (both are states people sit and study).
@@ -113,6 +115,7 @@ export function Board({
               isPicked: marks.pickedTileIds.has(tile.id),
               isRinged: marks.ringTileIds.has(tile.id),
               isInFlight: marks.inFlightTileIds.has(tile.id),
+              isRefused: marks.refusedTileIds.has(tile.id),
               isFound: claimMarks.foundTileIds.has(tile.id),
               isNew: claimMarks.newTileIds.has(tile.id),
             }}

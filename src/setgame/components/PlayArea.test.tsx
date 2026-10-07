@@ -30,8 +30,8 @@ import { PlayAreaLoader } from './PlayArea'
  * a test builds that blob from the game's facts (`ZTest_makeSetgameCtx`) and
  * nothing is mocked but `db`.
  *
- * The fixture's table is `ZTest_BOARD_IDS`: slots 0, 1 and 2 — letters A, H
- * and O, the first column — are the set 1111 / 1112 / 1113; slot 3, letter B,
+ * The fixture's table is `ZTest_BOARD_IDS`: slots 0, 1 and 2 — letters Q, A
+ * and Z, the first column — are the set 1111 / 1112 / 1113; slot 3, letter W,
  * is 1121, which completes nothing with the first two.
  */
 
@@ -85,6 +85,7 @@ const stateOf = (id: string) => getActions().find((b) => b.id === id)?.describe(
 /** The tile with this id, on the board. */
 const tile = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-tile="${id}"]`)!
 const isPicked = (id: string) => tile(id).className.includes('picked')
+const isRefused = (id: string) => tile(id).className.includes('refused')
 
 beforeEach(() => {
   rpc.mockReset()
@@ -118,6 +119,26 @@ describe('setgame PlayArea — the letters are the input', () => {
     expect(await screen.findByText('Not a set')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
     expect(isPicked('1111')).toBe(false)
+  })
+
+  it('a refused claim\'s tiles take the lost edge, wash and shake, then lose them', async () => {
+    render(<WithKeys {...ZTest_makeSetgameCtx()} />)
+    await type('q')
+    await type('a')
+    await type('w')
+    await screen.findByText('Not a set')
+    expect(isRefused('1111') && isRefused('1112') && isRefused('1121')).toBe(true)
+    await waitFor(() => expect(isRefused('1111')).toBe(false))
+    expect(isPicked('1111')).toBe(false)
+  })
+
+  it('no pick lands while a refusal shakes', async () => {
+    render(<WithKeys {...ZTest_makeSetgameCtx()} />)
+    await type('q')
+    await type('a')
+    await type('w')
+    await type('z')
+    expect(isPicked('1113')).toBe(false)
   })
 
   it('a click picks too, and ⌫ clears the picks', async () => {

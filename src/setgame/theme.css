@@ -35,33 +35,13 @@
 /* @@ */   --setgame-green: #12922f;
 /* @@ */   --setgame-purple: #7b2d8e;
 
-  /* The tile face. Plain white on the warm page, like a real card on a table —
-   * NOT the warm tile ramp the letter games use, whose whole job is to make a
-   * tile read as a game piece. A playing card reads as one already. */
-/* @@ */   --setgame-tile-bg: #ffffff;
-  /* Hover: the tile GRAYS, rather than growing a ring. A ring on hover competes
-   * with the thick edge that means "picked" — the one mark on this board that
-   * has to be unmistakable — and a border that thickens under the pointer also
-   * nudges the eye toward the edges of a tile whose content is its middle. */
-/* @@ */   --setgame-tile-hover-bg: #ededed;
-  /* A plain mid-gray, dark enough to actually draw the tile's edge. Two
-   * earlier values were too light to see: the page's divider gray, and then a
-   * warm tone that still disappeared once the board lost its frame. A white
-   * tile on a warm ground needs a real edge or it reads as a floating symbol
-   * rather than as a tile. */
+  /* The gray edge of a readout tile (Tile.module.css `.readOnly`), and the
+   * dashed outline of the last-set panel's empty frames (LastSet.module.css
+   * `.placeholder`). */
 /* @@ */   --setgame-tile-border: rgb(128 128 128);
 
-  /* The tile's depth: a hairline at rest, and a deeper one under a tile that
-   * is lifted (Tile.module.css `.picked`). Here rather than in the
-   * colorblind block below because depth is not one of the tile's four
-   * attributes — and because a token defined only in that block is UNDEFINED
-   * on the default palette, where a `var()` that resolves to nothing voids the
-   * entire declaration reading it rather than just its own term. */
-/* @@ */   --setgame-tile-shadow:      0 1px 2px rgb(0 0 0 / 10%);
-/* @@ */   --setgame-tile-lift-shadow: 0 2px 6px rgb(0 0 0 / 18%);
-
   /* The keyboard address under each tile (Board.module.css `.letter`). True
-   * black, and palette-independent for the same reason as the shadows. */
+   * black, and palette-independent: it is not one of the tile's attributes. */
 /* @@ */   --setgame-symbol-outline-color: #000000;
 
   /* A live hint's ring: saturated green, and thick. It started neutral gray on

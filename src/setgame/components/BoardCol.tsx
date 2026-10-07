@@ -115,6 +115,9 @@ export function BoardCol({
           inFlightTileIds: historyView.isViewing
             ? NO_TILES
             : submission.inFlightTileIds,
+          refusedTileIds: historyView.isViewing
+            ? NO_TILES
+            : actions.refusedTileIds,
           isWaitingForTurn: gd.me.waitingForTurn,
           myTurnJustStarted,
         }}

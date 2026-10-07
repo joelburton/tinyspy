@@ -81,7 +81,10 @@ shows it.
 That the frontend holds the whole rule has one consequence worth stating
 plainly: **an invalid claim never reaches the server.** Picking a third tile
 that doesn't complete a set is refused in the client, so there is no
-wrong-guess penalty to design and nothing to price. The server still re-checks
+wrong-guess penalty to design and nothing to price. A refused claim's three
+tiles take the lost-red edge, the lost wash and the shared shake, and all of it
+goes when the shake ends; a found set's take the won ring and the won wash for
+their beat. The server still re-checks
 everything — it is the authority — it just never sees one in practice.
 
 The rejection that *does* happen in real play is **contention**: a rival
@@ -497,7 +500,7 @@ nothing is live on paper, so the reason to hold it back doesn't apply
 ### The keyboard
 
 A letter under every tile, typing toggles it, Backspace clears, and the third
-picked tile submits. Two actions — `act-pick-by-letter` and
+picked tile completes a claim. Two actions — `act-pick-by-letter` and
 `act-clear-picks` — not the shared `useCaptureKeys`: that helper accumulates
 *text*, and a letter here is a toggle on a tile, not a character appended to a
 word. `act-pick-by-letter` is a PATTERN action, handed whichever letter fired it,
@@ -755,7 +758,8 @@ only the deal size differs (9, ceiling 12).
   row RECORDED, its own tiles ringed, how far a hint went).
 - **`components/PlayArea.test.tsx`** — the wiring: letters pick and toggle, the
   third of a set claims with the tiles as numbers, a non-set is refused
-  locally, no letters on an ended game or a teammate's turn, Hint's two faces,
+  locally with its tiles shaking in the lost edge, no pick lands while a
+  refusal shakes, no letters on an ended game or a teammate's turn, Hint's two faces,
   the conceder's row, and +, ⌥⌫ and Restart through the dispatcher.
 - **pgTAP** (`supabase/tests/setgame/`) — `game_data_test.sql` pins the blobs
   (a fresh game, mid-game in each mode, the endings, a Restart, the rebuild);
