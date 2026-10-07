@@ -107,6 +107,15 @@ neutral in every mode**: nobody won and nobody lost, which is not the same as
 everyone losing. The solve is recorded on the players as `solved_at`, every
 teammate's in coop.
 
+**The words for how a player came out are one function's**, `lib/endingLabel.ts`
+(`makeEndingLabel`): the common word ([`common/ending/endingLabel.ts`](../common/ending/endingLabel.ts) —
+Won, Conceded, Stopped, Lost; a race has no place below first and nobody out
+of play with a result to come) and psychicnum's detail after it ("out of
+guesses", "race continues"). Each player in `gd` carries it as `endingLabel`;
+the pill and the info column's line are mine (`useGetEndingMessage`), the
+compete strip shows every player's word after their finds ("3 (won)"), and the
+club line leads with it, the same function reading `summary_data`'s players.
+
 ## Schema
 
 Three tables, in `supabase/migrations/20260615000002_psychicnum.sql` (shape)
@@ -335,7 +344,7 @@ answer does not.
               └── InfoCol                the readouts and the action row
                     ├── StateLine        the same one, desktop's copy
                     ├── TurnStatusLine ← turn-order coop only
-                    ├── OpponentStrip ←  compete only: each rival's budget and finds
+                    ├── OpponentStrip ←  compete only: each player's finds; their ending label's word once out
                     ├── InfoActionsRow ← one row, every action, in the menu's order
                     ├── SetupDisclosure ←
                     └── GameEventLog     the turn log's psychicnum rows

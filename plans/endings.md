@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done, step 4 (each game) is next.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum is done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -28,21 +28,49 @@ always shows MY outcome.
   playerOf(ending.winner)`. "Did I win" is `gd.me.outcome`, already there; no
   second field says it. The club page gets the same list of ids from a shared
   helper over `summary_data`'s players, for `summaryFor` to name.
-- **`summary_data` carries every player.** The common part gains a short list,
-  one entry per player: `id`, `outcome`, `finalRanking`, `conceded`. Always
-  written, for every game, whether or not its summary reads it.
-- **The club line may speak to the viewer.** `summaryFor` takes the viewer's
-  id beside the summary and the members, and each game chooses what to say:
-  every winner, one, or the viewer's own end ("You conceded · Won by joel &
-  leah").
-- **The game page shows my outcome, never the game's.** The ending message
-  (pill and info-column line), the ending frame and the celebration are
-  colored by `gd.me.outcome`. In compete, someone else's win is my `lost` or
-  `near`, though the game's outcome is `won`.
+- **`summary_data` carries every player** as `game_data` has them for how they
+  came out: `id`, `ending`, `outcome`, `finalRanking`, `conceded`, `solved`,
+  `stillPlaying` (`SummaryPlayer`, that subset of `PlayerRaw`). Always written,
+  for every game.
+- **A player's ending label says how they came out**, in one place per game.
+  `common/ending/endingLabel.ts` holds the shape (`EndingLabel`: `labelType`,
+  `word`, `long`, `pill`, `outcome`, `endedBy`) and the common half,
+  `makeEndingLabelWord`, which reads the word from the server's facts in a
+  fixed order: Won, Conceded, a place ("2nd" — `labelType` `placed`), Stopped,
+  Solved, Finished, Lost. Solved and Finished are a player out of play with no
+  result yet while the game goes on (`player.solved`, not the reason). A
+  `no-result` ending is the game's to word. Each game's `lib/endingLabel.ts`
+  (`makeEndingLabel`) adds its detail; `long` and `pill` are what follows the
+  word, never the word again, empty when the word says it all, so a surface
+  can set the word apart. The label's `outcome` is the player's.
+- **Words live in `gd`, not in the components.** Each player in `gd` carries
+  `endingLabel`, built once in `useGame`. One hook (`useGetEndingMessage`)
+  turns mine into the pill and the info column's line through the common
+  `makeEndingMessage` ("Lost: out of guesses", "Lost (out of guesses)"), and
+  `endedBy` routes it to the shared `useShowEndingFeedback`. It replaces each
+  game's two ending-message hooks.
+- **The club line leads with my result**, through the same label over
+  `summary_data`'s players: `Won`, `Won, tied with bea`, `Conceded · Won by
+  bea`; a game I did not win or concede names its winners (`Won by bea &
+  cade`). No "You": the context says whose. It shows my result as soon as I am
+  out of play, before the game ends; while I play it says `Playing`, with the
+  game's facts after it. `summaryFor(summary, members, myId)`.
+- **The compete strip shows "metric (word)"** once a player is out of play:
+  `3 (won)`, `280 (2nd)`, `1 (conceded)`, `2 (stopped)`; the metric alone while
+  they play. Equal metrics already show a tie.
+- **A stopped game says so.** The shared Stop message is `buildStoppedMessage`:
+  "Stopped" in coop, "Stopped — no winner" in compete. Every surface chooses it
+  by the ending reason `stopped`, never by a `neutral` outcome: a `no-result`
+  is neutral too, and a Stop on a decided game keeps its win.
+- **The game page shows my outcome, never the game's.** The ending message,
+  the ending frame and the celebration are colored by `gd.me.outcome`. In
+  compete, someone else's win is my `lost` or `near`, though the game's outcome
+  is `won`.
 - **`near` reads as a place.** A player ranked 2nd reads "2nd place", never
-  "Lost: …".
-- **Every game draws the ending frame.** bananagrams and crosswords may be
-  exempt if an outline has no room; measured before deciding.
+  "Lost: …"; a tied place reads "2nd place, tied".
+- **Every game draws the ending frame**, on my ending and the game's.
+  bananagrams and crosswords may be exempt if an outline has no room; measured
+  before deciding.
 
 ## Where it stands (2026-10-06)
 
@@ -98,10 +126,9 @@ blobs carry the ranking and no winner; what is left is the page.
 
 Also:
 
-- `playArea.module.css` has no `.endingFrame_near`, so a `near` player's frame
-  falls back to the neutral gray.
-- `endingOutcomeVerb` has no callers; each of the seven strips writes its
-  own two-way verb.
+- The seven strips above work out their word in the component, through the
+  shared `endingOutcomeVerb`; each moves to its players' `endingLabel` in its
+  turn, and `endingOutcomeVerb` goes with the last.
 - crosswords celebrates only a coop win (`gd.coop && gd.outcome === 'won'`);
   a compete winner gets none.
 
@@ -133,14 +160,21 @@ Also:
    moves to them, and then the SQL drops both. `summaryFor` takes the viewer;
    `.endingFrame_near`; one shared verb for the strips, with `near` and the
    place.
-4. **Each game.** Its message colored by mine and naming every winner; "2nd
-   place"; the frame; its strip on the shared verb; its `summaryFor` naming
-   every winner. boggle, spellingbee and wordwheel's hard-coded `'lost'` first:
-   they color a `near` player red today. Each game also closes its gaps
-   against `plans/game-cards.md` and answers "what should the club-page
-   summary be?". Its strip reads neutral for a player who neither won nor
-   lost — a `stopped` or `no-result` game, unless they conceded — where
-   `endingOutcomeVerb` says "Lost" today.
+4. **Each game**, one at a time, changing only that game: a common change that
+   would touch another game is raised first. For each:
+   - its `lib/endingLabel.ts`, `endingLabel` on its `gd` players, and the one
+     `useGetEndingMessage` in place of its two ending-message hooks;
+   - its strip as "metric (word)", its `summaryFor` on the label;
+   - names every winner; "2nd place"; the frame on both endings;
+   - outcomes read, never worked out; the Stop chosen by its reason;
+   - the turn bell and the your-turn flash, as the games that have them do;
+   - its gaps against `plans/game-cards.md`.
+
+   **Done:** psychicnum. It added to common `endingLabel.ts`
+   (`makeEndingLabelWord`, `makeEndingMessage`), the summary players' `ending`,
+   `solved` and `stillPlaying`, and `findUsername` in `members/memberList.ts`.
+   **Next:** boggle, spellingbee and wordwheel, which color a `near` player red
+   today.
 
 ## Overlaps
 
@@ -150,7 +184,4 @@ one home. Its → Renames → "Terminal" → "ended" points here.
 
 ## Open
 
-- **The `near` line's words.** "2nd place" is decided; a tied place ("2nd
-  place, tied"?) and what the line says beside it are not.
-- **The strip's neutral word.** A player who neither won nor lost reads
-  neutral (decided); the word is not.
+- **What the `near` line says beside the place**, game by game.
