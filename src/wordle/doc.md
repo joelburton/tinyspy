@@ -166,8 +166,8 @@ assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of every `game_data` (`common._make_json_game_data`) wordle's
 own. `static_game_data`, what nothing after create changes, is written once by
 `_write_static_game_data`, from `create_game` and the rebuild over every game,
-never by a move ([docs/common-schema.md → Title, statuses and the two
-dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+never by a move ([docs/common-schema.md → Title, page blobs and the two
+dates](../../docs/common-schema.md#title-page-blobs-and-the-two-dates)); the
 hook merges it into `game_data`, each key in its place:
 
 | blob | wordle's part |
@@ -188,10 +188,6 @@ the winner's count is compete's, written once the race is won, and the winners
 are every player the common `players` ranks first.
 `wordle._rebuild_data_cols_for_all()` rewrites every wordle game's blobs
 without re-dating them, for a shape change.
-
-The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
-nothing reads wordle's any more. The columns stay until a migration retires
-them for every game.
 
 **The target is hidden by a column GRANT, not by a policy.** A client asking
 `wordle.games` for `target` gets SQLSTATE 42501 whatever any policy says, and

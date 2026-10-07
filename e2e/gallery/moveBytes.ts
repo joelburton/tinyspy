@@ -45,6 +45,7 @@ import { strandsGallery } from './games/strands'
 import { waffleGallery } from './games/waffle'
 import { wordiplyGallery } from './games/wordiply'
 import { wordleGallery } from './games/wordle'
+import { wordleoneGallery } from './games/wordleone'
 import { wordwheelGallery } from './games/wordwheel'
 
 const BASE = 'http://localhost:5173'
@@ -129,6 +130,7 @@ const ALL: GameGallery[] = [
   waffleGallery,
   wordiplyGallery,
   wordleGallery,
+  wordleoneGallery,
   wordwheelGallery,
 ]
 

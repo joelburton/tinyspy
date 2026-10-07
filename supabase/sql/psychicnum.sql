@@ -147,10 +147,6 @@ drop function if exists psychicnum._secrets_for(uuid);
 --                                          the team's counts; null in compete, whose
 --                                          summary shows no progress
 --     nReqdSecrets, maxGuesses
---
--- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
--- written: nothing reads psychicnum's any more. The columns stay until a
--- migration retires them for every game.
 
 -- The puzzle's part of game_data: the three secrets, once the game has ended.
 -- The words are static (`_make_json_static_game_data`).

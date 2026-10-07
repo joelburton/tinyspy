@@ -14,9 +14,11 @@ import {
   createWaffleGame,
   createWordiplyGame,
   createWordleGame,
+  createWordleoneGame,
   envelopeData,
   seedWaffleSwap,
   seedWordleGuesses,
+  seedWordleoneMisses,
   setScrabbleRack,
   type E2EClub,
   type E2EMember,
@@ -79,6 +81,13 @@ const CASES: Case[] = [
     start: async (club) => {
       const game = await createWordleGame(club)
       return { ...game, write: (m) => seedWordleGuesses(m, game.id, 1).then(() => undefined) }
+    },
+  },
+  {
+    game: 'wordleone',
+    start: async (club) => {
+      const game = await createWordleoneGame(club)
+      return { ...game, write: (m) => seedWordleoneMisses(m, game.id, 1).then(() => undefined) }
     },
   },
   {

@@ -827,7 +827,7 @@ dev-keys: ## list every key the app answers, by page and game (docs/keyboard-sho
 # interesting state, photographed into gallery/index.html for you to scroll.
 #
 # NOT a test, and deliberately not wired into `test` or `test-e2e`: it asserts
-# nothing, so it can't pass or fail. It answers "do these fifteen games look
+# nothing, so it can't pass or fail. It answers "do these seventeen games look
 # like one app?", which only a person answers. Run it when you want to look.
 #
 # No ENV: it drives the LOCAL stack only (it creates throwaway clubs and plays

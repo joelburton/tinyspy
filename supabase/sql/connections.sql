@@ -352,10 +352,6 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --     team: {nMatchedCats, nMistakes}       the team's counts; null in compete, whose
 --                                           summary shows no progress
 --     maxMistakes
---
--- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
--- written: nothing reads connections' any more. The columns stay until a
--- migration retires them for every game.
 
 -- The puzzle this game is played on, as `create_game` froze it onto
 -- `connections.games`: the date, and the two halves of the `board` column.

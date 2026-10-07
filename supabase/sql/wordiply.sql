@@ -332,9 +332,6 @@ drop function if exists wordiply._write_statuses(uuid, boolean);
 --                                          length; null in compete
 --     maxGuesses
 --     winnerLengthScore                    compete's, once the race is won; null in coop
---
--- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
--- written; their columns stay until a migration retires them for every game.
 
 -- The board as built: the base, and the words the builder found for it.
 create or replace function wordiply._make_json_puzzle(g wordiply.games)

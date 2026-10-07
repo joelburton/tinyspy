@@ -30,12 +30,13 @@ Games (code = brand):
 | PP | PaulPath | strands |
 | SB | SnakeBox | letterboxed |
 | HT | HareTrigger | setgame |
+| W1 | WordNerdier | wordleone |
 
 # Dimensions
 
 ## Modes offered
 
-- **Coop + compete pair:** PN FB WK MC RA SD SS WN CP MW WW PP SB HT
+- **Coop + compete pair:** PN FB WK MC RA SD SS WN CP MW WW PP SB HT W1
 - **Coop only (no compete):** TS
 - **Compete only (no coop):** MG
 
@@ -66,6 +67,7 @@ compete-only and plays fine alone as a race against the clock.
 | strands | PP | `[1, 6]` | `[2, 6]` | 6 |
 | letterboxed | SB | `[1, 6]` | `[2, 6]` | 6 |
 | setgame | HT | `[1, 6]` | `[2, 6]` | 6 |
+| wordleone | W1 | `[1, 6]` | `[2, 6]` | 6 |
 | bananagrams | MG | — | `[1, 6]` | 6 |
 | boggle | MC | `[1, 8]` | `[2, 8]` | 8 |
 | crosswords | CP | `[1, 8]` | `[2, 8]` | 8 |
@@ -91,16 +93,16 @@ manifests' own comments claim the RPC enforces it.
 
 ## Co-op interaction (games that have coop)
 
-The DEFAULT pacing; nine of the free-for-all games also offer opt-in
+The DEFAULT pacing; ten of the free-for-all games also offer opt-in
 turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).
 
 - **Free-for-all (shared board, everyone acts anytime):** PN FB WK MC RA SD SS
-  WN CP MW WW PP SB HT
+  WN CP MW WW PP SB HT W1
 - **Turn-based (fixed seats, alternating):** TS
 
 ## Board origin
 
-- **Generated fresh at start:** PN FB TS MC SS WN MW WW SB HT (MW samples from
+- **Generated fresh at start:** PN FB TS MC SS WN MW WW SB HT W1 (MW samples from
   a pangram-seed table, WW from candidate bases, SB from a chained word-pair
   seed table re-partitioned per game — but the board itself is built fresh per
   game, not picked whole)
@@ -115,7 +117,8 @@ turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).
 Where to look when a board is wrong — distinct from "Board origin" above.
 
 - **A dedicated `<codename>-build-board` edge fn computes the board, then calls
-  `create_game`:** FB MC SS MW WW SB
+  `create_game`:** FB MC SS MW WW SB W1 (W1's `create_game` re-checks the
+  puzzle is one: the colors, the answer's legality, and no other legal fit)
 - **Built inline in `create_game` (plpgsql):** PN WN (sampling `common.words`),
   TS (sampling `codenamesduet.word_pool`), RA MG (a tile distribution), HT (no
   sampling at all — a setgame board is a SHUFFLE, so `create_game` deals one
@@ -133,7 +136,7 @@ Where to look when a board is wrong — distinct from "Board origin" above.
   words are found — the letters never change, but a found word's cells leave
   play, which is how the board is "consumed"; SB's letters get marked COVERED,
   but never change and never leave play)
-- **Fill / annotate — fixed cells, contents change:** PN TS SS WN CP WW
+- **Fill / annotate — fixed cells, contents change:** PN TS SS WN CP WW W1
 - **Shrinks — tiles removed/collapsed as you solve:** SD WK
 - **Grows — you add tiles to it:** RA MG
 - **Replaced — cards leave and new ones arrive IN THEIR PLACE:** HT (its own
@@ -150,20 +153,20 @@ Where to look when a board is wrong — distinct from "Board origin" above.
 - **Type a word (keyboard grab):** PN FB MC MW SB (board letters only; the
   previous word's last letter is a locked seed the entry re-derives each word)
 - **Type free text (a clue field):** TS
-- **Type / click a letter into a slot:** RA SD SS WN CP WW
+- **Type / click a letter into a slot:** RA SD SS WN CP WW W1
 - **Click tiles to select:** WK, PP (a board repeats letters, so a typed string
   can't identify a path), HT (three cards; also typable, one letter per card —
   see docs/games/setgame.md → The keyboard)
 - **Drag tiles to place:** MG RA
 
-(TS also clicks board cells when guessing; CP/WN/WW are keyboard-first; PN's
+(TS also clicks board cells when guessing; CP/WN/WW/W1 are keyboard-first; PN's
 guess is a board word, typed or picked by clicking its tile; FB/MW/SB tiles are
 also clickable — SB submits on re-clicking the word's last letter; MG also
-takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
+takes click-a-cell-and-type; WN + WW + W1 share the on-screen `GuessKeyboard`.)
 
 ## Solution & trust model — where the answer lives, who validates
 
-- **Hidden server-side solution, revealed at the end:** PN SD WN CP PP, and SS
+- **Hidden server-side solution, revealed at the end:** PN SD WN CP PP W1, and SS
   in compete (CP's `export_solution` hands any player the full grid at any time
   — a deliberate, member-gated exception; `reveal_cells` shows cells mid-game)
 - **FE-readable all along, but not shown ("FE-knows"; the server still
@@ -181,7 +184,8 @@ takes click-a-cell-and-type; WN + WW share the on-screen `GuessKeyboard`.)
   `games_state` view / helper, or the game's `game_data` once it has ended,
   reveals it:** PN (`secrets`) SD SS
   (`_solution_for`, gated on the end in compete only) WN (`target`) CP PP
-  (`_solution_for`)
+  (`_solution_for`) W1 (`target`; the starter and its colors are public, in
+  `static_game_data`)
 - **Everything readable; the FE just doesn't render it mid-game:** TS (both
   key cards) WK (`board.categories`) WW (scores + the best word) SB (the seeded
   pair + playable list; the FE's local reveal toggle gates display)
@@ -202,7 +206,7 @@ table and reaches the FE only through `players_state`'s per-mode mask.)
 - **Points accumulation (high score wins; FB/MW via a rank ladder):** RA MC FB
   MW HT (sets claimed; in coop the same count is the team's, and the WIN is
   reaching the natural end rather than passing a score)
-- **Binary solve (you finished the puzzle, or didn't):** TS WK SS WN CP
+- **Binary solve (you finished the puzzle, or didn't):** TS WK SS WN CP W1
 - **Count to a target:** PN (find the 3 secrets) SD (clear 6 words) PP (find
   every theme word — which, since the words tile the board exactly, is the same
   as consuming all 48 cells) SB (cover all 12 letters within the word cap)
@@ -219,18 +223,19 @@ table and reaches the FE only through `players_state`'s per-mode mask.)
 - **A cap you can't bust:** SB (words: par 2 + extra, extra 0–5 at setup,
   default 3 — but undo REFUNDS, so it's a shape constraint, not a spendable
   budget)
-- **Unbounded — play to the end / timer:** MC FB MW RA SD MG CP PP HT
+- **Unbounded — play to the end / timer:** MC FB MW RA SD MG CP PP HT W1
+  (W1 counts its misses, and compete ranks by them, but spends nothing)
 
 ## Seat & information model
 
 - **Variable N players, full shared info in coop:** PN FB WK MC RA SD SS WN CP
-  MG MW WW PP SB HT (up to 6, except MC and CP at 8 and RA at 4 — see Player
+  MG MW WW PP SB HT W1 (up to 6, except MC and CP at 8 and RA at 4 — see Player
   counts)
 - **Fixed 2 seats, asymmetric info (each partner sees a different key):** TS
 
 ## History log in the info column
 
-- **EventLog (chronological turns):** PN TS WK RA SD SS WN WW PP SB HT
+- **EventLog (chronological turns):** PN TS WK RA SD SS WN WW PP SB HT W1
 - **WordList (alphabetical finds):** MC FB MW
 - **Neither:** MG CP
 
@@ -254,7 +259,7 @@ docs/supabase.md.)
 ## PlayArea layout
 
 - **Standard two-column (the board column hugs the board, fixed-width info
-  column):** PN FB TS WK MC RA SD SS WN MW WW PP SB HT
+  column):** PN FB TS WK MC RA SD SS WN MW WW PP SB HT W1
 - **Exceptions:** MG (the board FILLS the column + zoom/scroll; the hand +
   peel/dump live in the info column — docs/playarea.md) CP (a keyboard-first
   grid; the clue lists fill the info side — docs/games/crosswords.md)
@@ -263,8 +268,9 @@ docs/supabase.md.)
 
 ## Opt-in turn-by-turn coop (the common turn-order primitive)
 
-PN WN WK SS WW RA (coop) PP HT SB (the strongest fit on the roster — the chain
-hands off natively, "I ended on T, you start on T"; undo COSTS the turn there).
+PN WN WK SS WW RA (coop) PP HT W1 SB (the strongest fit on the roster — the
+chain hands off natively, "I ended on T, you start on T"; undo COSTS the turn
+there). W1's miss hands the turn on; a solve ends the game.
 
 A per-game setup choice — `coop_style: 'turns'` — that rotates moves through
 the players instead of free-for-all. Discrete-move coop games only; the shared
@@ -286,10 +292,11 @@ is what you're looking for).
   PN FB MC MW SB
 - **`WordEntryRow` directly (the row without the capture keyboard):** SD PP
 - **`useCaptureKeys` directly (bare-keys grab, no focused input):** FB MC WN MW
-  WW
+  WW W1
 - **`GuessKeyboard` (`shared/onscreen-keyboard`; the on-screen QWERTY):** WN WW
+  W1
 
-(PN + SB get their capture via `WordEntryArea`; WN/WW letters land on the board,
+(PN + SB get their capture via `WordEntryArea`; WN/WW/W1 letters land on the board,
 not a box. SB deliberately skips `useFoundWordSubmit` — a chain append isn't a
 found word, so its validation is `lib/board.ts` + a plain RPC.)
 
@@ -332,15 +339,16 @@ THEME words come with the puzzle, and only the hint words are looked up in
 
 - **FE validation via a shipped list built from it:** MC FB MW WW (SB ships a
   list too, but the server re-validates every move against it)
-- **Server-side move validation:** RA MG WN PP SB
-- **Board build / secrets / hints:** PN FB MC SD SS WN MW WW SB (SB's seed pool
-  and each board's playable list are both computed from it)
+- **Server-side move validation:** RA MG WN PP SB W1
+- **Board build / secrets / hints:** PN FB MC SD SS WN MW WW SB W1 (SB's seed
+  pool and each board's playable list are both computed from it; W1's puzzle
+  is unique among every word at or below its band)
 
 ## Reveal at the end (shows the answer when done)
 
-PN TS WK SD SS WN CP PP SB WW — the shared reveal control (`useSolutionReveal`
+PN TS WK SD SS WN CP PP SB WW W1 — the shared reveal control (`useSolutionReveal`
 + `act-reveal`); SB's is the seeded two-word solution, and a win opens it
-automatically. MC FB MW reveal their missed words in the word list instead.
+automatically. W1's lands on the board too, as an all-green second row. MC FB MW reveal their missed words in the word list instead.
 
 (A UX tag; the enforcement varies — see the trust and machinery dimensions. For
 TS WK the data was FE-readable all along; for the trusting-commit games it is a
@@ -348,12 +356,12 @@ display choice, not a security boundary.)
 
 ## Restart (`<gametype>.replay_board`)
 
-Every game has `replay_board`. Fifteen also offer Restart in the ending row
+Every game has `replay_board`. Sixteen also offer Restart in the ending row
 (`act-restart`); MG offers it as a menu row only.
 
 ## New game from the ending row (`act-new-game`)
 
-Everything, and all sixteen also carry it as a game-menu item. CP is the odd
+Everything, and all seventeen also carry it as a game-menu item. CP is the odd
 one: its button opens the club's SETUP dialog (`/c/<handle>?new=<gametype>`)
 instead of creating a game directly, because `setup` names a puzzle rather than
 a shuffle. PP starts the next puzzle nobody at the table has played
@@ -361,7 +369,7 @@ a shuffle. PP starts the next puzzle nobody at the table has played
 
 ## Turn-history replay (`useHistoryViewer`)
 
-TS WK PN RA SD SS WN WW PP SB HT
+TS WK PN RA SD SS WN WW PP SB HT W1
 
 (PP's and WW's are FILTERS — PP's board strictly accumulates, so "the board at
 turn N" is a slice of the log rather than a reconstruction. SB's is a FOLD over
@@ -369,15 +377,16 @@ its event stream — played pushes, undone pops, cleared empties — which is wh
 its log records retreats instead of deleting rows. HT's is the only LOOKUP: it
 stores `board_after` on every event, because reconstructing a setgame board
 means re-running the deal rule, and a second implementation of that on the FE
-would eventually show a board that never existed.)
+would eventually show a board that never existed. W1's needs no history at
+all: a turn is the starter and that one word.)
 
 ## Print to PDF
 
-All sixteen games print (`common/pdf/doc.md` has the per-game table + body
+All seventeen games print (`common/pdf/doc.md` has the per-game table + body
 families). HT prints THE LOG and nothing else — per-player totals, then every
 claim and hint as PICTURES of the cards; its board is a shuffle that turns over
 every few seconds, so a printed one is a photograph of a moment nobody can
-return to. (PP + SB print one TRACK PER BOARD like WN/SS — coop is one column,
+return to. (PP + SB + W1 print one TRACK PER BOARD like WN/SS — coop is one column,
 compete one per player — and move their color encodings onto shape/weight,
 since on a mono printer two hues are one gray: PP's purple/gold becomes line
 weight + dashing, SB's covered-letter green becomes a heavy black ring and a
@@ -385,10 +394,13 @@ bold glyph.)
 
 ## Player-tunable difficulty
 
-- **Dictionary band at setup:** PN FB MC RA SD SS WN MG MW WW PP SB
+- **Dictionary band at setup:** PN FB MC RA SD SS WN MG MW WW PP SB W1
   (PP's + SB's bands run the OTHER way: a wider dictionary means more hint words
   / more escape routes off an awkward tail letter, so a HIGHER band makes them
-  easier)
+  easier; W1's makes the puzzle fairer, not harder — more words the answer has
+  to be unique among)
+- **The shape of the puzzle:** W1 (easy · medium · hard · any — three greens,
+  one or two, none)
 - **A smaller DECK instead of a dictionary band:** HT (junior — shading
   dropped, 27 cards, dealt nine at a time)
 - **More turns:** TS (9/10/11, the rulebook's easier missions)
@@ -404,8 +416,8 @@ bold glyph.)
 Optional at setup for every game. On timeout, a compete game resolves a winner
 from current standing in MC (only with no target score; with one, a timeout is
 a loss), RA, WW, SB (most letters covered → fewest words → co-winners), HT
-(most sets, ties intact), and SS WN PP (from whoever had already solved:
-fewest swaps / fewest guesses / fewest hints). Everywhere else a timeout crowns
+(most sets, ties intact), and SS WN PP W1 (from whoever had already solved:
+fewest swaps / fewest guesses / fewest hints / fewest misses). Everywhere else a timeout crowns
 nobody (a coop loss, or a compete leaderboard frozen with no winner).
 
 ## Can win after conceding
@@ -418,7 +430,7 @@ the win, even if their banked score would top the board.
 A dimension: what a game needs on a touch device (docs/mobile.md → Input is the
 primary axis). Every game but MG has the phone layout.
 
-- **Tap-only, strong on a phone:** PN FB WK MC SD SS WN MW WW PP SB HT
+- **Tap-only, strong on a phone:** PN FB WK MC SD SS WN MW WW PP SB HT W1
 - **Tap, plus a transient OS keyboard (the clue):** TS
 - **Keyboard-required — the phone layout, but entry needs a hardware keyboard;
   deliberately not device-gated:** CP RA
@@ -451,3 +463,5 @@ primary axis). Every game but MG has the phone layout.
   timeout instead resolves on most letters covered → fewest words → co-winners
 - **HT:** the most sets when the deck runs dry (not a race — nobody finishes
   alone), and a TIE IS A TIE: co-winners, with no speed tiebreak
+- **W1:** fewest misses to solve, earliest solve breaking a tie (race
+  continues)

@@ -84,9 +84,6 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *                      `near`, unranked is `lost` or `neutral`.
  *   - `solved_at`    — when they solved, in a game with something to
  *                      solve.
- *   - `player_status`
- *                    — the game's copy of what the page shows about
- *                      this player; each game casts it to its own type.
  *   - `ai_member`    — this seat is one of scrabble's AI opponents.
  *                      A profile fact (`common.profiles.ai_member`)
  *                      rather than a game one, but it sits HERE and
@@ -105,7 +102,6 @@ export type GamePlayerRow = Member & {
   final_ranking: number | null
   outcome: EndOutcome | null
   solved_at: string | null
-  player_status: Record<string, unknown>
   ai_member: boolean
 }
 

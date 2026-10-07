@@ -251,7 +251,7 @@ When a folder holds two concerns, the filenames say which one you are in.
 The `G` says "game-specific": this is the game's own `GPlayer`, `GGameData`,
 `GEvent`, `GSetup`, as against the shell's `Member` or `GameDataRaw`. A
 reader of a game file can tell at a glance which side a name is on, and
-`GEvent` across sixteen folders is every game's version of one thing. It goes
+`GEvent` across seventeen folders is every game's version of one thing. It goes
 on every exported type, including the ones with no twin anywhere: without it a
 reader cannot tell `GTileResults` from a shared type without checking the
 import. Components keep their bare names (`PlayArea`, `BoardCol`): no shared
@@ -276,8 +276,8 @@ it as its own (`export type GTile = BeeTile`).
 The shape a game is handed and the shape it reads are two types: `GGameDataRaw`
 is `game_data` and `static_game_data` as the builders wrote them (ids,
 records), merged by `useGame`, each key in its place ([common-schema.md →
-Title, statuses and the two
-dates](common-schema.md#title-statuses-and-the-two-dates)), and `GGameData` is
+Title, page blobs and the two
+dates](common-schema.md#title-page-blobs-and-the-two-dates)), and `GGameData` is
 what `useGame` makes of it (players, maps, the seat rule applied). `Raw` marks
 the written shape wherever the pair exists (`GPlayerRaw` / `GPlayer`,
 `GEventRaw` / `GEvent`). psychicnum is the model (`src/psychicnum/types.ts`);

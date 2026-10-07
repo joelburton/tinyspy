@@ -209,10 +209,6 @@ revoke execute on function wordle._sync_title(uuid) from public;
 --     answerBand                           the setup's
 --     nWinnerGuesses                   compete's, once the race is won; null in coop
 --     nGuessesUsedById                 each racer's guesses, public in a race; null in coop
---
--- The statuses (`game_status`, `player_status`, `clubpage_info`) are not
--- written: nothing reads wordle's any more. The columns stay until a
--- migration retires them for every game.
 
 -- The answer, once the game has ended.
 create or replace function wordle._make_json_puzzle(wg wordle.games, p_ended boolean)

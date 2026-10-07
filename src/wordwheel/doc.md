@@ -186,8 +186,8 @@ game's own, the same shape as the other bee game's
 ([shared/bee-games](../shared/bee-games/doc.md)). `static_game_data`, what
 nothing after create changes, is written once by `_write_static_game_data`,
 from `create_game` and the rebuild over every game, never by a move
-([docs/common-schema.md → Title, statuses and the two
-dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+([docs/common-schema.md → Title, page blobs and the two
+dates](../../docs/common-schema.md#title-page-blobs-and-the-two-dates)); the
 hook merges it into `game_data`, each key in its place:
 
 | blob | wordwheel's part |

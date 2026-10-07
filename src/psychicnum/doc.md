@@ -135,8 +135,8 @@ assembled): `shell_data` through `common._make_json_shell_data`, and on top of t
 part of every `game_data` (`common._make_json_game_data`) psychicnum's own.
 `static_game_data`, what nothing after create changes, is written once by
 `_write_static_game_data`, from `create_game` and the rebuild over every game,
-never by a move ([docs/common-schema.md → Title, statuses and the two
-dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+never by a move ([docs/common-schema.md → Title, page blobs and the two
+dates](../../docs/common-schema.md#title-page-blobs-and-the-two-dates)); the
 hook merges it into `game_data`, each key in its place:
 
 | blob | psychicnum's part |
@@ -159,10 +159,6 @@ carries no progress; the race's winner is the player the common `players` ranks
 first.
 `psychicnum._rebuild_data_cols_for_all()` rewrites every psychicnum game's
 blobs without re-dating them, for a shape change.
-
-The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
-nothing reads psychicnum's any more. The columns stay until a migration retires
-them for every game.
 
 ### Two things worth knowing before reading the SQL
 

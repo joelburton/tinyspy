@@ -4,9 +4,8 @@
 -- Test: connections._rebuild_data_cols — the date, and a write that assigns
 -- ============================================================
 -- What the blobs hold is game_data_test.sql's. This file pins how they are
--- written: only a call that says so moves status_changed_at, a rebuild
--- assigns the whole column and never merges, and the statuses a game not yet
--- on the blobs writes are left alone.
+-- written: only a call that says so moves status_changed_at, and a rebuild
+-- assigns the whole column and never merges.
 -- ============================================================
 
 begin;
@@ -14,7 +13,7 @@ set search_path = connections, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(7);
+select plan(6);
 
 create temp table puzzle on commit drop as select pg_temp.connections_puzzle() as id;
 grant select on puzzle to authenticated;
@@ -68,13 +67,6 @@ select is(
   (select summary_data ? 'stale' from common.games where id = (select id from g where mode = 'coop')),
   false,
   'a rebuild drops a stale key');
-
--- ── The statuses are not connections' to write ──
-select is(
-  (select count(*)::int from common.games
-    where id in (select id from g) and game_status = '{}' and clubpage_info = '{}'),
-  2,
-  'the game''s statuses keep their column defaults');
 
 select * from finish();
 rollback;

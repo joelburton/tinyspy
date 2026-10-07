@@ -183,8 +183,8 @@ how the partner hears of it — each assigned whole ([plans/seat-view.md](../../
 `game_data` (`common._make_json_game_data`) this game's own.
 `static_game_data`, what nothing after create changes, is written once by
 `_write_static_game_data`, from `create_game` and the rebuild over every game,
-never by a move ([docs/common-schema.md → Title, statuses and the two
-dates](../../docs/common-schema.md#title-statuses-and-the-two-dates)); the
+never by a move ([docs/common-schema.md → Title, page blobs and the two
+dates](../../docs/common-schema.md#title-page-blobs-and-the-two-dates)); the
 hook merges it into `game_data`, each key in its place:
 
 | blob | codenamesduet's part |

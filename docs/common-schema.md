@@ -18,8 +18,8 @@ carry each function's full contract and outcomes. How every RPC answers is
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players`, `default_enroll` and `brand` (the user-facing name, the same on both siblings) |
 | `clubs_gametypes` | one row per club per registered gametype: `is_enabled` (listed on the club page), the daily cap `max_daily_games` and its counter `n_started_today` / `started_on` ([Paw protection](#paw-protection--a-daily-cap-per-gametype)), and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start. `clubs_gametypes_today` is the view the page reads, with the counter resolved to `used_today` |
-| `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the page blobs the game's builders write (`summary_data`, `shell_data`, `game_data`, `static_game_data` — null until a game's builder writes them; [The page blobs](#title-statuses-and-the-two-dates), below); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
-| `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `outcome`, written when the player ends and again at the game's end; `final_ranking`, written at the game's end; and `player_status`, the builder's copy |
+| `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the page blobs the game's builders write (`summary_data`, `shell_data`, `game_data`, `static_game_data` — null until a game's builder writes them; [The page blobs](#title-page-blobs-and-the-two-dates), below); and the two dates, `status_changed_at` and `updated_at` ([Title, page blobs and the two dates](#title-page-blobs-and-the-two-dates)). A game's own detail row shares its id |
+| `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `outcome`, written when the player ends and again at the game's end; `final_ranking`, written at the game's end |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
 | `messages` | club chat: one thread per club across every game, 1–1000 characters; a message starting `!` is important and force-opens chat for the others |
 | `game_scratchpads` | the opt-in scratchpad: one row per pad, shared (no owner) or a player's own |
@@ -75,16 +75,11 @@ pause cost one second rather than its length. Pause and "nobody here" need no
 bookkeeping — they are seconds when nobody ticks. The frontend half is
 [`common/timer`](../src/common/timer/doc.md).
 
-### Title, statuses and the two dates
+### Title, page blobs and the two dates
 
 - **`title`** is built by each game's `create_game` (and rewritten by its moves
   where the game says so); the rules every title follows are
   [game-summary.md](game-summary.md).
-- **The statuses** — `games.game_status`, each `game_players.player_status`
-  and `games.clubpage_info` — are the copies a game not yet on the page blobs
-  writes, and nothing reads; a game's conversion stops writing them, and a
-  migration retires the columns once the last game has. They are club-readable,
-  so they carry only what every player already sees.
 - **The page blobs** — `games.shell_data`, `games.game_data`,
   `games.static_game_data`, `games.summary_data` — are what one reader each
   shows, in that reader's names ([plans/seat-view.md](../plans/seat-view.md) →

@@ -5,8 +5,8 @@
  * face and none of the interaction chrome, which lives on the shared `.tile`.
  */
 /* @@ */ .tile {
-  /* The grid already squares its cells (1fr rows under the grid's own
-   * aspect-ratio); this holds the shape if either ever changes. */
+  /* Square at its column's width: this is what sets each row's height
+   * (Board's `.grid`). */
   aspect-ratio: 1;
   user-select: none;
 }

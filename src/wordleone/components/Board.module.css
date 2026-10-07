@@ -18,10 +18,11 @@
 /* The board grid: --rows rows of --cols square tiles. HUGS its WIDTH — as wide
  * as a row of tiles + gaps needs, capped per tile by --max-tile-width, never
  * past --avail-w (the shared scaffold token on .layout, the width left beside
- * the info column). `aspect-ratio` then derives the HEIGHT so the tiles stay
- * SQUARE — wordleone's iconic look (a keyboard shares this column below the board,
- * so the board hugs its height rather than filling the column). Each row is its
- * own --cols grid (BoardRow's `.row`). */
+ * the info column). Each row is its own --cols grid (BoardRow's `.row`), and
+ * its HEIGHT is its tiles': square (Tile's `aspect-ratio`) at the column's
+ * width. Not a cols / rows `aspect-ratio` on the grid, which leaves the gaps
+ * out — near enough at wordle's six rows, but at two it makes each row taller
+ * than a column is wide, and the square tiles spill past the grid's edge. */
 /* @@ */ .grid {
   /* The TILE TOKENS for this board. wordleone's tiles are the shared `.tileFace`
    * (the box, radius and token plumbing — see common playArea.module.css), and
@@ -48,9 +49,8 @@
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 /* @@ */   --tile-shadow: none;
   display: grid;
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
   gap: var(--grid-gap);
-  aspect-ratio: var(--cols) / var(--rows);
 }
 
 /* Cap the board by the LEFTOVER HEIGHT — at every width, not just on a phone.

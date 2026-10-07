@@ -135,6 +135,7 @@ area is audited. The rows below name only what's distinctive about each:
 | [src/connections/doc.md](src/connections/doc.md) | **WordKnit**: the FE-knows decision; peer selection over Broadcast |
 | [src/spellingbee/doc.md](src/spellingbee/doc.md) | **FreeBee**: required + bonus words, the rank ladder, the board built in an edge function |
 | [src/wordle/doc.md](src/wordle/doc.md) | **WordNerd**: hidden-target colors, mode-aware per-guess RLS |
+| [src/wordleone/doc.md](src/wordleone/doc.md) | **WordNerdier**: Wordle in 1 — the puzzle built in an edge function, a miss that tells nothing; wordle's frontend copied |
 | [docs/games/bananagrams.md](docs/games/bananagrams.md) | **MonkeyGrams**: FE-owned board, server-owned tiles; desktop-only |
 | [docs/games/waffle.md](docs/games/waffle.md) | **SyrupSwap**: hidden-solution colors, boards built on demand |
 | [docs/games/stackdown.md](docs/games/stackdown.md) | **StackDown**: the no-trap board invariant, the pre-generated library |
@@ -315,9 +316,9 @@ features (codenamesduet's clue suggester and crosswords' clue explainer;
 scrabble's move suggester and AI opponent are a local trie search, not an LLM).
 See [README.md](README.md) for the longer narrative.
 
-Sixteen games are live (codenamesduet, connections, psychicnum, spellingbee,
+Seventeen games are live (codenamesduet, connections, psychicnum, spellingbee,
 bananagrams, waffle, wordle, stackdown, scrabble, boggle, crosswords, wordwheel,
-wordiply, strands, letterboxed, setgame). psychicnum is a deliberately minimal
+wordiply, strands, letterboxed, setgame, wordleone). psychicnum is a deliberately minimal
 toy whose job is to exercise the multi-game architecture with the smallest
 possible game-logic surface, which is why it is where a shared shape gets
 settled first.

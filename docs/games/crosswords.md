@@ -98,8 +98,8 @@ part of `game_data` and `summary_data` this game's own.
 `crosswords._rebuild_data_cols_for_all()` rebuilds every crosswords game without
 re-dating it. `static_game_data`, what nothing after create changes, is
 written once by `_write_static_game_data`, from `create_game` and that
-rebuild, never by a move ([common-schema.md → Title, statuses and the two
-dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+rebuild, never by a move ([common-schema.md → Title, page blobs and the two
+dates](../common-schema.md#title-page-blobs-and-the-two-dates)); the hook merges
 it into `game_data`, each key in its place.
 
 | blob | crosswords' part |

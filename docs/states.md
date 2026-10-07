@@ -123,11 +123,10 @@ referred to as `foo.games` below for brevity.)
 - `mode` (`coop` or `compete`)
 - the ending: `ended_at`, the reason pair, `game_ended_by_user_id`,
   `game_ended_outcome`
-- the statuses: `game_status` for the play page and `clubpage_info` for the
-  summary, beside each player's `common.game_players.player_status` —
-  copies of the game's own tables, written whole by the game's status builder
-  ([common-schema.md → Title, statuses and the two
-  dates](common-schema.md#title-statuses-and-the-two-dates))
+- the page blobs: `game_data` and `static_game_data` for the play page,
+  `summary_data` for the club page, `shell_data` for the frame — written whole
+  by the game's builder ([common-schema.md → Title, page blobs and the two
+  dates](common-schema.md#title-page-blobs-and-the-two-dates))
 - The game clock lives in a **separate table, `common.timers (game_id, ticks,
   last_tick, kind, countdown_seconds_at_setup)`** — NOT on the games row, so the
   once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks`
@@ -156,8 +155,8 @@ rules join `common.games` for those.
 
 ### Listing implication
 
-The club page lists games entirely from `common.games`: the title, the ending
-columns and `clubpage_info`. No `foo.games` is touched.
+The club page lists games entirely from `common.games`: the current-view flag
+and `summary_data`. No `foo.games` is touched.
 
 ## Suspended vs ended — not a special case
 

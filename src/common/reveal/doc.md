@@ -6,7 +6,7 @@ looks like.
 
 ## Intro to area
 
-A finished game still has one thing to say, and for ten of the sixteen it is the
+A finished game still has one thing to say, and for eleven of the seventeen it is the
 answer itself — the word, the solved grid, the categories nobody got, where the
 theme words were hiding. Putting it on screen is not a question about
 permission: the server hands the solution over the moment the game has ended
@@ -52,9 +52,9 @@ filter already IS the control, mount none of this.
 ## Details
 
 ```
-<PlayArea>                              ten of the sixteen games
+<PlayArea>                              eleven of the seventeen games
 └── useSolutionReveal({ impliedBy? })    local, per-player, unpersisted
-     ├── impliedBy: gd.me.hasSolved          the six where a board-solution IS the puzzle-solution
+     ├── impliedBy: gd.me.hasSolved          the seven where a board-solution IS the puzzle-solution
      └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
            impliedBySolve → disabled, "Solution already shown"
            revealed       → "Hide <noun>" + IconHideSolution
@@ -69,6 +69,7 @@ filter already IS the control, mount none of this.
 | strands | the theme words + spangram | yes — they tile the board exactly | `hasSolved` | solution |
 | waffle | the solved grid | yes — by definition | `hasSolved` | solution |
 | wordle | the target word | yes — you can only finish by typing it | `hasSolved` | solution |
+| wordleone | the target word, also drawn on the board | yes — you can only finish by typing it | `hasSolved` | solution |
 | codenamesduet | the partner's key card | **no** — a win contacts all fifteen agents and still never names your bystanders | — | **key cards** |
 | crosswords | the author's grid | **no** — rebuses and quantum clues | — | solution |
 | letterboxed | the seeded pair | **no** — any covering chain wins | — | solution |
@@ -76,7 +77,7 @@ filter already IS the control, mount none of this.
 | boggle · spellingbee · wordwheel | the full word list | — | — | no control: the list's found/missed filter is it |
 | bananagrams · scrabble · setgame | none | — | — | no answer to show |
 
-**One `describe()` serves all ten**, `describeReveal({ noun, revealed,
+**One `describe()` serves all eleven**, `describeReveal({ noun, revealed,
 impliedBySolve?, isGameEnded })`, so the three states cannot drift: inert with
 "Solution already shown", live as "Hide <noun>" wearing `IconHideSolution`, and
 "Reveal <noun>" — gray until the game is over for EVERYONE, tooltipped *"Can't

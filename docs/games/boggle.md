@@ -317,8 +317,8 @@ and `nFoundReqdWords`, `foundReqdWordsScore`, `nFoundBonusWords`,
 `boggle._make_json_found_counts`, over one player's rows or everyone's.
 `static_game_data`, what nothing after create changes, is written once by
 `_write_static_game_data`, from `create_game` and the rebuild over every game,
-never by a move ([common-schema.md → Title, statuses and the two
-dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+never by a move ([common-schema.md → Title, page blobs and the two
+dates](../common-schema.md#title-page-blobs-and-the-two-dates)); the hook merges
 it into `game_data`, each key in its place:
 
 | blob | boggle's part |

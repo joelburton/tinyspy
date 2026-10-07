@@ -847,6 +847,71 @@ export async function seedWordleGuesses(
 }
 
 /**
+ * The one wordleone puzzle the e2e games are built on, the pgTAP tests' own
+ * (supabase/tests/wordleone/setup.psql): VERSE is the only word in the whole
+ * list that makes `yxyyg` against SIEVE, so it is unique at every band, and it
+ * is band 1. A fixed puzzle keeps every test off the hidden column.
+ */
+export const WORDLEONE_PUZZLE = { starter: 'sieve', colors: 'yxyyg', answer: 'verse' } as const
+
+/** Legal band-1/2 words that are neither the starter nor the answer: misses. */
+const WORDLEONE_MISSES = ['crane', 'stare', 'mouth', 'adieu', 'plant', 'house'] as const
+
+/**
+ * Start a wordleone game (coop by default) on `WORDLEONE_PUZZLE`, through
+ * `create_game` directly — the edge function would build a random puzzle, and
+ * create_game checks a handed one the same way either way. Returns id +
+ * gametype for the URL.
+ */
+export async function createWordleoneGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('wordleone')
+    .rpc('create_game', {
+      p_club_handle: club.handle,
+      p_setup: { legal_band: 2, difficulty: 'medium', timer: { kind: 'none' } },
+      p_player_user_ids: playerUserIds,
+      p_mode: mode,
+      p_board: WORDLEONE_PUZZLE,
+    })
+  return { id: createdGameId(res, 'wordleone.create_game'), gametype: `wordleone_${mode}` }
+}
+
+/**
+ * Submit `n` misses on a wordleone game as `member`, through the real RPC, so a
+ * board loads with event-log rows. Returns the words (upper-cased), in order.
+ */
+export async function seedWordleoneMisses(
+  member: E2EMember,
+  gameId: string,
+  n: number,
+): Promise<string[]> {
+  const words = WORDLEONE_MISSES.slice(0, n)
+  if (words.length < n) throw new Error(`wordleone misses: have ${WORDLEONE_MISSES.length}, asked ${n}`)
+  for (const word of words) {
+    const res = await asUser(member.session.access_token)
+      .schema('wordleone')
+      .rpc('submit_guess', { p_game_id: gameId, p_guess: word })
+    const { result } = envelopeData<{ result?: string }>(res, `wordleone.submit_guess(${word})`)
+    if (result !== 'miss') throw new Error(`submit_guess(${word}) → ${result}, expected miss`)
+  }
+  return words.map((w) => w.toUpperCase())
+}
+
+/** Solve a wordleone game as `member`: guess `WORDLEONE_PUZZLE`'s answer. */
+export async function solveWordleone(member: E2EMember, gameId: string): Promise<void> {
+  const res = await asUser(member.session.access_token)
+    .schema('wordleone')
+    .rpc('submit_guess', { p_game_id: gameId, p_guess: WORDLEONE_PUZZLE.answer })
+  const { result } = envelopeData<{ result?: string }>(res, 'wordleone.submit_guess(answer)')
+  if (result !== 'correct') throw new Error(`submit_guess(answer) → ${result}, expected correct`)
+}
+
+/**
  * Commit one waffle swap through the real RPC, so a game loads with a populated
  * event log (a `#N` handle for the history viewer). Swapping two ALREADY-CORRECT
  * cells makes the board worse without solving it, so the game stays mid-play with

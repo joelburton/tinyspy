@@ -4,10 +4,9 @@ import type { GamePlayerLegacy, Member } from './member'
 
 /**
  * Build a [GamePlayerLegacy] for component tests with the per-player state defaulted
- * (still playing in a free-for-all, on turn, unranked, an empty status — the
- * normal mid-game state). Pass `over` to set the ending, the ranking, the
- * `player_status` or the standing for a drop-out, a finished player or an
- * ended game.
+ * (still playing in a free-for-all, on turn, unranked — the normal mid-game
+ * state). Pass `over` to set the ending, the ranking or the standing for a
+ * drop-out, a finished player or an ended game.
  *
  * Keeps test fixtures from having to spell those fields out on every player
  * literal, and gives the concede tests a one-liner conceded player:
@@ -29,7 +28,6 @@ export function ZTest_gp(
     final_ranking: null,
     outcome: null,
     solved_at: null,
-    player_status: {},
     ai_member: false,
     isConceded: false,
     isPlayerEnded: false,

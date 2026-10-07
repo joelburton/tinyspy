@@ -321,8 +321,8 @@ assembled). Every key is always present, null when it has no value.
 `static_game_data`, what nothing after create changes, is written once by
 `_write_static_game_data`, from `create_game` and the rebuild over every game,
 and is the common part alone: scrabble has no puzzle, and its board is the
-game in play ([common-schema.md → Title, statuses and the two
-dates](../common-schema.md#title-statuses-and-the-two-dates)). Beside the
+game in play ([common-schema.md → Title, page blobs and the two
+dates](../common-schema.md#title-page-blobs-and-the-two-dates)). Beside the
 common part:
 
 | `game_data` key | what it is |

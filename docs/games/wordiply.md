@@ -216,8 +216,8 @@ four numbers — `nGuessesUsed`, and `lengthScore`, `nLetters`,
 `wordiply._make_json_track`, over one player's accepted words or the whole
 team's. `static_game_data`, what nothing after create changes, is written once
 by `_write_static_game_data`, from `create_game` and the rebuild over every
-game, never by a move ([common-schema.md → Title, statuses and the two
-dates](../common-schema.md#title-statuses-and-the-two-dates)); the hook merges
+game, never by a move ([common-schema.md → Title, page blobs and the two
+dates](../common-schema.md#title-page-blobs-and-the-two-dates)); the hook merges
 it into `game_data`, each key in its place:
 
 | blob | wordiply's part |
@@ -227,8 +227,7 @@ it into `game_data`, each key in its place:
 | `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop; `lengthScoreById` and `nLettersById`, each racer's scores once the game has ended, null before and in coop |
 
 **The client reads nothing from these tables.** The page is handed the blobs
-off `common.games` and re-reads them as the shell delivers each rewrite. The
-statuses (`game_status`, `player_status`, `clubpage_info`) are not written.
+off `common.games` and re-reads them as the shell delivers each rewrite.
 
 ---
 

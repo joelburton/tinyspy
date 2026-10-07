@@ -166,8 +166,8 @@ viewer — is [src/common/event-log/doc.md](../src/common/event-log/doc.md).
 - **A game page reads `common.games`, and nothing else of the game.**
   `GamePageGate` reads `shell_data` to learn whether the game is there and
   whether I am seated; `useCommonGame` reads the page blobs ([common-schema.md
-  → Title, statuses and the two
-  dates](common-schema.md#title-statuses-and-the-two-dates)) on mount and again
+  → Title, page blobs and the two
+  dates](common-schema.md#title-page-blobs-and-the-two-dates)) on mount and again
   on each `changed` nudge ([Realtime](#realtime)). A game's own tables are read
   by its builder, in SQL, not by the page; what a player may not see yet stays
   out of the blob until the builder lets it in, or is withheld by the game's
@@ -295,7 +295,7 @@ one service-role write (`cache_definition`) and does everything else as the
 caller.
 
 - **Build-board** functions (the found-words games, waffle, wordiply,
-  letterboxed) parse the request, fetch candidates, generate the board in
+  letterboxed, wordleone) parse the request, fetch candidates, generate the board in
   TypeScript, and relay `create_game`'s envelope.
 - **Claude** calls hold `ANTHROPIC_API_KEY` (codenamesduet's clue suggester,
   crosswords' clue explainer); scrabble's suggester and AI opponent run the

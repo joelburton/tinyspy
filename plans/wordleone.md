@@ -680,7 +680,15 @@ ENV=local` while the local DB is a prod copy — ask first).
   `wordleone-mobile`.
 
 **Done when:** those specs and the gallery cells pass, run one by one on
-Joel's go.
+Joel's go. Met 2026-10-07 for the specs (7 passed) as built: the fixtures are
+`createWordleoneGame` (straight to `create_game` on the pgTAP puzzle, SIEVE →
+VERSE, so no test reads the hidden column), `seedWordleoneMisses` and
+`solveWordleone`; the gallery has a `lost` cell after all — the clock's.
+The gallery cells could not run: its clubs fail PN012 on the local data until
+`gmake db-reset ENV=local`, which was not run. Screenshots taken by a
+throwaway spec found the board's tiles spilling 8px past the grid at two rows
+(the grid's cols/rows `aspect-ratio` leaves the gap out); the rows now take
+their tiles' height.
 
 ### Step 8 — the docs
 
@@ -696,13 +704,20 @@ Joel's go.
   (`docs/code-conventions.md:254`, `docs/states.md:83`, `docs/testing.md`'s
   gallery totals, `Makefile:830`).
 
-**Done when:** the guards are green (links, prose paths, spelling).
+**Done when:** the guards are green (links, prose paths, spelling). Met
+2026-10-07. `docs/states.md` and `docs/testing.md` had no count to change; the
+gallery's own comments still say "fifteen", as they did before this game.
 
 ### Step 9 — prod
 
-On Joel's go: `gmake project-config-api ENV=prod` for the exposed schemas,
-then `gmake deploy ENV=prod` (the migration, `supabase/sql/`, every
-function including the new one, the FE). Nothing to rebuild —
+On Joel's go: `gmake db-schema-sql ENV=prod` first, so the schema exists,
+then `gmake project-config-api ENV=prod` to expose it, then `gmake deploy
+ENV=prod` (the migration and `supabase/sql/` again, harmlessly, every
+function including the new one, the FE). Done 2026-10-07, after a backup
+(`backups/prod-20261007-135008.dump`): the one migration landed, the schema is
+exposed, `wordleone-build-board` is live and answers, and all ten clubs have
+both rows (compete off in the six solo ones). No game has been played on prod
+yet. Nothing to rebuild —
 no existing game reads the new blobs. Then one coop and one compete game on
 prod.
 

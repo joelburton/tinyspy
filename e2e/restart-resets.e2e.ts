@@ -9,6 +9,7 @@ import {
   createStrandsGame,
   createWordiplyGame,
   createWordleGame,
+  createWordleoneGame,
   createWordwheelGame,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
@@ -93,6 +94,7 @@ const GAMES = [
   { name: 'strands', make: createStrandsGame },
   { name: 'wordiply', make: createWordiplyGame },
   { name: 'wordle', make: createWordleGame },
+  { name: 'wordleone', make: createWordleoneGame },
   { name: 'wordwheel', make: createWordwheelGame },
 ] as const
 

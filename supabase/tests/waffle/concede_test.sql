@@ -53,8 +53,8 @@ select is(
   (select game_ended_outcome from common.games where id = (select id from g)),
   'lost', 'both conceding ends the game as a collective loss');
 select is(
-  (select clubpage_info->>'winner_user_id' from common.games where id = (select id from g)),
-  null, 'no winner when everyone conceded (a conceder forfeits)');
+  (select pg_temp.winner_ids(summary_data) from common.games where id = (select id from g)),
+  '[]'::jsonb, 'no winner when everyone conceded (a conceder forfeits)');
 -- The two ways a race ends with nobody winning are both `lost`; the reason is
 -- what lets the club list tell "everyone spent their swaps" from "everyone
 -- walked away".

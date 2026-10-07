@@ -279,6 +279,42 @@ guesses.
 
 **Surprises and ruling ideas** — none.
 
+### wordleone
+
+A starter word already colored against a hidden word, which is the only legal
+word that fits; a wrong guess is a miss and says nothing more. Guesses are
+unlimited.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: the word found
+  - `goal-chosen` — none
+  - `goal-progress` — none
+- **solving**
+  - `solved` — the word found
+  - `perfect-play` — no misses
+  - `author-solution` — the word
+- **winning and losing**
+  - `ranked-by`
+    1. fewest misses
+    2. the earlier solve
+  - `final-ranking` — by `ranked-by`
+  - `loses-by` — `loses-by-timeout-only`
+  - `announce-when`
+    - coop: `announce-when-decided`
+    - compete: `announce-when-ended`
+  - `progress-shown`
+    - `progress-shown-count`: misses
+    - `progress-shown-milestones`: solved
+- **ending**
+  - `exhaustible-resource` — none
+  - `ends-when` — `ends-when-all-done`
+  - `timeout-result` — `timeout-ranks-by-goal`
+- **hints** — none
+
+**Mismatches** — none.
+
+**Surprises and ruling ideas** — none.
+
 ### psychicnum
 
 Three secret words hidden on a board of 5–20; every guess spends one from a

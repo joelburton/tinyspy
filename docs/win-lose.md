@@ -123,8 +123,8 @@ server-side detection of its running out.
   than crowning anyone. Weighed against crowning the closest and preferred:
   "closest" is ill-defined in most games with an intrinsic goal, and crowning
   a shared failure muddies won and lost. The carriers exist (each player's
-  `player_status`, the end-of-game reveals); the work is each game's choice of progress
-  measure.
+  facts on the page blobs, the end-of-game reveals); the work is each game's
+  choice of progress measure.
 
 ## Where a player stands — the terms, as formulas
 

@@ -161,8 +161,8 @@ assembled): `shell_data` through `common._make_json_shell_data`, and on top of
 the common part of every `game_data` (`common._make_json_game_data`)
 connections' own. `static_game_data`, what nothing after create changes, is
 written once by `_write_static_game_data`, from `create_game` and the rebuild
-over every game, never by a move ([docs/common-schema.md → Title, statuses and
-the two dates](../../docs/common-schema.md#title-statuses-and-the-two-dates));
+over every game, never by a move ([docs/common-schema.md → Title, page blobs and
+the two dates](../../docs/common-schema.md#title-page-blobs-and-the-two-dates));
 the hook merges it into `game_data`, each key in its place:
 
 | blob | connections' part |
@@ -182,10 +182,6 @@ their own in compete — and their own under `own`
 how close a racer is; the winner is the player the common `players` ranks first.
 `connections._rebuild_data_cols_for_all()` rewrites every connections game's
 blobs without re-dating them, for a shape change.
-
-The statuses (`game_status`, `player_status`, `clubpage_info`) are not written:
-nothing reads connections' any more. The columns stay until a migration
-retires them for every game.
 
 **What a racer may see of a rival is the hook's rule, not a policy's.** The
 blob carries every player's rows and every seat's board, and `useGame`

@@ -26,6 +26,7 @@ const GAMES = [
   { codename: 'spellingbee', brand: /FreeBee/, board: '[data-board]' },
   { codename: 'wordwheel', brand: /MooseWheel/, board: '[data-board]' },
   { codename: 'wordiply', brand: /WordWire/, board: '[data-board]' },
+  { codename: 'wordleone', brand: /WordNerdier/, board: '[data-board]' },
   { codename: 'boggle', brand: /MothCubes/, board: '[data-tile]' },
 ]
 

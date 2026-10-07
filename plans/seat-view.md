@@ -401,7 +401,8 @@ next open (todo.md → Someday).
   1. **Migration (shape).** `summary_data`, `shell_data` and `game_data` on
      `common.games`, nullable so an unconverted game's row is empty rather
      than failing; `game_status` and `player_status` stay until a later
-     migration retires them (Joel's call). `brand` and `oneBoard` on
+     migration retires them (Joel's call) — done in
+     `20261007000006_drop_statuses.sql`, with `clubpage_info`. `brand` and `oneBoard` on
      `common.gametypes`, seeded for every gametype in the same file; the
      manifest keeps its copy, kept in sync by hand for now, and what to evict
      from it is decided later.
