@@ -212,15 +212,16 @@ select is(
   'solo club''s sole member is fia herself'
 );
 
--- clubs_gametypes fans out across the solo-playable registry — a
--- solo club only enrolls in gametypes one person can play, and only
--- the default-enroll ones (psychicnum's pair opts out).
+-- clubs_gametypes carries a row per registered gametype (paw protection:
+-- the cap and the saved setup live on the row), LISTED only for the ones one
+-- person can play, and only the default-enroll ones (psychicnum's pair opts
+-- out).
 select is(
   (select count(*) from common.clubs_gametypes
-    where club_handle = '=fia'),
+    where club_handle = '=fia' and is_enabled),
   (select count(*) from common.gametypes
     where min_players <= 1 and default_enroll),
-  'solo club opted in to every solo-playable default-enroll gametype'
+  'solo club lists every solo-playable default-enroll gametype'
 );
 
 -- ============================================================

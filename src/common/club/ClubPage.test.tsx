@@ -84,6 +84,8 @@ vi.mock('../toasts/toastStore', async (importOriginal) => ({
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => {} }))
 vi.mock('../chat/ChatHost', () => ({ ChatHost: () => null }))
+// Paw protection always says yes here; its own tests cover the refusal.
+vi.mock('../paw-protection/pawProtectionService', () => ({ ensureCanStart: async () => true }))
 vi.mock('@/gametypes', () => ({
   gametypes: [WORDLE, DUEL, SYRUP],
   manifestFor: (gametype: string) =>
@@ -99,15 +101,19 @@ Element.prototype.scrollIntoView = vi.fn()
 
 const authSession = { user: { id: 'ada' } } as unknown as Session
 
-const CLUB = { handle: 'trio', name: 'Trio', is_solo: false }
+const CLUB = { handle: 'trio', name: 'Trio', is_solo: false, can_edit_settings: true }
 const MEMBERS = [
   { id: 'ada', username: 'ada', color: 'red' },
   { id: 'bea', username: 'bea', color: 'blue' },
 ]
+/** A club's row for one gametype, listed, with no cap. */
+function listedGametype(gametype: string) {
+  return { gametype, is_enabled: true, max_daily_games: null, used_today: 0, default_setup: null }
+}
 const ENROLLED = [
-  { gametype: 'wordle_coop', default_setup: null },
-  { gametype: 'wordle_compete', default_setup: null },
-  { gametype: 'syrup_coop', default_setup: null },
+  listedGametype('wordle_coop'),
+  listedGametype('wordle_compete'),
+  listedGametype('syrup_coop'),
 ]
 
 /** A listed game, as `useClubGames` would have built it. */
@@ -236,7 +242,7 @@ describe('ClubPage — each filter reaches one list', () => {
       <ClubPage
         club={CLUB}
         members={MEMBERS}
-        initialGametypes={[{ gametype: 'wordle_coop', default_setup: null }]}
+        initialGametypes={[listedGametype('wordle_coop')]}
         authSession={authSession}
       />,
     )
@@ -253,6 +259,40 @@ describe('ClubPage — each filter reaches one list', () => {
     ).not.toBeInTheDocument()
     expect(startList().getAllByText('WordNerd')).toHaveLength(2)
     expect(startList().getByText('SyrupSwap')).toBeInTheDocument()
+  })
+
+  it('lists only the gametypes the club has listed', () => {
+    // Every registered gametype has a row; `is_enabled` is what puts it on
+    // the start list.
+    render(
+      <ClubPage
+        club={CLUB}
+        members={MEMBERS}
+        initialGametypes={[listedGametype('wordle_coop'), { ...listedGametype('syrup_coop'), is_enabled: false }]}
+        authSession={authSession}
+      />,
+    )
+    expect(startList().getAllByText('WordNerd')).toHaveLength(1)
+    expect(startList().queryByText('SyrupSwap')).not.toBeInTheDocument()
+  })
+})
+
+describe('ClubPage — the edit gate', () => {
+  async function openMenu() {
+    await userEvent.click(screen.getByRole('button', { name: 'Club menu' }))
+    return within(screen.getByRole('menu', { name: 'Club menu' }))
+  }
+
+  it('offers Edit club while the club can edit its settings', async () => {
+    draw()
+    const menu = await openMenu()
+    expect(menu.getByRole('menuitem', { name: 'Edit club' })).toBeInTheDocument()
+  })
+
+  it('hides Edit club when the settings are locked', async () => {
+    draw({ ...CLUB, can_edit_settings: false })
+    const menu = await openMenu()
+    expect(menu.queryByRole('menuitem', { name: 'Edit club' })).not.toBeInTheDocument()
   })
 })
 

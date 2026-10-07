@@ -157,18 +157,40 @@ export async function createClubWithMembers(names: string[]): Promise<E2EClub> {
   // The handle is DERIVED from the name (server-side slugify), so it has to be
   // read back rather than recomputed here.
   const { handle } = envelopeData<{ handle: string }>(club, 'common.create_club')
+  await listEveryGametype(handle, creator.session.access_token)
 
   return { handle, members }
 }
 
 /**
  * Create one user and return their auto-created solo club (`=<username>`).
- * The cleanest fixture for single-player game tests — claim_username already
- * registers every gametype on the solo club, so it can start any game.
+ * The cleanest fixture for single-player game tests. claim_username lists the
+ * solo-playable default gametypes on the solo club; the rest are listed here,
+ * so it can start any game.
  */
 export async function createSoloClub(name: string): Promise<E2EClub> {
   const [member] = await createMembers([name])
-  return { handle: `=${member.username}`, members: [member] }
+  const handle = `=${member.username}`
+  await listEveryGametype(handle, member.session.access_token)
+  return { handle, members: [member] }
+}
+
+/**
+ * List every registered gametype on a club, as a member, through the edit
+ * dialog's own RPC. `create_game` refuses a gametype the club does not list
+ * (paw protection), and psychicnum — the minimal gametype most specs start —
+ * is off by default.
+ */
+async function listEveryGametype(handle: string, accessToken: string): Promise<void> {
+  const registry = await asUser(accessToken).schema('common').from('gametypes').select('gametype')
+  if (registry.error) throw new Error(`common.gametypes: ${registry.error.message}`)
+  const res = await asUser(accessToken)
+    .schema('common')
+    .rpc('set_club_gametypes', {
+      p_club_handle: handle,
+      p_settings: registry.data.map((row) => ({ gametype: row.gametype, is_enabled: true })),
+    })
+  envelopeData(res, 'common.set_club_gametypes')
 }
 
 /**

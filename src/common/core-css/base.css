@@ -176,6 +176,15 @@
      below it everywhere they are read. */
   --font-size-packed:  0.95rem;
 
+  /* And one step ABOVE body size, named the same way: `notice` is the size
+     of a few words meant to be read once, from across the room — the
+     paw-protection poster's sentence. The number is h2's, since a notice
+     reads at a heading's size rather than running text's; a token rather
+     than that literal because the words are a paragraph, not a heading,
+     and a paragraph's size is a vocabulary value (Joel set the size,
+     2026-10-07). */
+  --font-size-notice:  1.25rem;
+
   /* LINE HEIGHT — unitless, so it multiplies the element's own size
      rather than a size inherited from somewhere else. `-1` is prose,
      `-2` a tighter block, `-3` a single line that should occupy

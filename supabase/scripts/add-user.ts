@@ -304,8 +304,10 @@ async function main() {
   }
 
   // ── report what actually landed, read back rather than assumed ──
+  // The LISTED gametypes: every club carries a row per gametype, enabled or
+  // not (paw protection), and the listed ones are what the club page shows.
   const count = queryScalar(
-    `select count(*) from common.clubs_gametypes where club_handle = ${lit('=' + HANDLE)}`,
+    `select count(*) from common.clubs_gametypes where club_handle = ${lit('=' + HANDLE)} and is_enabled`,
   )
 
   const kind = queryScalar(
@@ -313,7 +315,7 @@ async function main() {
        from common.profiles where user_id = ${lit(userId)}`,
   )
   console.log(`── handle      ${HANDLE} (${color}, ${kind})`)
-  console.log(`── solo club   =${HANDLE} — ${count} gametypes`)
+  console.log(`── solo club   =${HANDLE} — ${count} gametypes listed`)
   if (AI) {
     console.log(`\n  ${HANDLE} is a bot: it is seated by the game that offers it, never`)
     console.log('  added to a club, and it will never sign in.')

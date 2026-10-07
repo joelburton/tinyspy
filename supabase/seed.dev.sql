@@ -107,14 +107,11 @@ insert into common.clubs_members (club_handle, user_id) values
   ('all-3', 'deadbeef-0000-0000-0000-000000000003')
 on conflict (club_handle, user_id) do nothing;
 
--- ── Enroll every club in its gametypes — solo clubs get the solo-playable
--- ones, shared clubs every default-enroll gametype (so no psychicnum, the
--- opt-in toy) — exactly what claim_username / create_club do (via
--- common._default_gametypes_for_club, the single source of truth). ──
-insert into common.clubs_gametypes (club_handle, gametype)
-  select c.handle, gt.gametype
-    from (values ('=joel'), ('=moth'), ('=leah'), ('joel-moth'), ('all-3')) as c(handle)
-   cross join lateral common._default_gametypes_for_club(c.handle) as gt(gametype)
-on conflict (club_handle, gametype) do nothing;
+-- ── Every gametype's row per club, enabled per the default set — solo clubs
+-- the solo-playable ones, shared clubs every default-enroll gametype (so no
+-- psychicnum, the opt-in toy) — exactly what claim_username / create_club do,
+-- through the same helper. ──
+select common._enroll_club_gametypes(c.handle)
+  from (values ('=joel'), ('=moth'), ('=leah'), ('joel-moth'), ('all-3')) as c(handle);
 
 commit;

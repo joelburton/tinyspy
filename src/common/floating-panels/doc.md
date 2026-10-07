@@ -145,12 +145,19 @@ FloatingPanel                  the one shell: Rnd (react-rnd) + CloseButton (but
 ├── Dialog                     WordLookupDialog and WordEditDialog (definitions) · AnagramDialog (anagram-finder)
 ├── NormalModal                SetupGameModal (setup-form) · EditProfileModal (account) · CreateClubModal and EditClubModal (club)
 └── BlockingModal              the card shell: FaultModal (faults) · CelebrationBlockingModal (ending)
-    │                          crosswords' four puzzle pickers · scrabble's blank picker
+    │                          PawProtectionModal (paw-protection) · crosswords' four puzzle pickers · scrabble's blank picker
     ├── ConfirmationBlockingModal   a question — CancelButton + StandardButton (buttons)
     │     └── ConfirmationHost      at the app root (App), drawing whatever `askConfirmation` is asking
     └── AcknowledgeBlockingModal    a statement — one StandardButton
           └── useAcknowledge        the hook that mounts it; connections' and strands' play areas call it
 ```
+
+**One card is a poster.** A blocking modal has one width and stays a card on a
+phone, so the board a question is about stays visible behind it. Paw
+protection's card is a notice with a picture and nothing behind it worth
+seeing, so `BlockingModal` takes `layout="poster"` for it alone: wider on a
+desktop, and the full sheet on a phone through `FloatingPanel`'s `phone`
+override, the one thing a panel may say about its phone shape.
 
 **"Panel" on its own means nothing and is not used** — in prose, in docs, or in
 a component name. "Floating panel" is the category, and **"draggable panel"**

@@ -20,10 +20,19 @@ vi.mock('../floating-panels/confirmationService', () => ({
   withdrawConfirmation: (...args: unknown[]) => withdrawConfirmation(...args),
 }))
 
+// Paw protection is mocked the same way: whether it was asked, and what its
+// answer did, is this file's; the card is `PawProtectionHost`'s own test.
+const ensureCanStartRegistered = vi.fn(async (): Promise<boolean> => true)
+vi.mock('../paw-protection/pawProtectionService', () => ({
+  ensureCanStartRegistered: () => ensureCanStartRegistered(),
+}))
+
 beforeEach(() => {
   askConfirmation.mockClear()
   askConfirmation.mockResolvedValue('confirm')
   withdrawConfirmation.mockClear()
+  ensureCanStartRegistered.mockClear()
+  ensureCanStartRegistered.mockResolvedValue(true)
 })
 
 /** Bind one action, with the parts a test cares about defaulted. */
@@ -132,6 +141,9 @@ describe('useBindAction — the shared run', () => {
     const view = renderHook(() => useBindAction('act-new-game', { run, describe: () => 'active' }))
 
     act(() => view.result.current.run())
+    // Paw protection answers first, a microtask ahead of the question.
+    await act(async () => {})
+    expect(askConfirmation).toHaveBeenCalledTimes(1)
     run = after
     view.rerender()
     await act(async () => { settle('confirm') })
@@ -181,6 +193,43 @@ describe('useBindAction — the shared run', () => {
     const { run, view } = bind('act-type-letter')
     await act(async () => view.result.current.run('q'))
     expect(run).toHaveBeenCalledWith('q')
+    view.unmount()
+  })
+})
+
+describe('useBindAction — paw protection', () => {
+  it('asks paw protection before the question, for a paw-protected action', async () => {
+    const order: string[] = []
+    ensureCanStartRegistered.mockImplementation(async () => { order.push('paw'); return true })
+    askConfirmation.mockImplementation(async () => { order.push('question'); return 'confirm' })
+    const { run, view } = bind('act-new-game')
+    await act(async () => view.result.current.run())
+    expect(order).toEqual(['paw', 'question'])
+    expect(run).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  it('asks it game over or not — the cap is on the NEXT game', async () => {
+    const { run, view } = bind('act-new-game', { ended: true })
+    await act(async () => view.result.current.run())
+    expect(ensureCanStartRegistered).toHaveBeenCalledTimes(1)
+    expect(run).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  it('a refusal asks no question and runs nothing', async () => {
+    ensureCanStartRegistered.mockResolvedValue(false)
+    const { run, view } = bind('act-new-game')
+    await act(async () => view.result.current.run())
+    expect(askConfirmation).not.toHaveBeenCalled()
+    expect(run).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('asks nothing of an action that is not paw-protected', async () => {
+    const { view } = bind('act-restart')
+    await act(async () => view.result.current.run())
+    expect(ensureCanStartRegistered).not.toHaveBeenCalled()
     view.unmount()
   })
 })

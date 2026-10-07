@@ -4,13 +4,16 @@ import { useCallback, useEffect, useState, type RefObject } from 'react'
 import { navigate } from '../routing/router'
 import { manifestFor } from '@/gametypes'
 import { showFaultModal } from '../faults/faultStore'
+import { ensureCanStart } from '../paw-protection/pawProtectionService'
 import { showToast } from '../toasts/toastStore'
 import type { GameManifest } from '../manifest/gameManifest'
 
 type SetupDialogOptions = {
   // The start list, which gets focus back when the dialog closes.
   startListRef: RefObject<HTMLDivElement | null>
-  // The club's name and its gametypes, to check a `?new=` link against.
+  // The club, for paw protection's question, and its name and gametypes, to
+  // check a `?new=` link against.
+  clubHandle: string
   clubName: string
   clubGametypes: Set<string>
 }
@@ -68,12 +71,18 @@ function dropNewGameLink() {
  * both openings collapse into it, so nothing downstream has to ask which way
  * it was opened.
  *
+ * **Paw protection asks before either opening.** A press asks and opens only
+ * on a yes; a link asks on arrival and opens only once the answer is yes, so
+ * a spent cap shows the paw-protection modal and no dialog — the modal is the
+ * whole answer, so a refused link says nothing else and drops from the URL.
+ *
  * Closing hands focus back to the start list: the dialog autofocuses a field
  * inside itself, so on unmount that focus dies and lands on `<body>`, which
  * blanks the list's Up/Down cursor.
  */
 export function useSetupDialog({
   startListRef,
+  clubHandle,
   clubName,
   clubGametypes,
 }: SetupDialogOptions) {
@@ -96,13 +105,32 @@ export function useSetupDialog({
 
   const linkManifest = link && 'manifest' in link ? link.manifest : null
 
-  // A press wins; otherwise the link's manifest until the first close. DERIVED at
-  // render rather than pushed into state by an effect (the repo bans
-  // setState-in-effect); both setters run in the dialog's own handlers.
-  const manifest = pressed ?? (hasBeenClosed ? null : linkManifest)
+  // Paw protection's answer for the linked game: null until it has answered.
+  // Set from the read's callback, never synchronously in the effect.
+  const [isLinkAllowed, setIsLinkAllowed] = useState<boolean | null>(null)
 
-  // Open it on a gametype, from a start row's press.
-  const open = useCallback((gametype: string) => {
+  useEffect(function askPawProtectionForTheLink() {
+    if (!linkManifest) return
+    let isCurrent = true
+    ensureCanStart({ clubHandle, gametype: linkManifest.gametype }).then((canStart) => {
+      if (!isCurrent) return
+      setIsLinkAllowed(canStart)
+      if (!canStart) dropNewGameLink()
+    })
+    return () => {
+      isCurrent = false
+    }
+  }, [clubHandle, linkManifest])
+
+  // A press wins; otherwise the link's manifest, once paw protection has said
+  // yes and until the first close. DERIVED at render rather than pushed into
+  // state by an effect (the repo bans setState-in-effect); both setters run in
+  // the dialog's own handlers.
+  const manifest = pressed ?? (hasBeenClosed || isLinkAllowed !== true ? null : linkManifest)
+
+  // Open it on a gametype, from a start row's press — once paw protection has
+  // said yes.
+  const open = useCallback(async (gametype: string) => {
     const manifest = manifestFor(gametype)
     if (!manifest) {
       // Unreachable: the start list calls this with the gametype off a manifest
@@ -115,8 +143,9 @@ export function useSetupDialog({
       })
       return
     }
+    if (!(await ensureCanStart({ clubHandle, gametype }))) return
     setPressed(manifest)
-  }, [])
+  }, [clubHandle])
 
   // Close it, whichever way it was opened, and drop `?new=` from the URL so a
   // refresh does not re-open it. Focus goes back to the start list, which keeps

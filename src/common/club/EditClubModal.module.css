@@ -1,0 +1,54 @@
+/* cs-unmet */
+
+/*
+ * The edit dialog's games list (see EditClubModal.tsx): a column head, then
+ * one row per registered gametype — the listing checkbox with the game's name
+ * and description on the left, the daily cap's box on the right.
+ */
+
+/* The group's own column; `Field` draws the caption and the help line above. */
+/* @@ */ .games {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-5);
+}
+
+/* @@ */ .columnHeads {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-3);
+  color: var(--page-text-muted-color);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-label);
+}
+
+/* One gametype: the checkbox and its words take the width, the cap's box
+   keeps its own. Centered on the row, so the box sits beside the name rather
+   than the description. */
+/* @@ */ .gameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacer-3);
+}
+
+/* @@ */ .listing {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The name and its description, stacked to the right of the box. */
+/* @@ */ .gameText {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-2);
+}
+
+/* @@ */ .gameName {
+  font-weight: 600;
+}
+
+/* @@ */ .gameDescription {
+  font-size: var(--font-size-2);
+  color: var(--page-text-muted-color);
+}

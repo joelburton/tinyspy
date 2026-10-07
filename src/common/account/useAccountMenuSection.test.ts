@@ -19,7 +19,10 @@ import { renderHook, act } from '@testing-library/react'
 const { signOutMock } = vi.hoisted(() => ({ signOutMock: vi.fn() }))
 
 vi.mock('../supabase/supabase', () => ({
-  supabase: { auth: { signOut: signOutMock } },
+  // `schema` because `useBindAction`, which this hook uses, reaches the `db`
+  // handle through paw protection, and that handle is built at load. Nothing
+  // here queries through it.
+  supabase: { auth: { signOut: signOutMock }, schema: () => ({}) },
 }))
 
 vi.mock('../session/myProfileStore', () => ({

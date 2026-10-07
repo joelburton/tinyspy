@@ -398,13 +398,13 @@ isOneToOne: false
           Tables: {
             "clubs": {
                   Row: {
-                    "created_at": string,"created_by": string,"handle": string,"is_solo": boolean,"name": string
+                    "can_edit_settings": boolean,"created_at": string,"created_by": string,"handle": string,"is_solo": boolean,"name": string
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"handle": string,"is_solo"?: never,"name": string
+                    "can_edit_settings"?: boolean,"created_at"?: string,"created_by": string,"handle": string,"is_solo"?: never,"name": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"handle"?: string,"is_solo"?: never,"name"?: string
+                    "can_edit_settings"?: boolean,"created_at"?: string,"created_by"?: string,"handle"?: string,"is_solo"?: never,"name"?: string
                   }
                   Relationships: [
                     {
@@ -417,13 +417,13 @@ isOneToOne: false
                   ]
                 },"clubs_gametypes": {
                   Row: {
-                    "added_at": string,"club_handle": string,"default_setup": Json | null,"gametype": string
+                    "added_at": string,"club_handle": string,"default_setup": Json | null,"gametype": string,"is_enabled": boolean,"max_daily_games": number | null,"n_started_today": number,"started_on": string | null
                   }
                   Insert: {
-                    "added_at"?: string,"club_handle": string,"default_setup"?: Json | null,"gametype": string
+                    "added_at"?: string,"club_handle": string,"default_setup"?: Json | null,"gametype": string,"is_enabled"?: boolean,"max_daily_games"?: number | null,"n_started_today"?: number,"started_on"?: string | null
                   }
                   Update: {
-                    "added_at"?: string,"club_handle"?: string,"default_setup"?: Json | null,"gametype"?: string
+                    "added_at"?: string,"club_handle"?: string,"default_setup"?: Json | null,"gametype"?: string,"is_enabled"?: boolean,"max_daily_games"?: number | null,"n_started_today"?: number,"started_on"?: string | null
                   }
                   Relationships: [
                     {
@@ -657,7 +657,32 @@ isOneToOne: true
                 }
           }
           Views: {
-            [_ in never]: never
+            "clubs_gametypes_today": {
+                  Row: {
+                    "club_handle": string | null,"default_setup": Json | null,"gametype": string | null,"is_enabled": boolean | null,"max_daily_games": number | null,"used_today": number | null
+                  }
+                  Insert: {
+                           "club_handle"?: string | null,"default_setup"?: Json | null,"gametype"?: string | null,"is_enabled"?: boolean | null,"max_daily_games"?: number | null,"used_today"?: never
+                         }
+                        Update: {
+                           "club_handle"?: string | null,"default_setup"?: Json | null,"gametype"?: string | null,"is_enabled"?: boolean | null,"max_daily_games"?: number | null,"used_today"?: never
+                         }
+                        Relationships: [
+                    {
+      foreignKeyName: "clubs_gametypes_club_handle_fkey"
+      columns: ["club_handle"]
+isOneToOne: false
+      referencedRelation: "clubs"
+      referencedColumns: ["handle"]
+    },{
+      foreignKeyName: "clubs_gametypes_gametype_fkey"
+      columns: ["gametype"]
+isOneToOne: false
+      referencedRelation: "gametypes"
+      referencedColumns: ["gametype"]
+    }
+                  ]
+                }
           }
           Functions: {
             "_advance_turn":
@@ -685,6 +710,9 @@ isOneToOne: true
                            },
 "_end_game":
 { Args: { "p_ended_by_user_id": string,"p_final_rankings": Json,"p_game_id": string,"p_is_no_result": boolean,"p_reason": string,"p_reason_detail": string }; Returns: undefined
+                           },
+"_enroll_club_gametypes":
+{ Args: { "target_handle": string }; Returns: undefined
                            },
 "_is_club_member":
 { Args: { "target_club": string }; Returns: boolean
@@ -808,7 +836,7 @@ isOneToOne: true
 { Args: { "content": string,"target_club": string }; Returns: Json
                            },
 "set_club_gametypes":
-{ Args: { "gametypes": (string)[],"target_club": string }; Returns: Json
+{ Args: { "p_club_handle": string,"p_settings": Json }; Returns: Json
                            },
 "set_current_view":
 { Args: { "target_game": string }; Returns: Json
@@ -917,7 +945,7 @@ isOneToOne: false
           }
           Functions: {
             "_make_json_board":
-{ Args: { "p_game_id": string,"p_mode": string,"p_user_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
                            },
 "_make_json_cat":
 { Args: { "p_cat": Json }; Returns: Json
@@ -941,6 +969,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tile":
@@ -1267,6 +1298,12 @@ isOneToOne: false
             "_covered":
 { Args: { "p_chain": (string)[] }; Returns: number
                            },
+"_make_json_asks":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
+"_make_json_chain":
+{ Args: { "p_chain": (string)[] }; Returns: Json
+                           },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
                            },
@@ -1286,6 +1323,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
@@ -2044,6 +2084,9 @@ isOneToOne: false
 "_is_exposed":
 { Args: { "gone": (number)[],"tid": number,"tiles": Json }; Returns: boolean
                            },
+"_make_json_board":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
 "_make_json_counts":
 { Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
                            },
@@ -2066,6 +2109,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
@@ -2201,6 +2247,9 @@ isOneToOne: false
 "_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
                            },
+"_make_json_board":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
                            },
@@ -2226,6 +2275,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tile_ids":
@@ -2357,6 +2409,9 @@ isOneToOne: false
 "_format_title":
 { Args: { "placeholder": string,"words": (string)[] }; Returns: string
                            },
+"_make_json_board":
+{ Args: { "p_board": string,"p_solution": string }; Returns: Json
+                           },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
                            },
@@ -2376,6 +2431,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
@@ -2473,7 +2531,7 @@ isOneToOne: false
 { Args: { "p_longest": number,"p_max_len": number }; Returns: number
                            },
 "_make_json_board":
-{ Args: { "p_game_id": string,"p_mode": string,"p_user_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
                            },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2619,7 +2677,7 @@ isOneToOne: false
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
                            },
 "_make_json_board":
-{ Args: { "p_game_id": string,"p_mode": string,"p_user_id": string }; Returns: Json
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
                            },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2637,6 +2695,9 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
                            },
 "_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_maybe_finish_compete":

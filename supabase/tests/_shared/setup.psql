@@ -178,10 +178,10 @@ insert into common.clubs_members (club_handle, user_id) values
   ('=eda',  'eda55555-5555-5555-5555-555555555555'),
   ('=abe-bot', 'abe66666-6666-6666-6666-666666666666');
 
-insert into common.clubs_gametypes (club_handle, gametype)
-  select c.handle, gt.gametype
-    from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda'), ('=abe-bot')) as c(handle)
-   cross join lateral common._default_gametypes_for_club(c.handle) as gt(gametype);
+-- Every gametype's row per solo club, enabled per the default set — the same
+-- helper claim_username calls.
+select common._enroll_club_gametypes(c.handle)
+  from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda'), ('=abe-bot')) as c(handle);
 
 -- ============================================================
 -- pg_temp.as_user — switch the session to "I am this user"
@@ -229,11 +229,27 @@ $$;
 -- envelope — call `common.create_club` directly and assert on
 -- what comes back. This is for the ones that just need a club
 -- to exist.
+--
+-- A test club lists EVERY gametype. `common._create_game` refuses a
+-- gametype the club does not list (paw protection), and psychicnum —
+-- the canary most of the suite starts — is off by default; so the club
+-- is enabled for everything here, as the caller, through the same RPC
+-- the edit dialog uses. A test about the default enrollment calls
+-- `common.create_club` directly.
 create function pg_temp.create_club(club_name text, member_usernames text[])
 returns text
-language sql
+language plpgsql
 as $$
-  select common.create_club(club_name, member_usernames) -> 'data' ->> 'handle';
+declare
+  v_handle text;
+begin
+  v_handle := common.create_club(club_name, member_usernames) -> 'data' ->> 'handle';
+  perform common.set_club_gametypes(
+    v_handle,
+    (select jsonb_agg(jsonb_build_object('gametype', gametype, 'is_enabled', true))
+       from common.gametypes));
+  return v_handle;
+end;
 $$;
 
 -- ============================================================

@@ -94,6 +94,17 @@ is the one component here this page does not render — `HomePage` does.
   reload, and the members strip the message hides is not what the player needs
   meanwhile. A delete's own answers are toasts for the same reason: they must
   not cost the strip.
+- **Paw protection asks before the setup dialog opens.** A club can cap how
+  many games of a gametype are started each day, and a start row's press —
+  or a `?new=` arrival — asks `ensureCanStart` first; a spent cap shows the
+  paw-protection card and opens nothing
+  ([`common/paw-protection`](../paw-protection/doc.md)). The server refuses
+  too, as a fault, since every start asks here first.
+- **The edit dialog lists every registered gametype with two settings**: the
+  checkbox that lists it on the start list, and its daily cap, blank for no
+  limit. Every club carries a row per gametype, so unlisting a game keeps its
+  cap and its saved setup. The Edit club action hides when the club's
+  `can_edit_settings` is off, which only psql sets.
 - **`?new=<gametype>` opens the setup dialog on arrival.** It is sent from
   outside this folder — the game page's ⌥+ and crosswords' New game — for a
   fresh game whose options you want to change first. The page reads it once,

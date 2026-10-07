@@ -221,7 +221,7 @@ is a choice from a list rather than a fresh decision. The steps are in
 | vocabulary | kind |
 |---|---|
 | `--spacer-*` | the space BETWEEN things — `gap` and `margin`, never padding. `-1` is the biggest |
-| `--font-size-*`, `--font-size-packed` | the type ramp, plus one role size off it for text where vertical space is scarce |
+| `--font-size-*`, `--font-size-packed`, `--font-size-notice` | the type ramp, plus two role sizes off it: text where vertical space is scarce, and a notice read once from across the room |
 | `--line-height-*` | line heights |
 | the text grays (themed) | `--page-text-color` · `-muted` · `-label` · `-strong` |
 | `--opacity-*` | numbered for now; wants role names once its kinds are clear |

@@ -14,10 +14,10 @@ carry each function's full contract and outcomes. How every RPC answers is
 | table | what it holds |
 |---|---|
 | `profiles` | one row per auth user: `username` (immutable), `color` (from the eight-color palette), `sounds_enabled`, `ai_member` (scrabble's AI opponents, ordinary accounts in every other way), `can_edit_words`, and `theme`, reserved and unread. Written only by RPCs |
-| `clubs` | a fixed-membership room: `handle` (the URL key and primary key), `name` (at most 20 characters), `created_by`, and `is_solo`, generated from the handle |
+| `clubs` | a fixed-membership room: `handle` (the URL key and primary key), `name` (at most 20 characters), `created_by`, `is_solo`, generated from the handle, and `can_edit_settings`, which gates the Edit club dialog and is flipped only by hand ([Paw protection](#paw-protection--a-daily-cap-per-gametype)) |
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players`, `default_enroll` and `brand` (the user-facing name, the same on both siblings) |
-| `clubs_gametypes` | which gametypes a club can start, and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start |
+| `clubs_gametypes` | one row per club per registered gametype: `is_enabled` (listed on the club page), the daily cap `max_daily_games` and its counter `n_started_today` / `started_on` ([Paw protection](#paw-protection--a-daily-cap-per-gametype)), and `default_setup`, the club's last-used setup for each — written by `common._create_game` on every start. `clubs_gametypes_today` is the view the page reads, with the counter resolved to `used_today` |
 | `games` | the shared header of every game: its club, gametype, `mode`, `title`, `setup`, `is_current_view`, `created_by`, `current_turn_user_id`, `restart_count`; `started_at`, and the ending — `ended_at`, the reason pair (`game_ended_reason`, `game_ended_reason_detail`), `game_ended_outcome`, `game_ended_by_user_id`; the page blobs the game's builders write (`summary_data`, `shell_data`, `game_data`, `static_game_data` — null until a game's builder writes them; [The page blobs](#title-statuses-and-the-two-dates), below); and the two dates, `status_changed_at` and `updated_at` ([Title, statuses and the two dates](#title-statuses-and-the-two-dates)). A game's own detail row shares its id |
 | `game_players` | who plays each game, frozen at creation: `turn_seat`, `joined_at`; the player's ending while the game goes on (`player_ended_at` and its reason pair); `solved_at`; `outcome`, written when the player ends and again at the game's end; `final_ranking`, written at the game's end; and `player_status`, the builder's copy |
 | `timers` | the game clock, one row per game ([The game clock](#the-game-clock)) |
@@ -185,13 +185,40 @@ A game's own `<game>.create_game` validates its setup (the shared checks are
 helpers — `_require_valid_timer`, `_require_valid_mode`,
 `_require_player_count_max`), then calls **`common._create_game`** for the
 header, passing the mode it checked: it checks the caller and every player
-are in the club (AI accounts exempt), moves the current-game pointer to the
-new game, inserts the `common.games` row, the clock (its kind and length
-copied from `setup.timer`) and one `game_players` row per player, writes the
-page's `shell_data`, and saves the club's `default_setup`. The game then inserts its
-own detail rows under
-the returned id, runs its status builder, and answers `{ result: 'created',
-id }`. psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
+are in the club (AI accounts exempt), checks the club lists the gametype and
+its daily cap is not spent and counts the start (below), moves the
+current-game pointer to the new game, inserts the `common.games` row, the
+clock (its kind and length copied from `setup.timer`) and one `game_players`
+row per player, writes the page's `shell_data`, and saves the club's
+`default_setup`. The game then inserts its own detail rows under the returned
+id, runs its status builder, and answers `{ result: 'created', id }`.
+psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
+
+### Paw protection — a daily cap per gametype
+
+A club can cap how many games of a gametype are started each day. The cap is
+`max_daily_games` on the club's `clubs_gametypes` row for that gametype, null
+for no limit and zero for a game that is listed but never startable; a day is
+the UTC calendar day, and the limit is per registered gametype, so a coop and
+a compete sibling are capped apart.
+
+**The count is a counter, not a count.** `_create_game` locks the row, zeroes
+`n_started_today` when `started_on` is not today, refuses at the cap, and
+increments — in the one transaction, so two friends pressing Start together
+are serialized and a cap of three never admits four. Because it is a counter,
+deleting a game refunds nothing; Restart replays a game and creates no row, so
+it is free. A row that is missing or not `is_enabled` is refused too: the
+server says, for the first time, what the club page shows.
+
+**Both refusals are faults.** The frontend asks before it acts — the club
+page's start row and the game page's New game read `clubs_gametypes_today` at
+the click and show the paw-protection modal when the cap is spent — so a start
+that reaches `_create_game` past the cap did not come from a frontend that
+asked (`src/common/paw-protection/doc.md`).
+
+**Editing is gated by `clubs.can_edit_settings`.** Off, the Edit club action is
+hidden and `set_club_gametypes` refuses with a fault. Nothing in the app sets
+it; it is flipped by hand in psql.
 
 ## Ending a game
 

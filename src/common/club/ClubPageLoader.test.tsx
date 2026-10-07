@@ -54,12 +54,14 @@ function loaded(): Envelope<ClubPageData> {
     type: 'ok',
     data: {
       result: 'loaded',
-      club: { handle: 'trio', name: 'Trio', is_solo: false },
+      club: { handle: 'trio', name: 'Trio', is_solo: false, can_edit_settings: true },
       members: [
         { id: 'ada', username: 'ada', color: 'red' },
         { id: 'bea', username: 'bea', color: 'blue' },
       ],
-      gametypes: [{ gametype: 'wordle_coop', default_setup: null }],
+      gametypes: [
+        { gametype: 'wordle_coop', is_enabled: true, max_daily_games: null, used_today: 0, default_setup: null },
+      ],
     },
     severity: null, field: null, meta: null, dbcode: null, detail: null,
     message: null, outcome: null,

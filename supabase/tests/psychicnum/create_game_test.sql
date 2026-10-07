@@ -58,12 +58,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('test club', array['ada','bea']) as handle;
 
--- psychicnum is default_enroll = false (the architecture toy), so a fresh
--- club doesn't carry its clubs_gametypes rows — and the default_setup
--- auto-save in create_game lands on those rows. Opt in, the way a real
--- club that wants the toy would.
-select common.set_club_gametypes(
-  (select handle from club), array['psychicnum_coop', 'psychicnum_compete']);
+-- psychicnum is default_enroll = false (the architecture toy); the test
+-- fixture's club lists every gametype (_shared/setup.psql), which is what lets
+-- create_game start one here and land the default_setup auto-save on its row.
 
 -- ============================================================
 -- (2) Non-member callers are rejected

@@ -28,6 +28,7 @@ import { useBacktickEscape } from './common/keyboard/useBacktickEscape'
 import { useActionDispatcher } from './common/actions/useActionDispatcher'
 import { AppActionsHost } from './common/actions/AppActionsHost'
 import { ConfirmationHost } from './common/floating-panels/ConfirmationHost'
+import { PawProtectionHost } from './common/paw-protection/PawProtectionHost'
 import { usePath } from './common/routing/router'
 import { matchClubRoute, matchGameRoute } from './common/routing/routes'
 
@@ -197,6 +198,10 @@ export default function App() {
       {/* The one host for a question asked from outside a component — an
           action's shared run asks before it fires, wherever it was bound. */}
       <ConfirmationHost />
+
+      {/* The one host for paw protection's refusal — asked the same way, from
+          the club page's start row and the New game action's shared run. */}
+      <PawProtectionHost />
 
       {/* The ONE fault-modal host (docs/ui.md → Faults): every sink routes
           fault-classified failures into the shared fault store; this renders

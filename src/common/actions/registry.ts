@@ -73,6 +73,12 @@ export type ActionDefinition = {
   // A question with two ways to say yes (`ConfirmOptions.alternativeLabel`)
   // runs the action's `runAlternative` for the second.
   confirm?: ConfirmOptions
+  // Does paw protection ask first? The shared run checks the club's daily cap
+  // on the page's gametype BEFORE the question, and stops with the
+  // paw-protection modal when the cap is spent — so, as with the question, a
+  // game cannot forget to ask. For starting a game and nothing else; the page
+  // registers its club and gametype (`common/paw-protection`).
+  pawProtected?: boolean
   // May a HELD key fire it over and over? False for every command — holding
   // `+` would otherwise start games at the OS repeat rate — and true for the
   // entry keys, where repeating is the point.
@@ -188,6 +194,7 @@ export const ACTIONS = {
     icon: IconNewGame,
     keys: [char('+')],
     confirm: NEW_GAME_CONFIRM,
+    pawProtected: true,
   },
   'act-new-game-from-setup': {
     label: 'New game from setup',

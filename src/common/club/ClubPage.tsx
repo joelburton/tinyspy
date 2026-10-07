@@ -22,7 +22,7 @@ import { SetupGameModal } from '../setup-form/SetupGameModal'
 import { PageHeaderStatusSlot } from '../page-header/PageHeaderStatusSlot'
 import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { useClubGames } from './useClubGames'
-import { useClubGametypes } from './useClubGametypes'
+import { useClubGametypes, type GametypeSettings } from './useClubGametypes'
 import { useClubPageActions } from './useClubPageActions'
 import { useClubRoomPresence } from './useClubRoomPresence'
 import { useGamesListFilter } from './useGamesListFilter'
@@ -38,8 +38,23 @@ import styles from './ClubPage.module.css'
 // reaches the page only by being listed both here and in that RPC.
 type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
-  'handle' | 'name' | 'is_solo'
+  'handle' | 'name' | 'is_solo' | 'can_edit_settings'
 >
+
+/** A club's row for one gametype, as `get_club_page` reads it off
+ *  `clubs_gametypes_today`: listed or not, the daily cap and today's count
+ *  (paw protection), and the setup its friends last played. */
+export type ClubGametypeRow = Pick<
+  Database['common']['Views']['clubs_gametypes_today']['Row'],
+  'default_setup'
+> & {
+  // The view's columns are nullable to the generated type, since a view
+  // carries no not-null; the RPC answers every one of these.
+  gametype: string
+  is_enabled: boolean
+  max_daily_games: number | null
+  used_today: number
+}
 
 /** What `common.get_club_page` answers with: everything this page needs to
  *  render, in one read. Why it is one read rather than three is docs/common.md
@@ -50,10 +65,10 @@ export type ClubPageData = {
   result: 'loaded'
   club: ClubRow
   members: Member[]
-  // The club's enrolled set, each with the setup its friends last played —
-  // one shape, because a second read for the defaults is what the RPC
-  // exists to avoid.
-  gametypes: { gametype: string; default_setup: unknown }[]
+  // Every registered gametype's row for this club, with the setup its friends
+  // last played — one shape, because a second read for the defaults is what
+  // the RPC exists to avoid.
+  gametypes: ClubGametypeRow[]
 }
 
 type Props = {
@@ -91,12 +106,16 @@ export function ClubPage({
 
   const clubGametypes = useClubGametypes(initialGametypes)
   const clubGames = useClubGames(club.handle, members, myId, globalFeedbackSlot)
-  const pageActions = useClubPageActions({ globalFeedbackSlot })
+  const pageActions = useClubPageActions({
+    globalFeedbackSlot,
+    canEditSettings: club.can_edit_settings,
+  })
 
   const startListRef = useRef<HTMLDivElement | null>(null)
   const gamesListRef = useRef<HTMLDivElement | null>(null)
   const setupDialog = useSetupDialog({
     startListRef,
+    clubHandle: club.handle,
     clubName: club.name,
     clubGametypes: clubGametypes.allowed,
   })
@@ -132,9 +151,9 @@ export function ClubPage({
     navigate(gamePath(gametype, gameId))
   }
 
-  // The club editor saved: the start list takes the new gametypes at once.
-  function applyClubGametypes(next: Set<string>) {
-    clubGametypes.setAllowed(next)
+  // The club editor saved: the start list takes the new settings at once.
+  function applyClubSettings(next: Map<string, GametypeSettings>) {
+    clubGametypes.applySettings(next)
     pageActions.editClub.close()
   }
 
@@ -246,8 +265,8 @@ export function ClubPage({
         <EditClubModal
           clubHandle={club.handle}
           clubName={club.name}
-          allowedGametypes={clubGametypes.allowed}
-          onSaved={applyClubGametypes}
+          settings={clubGametypes.settings}
+          onSaved={applyClubSettings}
           onCancel={pageActions.editClub.close}
         />
       )}

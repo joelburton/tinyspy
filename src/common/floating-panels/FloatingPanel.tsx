@@ -117,6 +117,12 @@ export type FloatingPanelProps = {
   defaultPosition?: { x: number; y: number } | 'center'
   // Size on a first mount, and the first-paint seed when `fitContent` is on.
   defaultSize?: { width: number; height: number }
+  // What a phone makes of it: the family's shape decides — a window becomes a
+  // full-viewport sheet, a card stays a card — and this overrides it. The one
+  // card that asks for the sheet is paw protection's poster (BlockingModal's
+  // `layout`), a notice with a picture rather than a question about the board
+  // behind it.
+  phone?: 'sheet' | 'card'
   // Draggable by corners and edges. Default true; a panel whose content knows
   // its own size opts out.
   resizable?: boolean
@@ -200,6 +206,7 @@ export function FloatingPanel({
   defaultPosition = 'center',
   density,
   defaultSize = { width: 480, height: 360 },
+  phone,
   resizable = true,
   minWidth = 240,
   minHeight = 0,
@@ -213,6 +220,7 @@ export function FloatingPanel({
   // The family's answer unless the panel argues otherwise.
   const resolvedDensity = density ?? claims.density
   const tier = zIndex ?? claims.layer
+  const resolvedPhone = phone ?? (claims.shape === 'window' ? 'sheet' : 'card')
   // On a touch device (coarse pointer) every panel is forced
   // non-draggable and non-resizable — dragging/resizing a floating
   // box is a mouse affordance, and (crucially) removing the drag
@@ -272,6 +280,7 @@ export function FloatingPanel({
       <PanelRnd
         panelId={panelId}
         shape={claims.shape}
+        phone={resolvedPhone}
         title={title}
         onClose={onClose}
         rect={rect}
@@ -307,6 +316,7 @@ export function FloatingPanel({
 function PanelRnd({
   panelId,
   shape,
+  phone,
   title,
   onClose,
   rect,
@@ -323,6 +333,9 @@ function PanelRnd({
 }: {
   panelId: string
   shape: 'window' | 'card'
+  // What a phone makes of it, resolved by the caller from the shape or its
+  // override.
+  phone: 'sheet' | 'card'
   title: string | undefined
   onClose: () => void
   rect: PanelRect
@@ -431,8 +444,9 @@ function PanelRnd({
     <div
       className={styles.clipLayer}
       // The phone sheet's geometry is CSS, keyed off this: a WINDOW fills the
-      // viewport, a CARD stays a card at every size (see the module).
-      data-phone={shape === 'window' ? 'sheet' : 'card'}
+      // viewport, a CARD stays a card at every size (see the module), unless
+      // the panel asked for the sheet (`phone`).
+      data-phone={phone}
       style={
         clampToKeyboard
           ? // Pin the layer to the visible region (above the keyboard). `top`

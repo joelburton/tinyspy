@@ -9,7 +9,8 @@
 --   update_profile             changes your color and sound setting
 --   create_club                makes a club of named friends, the caller
 --                              included
---   set_club_gametypes         sets which games a club can start
+--   set_club_gametypes         sets which games a club lists, and each
+--                              one's daily cap (paw protection)
 --   get_club_page              everything the club page draws, in one read
 --   send_message               posts to a club's chat
 --   set_current_view           makes a game the club's current game
@@ -64,8 +65,10 @@
 --   _raised_envelope           builds the answer for a raise we authored
 --
 -- and the rest: `_is_club_member` for the security rules,
--- `_default_gametypes_for_club`, `_slugify_club_name` and `_color_for_username`
--- for making clubs and profiles, and four triggers, `_stamp_games_updated_at`,
+-- `_default_gametypes_for_club`, `_enroll_club_gametypes`, `_slugify_club_name`
+-- and `_color_for_username` for making clubs and profiles, the
+-- `clubs_gametypes_today` view the club page and the paw-protection gate read,
+-- and four triggers, `_stamp_games_updated_at`,
 -- `_nudge_game_page`, `_nudge_club_page` and `_bump_scratchpad_version`.
 --
 -- What is particular to common: it may never name a game. Everything a game
@@ -293,6 +296,27 @@ as $$
      and (not c.is_solo or gt.min_players <= 1)
 $$;
 revoke execute on function common._default_gametypes_for_club(text) from public;
+
+-- One `clubs_gametypes` row per registered gametype for a new club: enabled
+-- where `_default_gametypes_for_club` says so, disabled otherwise. Every club
+-- carries the whole table because a gametype's daily cap and its saved setup
+-- live on the row, and the row has to exist before either can
+-- (docs/common-schema.md → Paw protection). Called by `claim_username` and
+-- `create_club`; the test fixture and the dev seed call it too. `on conflict`
+-- so a club that already has a row keeps it.
+create or replace function common._enroll_club_gametypes(target_handle text)
+returns void
+language sql
+set search_path = common, public, extensions
+as $$
+  insert into common.clubs_gametypes (club_handle, gametype, is_enabled)
+  select target_handle,
+         gt.gametype,
+         gt.gametype in (select d.gametype from common._default_gametypes_for_club(target_handle) d)
+    from common.gametypes gt
+  on conflict (club_handle, gametype) do nothing;
+$$;
+revoke execute on function common._enroll_club_gametypes(text) from public;
 
 drop trigger if exists games_touch_last_active on common.games;
 drop function if exists common.touch_games_last_active();
@@ -1216,6 +1240,10 @@ as $$
 declare
   new_id uuid;
   non_members text[];
+  -- Paw protection: the club's row for this gametype, locked.
+  v_listing record;
+  v_today date;
+  v_n_started_today int;
 begin
   -- Caller must be a club member (raises if not auth/not member).
   perform common._require_club_member(p_club_handle);
@@ -1264,6 +1292,50 @@ begin
       using errcode = 'PN060', hint = 'fault', column = '_',
       detail = 'every player must already be a club member';
   end if;
+
+  -- ─── Paw protection ──────────────────────────────────────
+  -- The club lists this gametype, and its daily cap is not spent
+  -- (docs/common-schema.md → Paw protection). Both refusals are faults: the
+  -- club page lists only enabled gametypes, and the frontend asks the cap
+  -- BEFORE it opens a setup dialog or starts a New game, so a start that
+  -- reaches here past either did not come from a frontend that asked.
+  --
+  -- Locked `for update` so two friends pressing Start together are
+  -- serialized: the second waits on the first's commit and then reads the
+  -- counter it wrote, so a cap of three never admits four. A missing row
+  -- reads as disabled — a gametype a migration forgot to backfill stays
+  -- closed rather than open.
+  select is_enabled, max_daily_games, n_started_today, started_on
+    into v_listing
+    from common.clubs_gametypes
+   where club_handle = p_club_handle and gametype = p_gametype
+     for update;
+  if not found or not v_listing.is_enabled then
+    raise exception 'BUG: this club does not play %', p_gametype
+      using errcode = 'PN513', hint = 'fault', column = '_',
+      detail = 'no enabled clubs_gametypes row; the club page lists only enabled gametypes';
+  end if;
+
+  -- A day is the UTC calendar day; a counter from another day is zero.
+  v_today := (now() at time zone 'UTC')::date;
+  v_n_started_today := case
+    when v_listing.started_on = v_today then v_listing.n_started_today
+    else 0
+  end;
+  if v_listing.max_daily_games is not null
+     and v_n_started_today >= v_listing.max_daily_games then
+    raise exception 'BUG: the daily limit for % is spent', p_gametype
+      using errcode = 'PN514', hint = 'fault', column = '_',
+      detail = format('%s of %s started today; the frontend asks before it starts',
+                      v_n_started_today, v_listing.max_daily_games);
+  end if;
+
+  -- Count the start. A counter rather than a count of games rows, so a
+  -- deleted game refunds nothing.
+  update common.clubs_gametypes
+     set n_started_today = v_n_started_today + 1,
+         started_on = v_today
+   where club_handle = p_club_handle and gametype = p_gametype;
 
   -- Vacate the prior current-view game (if any) for this club —
   -- the partial unique index would reject the new
@@ -2787,16 +2859,14 @@ begin
   insert into common.clubs_members (club_handle, user_id)
   select new_handle, member_id from unnest(resolved_ids) as member_id;
 
-  -- Enroll the club in its default gametype set. A friend club
-  -- (always ≥2 members) gets every default-enroll gametype; the
+  -- Every gametype's row, enabled per the default set. A friend club
+  -- (always ≥2 members) lists every default-enroll gametype; the
   -- helper additionally trims the set for solo clubs, which
   -- create_club never makes. We route through it anyway so both
   -- club-creation paths share one rule. Per-club edits beyond this
-  -- — dropping a game, or opting into an off-by-default one — go
-  -- through the club-settings UI (common.set_club_gametypes).
-  insert into common.clubs_gametypes (club_handle, gametype)
-  select new_handle, gametype
-    from common._default_gametypes_for_club(new_handle);
+  -- — hiding a game, opting into an off-by-default one, a daily cap —
+  -- go through the club-settings UI (common.set_club_gametypes).
+  perform common._enroll_club_gametypes(new_handle);
 
   -- `result` beside the handle, not instead of it. The handle is what the
   -- caller USES; `result` is what tells it which answer it got, and a payload
@@ -2821,15 +2891,19 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 drop function if exists common.set_club_gametypes(text, text[]);
 
 -- ============================================================
--- common.set_club_gametypes RPC — the club-settings "which games
--- does this club play?" editor
+-- common.set_club_gametypes RPC — the club-settings editor: which
+-- games the club lists, and each one's daily cap
 -- ============================================================
 --
--- Replaces a club's enrolled-gametype set (the rows in
--- common.clubs_gametypes) with exactly the passed list. Backs the
--- "Edit club" dialog on ClubPage. Any club member may edit — this
--- is a friends venue, not an admin hierarchy (see CLAUDE.md → trust
--- model); the membership gate is the only check.
+-- Updates the club's `common.clubs_gametypes` rows from the whole table the
+-- "Edit club" dialog sends: one entry per gametype with `is_enabled` and
+-- `max_daily_games` (null for no limit). A gametype the table leaves out keeps
+-- its row as it is, and no row is ever deleted, so a game unchecked today
+-- keeps its cap and its saved setup for the day it is checked again. Any club
+-- member may edit — this is a friends venue, not an admin hierarchy (see
+-- CLAUDE.md → trust model) — unless the club's `can_edit_settings` is off,
+-- which is set by hand in psql and hides the Edit club action; a call past
+-- that is a fault.
 --
 -- Deliberately does NOT re-apply the solo-club min_players filter:
 -- per the FE spec, if someone wants to list a 2-player game in their
@@ -2837,22 +2911,20 @@ drop function if exists common.set_club_gametypes(text, text[]);
 -- button stays disabled via numberOfPlayers). The filter only shapes
 -- the *default* enrollment at club creation, not later hand-editing.
 --
--- The FK on clubs_gametypes.gametype means an unknown gametype in
--- the list raises 23503, reaching the client as a raw fault. Left
--- that way deliberately: it is a shape guard against a client
--- sending something outside the registry, and Postgres names the
--- constraint and the offending value better than a sentence would.
+-- The one form validation names the dialog's control for the cap:
+-- `max_daily_games.<gametype>`, which is how the dialog's fields are named
+-- (`${name}.${id}`, fields/doc.md), so the sentence lands under the box that
+-- wrote the value.
 --
 -- Outcomes:
---   - ok           {"result": "saved"} — the set is now exactly `gametypes`
---   - not-ok/fault PN011 / PN012, from _require_club_member
---   - a RAW fault  the FK above
---
--- It authors no outcome of its own; what the handler below catches is
--- _require_club_member's PN011 / PN012.
+--   - ok           {"result": "saved"}
+--   - not-ok/fault PN011 / PN012, from _require_club_member; PN515 the club's
+--                  settings are locked; PN516 a gametype the registry lacks
+--   - not-ok/form-validation PN517 a cap that is not a whole number ≥ 0
 create or replace function common.set_club_gametypes(
-  target_club text,
-  gametypes text[]
+  p_club_handle text,
+  -- `[{"gametype": "wordle_coop", "is_enabled": true, "max_daily_games": 3}, …]`
+  p_settings jsonb
 )
 returns jsonb
 language plpgsql
@@ -2860,29 +2932,50 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  -- Null-coalesced so an explicit "play nothing" (empty array) and
-  -- a NULL argument behave the same: clear every enrollment.
-  wanted text[] := coalesce(gametypes, array[]::text[]);
+  v_entry jsonb;
+  v_gametype text;
+  v_cap jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   -- Auth + membership gate (raises PN011 / PN012 on either failure).
-  perform common._require_club_member(target_club);
+  perform common._require_club_member(p_club_handle);
 
-  -- Delete-by-difference rather than truncate-and-refill so an
-  -- unchanged row keeps its default_setup (the saved setup-form
-  -- values for that (club, gametype) pair). Against an empty
-  -- `wanted`, `<> all` is vacuously true for every row, so this
-  -- clears the whole set — the "uncheck everything" case.
-  delete from common.clubs_gametypes
-   where club_handle = target_club
-     and gametype <> all(wanted);
+  if not (select can_edit_settings from common.clubs where handle = p_club_handle) then
+    raise exception 'BUG: this club''s settings are locked'
+      using errcode = 'PN515', hint = 'fault', column = '_',
+      detail = 'clubs.can_edit_settings is false; the Edit club action is hidden';
+  end if;
 
-  -- Add the newly-checked gametypes; on conflict skip the ones the
-  -- club already had (preserving their default_setup).
-  insert into common.clubs_gametypes (club_handle, gametype)
-  select target_club, g
-    from unnest(wanted) as g
-  on conflict do nothing;
+  for v_entry in select * from jsonb_array_elements(coalesce(p_settings, '[]'::jsonb)) loop
+    v_gametype := v_entry ->> 'gametype';
+    if not exists (select 1 from common.gametypes where gametype = v_gametype) then
+      -- The dialog lists the registry, so a name outside it is a client that
+      -- is wrong, not a box the player can fix.
+      raise exception 'BUG: no gametype called %', v_gametype
+        using errcode = 'PN516', hint = 'fault', column = '_',
+        detail = 'the settings named a gametype common.gametypes lacks';
+    end if;
+
+    -- The cap: absent or null is no limit; otherwise a whole number ≥ 0. A
+    -- JSON number is checked as text, since `1.5::int` would round rather than
+    -- refuse.
+    v_cap := v_entry -> 'max_daily_games';
+    if v_cap is not null and jsonb_typeof(v_cap) <> 'null'
+       and (jsonb_typeof(v_cap) <> 'number' or (v_cap #>> '{}') !~ '^[0-9]{1,4}$') then
+      raise exception 'A whole number, or blank for no limit'
+        using errcode = 'PN517', hint = 'form-validation',
+        column = 'max_daily_games.' || v_gametype,
+        detail = format('max_daily_games was %s', v_cap);
+    end if;
+
+    update common.clubs_gametypes
+       set is_enabled = coalesce((v_entry ->> 'is_enabled')::boolean, is_enabled),
+           max_daily_games = case
+             when v_entry ? 'max_daily_games' then (v_cap #>> '{}')::smallint
+             else max_daily_games
+           end
+     where club_handle = p_club_handle and gametype = v_gametype;
+  end loop;
 
   -- No message: the dialog closes on success and says nothing. `data` still
   -- names the answer — an `ok` a call site can only match by being `ok` is one
@@ -2899,8 +2992,31 @@ exception when others then
 end;
 $$;
 
-revoke execute on function common.set_club_gametypes(text, text[]) from public;
-grant execute on function common.set_club_gametypes(text, text[]) to authenticated;
+revoke execute on function common.set_club_gametypes(text, jsonb) from public;
+grant execute on function common.set_club_gametypes(text, jsonb) to authenticated;
+
+-- ============================================================
+-- common.clubs_gametypes_today — a club's gametype rows, with the
+-- day rule applied
+-- ============================================================
+--
+-- What the club page and the paw-protection gate read: each row's listing,
+-- its cap, and `used_today`, the counter resolved by the UTC-day rule
+-- (docs/common-schema.md → Paw protection), so no client computes a date.
+-- `security_invoker`, so the base table's members-only policy decides which
+-- rows a caller sees.
+create or replace view common.clubs_gametypes_today
+with (security_invoker = true)
+as
+  select club_handle,
+         gametype,
+         is_enabled,
+         max_daily_games,
+         case when started_on = (now() at time zone 'UTC')::date
+              then n_started_today else 0 end as used_today,
+         default_setup
+    from common.clubs_gametypes;
+grant select on common.clubs_gametypes_today to authenticated;
 
 drop function if exists common.get_club_page(text);
 
@@ -2987,7 +3103,7 @@ begin
       detail = 'auth.uid() is null';
   end if;
 
-  select handle, name, is_solo into v_club
+  select handle, name, is_solo, can_edit_settings into v_club
   from common.clubs where handle = target_handle;
 
   -- PN494. A miscopied or stale URL: the handle is the PK, so there is
@@ -3026,10 +3142,13 @@ begin
     where cm.club_handle = target_handle
   ) m;
 
+  -- Every gametype's row, listed or not: the start list draws the enabled
+  -- ones, and the edit dialog needs each one's cap. `used_today` is the view's,
+  -- so the day rule is written once.
   select coalesce(jsonb_agg(k order by k.gametype), '[]'::jsonb) into v_kinds
   from (
-    select cg.gametype, cg.default_setup
-    from common.clubs_gametypes cg
+    select cg.gametype, cg.is_enabled, cg.max_daily_games, cg.used_today, cg.default_setup
+    from common.clubs_gametypes_today cg
     where cg.club_handle = target_handle
   ) k;
 
@@ -3040,7 +3159,8 @@ begin
   return common._ok_envelope(data => jsonb_build_object(
     'result', 'loaded',
     'club', jsonb_build_object(
-      'handle', v_club.handle, 'name', v_club.name, 'is_solo', v_club.is_solo),
+      'handle', v_club.handle, 'name', v_club.name, 'is_solo', v_club.is_solo,
+      'can_edit_settings', v_club.can_edit_settings),
     'members', v_members,
     'gametypes', v_kinds));
 
@@ -3247,9 +3367,7 @@ begin
   insert into common.clubs_members (club_handle, user_id)
   values ('=' || desired, caller_id);
 
-  insert into common.clubs_gametypes (club_handle, gametype)
-  select '=' || desired, gametype
-    from common._default_gametypes_for_club('=' || desired);
+  perform common._enroll_club_gametypes('=' || desired);
 
   -- `result` beside the username, not instead of it: the name is what a caller
   -- would USE, `result` is what says which answer this is (docs/envelopes.md →

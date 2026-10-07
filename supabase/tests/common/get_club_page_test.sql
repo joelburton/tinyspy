@@ -6,9 +6,11 @@
 --
 -- Coverage:
 --   1. Happy path: the three payload pieces, for a member
---        - club: handle, name, and the is_solo generated column
+--        - club: handle, name, the is_solo generated column, and the
+--          edit gate can_edit_settings
 --        - members: everyone, ALPHABETICAL by username
---        - gametypes: the enrolled set, each with its default_setup
+--        - gametypes: every registered gametype's row, each with its
+--          listing, cap, today's count and default_setup
 --   2. The three refusals, which are the reason this RPC exists —
 --      a direct read cannot tell (b) and (c) apart, because RLS
 --      hides a club you are outside and both arrive as zero rows:
@@ -24,7 +26,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(14);
+select plan(17);
 
 -- Cast: ada + bea + cade are the club. cade is here to make the
 -- ordering assertion mean something — three names that are not in
@@ -97,8 +99,8 @@ select is(
 
 select is(
   (select count(*) from jsonb_array_elements((select env from page) -> 'data' -> 'gametypes')),
-  (select count(*) from common.clubs_gametypes where club_handle = (select handle from club)),
-  'gametypes is the club''s whole enrolled set');
+  (select count(*) from common.gametypes),
+  'gametypes is every registered gametype''s row, listed or not — the edit dialog needs each one''s cap');
 
 -- The pair is the point: a second read for the defaults is what this
 -- RPC exists to avoid, so `default_setup` travels with the name.
@@ -107,6 +109,25 @@ select is(
      from jsonb_array_elements((select env from page) -> 'data' -> 'gametypes') k),
   true,
   'each gametype carries its default_setup, seeding SetupGameModal');
+
+-- Paw protection's three facts ride on the same row: the listing the start
+-- list draws, the cap the edit dialog shows, and today's count from the view.
+select is(
+  (select bool_and(k ? 'is_enabled' and k ? 'max_daily_games' and k ? 'used_today')
+     from jsonb_array_elements((select env from page) -> 'data' -> 'gametypes') k),
+  true,
+  'each gametype carries is_enabled, max_daily_games and used_today');
+
+select is(
+  (select bool_and((k ->> 'used_today')::int = 0 and k -> 'max_daily_games' = 'null'::jsonb)
+     from jsonb_array_elements((select env from page) -> 'data' -> 'gametypes') k),
+  true,
+  'a fresh club has no cap and nothing started today on any gametype');
+
+select is(
+  ((select env from page) -> 'data' -> 'club' ->> 'can_edit_settings')::boolean,
+  true,
+  'club.can_edit_settings is true by default — the edit gate is open');
 
 -- ============================================================
 -- (2) The three refusals

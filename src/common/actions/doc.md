@@ -206,6 +206,14 @@ navigating away, a pause taking the play surface — and runs nothing if an answ
 arrives anyway: its subject is gone, and the answer would otherwise run through a
 ref that outlived it.
 
+**Paw protection is asked by the shared run too**, before the question and
+game over or not, for an action whose registry row says `pawProtected` — New
+game, and nothing else. A club can cap how many games of a gametype are started
+each day, and the run asks `ensureCanStartRegistered` about the subject the
+page registered; a spent cap shows the paw-protection card and the action does
+not run, so no game's own New game has to know
+([`common/paw-protection`](../paw-protection/doc.md)).
+
 **A question may have two ways to say YES.** Conceding a race and ending it for
 everyone are both things to do and they differ in what they do — subtly enough
 that two red buttons side by side can only name the difference, where a question

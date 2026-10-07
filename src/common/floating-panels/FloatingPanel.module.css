@@ -208,7 +208,9 @@
  * you move, holding content you scroll. A CARD (the two blocking families) stays
  * a card at every size: a two-line question has nothing to fill a phone with,
  * and replacing the board with a sheet deletes the very thing the question is
- * about.
+ * about. The one card that asks for the sheet is paw protection's poster
+ * (FloatingPanel's `phone` override): a notice with a picture, nothing behind
+ * it worth seeing.
  *
  * **A card needs no rule here at all.** Its width is a fixed number (420) that
  * would overflow a narrow phone, but `clampToViewport` already caps width and

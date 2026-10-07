@@ -9,6 +9,7 @@ import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
 import type { GameManifest } from '../manifest/gameManifest'
 import { setGameMenuSections } from '../menu/gameMenuStore'
 import type { MenuApi } from '../menu/menuModel'
+import { registerPawSubject } from '../paw-protection/pawProtectionService'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import { navigate } from '../routing/router'
 import { clubPath, gamePath } from '../routing/routes'
@@ -63,6 +64,13 @@ export function usePageActions({
   useEffect(function clearGameMenuOnLeave() {
     return () => setGameMenuSections([])
   }, [])
+
+  // Paw protection's subject for this page: the club and gametype its New game
+  // would start, registered for as long as the page is up so the action's
+  // shared run can ask before it acts (`common/paw-protection`).
+  useEffect(function registerThisPagesPawSubject() {
+    return registerPawSubject({ clubHandle: cg.club.handle, gametype: manifest.gametype })
+  }, [cg.club.handle, manifest.gametype])
 
   const actHelp = useBindAction('act-help', {
     describe: () => 'active',

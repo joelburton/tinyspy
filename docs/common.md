@@ -72,11 +72,15 @@ Each step is one or two sentences here; the folder named has the rest.
 - **The club.** The club page lists the games the club has and the gametypes
   it can start, and the club's chat and presence
   ([`common/club`](../src/common/club/doc.md)).
-- **Starting a game.** The setup dialog collects the options
+- **Starting a game.** Paw protection asks first — a club can cap how many
+  games of a gametype are started each day, and a spent cap shows a card
+  instead of the dialog
+  ([`common/paw-protection`](../src/common/paw-protection/doc.md)). The setup
+  dialog collects the options
   ([`common/setup-form`](../src/common/setup-form/doc.md)); the game's own
   `create_game` validates them, calls `common._create_game` for the shared
-  header row (the club, the players, the title, the clock), and adds its own
-  detail rows. The new game becomes the club's current one, and every other
+  header row (the club, the players, the title, the clock; the cap counted),
+  and adds its own detail rows. The new game becomes the club's current one, and every other
   player gets an **invitation toast** — nobody is pulled into a game
   ([`common/invitations`](../src/common/invitations/doc.md)).
 - **The game page.** The shell resolves the gametype, loads the shared game

@@ -6,6 +6,7 @@ import { registerAction } from './actionsStore'
 import type { AppIcon } from '../icons/icons'
 import { askConfirmation, withdrawConfirmation } from '../floating-panels/confirmationService'
 import type { ConfirmAnswer, ConfirmOptions } from '../floating-panels/confirmations'
+import { ensureCanStartRegistered } from '../paw-protection/pawProtectionService'
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
 /** Whether an action applies right now, and how. `hidden` is "not here at this
@@ -144,11 +145,19 @@ export function useBindAction(id: ActionId, options: BindActionOptions): Action 
     }
   }, [])
 
-  // The run every surface shares: ask the action's question, then do the thing.
-  // Asking here rather than in the callback is what stops every game from
-  // having to remember to ask — and stops one of them from forgetting.
+  // The run every surface shares: ask paw protection, ask the action's
+  // question, then do the thing. Asking here rather than in the callback is
+  // what stops every game from having to remember to ask — and stops one of
+  // them from forgetting.
   const ask = useCallback(
     async (key?: string) => {
+      // Paw protection first, game over or not: the cap is on starting the
+      // next game, which is what an ended game's New game does. A refusal
+      // asks no question, since there is nothing to shelve for.
+      if (defn.pawProtected) {
+        const canStart = await ensureCanStartRegistered()
+        if (!canStart || !mountedRef.current) return
+      }
       const asked = optionsRef.current
       // Once the game has ended the question is not asked — there is nothing
       // left to interrupt.

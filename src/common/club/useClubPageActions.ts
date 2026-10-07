@@ -11,6 +11,9 @@ import { navigate } from '../routing/router'
 type ClubPageActionsOptions = {
   // Where "Rename club" says it is coming soon.
   globalFeedbackSlot: FeedbackSlot
+  // The club's `can_edit_settings`: off, and Edit club is not offered
+  // (docs/common-schema.md → Paw protection).
+  canEditSettings: boolean
 }
 
 /** A dialog the club menu opens. */
@@ -26,13 +29,15 @@ type MenuDialog = {
  * - **Help** opens the club's Help companion.
  * - **Back to home** goes to the club list; it is the club page's "up a level",
  *   as Back to club is a game page's.
- * - **Edit club** opens the club editor.
+ * - **Edit club** opens the club editor — hidden when the club's settings are
+ *   locked, and the RPC refuses behind it.
  * - **Rename club** is a placeholder that says it is coming soon.
  *
  * The menu is these rows, then the account section, as on every page.
  */
 export function useClubPageActions({
   globalFeedbackSlot,
+  canEditSettings,
 }: ClubPageActionsOptions): {
   // The club menu's sections (menu/doc.md).
   menuSections: MenuSection[]
@@ -52,7 +57,7 @@ export function useClubPageActions({
     run: () => navigate('/'),
   })
   const actEditClub = useBindAction('act-edit-club', {
-    describe: () => 'active',
+    describe: () => (canEditSettings ? 'active' : 'hidden'),
     run: () => setIsEditClubOpen(true),
   })
   const actRenameClub = useBindAction('act-rename-club', {

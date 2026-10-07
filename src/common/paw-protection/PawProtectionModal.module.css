@@ -1,0 +1,53 @@
+/* cs-unmet */
+
+/*
+ * The paw-protection poster's body (see PawProtectionModal.tsx): the picture
+ * on the left and the notice — the heading and the words — on the right; on
+ * a phone, where the poster is the whole screen, the picture above the words.
+ */
+
+/* @@ */ .pawProtection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-1);
+}
+@media (--phone) {
+/* @@ */   .pawProtection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* The picture's width is the poster's one bespoke number: BlockingModal's
+   poster is 640px, and a little under half of it leaves the words a readable
+   column. Not a vocabulary value — a surface's own dims are outside them
+   (docs/tokens.md → The non-color vocabularies). */
+/* @@ */ .picture {
+  flex: none;
+  width: 260px;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+@media (--phone) {
+/* @@ */   .picture {
+    width: 100%;
+  }
+}
+
+/* @@ */ .notice {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The heading keeps the element's own size: a page title's, which is what a
+   whole-screen notice reads as. Its margin is the gap to the words. */
+/* @@ */ .heading {
+  margin: 0 0 var(--spacer-3);
+}
+
+/* A notice's size, not running text's: read once, from across the room. */
+/* @@ */ .words {
+  margin: 0;
+  font-size: var(--font-size-notice);
+  line-height: var(--line-height-2);
+}

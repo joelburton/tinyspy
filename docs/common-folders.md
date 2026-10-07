@@ -298,6 +298,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `manifest` | what a game declares — the contract |
 | `members` | who someone is, their color, and the disc that shows it |
 | `menu` | the one menu, its store, and what a game puts in it |
+| `paw-protection` | a club's daily cap on starting a gametype: the question every start asks first, and the card that answers a spent cap |
 | `mobile` | the desktop-versus-mobile machinery: the breakpoint, the device hooks, the viewport |
 | `outcomes` | the outcome vocabulary — won · lost · near · warning · neutral · noted |
 | `page-header` | the top strip and the marks in it |
