@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle and wordle are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle and letterboxed are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -217,6 +217,12 @@ in its turn in step 4; none is open here.
    win reads "Won (solved it)"; "2nd (more guesses)" / "2nd (solved later)"
    from the summary's new `nGuessesUsedById`. The server's
    `tieBrokenByClock` player key has no reader left.
+   letterboxed, whose card the code already matched, and which already had
+   the bell, the flash and the celebration; it gains the ending frame, around
+   the chain and the board together as the history frame is. Coop reads "Won
+   (3 words)" / "Lost (out of time)"; a timeout's tie is named, a place says
+   what lost it ("fewer letters" / "more words", from the summary's new
+   per-racer counts), and nothing covered reads "Lost (no words found)".
 
 ## Overlaps
 

@@ -144,15 +144,20 @@ select is(
   pg_temp.summary_data(pg_temp.game('coop')),
   pg_temp.common_summary(pg_temp.game('coop'))
     || '{"team": {"nWordsUsed": 0, "nCoveredLetters": 0}, "maxWords": 5, "band": 5,
-         "nBestCoveredLetters": null, "nWinnerWords": null, "nWinnerCoveredLetters": null}'::jsonb,
+         "nBestCoveredLetters": null, "nWinnerWords": null, "nWinnerCoveredLetters": null,
+         "nCoveredLettersById": null, "nWordsUsedById": null}'::jsonb,
   'coop: a fresh summary'
 );
 select is(
   pg_temp.summary_data(pg_temp.game('compete')),
   pg_temp.common_summary(pg_temp.game('compete'))
-    || '{"team": null, "maxWords": 5, "band": 5,
-         "nBestCoveredLetters": 0, "nWinnerWords": null, "nWinnerCoveredLetters": null}'::jsonb,
-  'compete: a fresh summary'
+    || jsonb_build_object('team', null, 'maxWords', 5, 'band', 5,
+         'nBestCoveredLetters', 0, 'nWinnerWords', null, 'nWinnerCoveredLetters', null,
+         'nCoveredLettersById', (select jsonb_object_agg(user_id::text, letterboxed._covered(chain))
+                                   from letterboxed.players where game_id = pg_temp.game('compete')),
+         'nWordsUsedById', (select jsonb_object_agg(user_id::text, coalesce(cardinality(chain), 0))
+                              from letterboxed.players where game_id = pg_temp.game('compete'))),
+  'compete: a fresh summary, each racer''s counts at 0'
 );
 
 -- ─── (2) Mid-game coop: ada plays ADG, bea takes a hint, ada a spoiler ───
@@ -263,9 +268,13 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.game('compete')),
   pg_temp.common_summary(pg_temp.game('compete'))
-    || '{"team": null, "maxWords": 5, "band": 5,
-         "nBestCoveredLetters": 12, "nWinnerWords": 2, "nWinnerCoveredLetters": 12}'::jsonb,
-  'compete solved: the summary names the winner''s chain'
+    || jsonb_build_object('team', null, 'maxWords', 5, 'band', 5,
+         'nBestCoveredLetters', 12, 'nWinnerWords', 2, 'nWinnerCoveredLetters', 12,
+         'nCoveredLettersById', (select jsonb_object_agg(user_id::text, letterboxed._covered(chain))
+                                   from letterboxed.players where game_id = pg_temp.game('compete')),
+         'nWordsUsedById', (select jsonb_object_agg(user_id::text, coalesce(cardinality(chain), 0))
+                              from letterboxed.players where game_id = pg_temp.game('compete'))),
+  'compete solved: the summary names the winner''s chain, and each racer''s counts'
 );
 select is(
   jsonb_build_array(

@@ -120,7 +120,7 @@ beforeEach(() => {
 })
 
 describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
-  it('shows "You conceded" with Stop for all, not a hidden Concede', () => {
+  it('shows my concession with Stop for all, not a hidden Concede', () => {
     // Conceding is spent; stopping the game for all is open to anyone in it, so
     // Stop takes Concede's place in the row.
     render(
@@ -128,9 +128,33 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
         {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })}
       />,
     )
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
+  })
+})
+
+describe('letterboxed PlayArea — the ending', () => {
+  it('coop: all twelve covered wins, in words, in the won frame', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          chain: ['adg', 'gjb', 'beh'],
+          players: [{ ...ME, outcome: 'won', finalRanking: 1, solvedAt: '2026-10-07T00:00:00Z' }],
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Won (3 words)').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
+  })
+
+  it('compete: a conceded rival reads conceded in the strip, beside their counts', () => {
+    render(
+      <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />,
+    )
+    expect(screen.getByText(/\(conceded\)$/)).toBeInTheDocument()
   })
 })
 

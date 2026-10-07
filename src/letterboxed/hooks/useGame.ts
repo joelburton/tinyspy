@@ -6,6 +6,7 @@ import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
 import { joinSides } from '../lib/board'
+import { findOthersAtTheEnd, makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer, GWord } from '../types'
 
@@ -35,8 +36,22 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // under `own`, their own. A coop chain is the team's alone, so it is every
   // player's own too, the same object on each; a racer's is theirs alone to see
   // mid-race. A racer always carries their chain and its counts.
-  const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
+  // Every player's ranking and counts, for the ending labels' ranking words.
+  const rankedCounts = raw.players.map((p) => ({
+    id: p.id,
+    name: p.username,
+    finalRanking: p.finalRanking,
+    nCoveredLetters: team?.nCoveredLetters ?? p.nCoveredLetters!,
+    nWordsUsed: team?.nWordsUsed ?? p.nWordsUsed!,
+  }))
+  const players: GPlayer[] = raw.players.map(function makePlayer(p, i) {
     const chain = team ?? { nWordsUsed: p.nWordsUsed!, nCoveredLetters: p.nCoveredLetters!, board: p.board! }
+    const endingLabel = makeEndingLabel(
+      { ...p, ...rankedCounts[i]! },
+      gameFacts,
+      findOthersAtTheEnd(p, rankedCounts),
+    )
     const board = team !== null || seeRival || isMine(p.id) ? chain.board : null
     const own: GFacts = {
       nWordsUsed: chain.nWordsUsed,
@@ -46,7 +61,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nSpoilersUsed: p.nSpoilersUsed,
       board,
     }
-    return { ...p, ...(team ?? own), board, own }
+    return { ...p, ...(team ?? own), board, own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

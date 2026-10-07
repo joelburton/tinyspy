@@ -18,8 +18,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useShowTeammateMoves } from '../hooks/useShowTeammateMoves'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -98,13 +97,12 @@ function PlayArea({
   // conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I have conceded and the others race on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I have conceded and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
@@ -137,9 +135,6 @@ function PlayArea({
 
   // The chain to show: a past move's while one is open, else the live one.
   const shownWords = historyView.words ?? gd.me.board.words
-
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>

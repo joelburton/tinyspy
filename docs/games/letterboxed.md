@@ -162,7 +162,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | `puzzle: {tiles, words, uncleanWords, nParWords}` — the box as twelve `{id, letter, side}` tiles in side order, each tile's id its letter; every word the board accepts, and the few of them a hint may not offer (§7 → The two word lists); par |
 | `game_data` | `puzzle: {solution}`, the seeded pair, null until the game ends. `team`, the team's facts sent once — the one chain with its counts, the hints and spoilers summed, the cap — null in compete. `events`, every row `{id, userId, kind, word, nCoveredLetters, tookTurn, at}`. On each player their own facts: `maxWords`, `nHintsUsed`, `nSpoilersUsed`, and a racer's `board: {words}` with its `nWordsUsed` and `nCoveredLetters`, the three null on a coop player |
-| `summary_data` | `team: {nWordsUsed, nCoveredLetters}`, the coop chain's counts, null in compete; `maxWords`; `band` (`legal_band`); and compete's `nBestCoveredLetters` (the best chain so far), `nWinnerWords` (once a racer has solved) and `nWinnerCoveredLetters` (on a solve or a timeout) — null in coop |
+| `summary_data` | `team: {nWordsUsed, nCoveredLetters}`, the coop chain's counts, null in compete; `maxWords`; `band` (`legal_band`); and compete's `nBestCoveredLetters` (the best chain so far), `nWinnerWords` (once a racer has solved), `nWinnerCoveredLetters` (on a solve or a timeout), and each racer's `nCoveredLettersById` and `nWordsUsedById`, which the strip already shows — null in coop |
 
 **Coop's chain is the team's alone.** Words used and letters covered describe
 the chain, not anything a player did, so in coop they live on `team` with the
@@ -633,7 +633,7 @@ sketch at its top.
         │     └── InfoCol           the readouts and the action row
         │           ├── StateLine   "Letters 7/12 · Words (par 2) 3/5"
         │           ├── TurnStatusLine ←   turn-by-turn coop only
-        │           ├── OpponentStrip ←    compete only: each racer's 7/12 · 2w, or "out"
+        │           ├── OpponentStrip ←    compete only: each racer's 7/12 · 2w, then how they came out ("(conceded)")
         │           ├── InfoActionsRow ←   one row, every action, in the menu's order
         │           ├── the revealed pair  "Solvable in two", once Reveal is pressed
         │           ├── SetupDisclosure ←
@@ -641,9 +641,10 @@ sketch at its top.
         └── CelebrationBlockingModal ←     my win, when it happens
 ```
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-`lib/playerEndingMessage.ts`), `useTurnStartFlash`, `useShowTeammateMoves`,
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
+ending label: `lib/endingLabel.ts`, on every `gd` player — "Won (3 words)",
+"Lost (out of time)", "Won (tied with bea)", "2nd (fewer letters)" / "2nd
+(more words)", "Lost (no words found)"), `useTurnStartFlash`, `useShowTeammateMoves`,
 `useHistoryView` and `useActionsAndMenu`. `BoardCol`'s: `useTypedWord` (the
 word being typed) and `useChainMove` (its trips to the server).
 
@@ -875,7 +876,7 @@ registrations by `clubs_gametypes_test.sql`.
 | file | pins |
 |---|---|
 | `hooks/useGame.test` | `gd` from the blob — the links become players, the setup rows with the board, the words flagged clean or not, `tilesById`, coop's counts on the team and a racer's on the player, hints and spoilers per player, the state line's pick, the solution at the end; the seat rule mid-race and at its end; the memo on the blob |
-| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — coop's win, timeout and Stop; a race solved, lost, won or tied on a timeout, all conceded, or nobody covering anything; a conceder |
+| `lib/endingLabel.test` | every ending's label and my outcome — coop's win, timeout and Stop; a race solved first or lost to it; a timeout led, tied, a place and what lost it, nothing covered; a conceder |
 | `lib/solve.test` | the hint BFS — shortest path, the greedy tie-break, stuck vs unreachable vs off par |
 | `lib/history.test` | the fold and the inclusive boundary |
 | `lib/board.test` · `lib/customBoard.test` · `lib/chainRows.test` · `lib/answer.test` · `lib/setup.test` | the side rule, `rejectReason`, `layout` and `pathPoints`; the typed-board reader (`formatSides` / `parseSides` round trip); the strip's rows; every answer's outcome and words; the setup's bounds |

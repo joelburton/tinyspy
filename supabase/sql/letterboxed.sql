@@ -651,7 +651,16 @@ as $$
                                   from letterboxed.players lp where lp.game_id = p_game_id)
                              end,
     'nWinnerWords',          (select cardinality(w.chain) from winner w where w.solved_at is not null),
-    'nWinnerCoveredLetters', (select letterboxed._covered(w.chain) from winner w))
+    'nWinnerCoveredLetters', (select letterboxed._covered(w.chain) from winner w),
+    -- Each racer's counts, public in a race (the strip shows them); null in coop.
+    'nCoveredLettersById',   case when cg.mode = 'compete' then
+                               (select jsonb_object_agg(lp.user_id::text, letterboxed._covered(lp.chain))
+                                  from letterboxed.players lp where lp.game_id = p_game_id)
+                             end,
+    'nWordsUsedById',        case when cg.mode = 'compete' then
+                               (select jsonb_object_agg(lp.user_id::text, coalesce(cardinality(lp.chain), 0))
+                                  from letterboxed.players lp where lp.game_id = p_game_id)
+                             end)
     from letterboxed.games lg
     join common.games cg on cg.id = lg.game_id
    where lg.game_id = p_game_id;

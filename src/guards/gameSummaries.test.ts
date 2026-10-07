@@ -340,17 +340,18 @@ const CASES: Record<string, Family | GameEndingFamily> = {
   // carries coop's team and compete's best coverage together.
   letterboxed: {
     live: { team: { nWordsUsed: 2, nCoveredLetters: 7 }, maxWords: 5, band: 5,
-      nBestCoveredLetters: 7, nWinnerWords: null, nWinnerCoveredLetters: null },
+      nBestCoveredLetters: 7, nWinnerWords: null, nWinnerCoveredLetters: null,
+      nCoveredLettersById: null, nWordsUsedById: null },
     coop: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nWordsUsed: 3, nCoveredLetters: 12 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'covered the board'],
-      [{ outcome: 'lost', reason: 'timeout' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'timeout'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved' }, { team: { nWordsUsed: 3, nCoveredLetters: 12 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null, nCoveredLettersById: null, nWordsUsedById: null }, 'covered the board'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null, nCoveredLettersById: null, nWordsUsedById: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nWordsUsed: 4, nCoveredLetters: 8 }, maxWords: 5, band: 5, nBestCoveredLetters: null, nWinnerWords: null, nWinnerCoveredLetters: null, nCoveredLettersById: null, nWordsUsedById: null }, 'Stop'],
     ],
     compete: [
-      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 12, nWinnerWords: 3, nWinnerCoveredLetters: 12 }, 'first to finish'],
-      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 9, nWinnerWords: null, nWinnerCoveredLetters: 9 }, 'timeout, most letters'],
-      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'all conceded'],
-      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null }, 'Stop'],
+      [{ outcome: 'won', reason: 'reached_goal', detail: 'solved', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 12, nWinnerWords: 3, nWinnerCoveredLetters: 12, nCoveredLettersById: { 'u-alice': 9, 'u-bob': 6 }, nWordsUsedById: { 'u-alice': 3, 'u-bob': 4 } }, 'first to finish'],
+      [{ outcome: 'won', reason: 'timeout', winners: ['u-alice'] }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 9, nWinnerWords: null, nWinnerCoveredLetters: 9, nCoveredLettersById: { 'u-alice': 9, 'u-bob': 6 }, nWordsUsedById: { 'u-alice': 3, 'u-bob': 4 } }, 'timeout, most letters'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null, nCoveredLettersById: { 'u-alice': 9, 'u-bob': 6 }, nWordsUsedById: { 'u-alice': 3, 'u-bob': 4 } }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxWords: 5, band: 5, nBestCoveredLetters: 4, nWinnerWords: null, nWinnerCoveredLetters: null, nCoveredLettersById: { 'u-alice': 9, 'u-bob': 6 }, nWordsUsedById: { 'u-alice': 3, 'u-bob': 4 } }, 'Stop'],
     ],
   },
   // wordiply._make_json_summary_data: `team` holds coop's track, its scores null until the end,

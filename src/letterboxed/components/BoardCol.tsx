@@ -2,6 +2,7 @@
 
 import { useMemo, type CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { useChainMove } from '../hooks/useChainMove'
@@ -141,7 +142,8 @@ export function BoardCol({
           on either falls to the viewer's click-anywhere exit. */}
       <div
         className={cls(styles.historyFramed,
-          historyView.isViewing && history.historyFrame)}
+          historyView.isViewing && history.historyFrame,
+          makeEndingFrameClasses(gd.me.outcome, historyView.isViewing))}
       >
         {/* The chain reads ABOVE the board: it is the state, and it says what
             letter the next word must start with. */}

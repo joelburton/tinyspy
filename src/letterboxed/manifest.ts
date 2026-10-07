@@ -5,9 +5,11 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { findWinnerIds } from '@/common/manifest/summaryData'
+import { findWinnerIds, type SummaryPlayer } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { findOthersAtTheEnd, makeEndingLabel } from './lib/endingLabel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
   DEFAULT_LETTERBOXED_SETUP_COMPETE,
@@ -85,64 +87,103 @@ const BRAND = 'SnakeBox'
 /** Letters on the board — the denominator every label reports against. */
 const BOARD_SIZE = 12
 
+/** A player's ending label, from the summary: their counts (the team's in
+ *  coop), the players ranked above them, and the others at their place. */
+function makeSummaryEndingLabel(
+  summary: GSummaryData,
+  mode: 'coop' | 'compete',
+  members: readonly Member[],
+  player: SummaryPlayer,
+) {
+  const rankedCounts = summary.players.map((p) => ({
+    id: p.id,
+    name: findUsername(members, p.id) ?? 'someone',
+    finalRanking: p.finalRanking,
+    nCoveredLetters: summary.team?.nCoveredLetters ?? summary.nCoveredLettersById?.[p.id] ?? 0,
+    nWordsUsed: summary.team?.nWordsUsed ?? summary.nWordsUsedById?.[p.id] ?? 0,
+  }))
+  const counts = rankedCounts.find((p) => p.id === player.id)!
+  return makeEndingLabel(
+    { ...player, ...counts },
+    { mode, ended: summary.ended, reason: summary.ending?.reason ?? null },
+    findOthersAtTheEnd(player, rankedCounts),
+  )
+}
+
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
 /**
- * COOP's club line is the shared chain's progress: how much of the board is
- * covered, and how much of the word budget is spent.
+ * COOP's club line: the letters covered and the words used while it plays;
+ * once it ends, the team's ending label (mine, when I played) leads it — a win
+ * says its word count itself, and the letters covered stay on any other
+ * ending.
  */
-function makeCoopLabel(summary: GSummaryData): string {
+function makeCoopLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
   // Coop always has a team.
   const team = summary.team!
   const progress = `${team.nCoveredLetters}/${BOARD_SIZE} letters`
   if (summary.ending === null) {
     return statusLine(verdict('Playing'), progress, `${team.nWordsUsed}/${summary.maxWords} words`)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return statusLine(verdict('Won'), count(team.nWordsUsed, 'word'))
-    // A timeout and the group calling it are the two coop endings without a
-    // win; only the timeout is a loss.
-    case 'lost':
-      return statusLine(verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : null), progress)
-    // A Stop.
-    case 'neutral':
-      return statusLine(verdict('Ended'), progress)
-    default:
-      return outcome
-  }
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  const endingLabel = makeSummaryEndingLabel(summary, 'coop', members, player)!
+  return statusLine(makeLead(endingLabel), summary.outcome === 'won' ? null : progress)
 }
 
 /**
- * COMPETE's club line. The race ENDS on the first solve — the bar is "cover
- * the twelve inside the cap", and being first past it is the whole game — so a
- * win names the winner and their chain's length. A timeout instead resolves on
- * the most letters covered, which is a different sentence.
+ * COMPETE's club line, led by my ending label once I am out of play. The race
+ * ENDS on the first solve — the bar is "cover the twelve inside the cap", and
+ * being first past it is the whole game — so a win names the winner and their
+ * chain's length. A timeout instead resolves on the most letters covered,
+ * which is a different sentence.
  */
-function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
-  if (summary.ending === null) {
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeSummaryEndingLabel(summary, 'compete', members, me)
+  if (summary.ending === null && myEndingLabel === null) {
     return statusLine(verdict('Playing'), `best ${summary.nBestCoveredLetters}/${BOARD_SIZE}`)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won': {
-      const winner = findWinnerIds(summary)[0] ?? null
-      const name = winner === null ? undefined : memberById(members, winner)?.username
-      return summary.ending.reason === 'timeout'
-        ? statusLine(wonBy(name), `${summary.nWinnerCoveredLetters}/${BOARD_SIZE} letters`)
-        : statusLine(wonBy(name), count(summary.nWinnerWords, 'word'))
+
+  const winningCount = summary.ending?.reason === 'timeout'
+    ? `${summary.nWinnerCoveredLetters}/${BOARD_SIZE} letters`
+    : count(summary.nWinnerWords, 'word')
+  const otherWinnerNames = findWinnerIds(summary)
+    .filter((id) => id !== myId)
+    .map((id) => findUsername(members, id) ?? 'someone')
+    .join(' & ')
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      // My label names any tie, so a win needs only the count after it.
+      if (myEndingLabel.labelType === 'won') return statusLine(makeLead(myEndingLabel), winningCount)
+      // Someone else won: name them, beside how I came out; a bare loss is
+      // said by naming them.
+      return myEndingLabel.labelType === 'lost' && myEndingLabel.long === ''
+        ? statusLine(wonBy(otherWinnerNames), winningCount)
+        : statusLine(makeLead(myEndingLabel), wonBy(otherWinnerNames), winningCount)
     }
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
+    case 'won':
+      return statusLine(wonBy(otherWinnerNames), winningCount)
     case 'lost':
       return statusLine(
-        verdict('Lost', summary.ending.reason === 'conceded' ? 'all conceded' : null),
+        verdict('Lost', summary.ending!.reason === 'conceded' ? 'all conceded' : null),
         'nobody finished',
       )
-    // A Stop.
     case 'neutral':
-      return statusLine(verdict('Ended'), 'no winner')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -176,7 +217,7 @@ export const letterboxedCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, members, myId) => makeCoopLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,
@@ -211,7 +252,7 @@ export const letterboxedCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,

@@ -47,11 +47,13 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  /** A racer's cell in the strip: the two numbers a race may publish, never
-   *  the words — or "out", once they have ended. */
-  function getCoveredOrOut(player: GPlayer) {
-    if (player.ending !== null) return 'out'
-    return `${player.nCoveredLetters}/${BOARD_SIZE} · ${player.nWordsUsed}w`
+  /** A player's cell in the strip: the two numbers a race may publish, never
+   *  the words; once they are out of play — on their own or with the game —
+   *  how they came out after them: "9/12 · 4w (2nd)". */
+  function getCoveredAndResult(player: GPlayer) {
+    const covered = `${player.nCoveredLetters}/${BOARD_SIZE} · ${player.nWordsUsed}w`
+    if (player.endingLabel === null) return covered
+    return `${covered} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -80,7 +82,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Covered"
-            metricFor={getCoveredOrOut}
+            metricFor={getCoveredAndResult}
           />
         )}
 

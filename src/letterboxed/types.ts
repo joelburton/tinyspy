@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -195,6 +196,8 @@ export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'maxWords' | 'nHintsUsed' |
  *   nSpoilersUsed
  *   board: {words}                           # coop's one chain on every player; null for a rival mid-race
  *   own: {nWordsUsed, nCoveredLetters, maxWords, nHintsUsed, nSpoilersUsed, board}
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *                                            # this player's own; in coop the chain is the team's
  *
  * tile:                                      # GTile
@@ -251,6 +254,9 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat sees: the chain, in the order played. */
@@ -408,4 +414,7 @@ export type GSummaryData = SummaryData & {
   nBestCoveredLetters: number | null
   nWinnerWords: number | null
   nWinnerCoveredLetters: number | null
+  // Each racer's counts, by id; null in coop.
+  nCoveredLettersById: Record<string, number> | null
+  nWordsUsedById: Record<string, number> | null
 }
