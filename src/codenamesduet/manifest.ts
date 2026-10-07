@@ -9,6 +9,8 @@ import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
 import { DEFAULT_CODENAMESDUET_SETUP } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import { TOTAL_AGENTS } from './lib/agents'
+import { makeEndingLabel } from './lib/endingLabel'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import logoUrl from './logo.svg?url'
 
 // The single source of truth for this game's user-facing brand name —
@@ -104,7 +106,7 @@ export const codenamesduetGame: GameManifest = {
   // The club card's label, from `summary_data`: the verdict, a loss's cause,
   // and the agent tally on every line; mid-game the turns left ride too, and
   // sudden death leads in their place.
-  summaryFor: (data) => makeLabel(data as GSummaryData),
+  summaryFor: (data, _members, myId) => makeLabel(data as GSummaryData, myId),
 
   // Called by common's GamePage when its countdown timer hits 0.
   // submit_timeout ends the game lost, reason 'timeout' (distinct from a
@@ -116,18 +118,13 @@ export const codenamesduetGame: GameManifest = {
   stopGame: makeRpcDispatcher(db, 'stop_game'),
 }
 
-// A loss's cause, per the ending's detail, in the words the club card shows.
-const LOSS_CAUSE: Record<string, string> = {
-  assassin: 'assassin',
-  // A bystander in sudden death. "turns", not "tokens": the rulebook's
-  // physical timer-tokens are just the turn budget, and "tokens" doesn't help a
-  // player who never holds one.
-  neutral: 'out of turns',
-  timeout: 'out of time',
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
 }
 
 /** The club card's label for one game (see `summaryFor`). */
-function makeLabel(summary: GSummaryData): string {
+function makeLabel(summary: GSummaryData, myId: string): string {
   const team = summary.team
   // The agent tally is the useful "should I come back to this?" fact, so it
   // rides on every line.
@@ -139,17 +136,12 @@ function makeLabel(summary: GSummaryData): string {
     const turnsLeft = team.maxTurns - team.nTurnsUsed
     return statusLine(verdict('Playing'), count(turnsLeft, 'turn left', 'turns left'), agents)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return statusLine(verdict('Won'), agents)
-    case 'lost':
-      return statusLine(verdict('Lost', LOSS_CAUSE[summary.ending.detail]), agents)
-    case 'neutral':
-      // The friends stopped on purpose: neutral phrasing, not a loss.
-      return statusLine(verdict('Ended'), agents)
-    default:
-      return outcome
-  }
+  // The team comes out as one: led by its ending label (mine, when I played).
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  const endingLabel = makeEndingLabel(player, {
+    ended: summary.ended,
+    reason: summary.ending.reason,
+    detail: summary.ending.detail,
+  })!
+  return statusLine(makeLead(endingLabel), agents)
 }

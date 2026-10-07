@@ -16,6 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -207,6 +208,8 @@ export type GPlayerRaw = PlayerRaw & {
  */
 export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out — the team's (`lib/endingLabel.ts`). Null while they play.
+  endingLabel: EndingLabel | null
 }
 
 /*
@@ -251,6 +254,8 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *   board: {tiles, tilesById}                # the table as it stands, the same object on both players
  *   own: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}
  *                                            # their own: the team's, since nothing is stored per player
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * puzzleTile:                                # never changes
  *   id                                       # the position, as text

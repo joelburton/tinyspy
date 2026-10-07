@@ -188,8 +188,7 @@ docs, and `common.words.difficulty` itself. Name each for the band it is.
 
 - codenamesduet `Board.module.css` says "hover ring" and names `.tile` /
   `.tileWord` as the chrome; hover is a shadow and a lift, and `.tileFace` is
-  the face. Its `lib/endingMessage.ts` says a long verdict wraps; it
-  truncates.
+  the face.
 - spellingbee `Tile.module.css`: a used center hex "takes the black edge";
   the rule uses `--tile-spent-edge-color`. Its `PlayArea.module.css` names a
   `Hive.module.css` that doesn't exist.

@@ -5,6 +5,7 @@ import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
   GBoard,
@@ -42,7 +43,13 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's; under `own`, their own — the team's, since
   // nothing is stored per player.
   const facts: GFacts = { ...counts, board }
-  const players: GPlayer[] = raw.players.map((p) => ({ ...p, ...facts, own: facts }))
+  const gameFacts = { ended: raw.ended, reason: ending?.reason ?? null, detail: ending?.detail ?? null }
+  const players: GPlayer[] = raw.players.map((p) => ({
+    ...p,
+    ...facts,
+    own: facts,
+    endingLabel: makeEndingLabel(p, gameFacts),
+  }))
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   // Links that cannot miss get a bare lookup: every id the builder writes is a
   // seated player's. The turn's holder may be null in sudden death.

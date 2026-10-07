@@ -181,8 +181,10 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       ai: false,
       seat,
       ending: p.ending ?? null,
-      outcome: p.outcome ?? null,
-      finalRanking: p.finalRanking ?? null,
+      // Duet is won and lost together: an ended game writes the team's
+      // outcome on both players, and a win ranks them 1, unless a test says.
+      outcome: p.outcome ?? outcome,
+      finalRanking: p.finalRanking ?? (outcome === 'won' ? 1 : null),
       solvedAt: p.solvedAt ?? null,
       conceded: false,
       solved: (p.solvedAt ?? null) !== null,

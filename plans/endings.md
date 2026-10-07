@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed and wordiply are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands, connections, stackdown, waffle, wordle, letterboxed, wordiply and codenamesduet are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -231,6 +231,10 @@ in its turn in step 4; none is open here.
    withheld until the end); nothing scored reads "Lost (no words found)". It
    gained the turn bell and flash (it takes turns in coop) and the ending
    frame. It was the last user of `endingOutcomeVerb`.
+   codenamesduet, whose card the code already matched, and which already had
+   the bell, the flash, the frame and the celebration; coop only, so no strip.
+   A win is the word alone; a loss says its cause ("assassin", "out of turns",
+   "out of time").
 
 ## Overlaps
 

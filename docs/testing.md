@@ -59,7 +59,7 @@ The gray zone is **business logic at the boundary**: things like "if the game
 just ended, the FE shows the play-again button." That's a state-derivation
 question, and lives at whichever layer owns the derivation. Currently those
 derivations live in pure helpers (a game's `makeGameData` and its `lib/`, such
-as `src/codenamesduet/lib/endingMessage.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
+as `src/codenamesduet/lib/endingLabel.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
 
 ### What we don't test
 
@@ -270,7 +270,7 @@ Config in `vite.config.ts`.
 |---|---|---|
 | [`src/common/session/useAuthSession.test.ts`](../src/common/session/useAuthSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
 | [`src/common/routing/router.test.ts`](../src/common/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
-| [`src/codenamesduet/lib/endingMessage.test.ts`](../src/codenamesduet/lib/endingMessage.test.ts) | A game's ending words, every way it ends | No DOM, no mocking, no hooks — just `expect(buildGameEndingMessage(...)).toEqual(...)`. The kind of test that's free to write and free to keep. |
+| [`src/codenamesduet/lib/endingLabel.test.ts`](../src/codenamesduet/lib/endingLabel.test.ts) | A game's ending label, every way it ends | No DOM, no mocking, no hooks — just `expect(makeEndingLabel(...)).toMatchObject(...)`. The kind of test that's free to write and free to keep. |
 | [`src/psychicnum/hooks/useGame.test.ts`](../src/psychicnum/hooks/useGame.test.ts) | A game's `gd`, built from its blob | No mocking: `makeGameData` is a pure function, handed a blob the fixture (`lib/gameData.fixture.ts`) builds from facts, the way the SQL builder would. |
 | [`src/codenamesduet/components/GameEventLog.test.tsx`](../src/codenamesduet/components/GameEventLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 

@@ -485,7 +485,8 @@ linked to its puzzle tile, a reveal's arrows and its guessers as players,
 and the seat rule — my partner's key is null until the game ends. It reads
 nothing and subscribes to nothing. `PlayArea`'s hooks hold the rest:
 `useActionsAndMenu` (and whether I asked to see my partner's key),
-`useGetGameEndingMessage`, `useHistoryView` and `useShowPartnerMessages`.
+`useGetEndingMessage` (my ending label's message), `useHistoryView` and
+`useShowPartnerMessages`.
 
 What is codenamesduet's own:
 
@@ -539,7 +540,9 @@ What is codenamesduet's own:
   sudden death, one row per guess. Its bar is the turn's outcome
   (`lib/turnOutcome.ts`), and its number opens that turn on the board
   (`lib/history.ts`). The picker filters by who gave the clue.
-- **The ending** is the pill and the row's line (`lib/endingMessage.ts`). Reveal
+- **The ending** is the pill and the row's line, from the team's ending label
+  (`lib/endingLabel.ts`): "Won", "Lost (assassin)", "Lost (out of turns)",
+  "Lost (out of time)". Reveal
   uncovers the partner's card for this player alone, and Hide covers it again.
 - **The club label** (`manifest.ts`) reads `summary_data`: the verdict and a
   loss's cause, the agents found and, mid-game, the turns left — or sudden
@@ -578,7 +581,7 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/turnOutcome.test` · `lib/endingMessage.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
+| `lib/turnOutcome.test` · `lib/endingLabel.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's label; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the clues and the guesses out of the log; a past turn's board, its bystanders pointing at their guessers and its own tiles ringed |
 | `hooks/useGame.test` | `gd` from the blob, on the fixture (`lib/gameData.fixture.ts`): the links to players and tiles, each tile's guessers, the facts on both players and the one table, the turn and its clue, and the seat rule — my partner's key withheld until the end |
 | `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; the help line on my move; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |

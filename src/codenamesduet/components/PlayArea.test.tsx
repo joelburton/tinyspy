@@ -292,6 +292,17 @@ describe('codenamesduet PlayArea — the board marks', () => {
  * The finished-player banner: each player told, in the info column, when one
  * of them has found all their agents — and only while clues are still given.
  */
+describe('codenamesduet PlayArea — the ending\'s words', () => {
+  it('a win is the word alone; a loss says its cause, in the pill and the info column', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx(WON)} />)
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
+    unmount()
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
+    expect(screen.getByText('Lost: assassin')).toBeInTheDocument()
+    expect(screen.getByText('Lost (assassin)')).toBeInTheDocument()
+  })
+})
+
 describe('codenamesduet PlayArea — the finished-player banner', () => {
   it('tells me my partner now gives every clue, when my agents are all found', () => {
     render(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u2', 1, 24, 'G')] })} />)

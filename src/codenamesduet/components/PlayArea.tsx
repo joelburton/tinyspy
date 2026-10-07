@@ -17,7 +17,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { TOTAL_AGENTS } from '../lib/agents'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useShowPartnerMessages } from '../hooks/useShowPartnerMessages'
 import {
@@ -108,12 +108,12 @@ function PlayArea({
   // clue strip's place.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The ending's message, for the pill and the info column. Duet is a team of
-  // two, so the game's ending is both players' and there is none of a
-  // player's own.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
+  // My ending's message, for the pill and the info column, from my ending
+  // label. Duet is a team of two, so the game's ending is both players' and
+  // there is none of a player's own.
+  const { endingMessage } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
+    gameEndingMessage: endingMessage,
     playerEndingMessage: null,
   })
 
@@ -145,7 +145,7 @@ function PlayArea({
         tiles={historyView.tiles ?? gd.me.board.tiles}
         historyView={historyView}
         partnerKeyShown={partnerKeyShown}
-        endingOutcome={gameEndingMessage?.outcome ?? null}
+        endingOutcome={endingMessage?.outcome ?? null}
         localFeedbackSlot={localFeedbackSlot}
         onSuggestionChange={setClueSuggestion}
       />
@@ -154,7 +154,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           gd={gd}
-          endingMessage={gameEndingMessage}
+          endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}
         />
