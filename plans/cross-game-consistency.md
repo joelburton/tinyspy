@@ -35,37 +35,6 @@ Built for every game, 2026-10-06; what it settled is
 
 ## 2. Endings
 
-### A ranking below first shows as `near`, never "Lost"
-
-**Decided** (Joel, 2026-09-25 and 2026-09-26): `won` is ranked first; `near`
-is ranked, not first — the player cleared the game's bar for being ranked and
-someone did better; `lost` is not ranked, in a game that ended with a result
-(fell short of the goal, eliminated, or conceded). In wordle the slower solver
-is `near` and the player who never solved is `lost`. A player whose
-`final-ranking` is 2, 3 … reads as the ranking ("2nd"), in the `near`
-outcome; the ranking never depends on how many played.
-
-The server writes it (`common._end_game`'s outcome: `final_ranking > 1` is
-`near`). Left:
-
-- **The docs.** docs/win-lose.md → The player still says every ranking
-  below first is `lost` (`final-ranking`, `lost`), and `near` and `neutral`
-  have not joined as a player's end outcome. docs/outcomes.md defines `near`
-  as "close — one away, nearly right"; only its `EndOutcome` note says
-  "ranked below first". Widen it.
-- **Every surface that shows a player's ending shows the ranking** — the
-  pill, the action row's line, the player strip. Nothing renders an ordinal
-  today, and the strips in spellingbee, wordwheel and wordiply show
-  `outcome === 'won' ? 'Won' : conceded ? 'Conceded' : 'Lost'`, so a `near`
-  player reads "Lost".
-- **Audit every check written for a two-way world** (Joel, 2026-09-26).
-  `!== 'won'`, `=== 'lost'`, a ternary on `'won'`, and a `switch` with no
-  `near` case may each mean "lost" and now catch `near` too, or miss it.
-  waffle, wordle, connections and psychicnum already handle `near`; about 85
-  such comparisons outside the tests are unread. Read each, make the best
-  guess at what it meant, and bring the uncertain ones to Joel before
-  changing them.
-
 ### codenamesduet's guess answer carries the reason pair
 
 **Decided** (2026-09-26): the guess answer carries the same two names as the

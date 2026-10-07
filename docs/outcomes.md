@@ -21,7 +21,7 @@ have to import a game manifest to get at it.
 |---|---|---|
 | `won` | a good move, or a won game | green |
 | `lost` | a bad move, or a lost game | red |
-| `near` | close — one away, nearly right | gold |
+| `near` | close — one away, nearly right; or a place below first | gold |
 | `warning` | not a verdict on your play — notice it | orange |
 | `neutral` | a move nothing adjudicates | gray |
 | `noted` | a thing that happened, not a verdict | blue |
@@ -34,7 +34,9 @@ Reading them as "the game ended" is the most common mistake about this list.
 **`near` is its own word because "nearly" is a real answer** in several games —
 connections' one-away, a word that would have scored if it were longer. It is
 not a weaker `lost`; it tells you the guess was on the right track, which is
-information a player acts on differently.
+information a player acts on differently. As a game's ending it is a compete
+player ranked below first, who reads as the place ("2nd"), not "Lost"
+([win-lose.md → The player](win-lose.md#the-player)).
 
 **`warning` is the "this is not about how you're playing" tone**, and it covers
 two things that turn out to be one:

@@ -578,7 +578,8 @@ event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
   missed words. The words: `Won (reached 65%)`, `Won` for every required word,
   `Lost (out of time)`, `Ended (out of time)` for coop's no-target timeout,
   `2nd`, `Lost (no words found)`, `Conceded (game continues)`, and the shared
-  `Stopped`. The compete strip shows each player's score and, once they are
+  `Stopped`; a shared place names the others at it, `Won (tied with bea)`,
+  `2nd (tied with cade)`. The compete strip shows each player's score and, once they are
   out of play, their word: `31 (2nd)`. A win
   celebrates once, as `gd.me.outcome` turns `won` — the team's in coop, and in a
   race only the winner's screen; nothing pops for any other ending, or for a

@@ -50,7 +50,7 @@ always shows MY outcome.
   `endedBy` routes it to the shared `useShowEndingFeedback`. It replaces each
   game's two ending-message hooks.
 - **The club line leads with my result**, through the same label over
-  `summary_data`'s players: `Won`, `Won, tied with bea`, `Conceded · Won by
+  `summary_data`'s players: `Won`, `Won (tied with bea)`, `Conceded · Won by
   bea`; a game I did not win or concede names its winners (`Won by bea &
   cade`). No "You": the context says whose. It shows my result as soon as I am
   out of play, before the game ends; while I play it says `Playing`, with the
@@ -66,8 +66,12 @@ always shows MY outcome.
   the ending frame and the celebration are colored by `gd.me.outcome`. In
   compete, someone else's win is my `lost` or `near`, though the game's outcome
   is `won`.
-- **`near` reads as a place.** A player ranked 2nd reads "2nd place", never
-  "Lost: …"; a tied place reads "2nd place, tied".
+- **`near` reads as a place.** A player ranked 2nd reads "2nd", never
+  "Lost: …". After the place comes what lost it, only where the game ranks by
+  more than one thing ("2nd (more guesses)", "2nd (solved later)"); a game that
+  ranks by one number says nothing, since the strip shows the number ("280
+  (2nd)"). A shared place, first or not, names the others at it ("Won (tied
+  with bea)", "2nd (tied with bea & cade)").
 - **Every game draws the ending frame**, on my ending and the game's.
   bananagrams and crosswords may be exempt if an outline has no room; measured
   before deciding.
@@ -154,7 +158,7 @@ in its turn in step 4; none is open here.
    - its `lib/endingLabel.ts`, `endingLabel` on its `gd` players, and the one
      `useGetEndingMessage` in place of its two ending-message hooks;
    - its strip as "metric (word)", its `summaryFor` on the label;
-   - names every winner; "2nd place"; the frame on both endings;
+   - names every winner; the place as "2nd"; the frame on both endings;
    - outcomes read, never worked out; the Stop chosen by its reason;
    - **THE TURN BELL AND THE YOUR-TURN FLASH — check it in every game, every
      time.** A game with turn order (`common._advance_turn` anywhere in its
@@ -244,13 +248,10 @@ in its turn in step 4; none is open here.
    (Bananas!)", a loss to it the word alone; its own PeersStrip carries the
    label after each rival's tiles left; the board gains the ending frame with
    no space reserved. Every game is now on the ending label.
+   Then boggle, spellingbee and wordwheel name a shared place, as setgame
+   does ("Won (tied with bea)", "2nd (tied with cade)"), and their club lines
+   lead with that label in place of their own ", tied with bea".
 
 ## Overlaps
 
-cross-game-consistency holds an item this plan covers:
-→ Endings → "A ranking below first shows as `near`, never 'Lost'". It wants
-one home. Its → Renames → "Terminal" → "ended" points here.
-
-## Open
-
-- **What the `near` line says beside the place**, game by game.
+cross-game-consistency's → Renames → "Terminal" → "ended" points here.

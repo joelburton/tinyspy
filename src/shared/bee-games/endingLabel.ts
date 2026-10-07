@@ -15,6 +15,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
  * timer stops first, a target game is lost by everyone; without a target,
  * compete ranks by score (ties share, the next place skips; no points, no
  * place) and coop ends with no result — "Ended", which only the game can word.
+ * A shared place names the others at it ("tied with bea").
  */
 export function makeBeeEndingLabel(
   player: Pick<PlayerRaw, 'outcome' | 'conceded' | 'finalRanking' | 'solved' | 'stillPlaying' | 'ending'>,
@@ -27,6 +28,8 @@ export function makeBeeEndingLabel(
     // The rank that wins, an index into `RANKS`; null for none.
     targetRankIdx: number | null
   },
+  // The other players ranked at this player's place, by name; empty for none.
+  tiedWithNames: string[],
 ): EndingLabel | null {
   if (player.stillPlaying) return null
   const endedBy = game.ended ? 'game' : 'player'
@@ -41,14 +44,17 @@ export function makeBeeEndingLabel(
 
   const result = makeEndingLabelWord(player, game)!
   const base = { ...result, outcome: player.outcome!, endedBy } as const
+  const tie = game.mode === 'compete' && tiedWithNames.length > 0
+    ? `tied with ${joinNames(tiedWithNames)}`
+    : ''
 
   switch (result.labelType) {
     case 'won': {
-      const rest = game.detail === 'target' ? `reached ${RANKS[game.targetRankIdx!]}` : ''
+      const rest = game.detail === 'target' ? `reached ${RANKS[game.targetRankIdx!]}` : tie
       return { ...base, long: rest, pill: rest }
     }
     case 'placed':
-      return { ...base, long: '', pill: '' }
+      return { ...base, long: tie, pill: tie }
     case 'stopped':
       return { ...base, long: '', pill: game.mode === 'coop' ? '' : 'no winner' }
     case 'conceded': {
@@ -66,4 +72,10 @@ export function makeBeeEndingLabel(
     default:
       throw new Error(`BUG: a bee game never ends a player ${result.labelType}`)
   }
+}
+
+/** Names as one phrase: "bea", "bea & cade", "bea, cade & dee". */
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names.join('')
+  return `${names.slice(0, -1).join(', ')} & ${names.at(-1)}`
 }

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { EndingLabel } from '@/common/ending/endingLabel'
-import { findWinnerIds } from '@/common/manifest/summaryData'
+import { findWinnerIds, type SummaryPlayer } from '@/common/manifest/summaryData'
 import { statusLine, tally, verdict, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
 import { findUsername } from '@/common/members/memberList'
@@ -24,6 +24,19 @@ function makeGameFacts(summary: BeeSummaryData, mode: 'coop' | 'compete') {
     detail: summary.ending?.detail ?? null,
     targetRankIdx: summary.targetRankIdx,
   }
+}
+
+/** A player's ending label, from the summary, with the others at their place named. */
+function makeSummaryEndingLabel(
+  summary: BeeSummaryData,
+  mode: 'coop' | 'compete',
+  members: readonly Member[],
+  player: SummaryPlayer,
+) {
+  const tiedWithNames = summary.players
+    .filter((o) => o.id !== player.id && player.finalRanking !== null && o.finalRanking === player.finalRanking)
+    .map((o) => findUsername(members, o.id) ?? 'someone')
+  return makeBeeEndingLabel(player, makeGameFacts(summary, mode), tiedWithNames)
 }
 
 /** An ending label as the club line leads with it: the word, its detail in parentheses. */
@@ -62,7 +75,7 @@ export function makeBeeCoopSummary(summary: BeeSummaryData, myId: string): strin
   const words = tally(team.nFoundWords, summary.nReqdWords, 'words')
   if (summary.ending === null) return statusLine(verdict('Playing'), points, words)
   const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
-  const endingLabel = makeBeeEndingLabel(player, makeGameFacts(summary, 'coop'))!
+  const endingLabel = makeBeeEndingLabel(player, makeGameFacts(summary, 'coop'), [])!
   return statusLine(makeLead(endingLabel), points, words)
 }
 
@@ -81,7 +94,7 @@ export function makeBeeCompeteSummary(
 ): string {
   const rank = summary.targetRankIdx === null ? null : RANKS[summary.targetRankIdx]
   const me = summary.players.find((p) => p.id === myId)
-  const myEndingLabel = me === undefined ? null : makeBeeEndingLabel(me, makeGameFacts(summary, 'compete'))
+  const myEndingLabel = me === undefined ? null : makeSummaryEndingLabel(summary, 'compete', members, me)
   if (summary.ending === null && myEndingLabel === null) {
     return statusLine(verdict('Playing'), rank === null ? null : `race to "${rank}"`)
   }
@@ -94,9 +107,7 @@ export function makeBeeCompeteSummary(
   if (myEndingLabel !== null) {
     if (summary.outcome === 'won') {
       const others = makeOtherWinnerNames(summary, members, myId)
-      if (myEndingLabel.labelType === 'won') {
-        return others === '' ? makeLead(myEndingLabel) : `${makeLead(myEndingLabel)}, tied with ${others}`
-      }
+      if (myEndingLabel.labelType === 'won') return makeLead(myEndingLabel)
       // Someone else won: name them, beside my place or my concession.
       if (myEndingLabel.labelType === 'placed' || myEndingLabel.labelType === 'conceded') {
         return statusLine(makeLead(myEndingLabel), wonByOthers(others))

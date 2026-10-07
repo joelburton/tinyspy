@@ -7,7 +7,7 @@ import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import type { Member } from '@/common/members/member'
 import { findUsername } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { findWinnerIds } from '@/common/manifest/summaryData'
+import { findWinnerIds, type SummaryPlayer } from '@/common/manifest/summaryData'
 import type { EndingLabel } from '@/common/ending/endingLabel'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { makeEndingLabel } from './lib/endingLabel'
@@ -81,6 +81,19 @@ function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
   }
 }
 
+/** A player's ending label, from the summary, with the others at their place named. */
+function makeSummaryEndingLabel(
+  summary: GSummaryData,
+  mode: 'coop' | 'compete',
+  members: readonly Member[],
+  player: SummaryPlayer,
+) {
+  const tiedWithNames = summary.players
+    .filter((o) => o.id !== player.id && player.finalRanking !== null && o.finalRanking === player.finalRanking)
+    .map((o) => findUsername(members, o.id) ?? 'someone')
+  return makeEndingLabel(player, makeGameFacts(summary, mode), tiedWithNames)
+}
+
 /** An ending label as the club line leads with it: the word, its detail in parentheses. */
 function makeLead(endingLabel: EndingLabel) {
   return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
@@ -102,7 +115,7 @@ function makeOtherWinnerNames(summary: GSummaryData, members: readonly Member[],
 function makeCoopLabel(summary: GSummaryData, myId: string): string {
   if (summary.ending === null) return statusLine(verdict('Playing'), ...teamTally(summary))
   const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
-  const endingLabel = makeEndingLabel(player, makeGameFacts(summary, 'coop'))!
+  const endingLabel = makeEndingLabel(player, makeGameFacts(summary, 'coop'), [])!
   return statusLine(makeLead(endingLabel), ...teamTally(summary))
 }
 
@@ -117,7 +130,7 @@ function makeCoopLabel(summary: GSummaryData, myId: string): string {
 function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
   const pct = summary.targetWinPercent
   const me = summary.players.find((p) => p.id === myId)
-  const myEndingLabel = me === undefined ? null : makeEndingLabel(me, makeGameFacts(summary, 'compete'))
+  const myEndingLabel = me === undefined ? null : makeSummaryEndingLabel(summary, 'compete', members, me)
   if (summary.ending === null && myEndingLabel === null) {
     return statusLine(verdict('Playing'), pct !== null ? `race to ${pct}%` : null)
   }
@@ -133,10 +146,7 @@ function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myI
   if (myEndingLabel !== null) {
     if (summary.outcome === 'won') {
       const others = makeOtherWinnerNames(summary, members, myId)
-      if (myEndingLabel.labelType === 'won') {
-        const lead = others === '' ? makeLead(myEndingLabel) : `${makeLead(myEndingLabel)}, tied with ${others}`
-        return statusLine(lead, winningScore)
-      }
+      if (myEndingLabel.labelType === 'won') return statusLine(makeLead(myEndingLabel), winningScore)
       // Someone else won: name them, beside my place or my concession.
       if (myEndingLabel.labelType === 'placed' || myEndingLabel.labelType === 'conceded') {
         return statusLine(makeLead(myEndingLabel), wonByOthers(others), winningScore)

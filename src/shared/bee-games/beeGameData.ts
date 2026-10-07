@@ -273,13 +273,16 @@ export function makeBeeGameData<Setup>(
   // under `own`, their own.
   const players: BeePlayer[] = raw.players.map(function makePlayer(p) {
     const own = addRankNames(p)
+    const tiedWithNames = raw.players
+      .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
+      .map((o) => o.username)
     const endingLabel = makeBeeEndingLabel(p, {
       mode: raw.mode,
       ended: raw.ended,
       reason: ending?.reason ?? null,
       detail: ending?.detail ?? null,
       targetRankIdx: p.targetRankIdx,
-    })
+    }, tiedWithNames)
     return { ...p, ...(teamFacts ?? own), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))

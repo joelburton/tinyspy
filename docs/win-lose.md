@@ -452,13 +452,20 @@ wins.**
   - A player who `conceded` can never win: a conceder is never ranked.
   - Doesn't mean: `solved`, `perfect-play` or `reached-goal` — each can hold
     for a player who did not win.
+- **`near`** — the player is ranked, but not first: they cleared the game's
+  bar for a `final-ranking` and someone did better. In wordle the slower
+  solver is `near`; the player who never solved is `lost`. Compete only. It
+  reads as the place, "2nd", never "Lost"; the place and its outcome never
+  depend on how many played.
+  - Doesn't mean: `lost` — a `near` player was beaten, not failed.
 - **`lost`** — the game went against the player:
   - in coop, the team failed the `game-goal`;
-  - in compete, someone else `won` (every player ranked below first is
-    lost), or the player was `eliminated`, or `conceded`, or their
-    `game-goal` became impossible.
-  - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game,
-    or at a `timeout-no-result`, who had not conceded neither won nor lost.
+  - in compete, the player was `eliminated`, or `conceded`, or their
+    `game-goal` became impossible, or someone else `won` and the player was
+    not ranked.
+  - Doesn't mean: "didn't win". A ranked player below first is `near`; a
+    player in a `stopped` or `no-result` game, or at a `timeout-no-result`,
+    who had not conceded neither won nor lost.
 - **`conceded`** — a compete player voluntarily withdrew: a loss by choice.
   The player has `lost`; conceded says how, as `eliminated` does. Compete
   only. Never "quit".
@@ -475,7 +482,7 @@ wins.**
   everyone who didn't concede and made progress. Players level on every step of `ranked-by`
   share a ranking, and the next one skips: two tied for first are both 1,
   and the player after them is 3. A ranking of 1 is `won`; any other ranking
-  is `lost`.
+  is `near`.
   - Doesn't mean: the players who are, or aren't, `player-ended`. A
     solver is player-ended and ranked; a conceder is player-ended and not.
   - Doesn't mean: everyone unranked `lost`. In a `stopped` or `no-result`

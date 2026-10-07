@@ -40,13 +40,16 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nFoundBonusWords: p.nFoundBonusWords,
       foundBonusWordsScore: p.foundBonusWordsScore,
     }
+    const tiedWithNames = raw.players
+      .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
+      .map((o) => o.username)
     const endingLabel = makeEndingLabel(p, {
       mode: raw.mode,
       ended: raw.ended,
       reason: ending?.reason ?? null,
       detail: ending?.detail ?? null,
       winPercent: raw.setup.win_percent,
-    })
+    }, tiedWithNames)
     return { ...p, ...(team ?? own), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
