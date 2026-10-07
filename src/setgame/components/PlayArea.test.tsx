@@ -12,6 +12,7 @@ import { getActions } from '@/common/actions/actionsStore'
 import { db } from '../db'
 import {
   ZTest_CONCEDED,
+  ZTest_claim,
   ZTest_makeSetgameCtx,
   type ZTest_GameDataFacts,
   type ZTest_PlayerFacts,
@@ -165,13 +166,91 @@ describe('setgame PlayArea — the Hint', () => {
 })
 
 describe('setgame PlayArea — a conceder keeps the one flag', () => {
-  it('shows "You conceded" with Stop for all, not Concede', () => {
+  it('shows my concession with Stop for all, not Concede', () => {
     render(
       <PlayAreaLoader {...ZTest_makeSetgameCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getAllByText('Conceded (game continues)').length).toBeGreaterThan(0)
     expect(stateOf('act-concede')).toBe('hidden')
     expect(stateOf('act-stop-game')).toBe('active')
+  })
+})
+
+describe('setgame PlayArea — the ending', () => {
+  /** The strip's text, label and cells. */
+  const stripText = () => screen.getByText('Sets:').parentElement!.textContent
+
+  /** A compete game the deck ran out on, with each player's sets in the log. */
+  const raceEnded = (players: ZTest_PlayerFacts[], nSets: Record<string, number>): ZTest_GameDataFacts => ({
+    mode: 'compete',
+    players,
+    events: Object.entries(nSets).flatMap(([userId, n], i) =>
+      Array.from({ length: n }, (_, k) => ZTest_claim(i * 10 + k + 1, userId, ['1111', '1112', '1113']))),
+    ending: { reason: 'resource_exhausted', detail: 'cleared', by: 'u1' },
+    outcome: 'won',
+  })
+
+  it('a Stop says it stopped, in the pill and the info column alike', () => {
+    render(<PlayAreaLoader {...ZTest_makeSetgameCtx(STOPPED)} />)
+    expect(screen.getAllByText('Stopped').length).toBeGreaterThan(0)
+  })
+
+  it('coop: emptying the deck wins, and a full clear says so', () => {
+    const won: ZTest_GameDataFacts = {
+      players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+      ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
+      outcome: 'won',
+    }
+    const { unmount } = render(<PlayAreaLoader {...ZTest_makeSetgameCtx(won)} />)
+    expect(screen.getAllByText('Won (deck emptied)').length).toBeGreaterThan(0)
+    unmount()
+    render(<PlayAreaLoader {...ZTest_makeSetgameCtx({ ...won, boardIds: [] })} />)
+    expect(screen.getAllByText('Won (perfect clear)').length).toBeGreaterThan(0)
+  })
+
+  it('compete: a tie for first names the other winner after the word', () => {
+    render(
+      <PlayAreaLoader
+        {...ZTest_makeSetgameCtx(raceEnded(
+          [{ ...ME, outcome: 'won', finalRanking: 1 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
+          { u1: 2, u2: 2 },
+        ))}
+      />,
+    )
+    expect(screen.getAllByText('Won (tied with moth)').length).toBeGreaterThan(0)
+    expect(stripText()).toMatch(/You:\s*2 \(won\)/)
+    expect(stripText()).toMatch(/moth:\s*2 \(won\)/)
+  })
+
+  it('compete: the strip reads each player\'s sets, then how they came out', () => {
+    render(
+      <PlayAreaLoader
+        {...ZTest_makeSetgameCtx(raceEnded(
+          [{ ...ME, outcome: 'near', finalRanking: 2 }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
+          { u1: 1, u2: 3 },
+        ))}
+      />,
+    )
+    expect(screen.getAllByText('2nd').length).toBeGreaterThan(0)
+    expect(stripText()).toMatch(/You:\s*1 \(2nd\)/)
+    expect(stripText()).toMatch(/moth:\s*3 \(won\)/)
+  })
+
+  it('marks a conceded rival conceded in the strip, beside their sets (mid-game)', () => {
+    render(
+      <PlayAreaLoader {...ZTest_makeSetgameCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />,
+    )
+    expect(stripText()).toMatch(/moth:\s*0 \(conceded\)/)
+  })
+
+  it('frames the board in my outcome once I am out of play, mid-game too', () => {
+    const { unmount } = render(
+      <PlayAreaLoader {...ZTest_makeSetgameCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
+    )
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
+    unmount()
+    render(<PlayAreaLoader {...ZTest_makeSetgameCtx({ mode: 'compete', players: [ME, MOTH] })} />)
+    expect(document.querySelector('[class*="endingFrame"]')).toBeNull()
   })
 })
 

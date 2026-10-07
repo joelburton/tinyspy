@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee and wordwheel are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel and setgame are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -180,6 +180,9 @@ Also:
    live there. Their two card gaps closed as boggle's did — every required
    word is the goal with no target, and a race with no target is allowed with
    a countdown, which ranks by score — and their cards gained `co-winners`.
+   setgame, whose card the code already matched. Its label names a tie after
+   the word ("Won (tied with bea)", "2nd (tied with cade)"), and a coop win
+   says "deck emptied", or "perfect clear" with no tile left.
 
 ## Overlaps
 

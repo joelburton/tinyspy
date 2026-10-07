@@ -5,6 +5,7 @@ import { makeEnding } from '@/common/game-page/makeEnding'
 import type {
   PlayAreaLoaderProps,
 } from '@/common/game-page/playAreaLoaderProps'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GBoard, GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -29,9 +30,19 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // Each player carries the facts twice (docs/common-schema.md → A player's
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own.
+  const gameFacts = {
+    mode: raw.mode,
+    ended: raw.ended,
+    reason: ending?.reason ?? null,
+    isPerfectClear: board.tiles.length === 0,
+  }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const own: GFacts = { nSetsFound: p.nSetsFound, nHintsUsed: p.nHintsUsed, board, nTilesInDeck }
-    return { ...p, ...own, ...team, own }
+    const tiedWithNames = raw.players
+      .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
+      .map((o) => o.username)
+    const endingLabel = makeEndingLabel(p, gameFacts, tiedWithNames)
+    return { ...p, ...own, ...team, own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

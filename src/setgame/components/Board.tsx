@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { useClaimMarks } from '../hooks/useClaimMarks'
 import { letterForSlot } from '../lib/letters'
 import { Tile } from './Tile'
@@ -50,6 +52,7 @@ export function Board({
   marks,
   canPick,
   isViewingHistory,
+  endingOutcome,
   lastClaim,
   onPick,
 }: {
@@ -61,6 +64,8 @@ export function Board({
   canPick: boolean
   // A past turn is open: no claim is marked on it.
   isViewingHistory: boolean
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
   // The newest claim in the log — what a change to the table is measured by.
   lastClaim: { id: number; tiles: GTile[] } | null
   onPick: (tile: GTile) => void
@@ -92,7 +97,8 @@ export function Board({
     <div
       className={cls(shared.boardSeal,
         styles.board,
-        marks.isWaitingForTurn && !canPick && styles.waiting)}
+        marks.isWaitingForTurn && !canPick && styles.waiting,
+        makeEndingFrameClasses(endingOutcome, isViewingHistory))}
       style={{ '--cols': widest } as React.CSSProperties}
     >
       <TileDefs/>

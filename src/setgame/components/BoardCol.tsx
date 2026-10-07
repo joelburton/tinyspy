@@ -116,6 +116,7 @@ export function BoardCol({
         }}
         canPick={actions.canPick}
         isViewingHistory={historyView.isViewing}
+        endingOutcome={gd.me.outcome}
         lastClaim={gd.events.findLast((e) => e.kind === 'claim') ?? null}
         onPick={actions.pickTile}
       />

@@ -4,11 +4,13 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { findWinnerIds } from '@/common/manifest/summaryData'
+import { findWinnerIds, type SummaryPlayer } from '@/common/manifest/summaryData'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeEndingLabel } from './lib/endingLabel'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
   DEFAULT_SETGAME_SETUP_COOP,
@@ -74,66 +76,98 @@ const stopGame = makeRpcDispatcher(db, 'stop_game')
  */
 const BRAND = 'HareTrigger'
 
+/** The game's ending as an ending label reads it, from the summary. */
+function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
+  return {
+    mode,
+    ended: summary.ended,
+    reason: summary.ending?.reason ?? null,
+    isPerfectClear: summary.perfectClear === true,
+  }
+}
+
+/** A player's ending label, from the summary, with the others at their place named. */
+function makeSummaryEndingLabel(
+  summary: GSummaryData,
+  mode: 'coop' | 'compete',
+  members: readonly Member[],
+  player: SummaryPlayer,
+) {
+  const tiedWithNames = summary.players
+    .filter((o) => o.id !== player.id && player.finalRanking !== null && o.finalRanking === player.finalRanking)
+    .map((o) => findUsername(members, o.id) ?? 'someone')
+  return makeEndingLabel(player, makeGameFacts(summary, mode), tiedWithNames)
+}
+
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
 /**
  * COOP's club line: how many sets the table has taken, and how much game is
  * left. Both public — every claim happened face-up — so there is nothing to
- * withhold.
+ * withhold. The team comes out as one, so once it ends the line leads with
+ * the team's ending label (mine, when I played).
  */
-function makeCoopLabel(summary: GSummaryData): string {
+function makeCoopLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
   const sets = count(summary.nTableSetsFound, 'set')
   if (summary.ending === null) {
     return statusLine(verdict('Playing'), sets, `${summary.nTilesInDeck} in the deck`)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      // No count of the tiles left behind: stranding six or nine is the
-      // ordinary win. A full clear is genuinely rare (~2% of games) and worth
-      // naming.
-      return statusLine(verdict('Won'), sets, summary.perfectClear ? 'perfect clear' : null)
-    case 'lost':
-      return statusLine(verdict('Lost', 'out of time'), sets)
-    // A Stop.
-    case 'neutral':
-      return statusLine(verdict('Ended'), sets)
-    default:
-      return outcome
-  }
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  const endingLabel = makeSummaryEndingLabel(summary, 'coop', members, player)!
+  return statusLine(makeLead(endingLabel), sets)
 }
 
 /**
- * COMPETE's label. The race does NOT end on anyone finishing — nobody finishes
- * alone; the deck running dry ends it for everybody — so a win names the
- * players with the most sets, and a tie names every one of them (there is no
- * speed tiebreak).
+ * COMPETE's label, led by my ending label once I am out of play. Nobody
+ * finishes alone — the deck running dry ends it for everybody — so a win
+ * names the players with the most sets, and a tie names every one of them
+ * (there is no speed tiebreak).
  */
-function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
-  if (summary.ending === null) {
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeSummaryEndingLabel(summary, 'compete', members, me)
+  if (summary.ending === null && myEndingLabel === null) {
     return statusLine(
       verdict('Playing'), count(summary.nTableSetsFound, 'set'), `${summary.nTilesInDeck} in the deck`)
   }
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won': {
-      // A won race has its winners and the sets they share.
-      const names = findWinnerIds(summary).map((id) => memberById(members, id)?.username ?? 'someone')
-      const sets = count(summary.nWinnerSets!, 'set')
-      return names.length > 1
-        ? statusLine(verdict('Won', 'tied'), names.join(' & '), sets)
-        : statusLine(wonBy(names[0]), sets)
+
+  const winningSets = summary.nWinnerSets === null ? null : count(summary.nWinnerSets, 'set')
+  const otherWinnerNames = findWinnerIds(summary)
+    .filter((id) => id !== myId)
+    .map((id) => findUsername(members, id) ?? 'someone')
+    .join(' & ')
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      // My label names any tie, so a win needs only the sets after it.
+      if (myEndingLabel.labelType === 'won') return statusLine(makeLead(myEndingLabel), winningSets)
+      // Someone else won: name them, beside my place or my concession.
+      if (myEndingLabel.labelType === 'placed' || myEndingLabel.labelType === 'conceded') {
+        return statusLine(makeLead(myEndingLabel), wonBy(otherWinnerNames), winningSets)
+      }
+      return statusLine(wonBy(otherWinnerNames), winningSets)
     }
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
+    case 'won':
+      return statusLine(wonBy(otherWinnerNames), winningSets)
     case 'lost':
-      return statusLine(
-        verdict('Lost', summary.ending.reason === 'conceded' ? 'all conceded' : null),
-        'nobody scored',
-      )
-    // A Stop.
+      return summary.ending!.reason === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(verdict('Lost'), 'nobody scored')
     case 'neutral':
-      return verdict('Ended')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -167,7 +201,7 @@ export const setgameCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, members, myId) => makeCoopLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,
@@ -202,7 +236,7 @@ export const setgameCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,

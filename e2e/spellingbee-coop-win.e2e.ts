@@ -49,13 +49,13 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
   await expect(celebration).toHaveCount(0)
 
   // …and the result stays on the page in the new verdict vocabulary.
-  await expect(page.getByText(/^Won: "Solid" \d+\/50 points$/)).toBeVisible()
+  await expect(page.getByText('Won: reached Solid').first()).toBeVisible()
 
   // Re-opening an already-won game is REVIEW, not a re-run of the moment: the
   // verdict is there, the confetti is not (useCelebration never fires on mount).
   const page2 = await ctx.newPage()
   await page2.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page2.getByText(/^Won: "Solid" \d+\/50 points$/)).toBeVisible({ timeout: 20000 })
+  await expect(page2.getByText('Won: reached Solid').first()).toBeVisible({ timeout: 20000 })
   await expect(page2.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
 
   await ctx.close()
@@ -63,7 +63,7 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
 
 /**
  * The other coop shape: NO target rank (the open-ended hunt). Ending it is
- * neutral — "Ended: {rank} {score}/{total} points" — and nothing celebrates.
+ * neutral — "Stopped" — and nothing celebrates.
  */
 test('coop: with no target, ending is neutral and nothing celebrates', async ({ browser }) => {
   const club = await createSoloClub('sbnotgt')
@@ -84,7 +84,7 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await page.getByRole('button', { name: 'Stop game' }).first().click()
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 
-  await expect(page.getByText(/^Ended: \w+ \d+\/50 points$/)).toBeVisible({ timeout: 8000 })
+  await expect(page.getByText(/^Stopped/).first()).toBeVisible({ timeout: 8000 })
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
 
   await ctx.close()

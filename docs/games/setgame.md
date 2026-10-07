@@ -194,7 +194,7 @@ Vocabulary per [win-lose.md](../win-lose.md).
 
 The goal is **no sets left to find**: the deck empty and the board dead. It does
 **not** mean using every tile. Stranding six or nine is the ordinary ending
-(§1), so the win says "all sets found" and reports no leftover count anywhere —
+(§1), so the win says "deck emptied" and reports no leftover count anywhere —
 a "6 stranded" readout measures the win against a target that doesn't exist. A
 **full clear** is a ~2% event and keeps its own line.
 
@@ -273,7 +273,9 @@ crossed the *same* finish line. Here the count is the whole result, and breaking
 a 9–9 on who grabbed their last set first would crown reflexes the score
 deliberately doesn't measure. So the ranking uses `rank()`: every tied player is
 ranked 1 and won, the summary's `players` lists every one of them,
-and each player reads their own outcome.
+and each player reads their own outcome. A player's ending label names the
+others at their place after the word: "Won (tied with bea)", "2nd (tied with
+cade)".
 
 **On timeout, compete RANKS BY SETS FOUND** — the leader at the whistle wins.
 With a collective finish there are no finishers to rank, and the count of sets
@@ -430,9 +432,8 @@ at its top.
   ← belongs to common/ ; everything else is this folder's
 ```
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-`lib/playerEndingMessage.ts`), `useShowTeammateMoves` (a teammate's claim in
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
+ending label: `lib/endingLabel.ts`, on every `gd` player), `useShowTeammateMoves` (a teammate's claim in
 the header, free-for-all coop only), `useHistoryView` and `useActionsAndMenu`.
 `BoardCol`'s: `usePickedTiles` (the picks, held as ids), `useSubmitClaim` (the
 trip to `submit_set`, and the in-flight tiles), `useSpendHint` (the ring and
@@ -742,8 +743,8 @@ only the deal size differs (9, ceiling 12).
 - **`hooks/useClaimMarks.test.ts`** — the claim's marks: the found set held,
   then the dealt tiles flashing; the tail-compaction case, where the moved
   tiles do not flash; a Restart unmarked; quiet over a past turn.
-- **`lib/gameEndingMessage.test.ts`** — every ending's words, a tie from both
-  sides, and a conceder's.
+- **`lib/endingLabel.test.ts`** — every ending's label in both modes: a coop
+  win and a full clear, a tie for first and for 2nd named, a conceder's.
 - **`lib/answer.test.ts`**, **`lib/letters.test.ts`** (the letters never move
   when the board grows), **`lib/hint.test.ts`** (the ladder grows one tile of
   the SAME set per press, and returns `null` once the ring is complete),

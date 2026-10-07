@@ -1,7 +1,6 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import {
   InfoActionsRow,
@@ -50,14 +49,13 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  /** A racer's cell in the strip: their sets, live — the claims all happened
+  /** A player's cell in the strip: their sets, live — the claims all happened
    *  face-up, so the number is one a player could have counted themselves;
-   *  "out" once they have conceded; and their verdict once the game has
-   *  ended. */
-  function getSetsOrOut(player: GPlayer) {
-    if (gd.ended) return `${endingOutcomeVerb(player)} · ${player.nSetsFound}`
-    if (player.ending !== null) return 'out'
-    return `${player.nSetsFound}`
+   *  once they are out of play — on their own or with the game — how they
+   *  came out after it: "9 (won)", "7 (2nd)", "3 (conceded)". */
+  function getSetsAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return `${player.nSetsFound}`
+    return `${player.nSetsFound} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -74,7 +72,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Sets"
-            metricFor={getSetsOrOut}
+            metricFor={getSetsAndResult}
           />
         )}
 
