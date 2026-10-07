@@ -18,8 +18,7 @@ import { getUnmatchedCats } from '../lib/getUnmatchedCats'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -92,13 +91,12 @@ function PlayArea({
   // The slot under the board is for messages about ME.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I am out of the race and the others play on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I am out of play and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
@@ -140,9 +138,6 @@ function PlayArea({
   })
 
   // ─── Render ────────────────────────────────────────────
-
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
 
   // The board to show: a past turn's while one is open; else mine, with the
   // reveal's categories in place of the loose tiles once it is asked for.

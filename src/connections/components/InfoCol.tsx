@@ -40,9 +40,12 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A racer who has ended reads "out"; everyone else shows their progress.
-  function getScoreOrOut(player: GPlayer) {
-    return player.ending ? 'out' : player.nMatchedCats
+  // A player's cell in the strip: the categories they have found; once they
+  // are out of play — on their own or with the game — how they came out after
+  // it: "4 (won)", "2 (lost)", "1 (conceded)".
+  function getScoreAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nMatchedCats
+    return `${player.nMatchedCats} (${player.endingLabel.word.toLowerCase()})`
   }
 
   // The list stays mounted while folded, so a hint taken stays shown across
@@ -67,7 +70,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Found"
-            metricFor={getScoreOrOut}
+            metricFor={getScoreAndResult}
           />
         )}
 

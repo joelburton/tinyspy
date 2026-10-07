@@ -106,10 +106,13 @@ racer. Compete needs an opposing **player**, which is why its manifest takes
 
 Whichever RPC ends the game passes `common._end_game` the reason pair and the
 rankings ([common-schema.md → `common._end_game`](../../docs/common-schema.md#common_end_game--the-one-way-a-game-ends)),
-and both surfaces that name the ending read those columns: the club-list
-label and the below-board pill (`lib/gameEndingMessage.ts`). A racer out
-while the others play on reads their own ending (`lib/playerEndingMessage.ts`)
-until the game's replaces it.
+and every surface that names the ending reads those columns through each
+player's ending label (`lib/endingLabel.ts`): the club-list line, the
+below-board pill, the info column's line and the strip. A racer out while the
+others play on reads their own label until the game's ending replaces it. A
+win, and a loss to someone who found all four first, are the word alone;
+every other loss says what ran out ("Lost (out of mistakes)", "Lost (out of
+time)").
 
 | the ending | reason / detail | ranked |
 |---|---|---|
@@ -399,7 +402,7 @@ eight sections.
               └── InfoCol                the readouts and the action row
                     ├── StateLine        "2/4 categories found · 1/4 mistakes"
                     ├── TurnStatusLine ← turn-order coop only
-                    ├── OpponentStrip ←  compete only: each rival's Found, or "out"
+                    ├── OpponentStrip ←  compete only: each rival's Found, then how they came out ("2 (lost)")
                     ├── InfoActionsRow ← one row, every action, in the menu's order
                     ├── HintList         unfolds under the row: one Show hint per category
                     ├── SetupDisclosure ←
@@ -462,8 +465,8 @@ What is connections' own:
   (`lib/history.ts`): the bands matched strictly before it, this turn's four
   tiles lit by what it was, addressed by the row's id so a filter cannot move
   it, and folding the rows of whoever wrote it.
-- **The ending** is the pill (`lib/gameEndingMessage.ts`, mine while I am out
-  of a race: `lib/playerEndingMessage.ts`) and the frozen board; a win also
+- **The ending** is the pill and the info column's line, from my ending label
+  (`lib/endingLabel.ts`, through `useGetEndingMessage`), and the frozen board; a win also
   celebrates — the coop team's, or the racer's own. New game asks
   `next_puzzle_for_club` first, so a spent archive is a notice with two ways
   forward rather than a failed create.
@@ -500,7 +503,7 @@ Vitest, beside the code:
 | file | pins |
 |---|---|
 | `lib/evaluate.test` | the evaluator's boundaries — 1-, 2-, 3- and 4-overlap, ties, order |
-| `lib/answer.test` · `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every `answerType`'s words and outcome; every ending's sentence per mode, reason and player outcome; a racer's own ending |
+| `lib/answer.test` · `lib/endingLabel.test` | every `answerType`'s words and outcome; every ending's label per mode, reason and player outcome, a racer's own included |
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
 | `lib/picks.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
 | `lib/setup.test` · `lib/setupRows.test` | the two keys the default leaves out; the setup rows' order, and a puzzle date that names the same day in every timezone |

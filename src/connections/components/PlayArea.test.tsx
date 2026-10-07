@@ -239,7 +239,7 @@ describe('connections PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded opponent "out" in the strip', () => {
+  it('marks a conceded opponent conceded in the strip, beside their categories', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
@@ -248,10 +248,10 @@ describe('connections PlayArea — concede', () => {
         })}
       />,
     )
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText('0 (conceded)')).toBeInTheDocument()
   })
 
-  it('marks an opponent out on mistakes "out" in the strip too', () => {
+  it('marks an opponent out on mistakes lost in the strip', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
@@ -260,10 +260,10 @@ describe('connections PlayArea — concede', () => {
         })}
       />,
     )
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText('0 (lost)')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" look after I concede, while the race goes on', () => {
+  it('shows my concession after I concede, while the race goes on', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
@@ -272,10 +272,9 @@ describe('connections PlayArea — concede', () => {
         })}
       />,
     )
-    // The info-column action row shows the bold status; the below-board pill
-    // carries "Conceded — race continues".
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
-    expect(screen.getByText('Conceded — race continues')).toBeInTheDocument()
+    // The info-column action row and the below-board pill, each in its form.
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
+    expect(screen.getByText('Conceded: game continues')).toBeInTheDocument()
   })
 
   it('a race everyone walked away from says so — the server’s word, not the clock', () => {
@@ -288,10 +287,11 @@ describe('connections PlayArea — concede', () => {
         })}
       />,
     )
-    // The clock never ran out here, and it is not what decides: `concede` wrote
-    // `conceded` as the game's reason and the pill reads that. The sentences
-    // themselves are `lib/gameEndingMessage.test.ts`'s; this is the WIRE.
-    expect(screen.getByText('All conceded — no winner')).toBeInTheDocument()
+    // The clock never ran out here, and it is not what decides: every player
+    // conceded, and each label reads that. The words themselves are
+    // `lib/endingLabel.test.ts`'s; this is the WIRE.
+    expect(screen.getAllByText('Conceded').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/out of time/)).not.toBeInTheDocument()
   })
 })
 
@@ -343,8 +343,8 @@ describe('connections PlayArea — the ended board + the reveal', () => {
 
     // Their board freezes and says so, but the puzzle stays unspoiled — sitting
     // out with something left to think about beats being handed the answer.
-    expect(screen.getByText('You’re out')).toBeInTheDocument()
-    expect(screen.getByText('Lost — race continues')).toBeInTheDocument()
+    expect(screen.getByText('Lost (out of mistakes)')).toBeInTheDocument()
+    expect(screen.getByText('Lost: out of mistakes')).toBeInTheDocument()
     expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
     expect(tileNames()).toHaveLength(16)
     // Reveal is offered but gray — possible here, not right now — and its
@@ -424,6 +424,23 @@ describe('connections PlayArea — the celebration', () => {
     )
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('All four categories found.')).toBeInTheDocument()
+  })
+
+  it('a racer beaten to it reads Lost, bare, and the strip names each result', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({ mode: 'compete', players: [lost(me), won(moth)], gameEnding: SOMEONE_WON })}
+      />,
+    )
+    // The club line names the winner; my page says my result.
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
+    expect(screen.getByText('0 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('0 (won)')).toBeInTheDocument()
+  })
+
+  it('a coop win reads Won, bare', () => {
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers.map(won), gameEnding: SOMEONE_WON })} />)
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
   })
 })
 

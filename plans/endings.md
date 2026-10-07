@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble and strands are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble, strands and connections are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -198,6 +198,10 @@ in its turn in step 4; none is open here.
    and a loss are the word alone; the board gains the ending frame.
    setgame, scrabble and strands then gained the turn bell and the your-turn
    flash, which all three take turns for and had been missed.
+   connections, whose card the code already matched, and which already had
+   the bell, the flash, the frame and the celebration. A win and a loss to
+   someone who found all four first are the word alone; every other loss says
+   what ran out ("out of mistakes", "out of time").
 
 ## Overlaps
 
