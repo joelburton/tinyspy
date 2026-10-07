@@ -383,9 +383,27 @@ const makeSummaryData = (
   outcome: ending?.outcome ?? null,
   ending: ending && { reason: ending.reason, detail: ending.detail ?? ending.reason, by: 'u-alice' },
   // Each club member, ranked first when the case names them a winner.
+  // Each club member as the server writes them at that ending: a winner `won`
+  // and ranked first (the whole team in a coop win); everyone conceded when
+  // the game ended by conceding; the rest `neutral` in a game nobody won or
+  // lost, else `lost`.
   players: MEMBERS.map((member) => {
-    const won = ending?.winners?.includes(member.id) ?? false
-    return { id: member.id, outcome: won ? 'won' : null, finalRanking: won ? 1 : null, conceded: false }
+    // A case that names no winners but was won is a coop win: the whole team.
+    const won = ending?.winners?.includes(member.id) ?? ending?.outcome === 'won'
+    const conceded = ending?.reason === 'conceded'
+    const outcome = ending === null ? null
+      : won ? 'won'
+      : ending.outcome === 'neutral' && !conceded ? 'neutral'
+      : 'lost'
+    return {
+      id: member.id,
+      ending: conceded ? { at: '2026-09-01T00:00:00Z', reason: 'conceded', detail: 'conceded' } : null,
+      outcome,
+      finalRanking: won ? 1 : null,
+      conceded,
+      solved: false,
+      stillPlaying: ending === null,
+    } as const
   }),
   ...own,
 })

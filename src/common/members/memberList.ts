@@ -1,9 +1,9 @@
 // cs-blessed-members
 
 /**
- * Two operations on a list of members: put it in reading order, and find one
- * in it. Both are pure, and both are generic over anything Member-shaped so a
- * per-game `Player` alias works without a cast.
+ * Operations on a list of members: put it in reading order, find one in it,
+ * and name one. All are pure, and all are generic over anything Member-shaped
+ * so a per-game `Player` alias works without a cast.
  *
  * They live beside `member.ts` because what they know about is identity, not
  * gameplay — nothing here is aware of a board, a turn or a channel. Keeping
@@ -45,4 +45,16 @@ export function memberById<T extends { id: string }>(
   id: string,
 ): T | undefined {
   return members.find((m) => m.id === id)
+}
+
+/**
+ * The username of the member with this id, for a line that names someone from
+ * an id a blob carries (`ending.by`, a winner's id). `undefined` for a null id
+ * or one the roster doesn't hold, so the caller says what stands in.
+ */
+export function findUsername<T extends { id: string; username: string }>(
+  members: readonly T[],
+  userId: string | null,
+): string | undefined {
+  return userId === null ? undefined : memberById(members, userId)?.username
 }

@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GameEndingRaw } from '../game-page/gameData.ts'
+import type { GameEndingRaw, PlayerRaw } from '../game-page/gameData.ts'
 import type { EndOutcome } from '../ending/gameEnding.ts'
 
 /**
@@ -33,15 +33,15 @@ export type SummaryData = {
   players: SummaryPlayer[]
 }
 
-/** One player as a game's summary lists them: how they came out of it. */
-export type SummaryPlayer = {
-  id: string
-  // Null until written: at their own ending, and again at the game's end.
-  outcome: EndOutcome | null
-  // Null until the game ends, and for a player who isn't ranked.
-  finalRanking: number | null
-  conceded: boolean
-}
+/**
+ * One player as a game's summary lists them: how they came out of it, and
+ * whether they still play. The same keys as `game_data`'s player
+ * (`PlayerRaw`), so a game's `makeEndingLabel` reads either.
+ */
+export type SummaryPlayer = Pick<
+  PlayerRaw,
+  'id' | 'ending' | 'outcome' | 'finalRanking' | 'conceded' | 'solved' | 'stillPlaying'
+>
 
 /**
  * The ids of every player ranked first, in seat order: none when nobody won,

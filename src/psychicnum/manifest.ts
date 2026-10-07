@@ -7,9 +7,9 @@ import { db } from './db'
 import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
-import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
-import type { GameEndedReason } from '@/common/ending/gameEnding'
+import { findUsername } from '@/common/members/memberList'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeEndingLabel, REASON_DETAIL } from './lib/endingLabel'
 import { DEFAULT_PSYCHICNUM_SETUP } from './lib/setup'
 import logoUrl from './logo.svg?url'
 import type { GSetup, GSummaryData } from './types'
@@ -105,17 +105,11 @@ function labelMidGame(summary: GSummaryData) {
   )
 }
 
-/** Why a game ended with nobody finding the set (psychicnum's losses). */
-const LOSS: Partial<Record<GameEndedReason, string>> = {
-  resource_exhausted: 'out of guesses',
-  timeout: 'out of time',
-  conceded: 'all conceded',
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
 }
 
-/** A member's username, or undefined for an id that names nobody. */
-function usernameOf(members: readonly Member[], userId: string | null) {
-  return userId === null ? undefined : memberById(members, userId)?.username
-}
 
 // Single source of truth for this game's user-facing brand name —
 // both manifests' name and the start-game error read it. The brand
@@ -154,27 +148,20 @@ export const psychicnumCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (data, members) => {
+  summaryFor: (data, members, myId) => {
     const summary = data as GSummaryData
     if (summary.ending === null) return labelMidGame(summary)
-    const found = foundTally(summary)
-    // Written with the ending.
-    const outcome = summary.outcome!
-    switch (outcome) {
-      case 'won': {
-        // A team win, but naming who landed the third secret is the fun bit:
-        // the guess that found it is the act that ended the game.
-        const guesser = usernameOf(members, summary.ending.by)
-        return statusLine(verdict('Won'), guesser && `${guesser} guessed it`)
-      }
-      case 'lost':
-        return statusLine(verdict('Lost', LOSS[summary.ending.reason] ?? null), found)
-      // A Stop (stop_game).
-      case 'neutral':
-        return statusLine(verdict('Ended'), found)
-      default:
-        return outcome
+    // The team comes out as one, so any seat's ending label is the team's: mine
+    // when I played.
+    const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+    const endingLabel = makeEndingLabel(player, { mode: 'coop', ended: true, reason: summary.ending.reason })!
+    if (endingLabel.labelType === 'won') {
+      // A team win, but naming who landed the third secret is the fun bit: the
+      // guess that found it is the act that ended the game.
+      const guesser = findUsername(members, summary.ending.by)
+      return statusLine(makeLead(endingLabel), guesser && `${guesser} guessed it`)
     }
+    return statusLine(makeLead(endingLabel), foundTally(summary))
   },
 
   submitTimeout,
@@ -209,28 +196,45 @@ export const psychicnumCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (data, members) => {
+  summaryFor: (data, members, myId) => {
     const summary = data as GSummaryData
-    // No progress: a race has no team, every player's budget and finds are
-    // their own (see labelMidGame), and this line is readable by the whole club.
-    if (summary.ending === null) return verdict('Playing')
-    // Written with the ending.
-    const outcome = summary.outcome!
-    switch (outcome) {
+    const game = { mode: 'compete', ended: summary.ended, reason: summary.ending?.reason ?? null } as const
+    // My result once I am out of play — mid-race too — or null while I play
+    // or when I was not in this game.
+    const me = summary.players.find((p) => p.id === myId)
+    const myEndingLabel = me === undefined ? null : makeEndingLabel(me, game)
+    // No progress while I play: a race has no team, every player's budget and
+    // finds are their own (see labelMidGame), and this line is readable by the
+    // whole club.
+    if (summary.ending === null && myEndingLabel === null) return verdict('Playing')
+
+    // A race has one winner; a race nobody won says so, unless everyone
+    // conceding says it already.
+    const winner = findUsername(members, findWinnerIds(summary)[0] ?? null)
+    const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+      ? 'no winner'
+      : null
+
+    if (myEndingLabel !== null) {
+      // Someone else won: name them, beside my concession if I conceded.
+      if (summary.outcome === 'won' && myEndingLabel.labelType !== 'won') {
+        return myEndingLabel.labelType === 'conceded'
+          ? statusLine(makeLead(myEndingLabel), wonBy(winner))
+          : wonBy(winner)
+      }
+      return statusLine(makeLead(myEndingLabel), noWinner)
+    }
+
+    // A member who did not play: the game's own result.
+    switch (summary.outcome!) {
       case 'won':
-        return wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))
+        return wonBy(winner)
       case 'lost':
-        return statusLine(
-          verdict('Lost', LOSS[summary.ending.reason] ?? null),
-          // "no winner" is what every-budget-spent and the clock need said;
-          // all conceded says it already.
-          summary.ending.reason === 'conceded' ? null : 'no winner',
-        )
-      // A Stop (stop_game).
+        return statusLine(verdict('Lost', REASON_DETAIL[summary.ending!.reason] ?? null), noWinner)
       case 'neutral':
-        return verdict('Ended')
+        return 'Stopped'
       default:
-        return outcome
+        return summary.outcome!
     }
   },
 

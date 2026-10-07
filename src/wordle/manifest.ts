@@ -7,8 +7,7 @@ import { db } from './db'
 import { count, dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
-import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
 import { DEFAULT_WORDLE_SETUP, legalError } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -73,10 +72,6 @@ const LOSS: Partial<Record<GameEndedReason, string>> = {
   conceded: 'all conceded',
 }
 
-/** A member's username, or undefined for an id that names nobody. */
-function usernameOf(members: readonly Member[], userId: string | null) {
-  return userId === null ? undefined : memberById(members, userId)?.username
-}
 
 /**
  * The answer band (`summary_data`'s `answerBand`, copied from the setup): 0 is
@@ -195,7 +190,7 @@ export const wordleCompeteGame: GameManifest = {
     switch (outcome) {
       case 'won':
         return statusLine(
-          wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null)),
+          wonBy(findUsername(members, findWinnerIds(summary)[0] ?? null)),
           count(summary.nWinnerGuesses, 'guess', 'guesses'),
           dict,
         )

@@ -115,7 +115,8 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   back in its place, so the game reads one shape.
 - **`summary_data`** is a list of games' — the club page's today — and is
   built the same way: the common part (the game named and dated, its ending,
-  and each player's outcome, ranking and whether they conceded) from
+  and each player as `game_data` has them for how they came out: their own
+  ending, outcome, ranking, conceded, solved and still playing) from
   `common._make_json_summary_data`, the game's numbers beside it;
   the list reads the blob and `is_current_view`, nothing else of the row.
 - The shapes are drawn in `supabase/sql/common.sql` → The page blobs' common

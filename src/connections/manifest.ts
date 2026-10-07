@@ -7,8 +7,7 @@ import { db } from './db'
 import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
-import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
 import { DEFAULT_CONNECTIONS_SETUP } from './lib/setup'
 import { CATEGORY_COUNT, MISTAKE_BUDGET } from './lib/board'
@@ -86,10 +85,6 @@ const LOSS: Partial<Record<GameEndedReason, string>> = {
   conceded: 'all conceded',
 }
 
-/** A member's username, or undefined for an id that names nobody. */
-function usernameOf(members: readonly Member[], userId: string | null) {
-  return userId === null ? undefined : memberById(members, userId)?.username
-}
 
 // The single source of truth for this game's user-facing brand name.
 // Both sibling manifests set `name: BRAND`, and the start-game error
@@ -200,7 +195,7 @@ export const connectionsCompeteGame: GameManifest = {
     const outcome = summary.outcome!
     switch (outcome) {
       case 'won':
-        return wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))
+        return wonBy(findUsername(members, findWinnerIds(summary)[0] ?? null))
       // "all conceded" already says nobody won; the others need spelling out.
       case 'lost':
         return summary.ending.reason === 'conceded'

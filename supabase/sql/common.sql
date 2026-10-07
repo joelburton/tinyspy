@@ -1990,7 +1990,13 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --     statusChangedAt                      the same instant the builder writes to the column
 --     ending: {reason, detail, by}         null while playing
 --     ended, outcome                       outcome null until the game ends
---     players: [{id, outcome, finalRanking, conceded}, …]   seat order, as game_data's
+--     players: [summary player, …]         seat order, as game_data's
+--
+--   summary player:
+--     id
+--     ending: {at, reason, detail}         null unless they ended before the game did
+--     outcome, finalRanking                null until written
+--     conceded, solved, stillPlaying       as game_data's player
 
 -- The game has a turn order: its players were seated when it was created.
 -- Fixed for the game's life; a free-for-all game never gains seats.
@@ -2273,9 +2279,15 @@ begin
     'players',         (
       select jsonb_agg(jsonb_build_object(
                'id',           gp.user_id,
+               'ending',       case when gp.player_ended_at is not null then jsonb_build_object(
+                                 'at',     gp.player_ended_at,
+                                 'reason', gp.player_ended_reason,
+                                 'detail', gp.player_ended_reason_detail) end,
                'outcome',      gp.outcome,
                'finalRanking', gp.final_ranking,
-               'conceded',     gp.player_ended_reason is not distinct from 'conceded')
+               'conceded',     gp.player_ended_reason is not distinct from 'conceded',
+               'solved',       gp.solved_at is not null,
+               'stillPlaying', g.ended_at is null and gp.player_ended_at is null)
              order by gp.turn_seat, prof.username)
         from common.game_players gp
         join common.profiles prof on prof.user_id = gp.user_id

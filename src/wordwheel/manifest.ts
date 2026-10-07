@@ -4,8 +4,7 @@ import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { verdict, statusLine, tally, wonBy } from '@/common/manifest/summary'
-import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -96,10 +95,6 @@ function targetRankName(summary: GSummaryData) {
   return RANKS[summary.targetRankIdx ?? 0]
 }
 
-/** A member's username, or undefined for an id that names nobody. */
-function usernameOf(members: readonly Member[], userId: string | null) {
-  return userId === null ? undefined : memberById(members, userId)?.username
-}
 
 // The single source of truth for this game's user-facing brand name.
 // Both sibling manifests set `name: BRAND`, and the start-game error
@@ -209,7 +204,7 @@ export const wordwheelCompeteGame: GameManifest = {
     const outcome = summary.outcome!
     switch (outcome) {
       case 'won':
-        return `${wonBy(usernameOf(members, findWinnerIds(summary)[0] ?? null))} at "${rank}"`
+        return `${wonBy(findUsername(members, findWinnerIds(summary)[0] ?? null))} at "${rank}"`
       // The two collective losses, told apart by the reason: the last racer
       // dropped out, or the clock beat everyone to the rank.
       case 'lost':
