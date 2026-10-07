@@ -55,7 +55,7 @@ select set_eq(
        and c.confdeltype = 'r'
        and n.nspname = any (array[
          'common', 'codenamesduet', 'psychicnum', 'connections',
-         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
+         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'wordleone', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
          'strands', 'letterboxed', 'setgame'])
   $$,
@@ -103,6 +103,7 @@ select set_eq(
       ('waffle.games'),
       ('wordiply.games'),
       ('wordle.games'),
+      ('wordleone.games'),
       ('wordwheel.games')
   $$,
   'every FK into common.games cascades — delete_game stays a total teardown'

@@ -52,7 +52,7 @@ const raw = execFileSync(
     '-X', // skip ~/.psqlrc, whose echoed settings would read as rows
     DB_URL,
     '-tAc',
-    `select word, difficulty, wordle, (slur = 0 and crude = 0 and american and not slang), coalesce(root_word, '')
+    `select word, band, wordle, (slur = 0 and crude = 0 and american and not slang), coalesce(root_word, '')
        from common.words where len = 5 order by word`,
   ],
   { encoding: 'utf8' },

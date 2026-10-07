@@ -59,7 +59,7 @@ describe('the concede lock', () => {
     // A guard that finds nothing passes just as quietly as one that works.
     // codenamesduet is coop-only, so it has no concede.
     expect(games.map((g) => g.game).sort())
-      .toEqual(['bananagrams', 'boggle', 'connections', 'crosswords', 'letterboxed', 'psychicnum', 'scrabble', 'setgame', 'spellingbee', 'stackdown', 'strands', 'waffle', 'wordiply', 'wordle', 'wordwheel'])
+      .toEqual(['bananagrams', 'boggle', 'connections', 'crosswords', 'letterboxed', 'psychicnum', 'scrabble', 'setgame', 'spellingbee', 'stackdown', 'strands', 'waffle', 'wordiply', 'wordle', 'wordleone', 'wordwheel'])
   })
 
   it('every such concede locks its own row before recording the concession', () => {

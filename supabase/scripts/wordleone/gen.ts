@@ -22,7 +22,7 @@
 /** One five-letter row of `common.words`, the columns the filters read. */
 export interface WordRow {
   word: string
-  /** `difficulty`, the 1–6 recognizability band. */
+  /** `band`, the 1–6 recognizability band. */
   band: number
   /** `wordle`: on the NYT answer list, which is where every answer comes from. */
   isAnswerList: boolean
