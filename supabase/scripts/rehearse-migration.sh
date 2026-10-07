@@ -108,7 +108,7 @@ count_rows() {
      where t.table_type = 'BASE TABLE'
        and t.table_schema = any (array[
          'common', 'codenamesduet', 'psychicnum', 'connections',
-         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
+         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'wordleone', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
          'strands', 'letterboxed', 'setgame'])
      order by 1

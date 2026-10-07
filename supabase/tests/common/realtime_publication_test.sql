@@ -63,7 +63,7 @@ select set_eq(
      where pubname = 'supabase_realtime'
        and schemaname = any (array[
          'common', 'codenamesduet', 'psychicnum', 'connections',
-         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
+         'spellingbee', 'bananagrams', 'waffle', 'wordle', 'wordleone', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
          'strands', 'letterboxed', 'setgame'])
   $$,

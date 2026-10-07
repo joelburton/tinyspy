@@ -47,7 +47,7 @@ select is_empty(
      where n.nspname in (
              'common', 'bananagrams', 'boggle', 'codenamesduet', 'connections',
              'crosswords', 'psychicnum', 'scrabble', 'spellingbee', 'stackdown',
-             'waffle', 'wordiply', 'wordle', 'wordwheel')
+             'waffle', 'wordiply', 'wordle', 'wordleone', 'wordwheel')
      group by n.nspname, p.proname
     having count(*) > 1
   $$,

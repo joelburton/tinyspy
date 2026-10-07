@@ -1,0 +1,45 @@
+-- cs-unmet
+
+-- ============================================================
+-- Per-test-file wordleone fixtures
+-- ============================================================
+--
+-- Loaded by every wordleone/*_test.sql via `\ir setup.psql` (after the
+-- shared persona setup).
+--
+-- Puzzles are normally built by the wordleone-build-board edge function; the
+-- tests hand create_game one fixed puzzle instead, so every game's answer is
+-- known without reading the hidden column:
+--
+--   starter SIEVE, colors yxyyg, answer VERSE
+--
+-- VERSE is the only word in the whole of common.words that makes those colors
+-- against SIEVE, so the puzzle is unique at every band, and VERSE is band 1,
+-- so it is legal at every band. This needs the real word list loaded; each
+-- test rolls back.
+--
+-- Provides:
+--   - pg_temp.wordleone_puzzle() — that puzzle, as `p_board`
+--   - pg_temp.wordleone_setup(legal_band) — the setup jsonb (difficulty
+--     medium, timer off); band 2 by default, so CRANE, STARE, MOUTH and ADIEU
+--     are legal misses and MOXIE (band 3) is not a word
+
+reset role;
+
+create function pg_temp.wordleone_puzzle()
+returns jsonb
+language sql
+as $$
+  select '{"starter": "sieve", "colors": "yxyyg", "answer": "verse"}'::jsonb;
+$$;
+
+create function pg_temp.wordleone_setup(legal_band int default 2)
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'legal_band', legal_band,
+    'difficulty', 'medium',
+    'timer', jsonb_build_object('kind', 'none')
+  );
+$$;

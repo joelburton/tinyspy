@@ -522,26 +522,26 @@ wordle.sql grants :50; blobs :184-411; create_game :539-693; submit_guess
 ### Step 3 — pgTAP: a `wordleone/` folder under `supabase/tests/`
 
 From `supabase/tests/wordle/`, with a `setup.psql` whose
-`pg_temp.wordleone_puzzle()` returns a fixed, known-unique puzzle (as
-`tests/waffle/setup.psql`'s `waffle_board()` does), checked against the
-seeded list once by hand.
+`pg_temp.wordleone_puzzle()` is one fixed puzzle — starter SIEVE, colors
+`yxyyg`, answer VERSE, unique in the whole word list — so no test reads the
+hidden column. Planting a bug (no starter duplicate; ranking by most misses)
+failed fourteen assertions across three files.
 
 | file | pins |
 |---|---|
-| `create_game_test.sql` | the envelope; `select target` throws (the column grant); `game_data` target null; each puzzle refusal — wrong colors, starter = answer, answer outside the band, not unique; bad band and tier; the caller among the players |
-| `gameplay_test.sql` | the four answers: duplicate (incl. the starter) and `notAWord` write nothing; a miss writes `colors` null and counts; the solve ends coop; malformed; deleted game |
-| `compete_test.sql` | private boards; ranking by fewest misses then the earlier solve; `tieBrokenByClock` |
-| `concede_test.sql` · `stop_game_test.sql` · `turn_order_test.sql` | wordle's, renamed; a miss advances the turn, a reject does not |
-| `replay_test.sql` · `reveal_test.sql` | Restart clears misses and re-hides the target; the title never spells an unsolved answer, a missed word may title the game |
-| `game_data_test.sql` · `rebuild_data_cols_test.sql` | the blobs whole, incl. the static `puzzle` |
-| `banded_answer_test.sql` | the answer accepted though re-banded above `legal_band` (the target before the dictionary) |
+| `create_game_test.sql` | the envelope and the stored row; `select target` throws (the column grant); `game_data` target null; the setup's faults (band, difficulty, mode, a solo race); each puzzle refusal PN521–PN525; PN510 for a caller not among the players |
+| `gameplay_test.sql` | the four answers: duplicate (the starter included) and `notAWord` write nothing; a miss writes `colors` null and counts; the solve ends coop and titles the game; the game-over race; a banded-out answer still solves; the band gate; a deleted game |
+| `compete_test.sql` | private boards; the starter a duplicate on every board; ranking by fewest misses then the earlier solve |
+| `concede_test.sql` · `stop_game_test.sql` · `turn_order_test.sql` | wordle's, renamed; a miss hands the turn on, a reject does not |
+| `replay_test.sql` | Restart clears misses and re-hides the target, the static blob untouched; a stopped game is titled by its last guess, never the answer (wordle's reveal_test, folded in) |
+| `game_data_test.sql` · `rebuild_data_cols_test.sql` | the blobs whole, the static `puzzle` included; the green row on a solved board; `tieBrokenByClock` |
 
 The common tests that list every game (`clubs_gametypes_test.sql` and
 `fk_delete_rules_test.sql` went with step 1, which turned them red):
-`supabase/tests/common/events_skeleton_test.sql` (:43-55), `realtime_publication_test.sql`
-(scope only), `function_grants_test.sql` and `function_overloads_test.sql`
-(both already miss strands, letterboxed and setgame — say so, fix only if
-Joel says), `supabase/scripts/rehearse-migration.sh:110-113`.
+`events_skeleton_test.sql`, `realtime_publication_test.sql` (scope only),
+`function_grants_test.sql`, `function_overloads_test.sql` and
+`supabase/scripts/rehearse-migration.sh` now name it. The two function tests
+already leave out strands, letterboxed and setgame; that is untouched.
 
 **Done when:** `gmake test-db` (the whole pgTAP suite; it runs whole-suite
 only) is green.

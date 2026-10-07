@@ -47,7 +47,7 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in (select gametype_schema from (
             values ('common'), ('codenamesduet'), ('psychicnum'), ('connections'),
-                   ('bananagrams'), ('waffle'), ('wordle'), ('stackdown'),
+                   ('bananagrams'), ('waffle'), ('wordle'), ('wordleone'), ('stackdown'),
                    ('scrabble'), ('spellingbee'), ('boggle'), ('crosswords'),
                    ('wordwheel'), ('wordiply')
           ) as s(gametype_schema))
