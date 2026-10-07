@@ -470,6 +470,7 @@ revoke execute on function strands._make_json_static_game_data(uuid) from public
 
 -- The game summed up: the numbers a list of games shows for this one. A race's
 -- winners share a rank only on the same hints, so any one of them says it.
+-- `nHintsUsedById` is each racer's hints, public in a race; null in coop.
 create or replace function strands._make_json_summary_data(
   p_game_id uuid,
   p_status_changed_at timestamptz
@@ -487,7 +488,11 @@ as $$
                          on gp.game_id = sp.game_id and gp.user_id = sp.user_id
                       where sp.game_id = p_game_id
                         and cg.mode = 'compete'
-                        and gp.final_ranking = 1))
+                        and gp.final_ranking = 1),
+    'nHintsUsedById', case when cg.mode = 'compete' then
+                        (select jsonb_object_agg(sp.user_id::text, sp.n_hints_used)
+                           from strands.players sp
+                          where sp.game_id = p_game_id) end)
     from common.games cg
    where cg.id = p_game_id;
 $$;

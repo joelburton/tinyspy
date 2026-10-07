@@ -157,6 +157,7 @@ export function BoardCol({
         // click there is how the board goes back to the live one.
         isDisabled={!gd.me.onTurn || actions.actSubmit.pending}
         isViewingHistory={historyView.isViewing}
+        endingOutcome={gd.me.outcome}
         onPick={tileCursor.pickClicked}
       />
 

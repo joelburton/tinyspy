@@ -4,7 +4,12 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine } from '@/common/manifest/summary'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/summary'
+import type { Member } from '@/common/members/member'
+import { findUsername } from '@/common/members/memberList'
+import { findWinnerIds, type SummaryPlayer } from '@/common/manifest/summaryData'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { findFewestHintsAhead, makeEndingLabel } from './lib/endingLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_STRANDS_SETUP_COMPETE, DEFAULT_STRANDS_SETUP_COOP } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
@@ -64,51 +69,83 @@ function startGameInClub(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
-/**
- * COOP's club line: the team's progress as a bare count, never "n of N" — the
- * total is part of the answer, and the line is readable by the whole club. The
- * timer is the only loss: the team set a timer on a puzzle with a reachable end
- * and didn't reach it (docs/states.md).
- */
-function makeCoopLabel(summary: GSummaryData): string {
-  // Coop always has a team.
-  const progress = count(summary.team!.nFoundPuzzleWords, 'word')
-  if (summary.ending === null) return statusLine(verdict('Playing'), progress)
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return statusLine(verdict('Won'), progress)
-    case 'lost':
-      return statusLine(verdict('Lost', 'out of time'), progress)
-    // A Stop.
-    case 'neutral':
-      return statusLine(verdict('Ended'), progress)
-    default:
-      return outcome
-  }
+/** The game's ending as an ending label reads it, from the summary. */
+function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
+  return { mode, ended: summary.ended, reason: summary.ending?.reason ?? null }
+}
+
+/** A player's ending label, from the summary: their hints, and the fewest of
+ *  those ranked above them. Coop carries no per-player hints and needs none. */
+function makeSummaryEndingLabel(summary: GSummaryData, mode: 'coop' | 'compete', player: SummaryPlayer) {
+  const hintsOf = (id: string) => summary.nHintsUsedById?.[id] ?? 0
+  const players = summary.players.map((p) => ({ finalRanking: p.finalRanking, nHintsUsed: hintsOf(p.id) }))
+  return makeEndingLabel(
+    { ...player, nHintsUsed: hintsOf(player.id) },
+    makeGameFacts(summary, mode),
+    findFewestHintsAhead(player, players),
+  )
+}
+
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
 }
 
 /**
- * COMPETE's club line says **nothing** until the game is over: a rival's words
- * are their race, and a winner genuinely isn't known before the end — the
- * fewest-hints ranking can be overturned by anyone still playing. At the end it
- * names the MARGIN, not the finish order: "won on 0 hints" is the contest.
+ * COOP's club line: the team's progress as a bare count, never "n of N" — the
+ * total is part of the answer, and the line is readable by the whole club.
+ * Once it ends, the team's ending label (mine, when I played) leads it.
  */
-function makeCompeteLabel(summary: GSummaryData): string {
-  if (summary.ending === null) return verdict('Playing')
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
+function makeCoopLabel(summary: GSummaryData, myId: string): string {
+  // Coop always has a team.
+  const progress = count(summary.team!.nFoundPuzzleWords, 'word')
+  if (summary.ending === null) return statusLine(verdict('Playing'), progress)
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  return statusLine(makeLead(makeSummaryEndingLabel(summary, 'coop', player)!), progress)
+}
+
+/**
+ * COMPETE's club line says nothing of a rival while it plays: a winner isn't
+ * known before the end — the fewest-hints ranking can be overturned by anyone
+ * still playing. It leads with my ending label once I am out of play, and at
+ * the end names the winner and the hints the race was won on.
+ */
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeSummaryEndingLabel(summary, 'compete', me)
+  if (summary.ending === null && myEndingLabel === null) return verdict('Playing')
+
+  const winningHints = summary.nWinnerHints === null ? null : count(summary.nWinnerHints, 'hint')
+  const otherWinnerNames = findWinnerIds(summary)
+    .filter((id) => id !== myId)
+    .map((id) => findUsername(members, id) ?? 'someone')
+    .join(' & ')
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      if (myEndingLabel.labelType === 'won') return statusLine(makeLead(myEndingLabel), winningHints)
+      // Someone else won: name them, beside my place or my concession.
+      if (myEndingLabel.labelType === 'placed' || myEndingLabel.labelType === 'conceded') {
+        return statusLine(makeLead(myEndingLabel), wonBy(otherWinnerNames), winningHints)
+      }
+      return statusLine(wonBy(otherWinnerNames), winningHints)
+    }
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
     case 'won':
-      return statusLine(verdict('Won'), count(summary.nWinnerHints, 'hint'))
+      return statusLine(wonBy(otherWinnerNames), winningHints)
     case 'lost':
-      return verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : 'all conceded')
-    // A Stop.
+      return verdict('Lost', summary.ending!.reason === 'timeout' ? 'out of time' : 'all conceded')
     case 'neutral':
-      return statusLine(verdict('Ended'), 'no winner')
+      return 'Stopped'
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -138,7 +175,7 @@ export const strandsCoopGame: GameManifest = {
 
   startGameInClub: startGameInClub('coop'),
 
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, _members, myId) => makeCoopLabel(data as GSummaryData, myId),
 
   submitTimeout,
   stopGame,
@@ -174,7 +211,7 @@ export const strandsCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClub('compete'),
 
-  summaryFor: (data) => makeCompeteLabel(data as GSummaryData),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,

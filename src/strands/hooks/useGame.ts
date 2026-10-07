@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { findFewestHintsAhead, makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type {
   GBoard,
@@ -56,6 +57,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. A coop bar and board are the team's alone, so they
   // are every player's own too. A racer always carries their bar and board.
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const mayShow = seeRival || isMine(p.id)
     const own: GFacts = team === null
@@ -71,7 +73,8 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
         hintPoints: team.hintPoints,
         board: teamBoard,
       }
-    return { ...p, ...(team === null ? own : { ...team, board: teamBoard }), own }
+    const endingLabel = makeEndingLabel(p, gameFacts, findFewestHintsAhead(p, raw.players))
+    return { ...p, ...(team === null ? own : { ...team, board: teamBoard }), own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

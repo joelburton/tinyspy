@@ -1,6 +1,6 @@
 # Endings — every winner, my outcome, and the word "ending"
 
-**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame and scrabble are done.** How a game's ending is named,
+**Status: decided 2026-10-06, being built; steps 1–3 are done; step 4 (each game) is under way — psychicnum, boggle, spellingbee, wordwheel, setgame, scrabble and strands are done.** How a game's ending is named,
 stored and shown: the word "terminal" goes, every winner is named from the
 final ranking, the club page's line can speak to the viewer, and the game page
 always shows MY outcome.
@@ -186,6 +186,10 @@ in its turn in step 4; none is open here.
    tie on the score before the leftovers. `no-result` in docs/win-lose.md
    widened to a missed goal that is no loss, and both cards follow. scrabble's
    pill is the word alone, for the room beside the rack.
+   strands, whose card the code already matched. A place below first says
+   what lost it — "2nd (more hints)", or "2nd (solved later)" on as many
+   hints — read from the new `nHintsUsedById` in its summary; a compete win
+   and a loss are the word alone; the board gains the ending frame.
 
 ## Overlaps
 

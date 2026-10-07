@@ -1,7 +1,6 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -48,13 +47,12 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  /** A racer's cell in the strip: hints used, the one number a race publishes;
-   *  "out" once they have ended on their own — solved or conceded; and their
-   *  verdict once the game has ended. */
-  function getHintsOrOut(player: GPlayer) {
-    if (gd.ended) return `${endingOutcomeVerb(player)} on ${player.nHintsUsed}`
-    if (player.ending !== null) return 'out'
-    return player.nHintsUsed
+  /** A player's cell in the strip: hints used, the one number a race
+   *  publishes; once they are out of play — on their own or with the game —
+   *  how they came out after it: "0 (won)", "2 (2nd)", "1 (solved)". */
+  function getHintsAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nHintsUsed
+    return `${player.nHintsUsed} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -79,7 +77,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Hints"
-            metricFor={getHintsOrOut}
+            metricFor={getHintsAndResult}
           />
         )}
 

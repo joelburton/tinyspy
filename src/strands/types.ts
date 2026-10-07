@@ -16,6 +16,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -212,6 +213,8 @@ export type GPlayerRaw = PlayerRaw & Pick<GFactsRaw, 'nFoundPuzzleWords' | 'nHin
  *   board: {foundPuzzleWords, hintTiles}     # coop's one board on every player; null for a rival mid-race
  *   own: {nFoundPuzzleWords, nHintsUsed, hintPoints, board}
  *                                            # this player's own; in coop the bar and board are the team's
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * tile:                                      # GTile
  *   id                                       # "r,c"
@@ -274,6 +277,9 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat sees: its found words, in the order found, and its ringed
@@ -432,4 +438,6 @@ export type GPuzzleAnswer = {
 export type GSummaryData = SummaryData & {
   team: Omit<GFactsRaw, 'board'> | null
   nWinnerHints: number | null
+  // Each racer's hints, by id; null in coop.
+  nHintsUsedById: Record<string, number> | null
 }

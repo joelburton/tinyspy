@@ -197,7 +197,7 @@ it into `game_data`, each key in its place.
 |---|---|
 | `static_game_data` | `puzzle: {title, tiles}` — the theme prompt; all 48 `{id, letter, row, col}` tiles row by row, the id the tile's place `"r,c"` |
 | `game_data` | `puzzle: {puzzleWords}` — the puzzle words `{word, tileIds, spangram}`, spangram first, null until the game ends. `team`, the team's facts sent once — coop's words found, the players' hints summed, the one bar and the one board; null in compete. `events`, every row `{id, userId, kind, word, result, tileIds, tookTurn, at}` — a guess's trace or a hint's ringed word as tile ids. On each player their own facts: `nFoundPuzzleWords`, `nHintsUsed`, and a racer's `hintPoints` and `board: {foundPuzzleWords, hintTileIds}`, the two null on a coop player |
-| `summary_data` | `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}`, the team's counts and bar, null in compete; `nWinnerHints`, the hints a race was won on |
+| `summary_data` | `team: {nFoundPuzzleWords, nHintsUsed, hintPoints}`, the team's counts and bar, null in compete; `nWinnerHints`, the hints a race was won on; `nHintsUsedById`, each racer's hints, null in coop |
 
 strands' facts (`GFacts`) are `nFoundPuzzleWords`, `nHintsUsed`, `hintPoints`
 and `board`. `useGame` puts the side's on every player — the team's in coop,
@@ -496,7 +496,7 @@ word. The row **shares its fixed-height slot with the feedback pill** (you're
 either building a word or reading what the last one did) — the same swap
 `<WordEntryArea>` makes; stackdown, whose pill has a separate reserved row, is
 the odd one out. The local slot's standing conditions are the verdict, out of
-the race ("Solved — waiting on the rest" for a solver), whose turn, and the
+the race ("Solved: waiting on the rest" for a solver), whose turn, and the
 **puzzle's title as a `prompt`** on an untouched board — it leaves when a trace
 begins and comes back if that trace is taken back or rejected, until the first
 row is logged, and a rejection shows over it ([ui.md → Feedback
@@ -619,7 +619,7 @@ at its top.
         ├── InfoSheet ←             off-canvas on a phone, a flex child on desktop
         │     └── InfoCol           the readouts and the action row
         │           ├── StateLine   "3 words · 1 hint used"
-        │           ├── OpponentStrip ←    compete only: each racer's hints, or "out"
+        │           ├── OpponentStrip ←    compete only: each racer's hints, then how they came out ("1 (solved)")
         │           ├── InfoActionsRow ←   one row, every action, in the menu's order
         │           ├── the revealed words "Words: …", once Reveal is pressed
         │           ├── SetupDisclosure ←
@@ -627,9 +627,9 @@ at its top.
         └── CelebrationBlockingModal ←     my win, when it happens
 ```
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-`lib/playerEndingMessage.ts`), `useHistoryView` and `useActionsAndMenu`.
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
+ending label: `lib/endingLabel.ts`, on every `gd` player), `useHistoryView` and
+`useActionsAndMenu`.
 `BoardCol`'s: `useTrace` (the trace, held as tile ids), `useSubmitTrace` (its
 trip to `submit_path`), `useSpendHint`, `useBoardColActions` (Submit, ⌫, a typed
 letter and Hint, with the gate `canPick` and the ambiguous-letter rings) and
@@ -770,9 +770,12 @@ right moment.
 ### The summary
 
 The summary reads `summary_data`: coop's line counts the team's words found,
-never out of how many; compete's publishes **nothing** of the race mid-way, and
-at the end names the MARGIN (`Won · 0 hints`, from `nWinnerHints`) rather than
-the finish order.
+never out of how many; compete's publishes **nothing** of a rival mid-way. Each
+line leads with my ending label once I am out of play ("Solved (waiting on the
+rest)"), and at the end names the winner and the MARGIN (`Won by bea · 0
+hints`, from `nWinnerHints`). A place below first says what lost it: "2nd (more
+hints)" when someone above used fewer, "2nd (solved later)" when they used as
+many — read from `nHintsUsedById`.
 
 ## 9. Tests
 

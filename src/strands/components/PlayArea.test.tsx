@@ -153,7 +153,9 @@ describe('strands PlayArea — the three phases', () => {
         })}
       />,
     )
-    expect(screen.getByText('You solved it — waiting')).toBeInTheDocument()
+    expect(screen.getByText('Solved (waiting on the rest)')).toBeInTheDocument()
+    // My solve is no result yet: the board wears the neutral frame.
+    expect(document.querySelector('[class*="endingFrame_neutral"]')).not.toBeNull()
     // …and cannot pull the answer while a rival is still tracing.
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
   })
@@ -190,7 +192,7 @@ describe('strands PlayArea — the three phases', () => {
     expect(control('act-back-to-club')).not.toBeNull()
   })
 
-  it('a rival who has ended reads "out" in the strip while the race runs on', () => {
+  it('a rival who has solved reads so in the strip, beside their hints, while the race runs on', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
@@ -199,7 +201,7 @@ describe('strands PlayArea — the three phases', () => {
         })}
       />,
     )
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText('0 (solved)')).toBeInTheDocument()
   })
 })
 
@@ -208,6 +210,56 @@ describe('strands PlayArea — the three phases', () => {
  * is the half a consumed board can't give you: strands draws PATHS and never
  * spells anything out.
  */
+describe('strands PlayArea — the ending', () => {
+  it('coop: every word found wins, in the won frame', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: [{ ...ME, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 }],
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Won (every word found)').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
+  })
+
+  it('compete: 2nd on as many hints says it solved later; the strip shows each place', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [
+            { ...ME, solvedAt: SOLVED.at, outcome: 'near', finalRanking: 2 },
+            { ...MOTH, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 },
+          ],
+          ending: { reason: 'reached_goal', detail: 'solved', by: 'u1' },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('2nd (solved later)').length).toBeGreaterThan(0)
+    expect(screen.getByText('0 (2nd)')).toBeInTheDocument()
+    expect(screen.getByText('0 (won)')).toBeInTheDocument()
+  })
+
+  it('compete: a player who never solved reads Lost, bare', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [{ ...ME, outcome: 'lost' }, { ...MOTH, solvedAt: SOLVED.at, outcome: 'won', finalRanking: 1 }],
+          ending: { reason: 'timeout', detail: 'timeout', by: null },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
+  })
+})
+
 describe('strands PlayArea — the reveal at the end', () => {
   it('an ending nobody solved keeps the words hidden until asked', async () => {
     const user = userEvent.setup()

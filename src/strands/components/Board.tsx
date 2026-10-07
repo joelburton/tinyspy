@@ -2,6 +2,8 @@
 
 import { COLS, ROWS } from '../lib/board'
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import type { GBoard, GTile, GPuzzleWord } from '../types'
 import { Tile } from './Tile'
@@ -61,6 +63,7 @@ export function Board({
   cursor,
   isDisabled,
   isViewingHistory,
+  endingOutcome,
   onPick,
 }: {
   // All 48, row by row.
@@ -82,6 +85,8 @@ export function Board({
   isDisabled: boolean
   // Replaying a past turn: the board wears the shared history frame.
   isViewingHistory: boolean
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
   onPick: (tile: GTile) => void
 }) {
   const lastTile = traceTiles[traceTiles.length - 1]
@@ -94,7 +99,15 @@ export function Board({
   }
 
   return (
-    <div className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)} data-board>
+    <div
+      className={cls(
+        shared.boardSeal,
+        styles.board,
+        isViewingHistory && history.historyFrame,
+        makeEndingFrameClasses(endingOutcome, isViewingHistory),
+      )}
+      data-board
+    >
       {/* The drawing layer: lines first, then discs, so a disc always covers the
           line ends. aria-hidden — it carries no information the letters don't. */}
       <svg

@@ -133,14 +133,15 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "nWinnerHints": null}'::jsonb,
+    || '{"team": {"nFoundPuzzleWords": 0, "nHintsUsed": 0, "hintPoints": 0}, "nWinnerHints": null, "nHintsUsedById": null}'::jsonb,
   'coop: a fresh summary'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "nWinnerHints": null}'::jsonb,
-  'compete: a fresh summary'
+    || '{"team": null, "nWinnerHints": null,
+         "nHintsUsedById": {"ada11111-1111-1111-1111-111111111111": 0, "bea22222-2222-2222-2222-222222222222": 0}}'::jsonb,
+  'compete: a fresh summary, every racer''s hints at 0'
 );
 
 -- ─── (2) Mid-game coop: ada finds row 0; bea fills the bar with three hint
@@ -269,8 +270,10 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "nWinnerHints": 0}'::jsonb,
-  'compete won: the summary names the hints the race was won on'
+    || jsonb_build_object('team', null, 'nWinnerHints', 0,
+         'nHintsUsedById', (select jsonb_object_agg(user_id::text, n_hints_used)
+                              from strands.players where game_id = pg_temp.compete())),
+  'compete won: the summary names the hints the race was won on, and each racer''s'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,
