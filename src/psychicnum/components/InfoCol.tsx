@@ -35,9 +35,11 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // A player who has ended reads "out"; everyone else shows their progress.
-  function getScoreOrOut(player: GPlayer) {
-    return player.ending ? 'out' : player.nFoundSecrets
+  // Each player's finds; once they are out of play — on their own or with the
+  // game — how they came out after it: "3 (won)", "1 (conceded)".
+  function getFoundAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nFoundSecrets
+    return `${player.nFoundSecrets} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -58,7 +60,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Found"
-            metricFor={getScoreOrOut}
+            metricFor={getFoundAndResult}
           />
         )}
 

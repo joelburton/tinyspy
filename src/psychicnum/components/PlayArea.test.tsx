@@ -175,14 +175,40 @@ describe('psychicnum PlayArea — concede', () => {
     expect(screen.getByRole('button', { name: 'Stop game' }).className).toMatch(/destructive/)
   })
 
-  it('marks a conceded opponent "out" in the strip', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+  /** The strip's text, label and cells. */
+  const stripText = () => screen.getByText('Found:').parentElement!.textContent
+
+  it('marks a conceded opponent conceded in the strip, beside their finds', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...counted(MOTH, 1), ...ZTest_CONCEDED }] })} />)
+    expect(stripText()).toMatch(/moth:\s*1 \(conceded\)/)
   })
 
-  it('marks an opponent out of guesses "out" too', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_SPENT }] })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+  it('marks an opponent out of guesses lost', () => {
+    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...counted(MOTH, 2), ...ZTest_SPENT }] })} />)
+    expect(stripText()).toMatch(/moth:\s*2 \(lost\)/)
+  })
+
+  it('gives every player their result once the race is won', () => {
+    const CADE: ZTest_PlayerFacts = { id: 'u3', username: 'cade', color: 'green' }
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ...MOTH_WON,
+      players: [lost(counted(ME, 2)), won(counted(MOTH, 3)), { ...counted(CADE, 1), ...ZTest_CONCEDED }],
+    })} />)
+    expect(stripText()).toMatch(/You:\s*2 \(lost\)/)
+    expect(stripText()).toMatch(/moth:\s*3 \(won\)/)
+    expect(stripText()).toMatch(/cade:\s*1 \(conceded\)/)
+  })
+
+  it('says a stopped race was stopped, and keeps a conceder conceded', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      ending: { reason: 'stopped', detail: 'stopped', by: 'u1' },
+      outcome: 'neutral',
+      players: [{ ...counted(ME, 2), outcome: 'neutral' }, { ...counted(MOTH, 1), ...ZTest_CONCEDED }],
+    })} />)
+    expect(stripText()).toMatch(/You:\s*2 \(stopped\)/)
+    expect(stripText()).toMatch(/moth:\s*1 \(conceded\)/)
   })
 
   it('shows my concession while the race continues', () => {

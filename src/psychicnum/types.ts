@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -147,6 +148,8 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   board: {tiles, tilesById}             # coop's one board on every player; null for a rival mid-race
  *   own: {nFoundSecrets, nGuessesUsed, nReqdSecrets, maxGuesses, board}
  *                                         # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                         # how they came out; null while they play
  *
  * tile:                                   # board.tiles[], in the puzzle's order
  *   id                                    # the word, in this game
@@ -189,6 +192,9 @@ export type GGameData =
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat's tiles show: every dealt word, in the puzzle's order, with

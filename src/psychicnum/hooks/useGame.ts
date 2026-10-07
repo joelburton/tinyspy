@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
+import { makeEndingLabel } from '../lib/endingLabel'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { getGuessOutcome } from '../lib/answer'
 import { makeSetupRows } from '../lib/setupRows'
@@ -39,7 +40,12 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       maxGuesses: p.maxGuesses,
       board: null,
     }
-    return { ...p, ...(team ?? own), board: null, own }
+    const endingLabel = makeEndingLabel(p, {
+      mode: raw.mode,
+      ended: raw.ended,
+      reason: ending?.reason ?? null,
+    })
+    return { ...p, ...(team ?? own), board: null, own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
