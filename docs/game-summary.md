@@ -62,9 +62,16 @@ Every line has one shape:
 OUTCOME (why) · other · facts
 ```
 
+**The line leads with my result** once I am out of play, before the game
+ends too: my ending label ([`common/ending`](../src/common/ending/doc.md)),
+read off `summary_data`'s players — `Won`, `Won (tied with bea)`, `2nd · Won
+by bea`, `Conceded · Won by bea`. A game I did not win or concede names its
+winners (`Won by bea & cade`, through `findWinnerIds`). No "You": the context
+says whose. While I play it says `Playing`, with the game's facts after it.
+
 **The rules are in the code** —
 [`summary.ts`](../src/common/manifest/summary.ts)'s header holds them:
-the four leading words, the two devices and no third, where a reason may and may
+what may lead, the two devices and no third, where a reason may and may
 not go, and that every `summaryFor` is an exhaustive `switch`. That file is what a
 `summaryFor` author has open. Each helper's own docstring carries the rest —
 `dictLabel` why the band comes off `setup` rather than `status`, `wonBy` why a

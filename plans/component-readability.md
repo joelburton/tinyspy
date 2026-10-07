@@ -570,8 +570,6 @@ the games above:
 
 ## Owed, not done at psychicnum
 
-- The ending rename (`EndingMessage`, `isGameEnded` / `isPlayerEnded`,
-  `endingFrame`) is plans/endings.md's, being done.
 - `GamePlayer` → `Player` once every game converts: common's types are the
   bare ones, a game's wear the `G` (`src/common/members/todo.md`).
 - A Stop drops a win that already stands (`src/common/ending/todo.md`).

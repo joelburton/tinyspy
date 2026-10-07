@@ -119,6 +119,9 @@ bookkeeping — they are seconds when nobody ticks. The frontend half is
   ending, outcome, ranking, conceded, solved and still playing) from
   `common._make_json_summary_data`, the game's numbers beside it;
   the list reads the blob and `is_current_view`, nothing else of the row.
+- **No blob names a winner.** The winners are the players whose ranking is 1,
+  and every player carries their ranking, so a page reads them off the players
+  (`gd.ending.winners`, and `findWinnerIds` over `summary_data`).
 - The shapes are drawn in `supabase/sql/common.sql` → The page blobs' common
   parts, and pinned whole in `supabase/tests/common/shell_data_test.sql`,
   `game_data_common_test.sql` (`game_data`'s and `static_game_data`'s common

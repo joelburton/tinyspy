@@ -18,8 +18,8 @@ its ruling in Joel's words. Line numbers rot; the file and the name are the
 handle.
 
 **The order** (common-tables.md → The path): the endings (§2), then
-placement (§5). The renames (§3) each need Joel's go, and the "ended" one
-is endings.md's. §4 is small and fits beside any of them.
+placement (§5). The renames (§3) each need Joel's go. §4 is small and fits
+beside any of them.
 
 The rules that stay in force while this is worked: §1's naming of the
 viewing player (`my`, never `self`; a flag is `is…` / `amI…`) is in
@@ -42,30 +42,7 @@ game's ending, `game_ended_reason` / `game_ended_reason_detail`. Today
 `submit_guess` answers a bare `reason: 'solved' | 'assassin' | 'turns'`
 (`src/codenamesduet/hooks/useSubmitGuess.ts`).
 
-### How a game words a loss on its summary — to investigate
-
-Each manifest's `summaryFor` turns a stored reason into words ("out of time",
-"out of guesses") for a game nobody won, three ways: a `LOSS` table
-(connections, psychicnum, waffle, wordle), an inline `reason === 'timeout'`
-check (strands, letterboxed, stackdown, boggle, spellingbee, wordwheel,
-wordiply; wordle mixes the two), and codenamesduet's `LOSS_CAUSE`, keyed on
-the detail. Survey all sixteen and decide whether they share one approach.
-
 ## 3. Renames
-
-### "Terminal" → "ended" — decided, everywhere
-
-**Decided** (Joel, 2026-09-26): "Terminal" and "locally terminal" are awkward
-and needlessly long, and `ended` is already the term — so code says one word
-and prose another for one thing. **Everywhere**: "it is worse to not do it
-everywhere than not do it at all." Every identifier, key and comment,
-game-local ones included, and the docs' prose.
-
-The stems are **`GameEnded`** and **`PlayerEnded`** (not "done", which is
-everywhere for "done sending a request"): `isGameEnded` (`isTerminal`
-retired), `isPlayerEnded` (`isLocallyTerminal` retired); `locally-terminal`
-becomes the term `player-ended`. The rename is being done by
-[endings.md](endings.md).
 
 ### "Race" / "racer" in games that aren't races — decided
 

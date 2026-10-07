@@ -473,21 +473,20 @@ it once the front end lands. Before it:
    1. **The players.** `common.game_players` gains `player_ended_at`, the
       player's reason pair, `outcome`, `final_ranking` and `solved`, and
       loses `result`, `conceded`, `conceded_at` and `locally_terminal`.
-      `EndOutcome` gains `near`, and every two-way check is audited
-      (cross-game-consistency §3b → the `near` item). **Rankings below first
+      `EndOutcome` gains `near`, and every two-way check is audited (done:
+      docs/win-lose.md → The player). **Rankings below first
       wait for stage 3** (Joel, 2026-09-27): stage 1 writes what the games
       know today — the winners `final_ranking` 1 and `won`, everyone else no
       ranking and `lost` or `neutral` — and each game's ending brings the
       full ranking, so no game produces `near` until then. `isPlayerEnded`,
-      and every other "player-ended", is plans/endings.md's rename (§3b
-      question 1).
+      and every other "player-ended", is done (docs/naming.md → ending).
    2. **The game's lifecycle.** `common.games` gains the reason pair,
       `game_ended_outcome` and `mode`, and loses `play_state`,
       `is_terminal` and `paused`. `common._end_game` takes the reason pair as
       required parameters (§3b question 3); the Stop writes `stopped`, not
       `manual`; codenamesduet works out sudden death. `EndOutcome` is
-      done; `isGameEnded` and every other "ended" is plans/endings.md's
-      rename. Also in this stage (found 2026-09-27): the thirteen
+      done; so is `isGameEnded` and every other "ended". Also in this stage
+      (found 2026-09-27): the thirteen
       child-table SELECT policies that join `common.games` for
       `is_terminal` read `ended_at is not null`; `strands.club_game_status`
       (unread) is dropped; `src/guards/gameSummaries.test.ts`, which

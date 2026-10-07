@@ -114,6 +114,12 @@ that grows a per-player metric grows a strip the same day.
 `InfoSwitchButton` is the exception: no game places it. `GamePage` renders it on
 mobile, because the header is the shell's.
 
+**A compete strip's cell is "metric (word)" once that player is out of play** —
+`3 (won)`, `280 (2nd)`, `1 (conceded)` — and the metric alone while they play.
+The word is the player's ending label's, lowercased
+([`common/ending`](../ending/doc.md)), so a cell never works out how someone
+came out on its own. Equal metrics already show a tie.
+
 **A game's mobile pass is three pieces composed.** `useInfoSheet()` for the flag,
 `<InfoSheet open onClose>` around its `InfoCol`, and `shared.mobileFill` on its
 `.layout` — `cls(shared.layout, shared.mobileFill, styles.layout)` — which hands

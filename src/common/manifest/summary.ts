@@ -11,9 +11,11 @@
  *
  *     OUTCOME (why) · other · facts
  *
- * **The lead is one of four words** — `Playing`, `Won`, `Lost`, `Ended`. It is
- * what survives truncation on a narrow row, so it carries the thing you scan
- * for, and a game does not get a flavor word of its own.
+ * **The lead is `Playing`, or an ending label's word** — `Won`, `2nd`, `Lost`,
+ * `Conceded`, `Stopped`, `Ended`, `Solved`, `Finished` — mine once I am out of
+ * play (common/ending/doc.md). It is what survives truncation on a narrow row,
+ * so it carries the thing you scan for, and a game does not get a flavor word
+ * of its own: the words are common's, and only what follows them is the game's.
  *
  * **Exactly two devices, and no third.** Parentheses carry a reason; `·`
  * separates facts. Nothing else separates anything — there is no second

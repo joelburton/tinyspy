@@ -342,13 +342,17 @@ row. A menu is easy to reorder, so this is a starting order, not a lock.
 ### What leaves the component file
 
 **The ending message.** Every game builds it from each player's
-`endingLabel` ([plans/endings.md](../plans/endings.md)): its own
+`endingLabel` ([`common/ending`](../src/common/ending/doc.md)): its own
 `lib/endingLabel.ts` (spellingbee and wordwheel share
 `shared/bee-games/endingLabel.ts`), beside the game's other decisions about
 what a move meant, through one `useGetEndingMessage`. The `useMemo` that feeds
 the verdict effect stays in the component. Its test walks every ended play
 state in every mode for every reason the server writes — a small, closed space
 worth exhausting.
+
+**The ending frame.** Every game's board wears it, on my ending and the
+game's: `makeEndingFrameClasses(gd.me.outcome, isViewingHistory)` on the
+board's visual box, in my outcome, with no space reserved for it.
 
 ## Prop conventions for the columns
 

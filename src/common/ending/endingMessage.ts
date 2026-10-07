@@ -4,9 +4,9 @@ import type { Actor } from '../members/member.ts'
 import type { EndOutcome } from './gameEnding.ts'
 
 /**
- * What a game says once it is over. Each game builds its own, in a pure helper
- * its PlayArea calls — `buildEndingMessage` where a game has been converted
- * to that name, `buildOver` in the games that have not.
+ * What the game page says about my ending — the game's once it is over, or
+ * mine while the others play on. `makeEndingMessage` (`endingLabel.ts`) builds
+ * it from my ending label, through each game's `useGetEndingMessage`.
  *
  * It is a MESSAGE (words plus how they read), not a feedback message: nothing
  * shows it directly. `FeedbackMessage.endingVerdict(over)` turns it into
@@ -15,11 +15,12 @@ import type { EndOutcome } from './gameEnding.ts'
  * show the same outcome, kept in one object so they cannot disagree.
  */
 export type EndingMessage = {
-  // The below-board pill's words — terse, leading with the outcome word
-  // ("Won: fewest guesses", "Lost: out of time"), no trailing period: the pill
+  // The below-board pill's words — terse, leading with the label's word
+  // ("Won: perfect clear", "Lost: out of time"), no trailing period: the pill
   // is a one-line, ellipsizing LABEL (~48 chars on a phone), not prose.
   pillText: string
-  // The short info-column outcome line ("You won!", "Out of guesses").
+  // The info column's line, the word and its detail ("Won", "Lost (out of
+  // guesses)").
   infoColText: string
   // How BOTH surfaces read.
   outcome: EndOutcome
@@ -31,19 +32,15 @@ export type EndingMessage = {
 /**
  * The message for a Stop, and only that: the friends agreed to stop (the
  * game's ending reason `stopped`) before anyone won, so nobody won and nobody
- * lost, and it says so. It is never the message for a win or a loss — a game
- * builds those itself — nor for a `no-result` ending, which is neutral too and
- * which a game words from its own reason. Nothing about a Stop is
- * game-specific, which is why it can live here.
- *
- * A game may still write its own — boggle does, spending the pill on the
- * tally (`Ended: 12 words, 34 points`) — so read the game's own builder
- * before assuming.
+ * lost, and it says so. It is never the message for a win or a loss, nor for
+ * a `no-result` ending, which is neutral too and which a game words from its
+ * own reason. Nothing about a Stop is game-specific, which is why it can live
+ * here: `makeEndingMessage` takes it for every game's `stopped` label.
  */
 export function buildStoppedMessage(mode: 'coop' | 'compete'): EndingMessage {
   return {
     // No trailing period: a pill LABEL, and the rest of the ending
-    // vocabulary ("You win!", "Lost: assassin") doesn't punctuate either.
+    // vocabulary ("Won", "Lost: assassin") doesn't punctuate either.
     pillText: mode === 'coop' ? 'Stopped' : 'Stopped — no winner',
     infoColText: 'Stopped',
     outcome: 'neutral',

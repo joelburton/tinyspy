@@ -341,6 +341,23 @@ UI labels stay "Start X" everywhere — users intuitively understand the two-cli
 pattern as "open the form, confirm the form." The distinction lives in the code,
 where ambiguity costs reader cycles.
 
+### ending (game-ended vs player-ended)
+
+A game can be over for everyone, or over for one player while the others play
+on — a conceder, a racer who has solved. Both are an ending, so a name says
+which it means:
+
+- **the game's ending** — the stem `GameEnded`: `isGameEnded`,
+  `GameEndedReason`, `gameEndingMessage`.
+- **a player's end** — the stem `PlayerEnded`: `isPlayerEnded`, the term
+  `player-ended` ([win-lose.md](win-lose.md)).
+- **either one** — plain `ending`: `endingFrame`, `EndingMessage`,
+  `endingLabel`, the folder `common/ending/`. `eitherEnding` only where the
+  plain word could be misread as the game's.
+
+Never "terminal", and never "done", which everywhere means "done sending a
+request".
+
 ### persona
 
 A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`,
