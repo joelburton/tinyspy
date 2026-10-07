@@ -258,6 +258,23 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, maxGuesses: 6, answerBand: 0, nWinnerGuesses: null, nGuessesUsedById: { 'u-alice': 3, 'u-bob': 6 } }, 'Stop'],
     ],
   },
+  // wordleone._make_json_summary_data: `team` holds the misses in coop and is null in compete;
+  // the winner's misses are compete's alone; the band and difficulty are the setup's. Nothing
+  // runs out, so no ending is resource_exhausted.
+  wordleone: {
+    live: { team: { nMisses: 2 }, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: null },
+    coop: [
+      [{ outcome: 'won', reason: 'reached_goal' }, { team: { nMisses: 1 }, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: null }, 'solved'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: { nMisses: 3 }, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: null }, 'timeout'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { nMisses: 3 }, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: null }, 'Stop'],
+    ],
+    compete: [
+      [{ outcome: 'won', reason: 'reached_goal', winners: ['u-alice'] }, { team: null, legalBand: 2, difficulty: 'medium', nWinnerMisses: 1, nMissesById: { 'u-alice': 1, 'u-bob': 4 } }, 'someone won'],
+      [{ outcome: 'lost', reason: 'timeout' }, { team: null, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: { 'u-alice': 1, 'u-bob': 4 } }, 'timeout'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: { 'u-alice': 1, 'u-bob': 4 } }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, legalBand: 2, difficulty: 'medium', nWinnerMisses: null, nMissesById: { 'u-alice': 1, 'u-bob': 4 } }, 'Stop'],
+    ],
+  },
   // stackdown._make_json_summary_data: `team` holds coop's three counts and is null in compete,
   // whose line names no count; the band is the setup's.
   stackdown: {

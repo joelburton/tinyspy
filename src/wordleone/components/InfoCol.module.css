@@ -1,0 +1,20 @@
+/* cs-unmet */
+
+/* wordleone's info-column chrome. The column itself (.infoCol) and its shared rows
+ * come from common/info-sheet/infoCol.module.css; only the answer line, once
+ * revealed, is wordle-specific. */
+
+/* The info column's answer line, once revealed. Drop the browser's default <p>
+ * margin (this <p> sits outside .noShrinkRow, which zeroes its own paragraphs),
+ * so the spacing matches the info column's own 1rem gap. */
+/* @@ */ .answerLine {
+  margin: 0;
+}
+
+/* The revealed word itself — bold because it is what the sentence is for, and
+ * letter-spaced so the five letters read as the word, like the board tiles
+ * (only the word, not the "The answer was" lead-in). */
+/* @@ */ .answerReveal {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}

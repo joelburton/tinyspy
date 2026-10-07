@@ -21,6 +21,7 @@ import {
 import { bananagramsGame } from './bananagrams/manifest'
 import { waffleCoopGame, waffleCompeteGame } from './waffle/manifest'
 import { wordleCoopGame, wordleCompeteGame } from './wordle/manifest'
+import { wordleoneCoopGame, wordleoneCompeteGame } from './wordleone/manifest'
 import { stackdownCoopGame, stackdownCompeteGame } from './stackdown/manifest'
 import { scrabbleCoopGame, scrabbleCompeteGame } from './scrabble/manifest'
 import { boggleCoopGame, boggleCompeteGame } from './boggle/manifest'
@@ -73,6 +74,8 @@ export const gametypes: GameManifest[] = [
   waffleCompeteGame,
   wordleCoopGame,
   wordleCompeteGame,
+  wordleoneCoopGame,
+  wordleoneCompeteGame,
   stackdownCoopGame,
   stackdownCompeteGame,
   scrabbleCoopGame,

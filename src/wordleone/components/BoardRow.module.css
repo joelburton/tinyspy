@@ -1,0 +1,34 @@
+/* cs-unmet */
+
+/* One row of five tiles; `--cols` and `--grid-gap` come from Board's
+ * `.board`. */
+/* @@ */ .row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: var(--grid-gap);
+}
+
+/* The guess row the viewed turn added — a history-blue ring around it (mirrors
+ * the board `.historyFrame`), applied while inspecting a past turn. The row's
+ * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
+ * outline (not a border) so it layers outside the tiles without resizing them.
+ */
+/* @@ */ .historyRow {
+  outline: 3px solid var(--history-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* A refused guess wears the SHARED verdict ring + shake (common
+ * playArea.module.css → `.verdictRing`), applied to the typing row — the word
+ * is still sitting there, since it was never accepted.
+ *
+ * A ROW, not a tile, which is what licenses the outline: the five tiles are
+ * contiguous and aligned, so they are a GEOGRAPHIC unit — a real shape on the
+ * board to draw around, with room to sit clear of the tiles rather than crowd
+ * them. That is the test, and it is geography rather than count (common
+ * playArea.module.css → `.verdictRing`, which states the rule).
+ * Judging several pieces at once doesn't earn a group mark by itself:
+ * connections judges four tiles scattered across its grid, so it has no unit to
+ * outline and colors each tile's border instead — which is the vocabulary's
+ * default. On a tile, an outline is a hint or the history viewer. */

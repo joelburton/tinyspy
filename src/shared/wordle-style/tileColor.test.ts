@@ -41,7 +41,9 @@ const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
  *     `src/guards/cssClasses.test.ts` checks against the board's stylesheet;
  *   - wordle's event log colors only a logged guess, whose codes are always
  *     g/y/x — wordle never writes the `.` that reads as `blank`, and
- *     `getTileColor` throws on anything else.
+ *     `getTileColor` throws on anything else. wordleone's colors only its
+ *     solve, all `g`, and branches a miss, which has no codes, to its own
+ *     `.unjudged`.
  *
  * Every other painter is required to define `blank`, a newly discovered one
  * included. That is the safe default: the full `TileColor` is what a board
@@ -51,6 +53,7 @@ const NO_BLANK_OF_ITS_OWN = [
   'shared/onscreen-keyboard/GuessKeyboard.module.css',
   'shared/wordle-style/tileColors.module.css',
   'wordle/components/GameEventLog.module.css',
+  'wordleone/components/GameEventLog.module.css',
 ]
 
 function walk(dir: string): string[] {
@@ -107,6 +110,7 @@ describe('the letter palette reaches the stylesheets', () => {
       'shared/onscreen-keyboard/GuessKeyboard.module.css',
       'shared/wordle-style/tileColors.module.css',
       'wordle/components/GameEventLog.module.css',
+      'wordleone/components/GameEventLog.module.css',
     ])
   })
 

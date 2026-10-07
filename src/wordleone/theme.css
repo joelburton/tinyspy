@@ -1,0 +1,16 @@
+/* cs-unmet */
+
+/*
+ * wordleone's theme tokens. The per-letter feedback palette — the classic Wordle
+ * green/yellow/gray and the neutral blank — is the shared "Wordle colors" in
+ * common/core-css/fixed.css (`--wordle-*-fill-color`), which waffle paints
+ * from too; the keycap's chrome is the shared keyboard's (`--kbd-*`). What is
+ * here is the tile edge, which only wordleone's board draws. Imported by the
+ * PlayArea.
+ */
+/* @@ */ :root {
+  /* An empty tile's edge is the shared blank; a filled but un-submitted tile
+     gets a darker one. */
+/* @@ */   --wordleone-tile-border: var(--wordle-blank-fill-color);
+/* @@ */   --wordleone-tile-border-filled: #878a8c;
+}

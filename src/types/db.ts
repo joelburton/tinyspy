@@ -2740,6 +2740,135 @@ isOneToOne: false
           CompositeTypes: {
             [_ in never]: never
           }
+        },"wordleone": {
+          Tables: {
+            "events": {
+                  Row: {
+                    "colors": string | null,"created_at": string,"game_id": string,"id": number,"is_correct": boolean,"kind": string,"took_turn": boolean,"user_id": string,"word": string
+                  }
+                  Insert: {
+                    "colors"?: string | null,"created_at"?: string,"game_id": string,"id"?: never,"is_correct": boolean,"kind": string,"took_turn"?: boolean,"user_id": string,"word": string
+                  }
+                  Update: {
+                    "colors"?: string | null,"created_at"?: string,"game_id"?: string,"id"?: never,"is_correct"?: boolean,"kind"?: string,"took_turn"?: boolean,"user_id"?: string,"word"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "events_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    }
+                  ]
+                },"games": {
+                  Row: {
+                    "difficulty": string,"game_id": string,"legal_band": number,"starter": string,"starter_colors": string,"target": string
+                  }
+                  Insert: {
+                    "difficulty": string,"game_id": string,"legal_band": number,"starter": string,"starter_colors": string,"target": string
+                  }
+                  Update: {
+                    "difficulty"?: string,"game_id"?: string,"legal_band"?: number,"starter"?: string,"starter_colors"?: string,"target"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"players": {
+                  Row: {
+                    "game_id": string,"n_misses": number,"user_id": string
+                  }
+                  Insert: {
+                    "game_id": string,"n_misses"?: number,"user_id": string
+                  }
+                  Update: {
+                    "game_id"?: string,"n_misses"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "players_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "_finish_compete":
+{ Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
+                           },
+"_make_json_board":
+{ Args: { "p_game_id": string,"p_user_id": string }; Returns: Json
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_puzzle":
+{ Args: { "p_ended": boolean,"wg": Database["wordleone"]['Tables']["games"]['Row'] }; Returns: Json
+                           },
+"_make_json_static_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_team_counts":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_maybe_finish_compete":
+{ Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: boolean
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_sync_title":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
+"concede":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"create_game":
+{ Args: { "p_board": Json,"p_club_handle": string,"p_mode": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
+                           },
+"replay_board":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"stop_game":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"submit_guess":
+{ Args: { "p_game_id": string,"p_guess": string }; Returns: Json
+                           },
+"submit_timeout":
+{ Args: { "p_game_id": string }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         },"wordwheel": {
           Tables: {
             "found_words": {
@@ -3040,6 +3169,10 @@ export const Constants = {
             
           }
         },"wordle": {
+          Enums: {
+            
+          }
+        },"wordleone": {
           Enums: {
             
           }

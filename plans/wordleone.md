@@ -20,8 +20,9 @@ you nothing but that it was wrong.
   fits.*
 - A guess is a five-letter word. Three answers to one:
   - **outside the band** or **already guessed** — a soft reject exactly as
-    wordle has them: nothing spent, nothing written, the typed row stays and
-    shakes **orange**.
+    wordle has them: nothing spent, nothing written, the typed row shakes in
+    wordle's colors — **orange** for already guessed, **red** for not a word —
+    and clears when the shake ends.
   - **in the band and not the answer** — a **miss**. The row shakes **red**,
     the miss is written to the event log and counted, and that is all the
     player learns from it: no colors, since colors would turn the game back
@@ -92,7 +93,9 @@ No `resource_exhausted` row: nothing runs out.
    guessing what is shared, and edits blessed wordle files mid-audit.
 9. **Brand WordNerdier, codename `wordleone`.**
 10. **Scheduled** (2026-10-07).
-11. **A miss shakes red, a soft reject shakes orange, and both leave the word
+11. **A miss shakes red; a soft reject shakes as wordle's does** (amended
+    2026-10-07 — "keep this in sync with wordle": a duplicate orange, a
+    non-word red). **A miss leaves the word
     uncolored** — the look of a wordle row before it is scored — on the board
     and in the log. So `events.colors` is null for a miss.
 12. **The first step is a printable sheet of generated puzzles**, to try by
@@ -105,10 +108,15 @@ Added 2026-10-07:
 13. **The tier's setup key is `difficulty`.** With every band renamed to
     `*_band` and `common.words.band`, `difficulty` no longer names a band
     anywhere, so it is free to name what makes a puzzle hard.
-14. **After a miss, the typed word clears** once the red shake ends.
+14. **After a judged word, the typed word clears** once its shake ends — a
+    miss, a duplicate and a non-word alike (the soft rejects added the same
+    day). A refusal the server never judged the word for keeps it.
 15. **`#N` on a miss shows the missed word in the second row as it looked
     before it was sent**: typed, uncolored, no ring.
 16. **`docs/features.md`'s code is `W1`.**
+17. **Reveal puts the answer on the board**, in the second row, every tile
+    green, without the flip — that is for a word guessed. The keyboard keeps
+    only what was earned.
 
 ## The puzzle — what the evidence says
 
@@ -590,11 +598,12 @@ Copy `src/wordle/` whole, rename (`wordle` → `wordleone`, `WordNerd` →
   static `puzzle` (its comment stops saying the static blob is the common
   part alone); the compete "ahead" helper reads misses.
 - **`useSubmitGuess.ts`:** the union's accepted half is `correct | miss`, no
-  `colors`. A miss shakes the row red (`lost`) and says so in the slot, then
-  clears the typed word once the shake ends (decision 14). Its word never
-  lands as a row, so `inFlight` must be cleared on a miss, or it sticks.
-- **`lib/answer.ts`:** `miss` → `lost`, the soft rejects → `warning`
-  (wordle has `not_a_word` as `lost`); the copy from open question 1.
+  `colors`. A miss and the two soft rejects shake the row in their outcome
+  and say so in the slot, then clear the typed word once the shake ends
+  (decision 14). No row lands for them, so `inFlight` is cleared at once, or
+  it sticks.
+- **`lib/answer.ts`:** `miss` → `lost`; the soft rejects as wordle's
+  (`duplicate` `warning`, `not_a_word` `lost`); the copy from open question 1.
 - **`GameEventLog.tsx` + CSS:** a null `colors` draws five uncolored squares
   (an outline, no gray fill) instead of calling `getTileColor`, which throws
   on null.
@@ -625,26 +634,34 @@ Copy `src/wordle/` whole, rename (`wordle` → `wordleone`, `WordNerd` →
   (`lib/gameData.fixture.ts`) rebuilt from facts: `used` → `misses`, no
   `ZTest_SPENT`, events with null colors. `PlayArea.test.tsx` drops the
   out-of-guesses cases and gains a miss (red ring, row cleared, logged
-  uncolored) and a soft reject (orange ring, row kept).
+  uncolored) and the soft rejects (a duplicate's orange ring, a non-word's
+  red one, each row cleared when its shake ends).
 
 **Done when:** `npx tsc -b`, and eslint and vitest over the new folder, are
-green.
+green. Met 2026-10-07, with these as built:
+
+- The theme tokens are `--wordleone-tile-border*`: wordle's are global, and
+  the same two defined twice would be two homes.
+- The two blobs both carry `puzzle`, so `useGame`'s merge joins its halves
+  rather than letting the static one replace the target.
+- A miss reaches `useSubmitGuess` with a `clearTypedWord` from
+  `useTypedGuess`, run by the red mark's `onEnd`.
+- The board's two rows are `BOARD_ROWS` in `lib/setup.ts`; `Board`'s prop
+  keeps wordle's name, `maxGuesses`, for the lift.
+- The defaults are band 2 and medium. The copy is a proposal for open
+  question 1: a miss reads "Not it", a teammate's "guessed CRANE — not it".
+- `db.ts`'s comment drops the `games_state` view, which no game has any more
+  (wordle's still names it).
+- `doc.md` is a short accurate version; step 8 writes the full one.
 
 ### Step 6 — the lists: registration and guards
 
-- `src/gametypes.ts` — the import (keep the literal `from
-  './wordleone/manifest'`; eslint finds games by it) and the array.
-- The three schema lists went with step 4, which needed them.
-- `src/types/db.ts` regenerated (`gmake dev-types`).
-- Guards that list games (`concedeLock.test.ts` and
-  `gameDeletedFirst.test.ts` went with step 2, which turned them red):
-  `gameTypes.test.ts:33` (`CONVERTED_GAMES`), `gameSummaries.test.ts:242-259` (a `wordleone`
-  case family from step 2's `summary_data`; no `resource_exhausted`).
-- `git add -N` the new files first — `prosePaths` and the other guards read
-  the index.
-
-**Done when:** `npx vitest run src/guards` and the full `npx vitest run`
-are green.
+Done with step 5, which could not lint or type-check without them:
+`src/gametypes.ts`, `src/types/db.ts` regenerated (its `// cs-na` stamp put
+back), `gameTypes.test.ts`'s `CONVERTED_GAMES`, `gameSummaries.test.ts`'s
+`wordleone` family, and `shared/wordle-style/tileColor.test.ts`'s two lists
+of event-log painters. The schema lists went with step 4; `concedeLock` and
+`gameDeletedFirst` with step 2.
 
 ### Step 7 — e2e
 
