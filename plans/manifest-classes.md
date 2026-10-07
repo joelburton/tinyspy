@@ -189,8 +189,10 @@ for Joel's review**.
    [src/common/manifest/doc.md](../src/common/manifest/doc.md), the header of
    [gameManifest.ts](../src/common/manifest/gameManifest.ts), and the
    factory mentions in the boggle, scrabble, waffle and wordiply game docs.
-7. **Close**: what lasts goes into `common/manifest/doc.md`, and this plan is
-   deleted.
+7. **Close**: what lasts goes into `common/manifest/doc.md`, the "Make each
+   manifest an instance of a class" item leaves
+   [src/common/manifest/todo.md](../src/common/manifest/todo.md), and this
+   plan is deleted.
 
 No step touches SQL, edge functions or e2e helpers. The behavior is the same
 by construction, so whether to run e2e is Joel's call after step 2. If he

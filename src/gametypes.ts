@@ -3,8 +3,8 @@
 import type { GameManifest } from './common/manifest/gameManifest'
 import { codenamesduetGame } from './codenamesduet/manifest'
 import {
-  psychicnumCoopGame,
-  psychicnumCompeteGame,
+  psychicnumCoopManifest,
+  psychicnumCompeteManifest,
 } from './psychicnum/manifest'
 import {
   connectionsCoopGame,
@@ -61,8 +61,8 @@ import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
  */
 export const gametypes: GameManifest[] = [
   codenamesduetGame,
-  psychicnumCoopGame,
-  psychicnumCompeteGame,
+  psychicnumCoopManifest,
+  psychicnumCompeteManifest,
   connectionsCoopGame,
   connectionsCompeteGame,
   spellingbeeCoopGame,
