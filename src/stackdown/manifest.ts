@@ -8,7 +8,9 @@ import { dictLabel, verdict, statusLine, tally, wonBy } from '@/common/manifest/
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { findWinnerIds } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
-import { memberById } from '@/common/members/memberList'
+import { findUsername } from '@/common/members/memberList'
+import type { EndingLabel } from '@/common/ending/endingLabel'
+import { makeEndingLabel } from './lib/endingLabel'
 import { DEFAULT_STACKDOWN_SETUP } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
@@ -58,56 +60,74 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const stopGame = makeRpcDispatcher(db, 'stop_game')
 
+/** The game's ending as an ending label reads it, from the summary. */
+function makeGameFacts(summary: GSummaryData, mode: 'coop' | 'compete') {
+  return { mode, ended: summary.ended, reason: summary.ending?.reason ?? null }
+}
+
+/** An ending label as the club line leads with it: the word, its detail in parentheses. */
+function makeLead(endingLabel: EndingLabel) {
+  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
+}
+
 /**
  * COOP's club line: the team's progress through the six words, and the
  * dictionary band — the words a stack is built from change its difficulty
  * completely. A timeout is the only loss: there is no move budget, and every
- * board is clearable.
+ * board is clearable. Once it ends, the team's ending label (mine, when I
+ * played) leads it, and the count stays on any ending but a clear.
  */
-function makeCoopLabel(summary: GSummaryData): string {
+function makeCoopLabel(summary: GSummaryData, myId: string): string {
   // Coop always has a team.
   const found = tally(summary.team!.nFoundWords, summary.nReqdWords, 'words')
   const dict = dictLabel(summary.band)
   if (summary.ending === null) return statusLine(verdict('Playing'), found, dict)
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won':
-      return statusLine(verdict('Won'), dict)
-    case 'lost':
-      return statusLine(verdict('Lost', summary.ending.reason === 'timeout' ? 'out of time' : null), found, dict)
-    // A Stop.
-    case 'neutral':
-      return statusLine(verdict('Ended'), found, dict)
-    default:
-      return outcome
-  }
+  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+  const endingLabel = makeEndingLabel(player, makeGameFacts(summary, 'coop'))!
+  return statusLine(makeLead(endingLabel), summary.outcome === 'won' ? null : found, dict)
 }
 
 /**
  * COMPETE's club line names no count: each racer's words are hidden from the
- * others, and the line is club-wide readable. The first to clear wins; the
- * timer, or the last racer conceding, ends it with no winner.
+ * others, and the line is club-wide readable. It leads with my ending label
+ * once I am out of play; the first to clear wins, and the timer, or the last
+ * racer conceding, ends it with no winner.
  */
-function makeCompeteLabel(summary: GSummaryData, members: readonly Member[]): string {
+function makeCompeteLabel(summary: GSummaryData, members: readonly Member[], myId: string): string {
   const dict = dictLabel(summary.band)
-  if (summary.ending === null) return statusLine(verdict('Playing'), dict)
-  // Written with the ending.
-  const outcome = summary.outcome!
-  switch (outcome) {
-    case 'won': {
-      const winner = findWinnerIds(summary)[0] ?? null
-      return statusLine(wonBy(winner === null ? undefined : memberById(members, winner)?.username), dict)
+  const me = summary.players.find((p) => p.id === myId)
+  const myEndingLabel = me === undefined ? null : makeEndingLabel(me, makeGameFacts(summary, 'compete'))
+  if (summary.ending === null && myEndingLabel === null) return statusLine(verdict('Playing'), dict)
+
+  const winnerName = findUsername(members, findWinnerIds(summary).find((id) => id !== myId) ?? null)
+  const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    ? 'no winner'
+    : null
+
+  if (myEndingLabel !== null) {
+    if (summary.outcome === 'won') {
+      if (myEndingLabel.labelType === 'won') return statusLine(makeLead(myEndingLabel), dict)
+      // Someone else won: name them, beside my concession; a loss to their
+      // clear is said by naming them.
+      return myEndingLabel.labelType === 'conceded'
+        ? statusLine(makeLead(myEndingLabel), wonBy(winnerName), dict)
+        : statusLine(wonBy(winnerName), dict)
     }
+    return statusLine(makeLead(myEndingLabel), noWinner)
+  }
+
+  // A member who did not play: the game's own result.
+  switch (summary.outcome!) {
+    case 'won':
+      return statusLine(wonBy(winnerName), dict)
     case 'lost':
-      return summary.ending.reason === 'conceded'
+      return summary.ending!.reason === 'conceded'
         ? verdict('Lost', 'all conceded')
         : statusLine(verdict('Lost', 'out of time'), 'no winner')
-    // A Stop.
     case 'neutral':
-      return statusLine(verdict('Ended'), dict)
+      return statusLine('Stopped', dict)
     default:
-      return outcome
+      return summary.outcome!
   }
 }
 
@@ -144,7 +164,7 @@ export const stackdownCoopGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('coop'),
 
-  summaryFor: (data) => makeCoopLabel(data as GSummaryData),
+  summaryFor: (data, _members, myId) => makeCoopLabel(data as GSummaryData, myId),
 
   submitTimeout,
   stopGame,
@@ -178,7 +198,7 @@ export const stackdownCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  summaryFor: (data, members) => makeCompeteLabel(data as GSummaryData, members),
+  summaryFor: (data, members, myId) => makeCompeteLabel(data as GSummaryData, members, myId),
 
   submitTimeout,
   stopGame,

@@ -127,6 +127,7 @@ export function BoardCol({
         offTileIds={offTileIds}
         isInteractive={actions.canPick}
         isViewingHistory={historyView.isViewing}
+        endingOutcome={gd.me.outcome}
         marks={{
           ambiguousTileIds: historyView.isViewing ? NO_TILES : actions.ambiguousTileIds,
           litTileIds: historyView.litTileIds,

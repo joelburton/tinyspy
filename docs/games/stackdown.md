@@ -390,7 +390,7 @@ sketch at its top.
         ├── InfoSheet ←             off-canvas on a phone, a flex child on desktop
         │     └── InfoCol           the readouts and the action row
         │           ├── StateLine   "2 / 6 words cleared · 1 hint · 0 spoilers used"
-        │           ├── OpponentStrip ←    compete only: each racer's count, or "out"
+        │           ├── OpponentStrip ←    compete only: each racer's count, then how they came out ("4 (lost)")
         │           ├── InfoActionsRow ←   one row, every action, in the menu's order
         │           ├── the revealed words "The words were …", once Reveal is pressed
         │           ├── SetupDisclosure ←
@@ -398,9 +398,8 @@ sketch at its top.
         └── CelebrationBlockingModal ←     my win, when it happens
 ```
 
-`PlayArea`'s hooks: the two ending messages (`useGetGameEndingMessage`,
-`useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-`lib/playerEndingMessage.ts`), `useShowTeammateMoves` (a teammate's move in the
+`PlayArea`'s hooks: `useGetEndingMessage` (my ending's message, from my
+ending label: `lib/endingLabel.ts`, on every `gd` player), `useShowTeammateMoves` (a teammate's move in the
 header, and marked on their tiles), `useHistoryView` and `useActionsAndMenu`
 (the hint ladder through `lib/askForHintOrSpoiler.ts`). `BoardCol`'s:
 `useWordMove` — the word being built (`useCurrentWord`) and its trip to the
@@ -455,11 +454,10 @@ stays as the players left it, since that is the whole record of how it went.
 
 **The ending**: no modal carries the verdict ([ui.md →
 Endings](../ui.md#endings--the-moment-vs-the-record)); the pill and the
-action row's line say it, from the server's reason and my outcome — coop "Won:
-stack cleared" / "Lost: out of time"; compete "Won: cleared it first" vs a loss
-naming the winner as the message's `actor` ("● moth cleared it first"), while
-the no-winner endings ("Out of time — no winner" / "Nobody cleared it") drop
-the `Lost:` prefix. My win pops the shared `<CelebrationBlockingModal>` once,
+action row's line say it, from my ending label — coop "Won (stack cleared)" /
+"Lost (out of time)"; compete "Won", a loss to whoever cleared it first a bare
+"Lost" (the club line names them), "Lost (out of time)" when nobody did. The
+board wears the ending frame in my outcome. My win pops the shared `<CelebrationBlockingModal>` once,
 when it happens. The six words wait for Reveal — never automatic, unless I
 cleared all six myself (`impliedBy`), since Restart re-runs this very stack.
 
@@ -532,7 +530,7 @@ only pick the fixture):
 |---|---|
 | `hooks/useGame.test` | `gd` from the blob — the links become players and tiles, the counts and the team, each seat's stack, the seat rule mid-race and at its end, the memo on the blob |
 | `lib/answer.test` | every answer's outcome and words; a row read kind first |
-| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome |
+| `lib/endingLabel.test` | every ending's label and my outcome |
 | `lib/history.test` | the fold and the strictly-before boundary |
 | `lib/board.test` | covering, exposure, depth, the letter's corner |
 | `components/PlayArea.test` | the surface on the fixture: concede and Stop; the one action row; the hint; the history viewer; the menu as the icon legend; the reveal; the keys, a send in flight, an accepted and a refused word, a word a teammate's clear took a tile from; `+` and `⌥⌫`; a teammate's word on the board |

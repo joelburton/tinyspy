@@ -160,18 +160,51 @@ describe('stackdown PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
   })
 
-  it('marks a conceded opponent "out" in the strip (mid-game)', () => {
+  it('marks a conceded opponent conceded in the strip, beside their words (mid-game)', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, { ...MOTH, ...ZTest_CONCEDED }] })} />)
-    expect(screen.getByText('out')).toBeInTheDocument()
+    expect(screen.getByText('0 (conceded)')).toBeInTheDocument()
   })
 
-  it('shows the "You conceded" look after I concede', () => {
+  it('shows my concession after I concede, in the lost frame', () => {
     render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />)
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_lost"]')).not.toBeNull()
     // The one flag: conceding is spent, and stopping the game for all is open to
     // anyone in it, so Stop takes Concede's place.
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
+  })
+})
+
+describe('stackdown PlayArea — the ending', () => {
+  it('coop: the stack cleared wins, in the won frame', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+          ending: { reason: 'reached_goal', detail: 'cleared', by: 'u1' },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Won (stack cleared)').length).toBeGreaterThan(0)
+    expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
+  })
+
+  it('compete: beaten to the clear reads Lost, bare; the strip says each result', () => {
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          mode: 'compete',
+          players: [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'won', finalRanking: 1 }],
+          ending: { reason: 'reached_goal', detail: 'cleared', by: 'u2' },
+          outcome: 'won',
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Lost').length).toBeGreaterThan(0)
+    expect(screen.getByText('0 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('0 (won)')).toBeInTheDocument()
   })
 })
 

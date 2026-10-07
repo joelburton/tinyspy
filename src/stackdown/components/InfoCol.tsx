@@ -40,17 +40,13 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  /** A racer's cell in the strip: the one number a race publishes, a ✓ once
-   *  they have cleared the stack — or "out", once they have ended on their
-   *  own (in this game, only by conceding). */
-  function getFoundOrOut(player: GPlayer) {
-    if (player.ending !== null) return 'out'
-    return (
-      <>
-        {player.nFoundWords}
-        {player.solved ? ' ✓' : ''}
-      </>
-    )
+  /** A player's cell in the strip: the words they have cleared, the one
+   *  number a race publishes; once they are out of play — on their own or
+   *  with the game — how they came out after it: "6 (won)", "4 (lost)",
+   *  "2 (conceded)". */
+  function getFoundAndResult(player: GPlayer) {
+    if (player.endingLabel === null) return player.nFoundWords
+    return `${player.nFoundWords} (${player.endingLabel.word.toLowerCase()})`
   }
 
   return (
@@ -70,7 +66,7 @@ export function InfoCol({
             players={gd.players}
             myId={gd.me.id}
             metricLabel="Found"
-            metricFor={getFoundOrOut}
+            metricFor={getFoundAndResult}
           />
         )}
 

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import { makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
 
@@ -30,7 +31,9 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. Coop's one stack is the same object on every
   // player; a racer's own is theirs alone to see mid-race.
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
+    const endingLabel = makeEndingLabel(p, gameFacts)
     const board = team?.board ?? (seeRival || isMine(p.id) ? p.board : null)
     const own: GFacts = {
       nFoundWords: p.nFoundWords,
@@ -38,7 +41,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       nSpoilersUsed: p.nSpoilersUsed,
       board,
     }
-    return { ...p, ...(team ?? own), board, own }
+    return { ...p, ...(team ?? own), board, own, endingLabel }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
   const tilesById = Object.fromEntries(raw.puzzle.tiles.map((t) => [t.id, t]))

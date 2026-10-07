@@ -3,6 +3,8 @@
 import { useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import { depthMap, exposedIds, letterCorner } from '../lib/board'
 import type { GTile } from '../types'
 import { Tile } from './Tile'
@@ -78,6 +80,7 @@ export function Board({
   offTileIds,
   isInteractive,
   isViewingHistory,
+  endingOutcome,
   marks,
   onPick,
 }: {
@@ -87,6 +90,8 @@ export function Board({
   isInteractive: boolean
   // Draw the shared "viewing a past turn" frame around the whole board.
   isViewingHistory: boolean
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
   marks: BoardMarks
   onPick: (tile: GTile) => void
 }) {
@@ -111,7 +116,14 @@ export function Board({
   }
 
   return (
-    <div className={cls(shared.boardSeal, styles.canvas, isViewingHistory && history.historyFrame)}>
+    <div
+      className={cls(
+        shared.boardSeal,
+        styles.canvas,
+        isViewingHistory && history.historyFrame,
+        makeEndingFrameClasses(endingOutcome, isViewingHistory),
+      )}
+    >
       {present.map((t) => {
         const corner = letterCorner(t, present)
         return (

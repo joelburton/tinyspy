@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
@@ -179,6 +180,8 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   nSpoilersUsed
  *   board: {tiles}                           # coop's one stack on every player; null for a rival mid-race
  *   own: {nFoundWords, nHintsUsed, nSpoilersUsed, board}   # this player's own
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *
  * tile:                                      # GTile
  *   id                                       # the tile number as text
@@ -234,6 +237,9 @@ export type GGameData = Omit<GGameDataRaw, 'puzzle' | 'team' | 'turns' | 'ending
  */
 export type GPlayer = Omit<GPlayerRaw, 'board'> & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat sees: the tiles still on its stack, by tile number. */
