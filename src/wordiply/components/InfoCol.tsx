@@ -1,7 +1,6 @@
 // cs-unmet
 
 import type { EndingMessage } from '@/common/ending/endingMessage'
-import { endingOutcomeVerb } from '@/common/ending/endingOutcomeVerb'
 import {
   InfoActionsRow,
   type InfoActionsMessage,
@@ -47,13 +46,14 @@ export function InfoCol({
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
 
-  // Mid-race each player's guess count, or "out" once they have ended; once the
-  // game has ended, how it went for them and their length score.
+  // A player's cell in the strip: mid-race their guess count — the scores wait
+  // for the end — and once the game has ended, their length score; once they
+  // are out of play, how they came out after it: "5/5 (finished)",
+  // "72% (won)", "64% (2nd)".
   function getGuessesOrScore(player: GPlayer) {
-    if (!gd.ended) return player.ending
-      ? 'out'
-      : `${player.nGuessesUsed}/${player.maxGuesses}`
-    return `${endingOutcomeVerb(player)} · ${player.lengthScore}%`
+    const metric = gd.ended ? `${player.lengthScore}%` : `${player.nGuessesUsed}/${player.maxGuesses}`
+    if (player.endingLabel === null) return metric
+    return `${metric} (${player.endingLabel.word.toLowerCase()})`
   }
 
   // Once the race has ended, every rival's words are mine to see.

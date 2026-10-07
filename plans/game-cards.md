@@ -568,7 +568,7 @@ across all five.
 
 - **goal**
   - `game-goal`
-    - coop: `goal-intrinsic`: five words
+    - coop: `goal-none`
     - compete: `goal-intrinsic`: the best score
   - `goal-chosen` — none
   - `goal-progress` — the longest word so far
@@ -592,8 +592,9 @@ across all five.
 - **ending**
   - `exhaustible-resource` — every player's five guesses
   - `ends-when` — `ends-when-all-done`
+  - `no-result` — coop: five words played
   - `timeout-result`
-    - coop: `timeout-ranks-by-goal`
+    - coop: `timeout-no-winner`
     - compete: `timeout-ranks-by-progress`
 - **hints** — none
 

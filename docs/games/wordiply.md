@@ -224,7 +224,7 @@ it into `game_data`, each key in its place:
 |---|---|
 | `static_game_data` | `puzzle: {base, maxWordLen, longestWords, legalWords}`, frozen at create |
 | `game_data` | `team`, the team's facts sent once — its track, the budget and the one board of accepted words — null in compete; `events`, every submission `{id, userId, word, valid, reason, tookTurn, at}`, rejects included, in the order of play; on each player their own facts: `maxGuesses` (5), their track, and a racer's `board: {words}`, null on a coop player |
-| `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop |
+| `summary_data` | `team: {nGuessesUsed, lengthScore, nLetters}`, null in compete; `maxGuesses`; `winnerLengthScore`, compete's once the race is won, null in coop; `lengthScoreById` and `nLettersById`, each racer's scores once the game has ended, null before and in coop |
 
 **The client reads nothing from these tables.** The page is handed the blobs
 off `common.games` and re-reads them as the shell delivers each rewrite. The
@@ -266,7 +266,7 @@ validated-guess RPC.
      legality is **trusted from the FE** (`p_fe_legal`). A guess that fails a
      guard is recorded as a reject and answers `{result: 'rejected', reason}`.
   3. **Insert** the guess and check the **ending**: coop's fifth accepted word
-     ends `resource_exhausted` / `complete`, a win with the team ranked 1; a
+     ends `resource_exhausted` / `complete` with no result, nobody ranked; a
      compete fifth word ends that racer (`resource_exhausted` / `complete`), and
      the race once nobody is left racing, **ranked by the formula**, the reason
      the last racer's act. Then the page blobs, and `{result: 'accepted'}` —
@@ -335,13 +335,13 @@ validated-guess RPC.
 shared status-label vocabulary ([docs/game-summary.md](../game-summary.md)).
 Mid-game, coop shows the shared budget — `Playing · 3/5 guesses` — while compete
 shows a bare `Playing` (each racer's count is on the opponent strip; the label
-names none). Ended, coop: `Ended (out of guesses) · 78% · 22 letters` when the
-five guesses were spent — a win, but coop's words never say "Won" —
-`Ended · 78% · 22 letters` for a Stop, and the one coop loss
-`Lost (out of time) · 78% · 22 letters`. Ended, compete: `Won by alice · 78%`;
-`Lost (all conceded)` when the race emptied out; `Lost (out of time) · nobody
-scored` or `Lost (out of guesses) · nobody scored` when nobody scored; and
-`Ended · no winner` for a Stop.
+names none). Each ended line leads with my ending label. Coop: `Ended (78%) ·
+22 letters` when the five guesses were spent — no result —
+`Stopped · 78% · 22 letters` for a Stop, and the one coop loss
+`Lost (out of time) · 78% · 22 letters`. Compete: `Won · 78%` for me, `2nd
+(shorter word) · Won by alice · 78%` below; `Conceded` when the race emptied
+out; `Lost (no words found) · no winner` when nobody scored; and `Stopped` for
+a Stop.
 
 ---
 
@@ -461,8 +461,8 @@ stop *random* boards repeating.
 |---|---|---|
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each line shows its length); **scores + longest word revealed at the end** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at the end |
-| ends | after the team's 5th guess (a win) / timeout (a loss) / Stop | once every player has spent 5 or conceded / timeout / Stop |
-| verdict | "Ended: **N%**, M letters" — the five words spent is a win, drawn green, but coop's words never say "Won": the team did as well as it did. A Stop reads the same, neutral; the clock is the one loss, "Lost: out of time, **N%**". No confetti | "Won: N%", with confetti; a loser sees who won, with their identity dot — "● moth won at 78%". A racer out while the others race on sees "Out of guesses — waiting" or "Conceded — race continues" |
+| ends | after the team's 5th guess (no result) / timeout (a loss) / Stop | once every player has spent 5 or conceded / timeout / Stop |
+| verdict | "Ended (**N%**)" — the five words spent is no result, gray: any five words reach it. A Stop reads "Stopped"; the clock is the one loss, "Lost (out of time)". No confetti | "Won", with confetti; a place below first says what lost it — "2nd (shorter word)", "2nd (fewer letters)", "2nd (finished later)"; nothing scored is "Lost (no words found)". A racer out while the others race on sees "Finished (waiting on the rest)" or "Conceded (game continues)" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row
@@ -510,7 +510,7 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
         │     └── InfoCol           the readouts and the action row
         │           ├── StateLine   guesses n/5; once ended, the score bar + letters
         │           ├── TurnStatusLine ←   turn-by-turn coop only
-        │           ├── OpponentStrip ←    compete only: each racer's count, or "out"; once ended, their score
+        │           ├── OpponentStrip ←    compete only: each racer's count, then their score once ended, and how they came out ("72% (won)")
         │           ├── InfoActionsRow ←   one row, every action, in the menu's order
         │           ├── SetupDisclosure ←
         │           ├── the best word, while revealed
@@ -546,9 +546,9 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   held while its answer shows counts as one — typing, or empty) and which line
   the answer is on, and `BoardRow` draws it. `DimmedBaseWord` dims the base at
   its **first** occurrence, in the data's case; CSS draws the capitals.
-- **`PlayArea`** wires the ending messages (`useGetGameEndingMessage`,
-  `useGetPlayerEndingMessage`, from `lib/gameEndingMessage.ts` and
-  `lib/playerEndingMessage.ts`), the waiting line, the coop peer narration, the
+- **`PlayArea`** wires my ending's message (`useGetEndingMessage`, from my
+  ending label: `lib/endingLabel.ts`, on every `gd` player), the turn bell and
+  flash (`useTurnStartFlash`), the waiting line, the coop peer narration, the
   history view (`useHistoryView`) and the commands (`useActionsAndMenu`, which
   also publishes the menu and builds the printout from `gd`).
 - **`InfoCol`**: the best possible word shows only while this viewer has it
@@ -741,7 +741,7 @@ base `ar`, longest possible 7):
 |---|---|
 | `hooks/useGame.test` | `gd` from the blob — the links become players, rejects included in the log; each player's own track, the team's, the state line's pick; the scores arriving at the end; the seat rule mid-race and at its end; the memo on the blob |
 | `lib/answer.test` | every answer's words and outcome, the split of a miss by whether the base is in it, the color a logged row wears |
-| `lib/gameEndingMessage.test` · `lib/playerEndingMessage.test` | every ending's words and my outcome — coop's five words reading "Ended" in the win's color, the clock, a race won by me or by someone named, nobody scoring for each cause; a racer waiting or conceded |
+| `lib/endingLabel.test` | every ending's label and my outcome — coop's five words as no result, the clock, a race won, each place and what lost it, nobody scoring; a racer waiting or conceded |
 | `lib/history.test` | the replay: a line per accepted word up to the row, a reject showing the board without it, the author's own board in compete |
 | `lib/setup.test` · `lib/scoring.test` | the band and the starter's shape; the length-score formula |
 | `components/DimmedBaseWord.test` | the base dimmed at its **first** occurrence (`ana` in `banana`), nothing dimmed before it is typed, in the data's case |

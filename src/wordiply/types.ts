@@ -15,6 +15,7 @@
  */
 
 import type { Action } from '@/common/actions/useBindAction'
+import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { Actor } from '@/common/members/member'
@@ -150,6 +151,8 @@ export type GPlayerRaw = PlayerRaw & Omit<GFactsRaw, 'board'> & {
  *   maxGuesses                               # 5
  *   board: {words}                           # coop's one board on every player; null for a rival mid-race
  *   own: {nGuessesUsed, lengthScore, nLetters, longestWordLen, maxGuesses, board}
+ *   endingLabel: {labelType, word, long, pill, outcome, endedBy}
+ *                                            # how they came out; null while they play
  *                                            # this player's own
  *
  * event:
@@ -193,6 +196,9 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'events
  */
 export type GPlayer = PlayerRaw & FactsApart<GFacts> & {
   own: GFacts
+  // How they came out (`lib/endingLabel.ts`): of the game once it has ended,
+  // or of their own play while the others go on. Null while they still play.
+  endingLabel: EndingLabel | null
 }
 
 /** What one seat sees: the accepted words, in the order of play. */
@@ -383,4 +389,8 @@ export type GSummaryData = SummaryData & {
   team: Omit<GTrack, 'longestWordLen'> | null
   maxGuesses: number
   winnerLengthScore: number | null
+  // Each racer's length score and letters, by id, once the game has ended;
+  // null before, and in coop.
+  lengthScoreById: Record<string, number> | null
+  nLettersById: Record<string, number> | null
 }

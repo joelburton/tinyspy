@@ -26,8 +26,8 @@
 --      CAN submit the same word in compete).
 --   4. Budget: the team's 6th guess is refused (PN366).
 --   5. A conceded player cannot submit.
---   6. Coop 5th shared guess ends the game: resource_exhausted/complete, won,
---      every player ranked 1, the scores in game_data.
+--   6. Coop 5th shared guess ends the game: resource_exhausted/complete, no
+--      result, nobody ranked, the scores in game_data.
 --   7. RLS: the member gate alone — a racer reads a rival's rows mid-game
 --      (what the page shows is the hook's rule); coop everyone sees all.
 --   8. A guess into a game deleted under it is the shared race (PN485).
@@ -270,7 +270,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (6) Coop 5th shared guess ends the game (a win, with the scores)
+-- (6) Coop 5th shared guess ends the game (no result, with the scores)
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -305,8 +305,8 @@ reset role;
 select is(
   (select game_ended_reason || '/' || game_ended_reason_detail || '/' || game_ended_outcome
      from common.games where id = (select id from term_g)),
-  'resource_exhausted/complete/won',
-  'coop 5th guess: the game ends resource_exhausted/complete, won'
+  'resource_exhausted/complete/neutral',
+  'coop 5th guess: the game ends resource_exhausted/complete, no result'
 );
 
 select is(
@@ -316,10 +316,10 @@ select is(
 );
 
 select is(
-  (select array_agg(final_ranking || '/' || outcome order by user_id)
+  (select array_agg(coalesce(final_ranking::text, 'unranked') || '/' || outcome order by user_id)
      from common.game_players where game_id = (select id from term_g)),
-  array['1/won', '1/won'],
-  'coop 5th guess: every player is ranked 1 and won'
+  array['unranked/neutral', 'unranked/neutral'],
+  'coop 5th guess: nobody is ranked; every player neutral'
 );
 
 select is(

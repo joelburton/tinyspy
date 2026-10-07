@@ -30,7 +30,7 @@
 --   - The frontend holds the legal list and judges the dictionary; the server
 --     re-checks only the two free rules (longer than the base, contains it).
 --     Every submission is logged, rejects included.
---   - Coop's five words spent is a win. A compete race plays out: it ends once
+--   - Coop's five words spent ends it with no result. A compete race plays out: it ends once
 --     nobody is left racing, ranked by length score, then letter count, then
 --     the earlier last word.
 --   - What a racer may see of a rival mid-race — not their words, not their
@@ -523,6 +523,16 @@ as $$
                               from common.game_players gp
                              where gp.game_id = p_game_id and gp.final_ranking = 1
                              limit 1)
+                         end,
+    -- Each racer's scores, for what lost a place; withheld until the game
+    -- ends, as the race's scores are (`announce-when-ended`); null in coop.
+    'lengthScoreById',   case when cg.mode = 'compete' and cg.ended_at is not null then
+                           (select jsonb_object_agg(t.user_id::text, t.length_score)
+                              from wordiply._track_totals(p_game_id) t)
+                         end,
+    'nLettersById',      case when cg.mode = 'compete' and cg.ended_at is not null then
+                           (select jsonb_object_agg(t.user_id::text, t.n_letters)
+                              from wordiply._track_totals(p_game_id) t)
                          end)
     from common.games cg
    where cg.id = p_game_id;
@@ -1048,12 +1058,12 @@ begin
 
   if v_mode = 'coop' then
     if track_count + 1 >= 5 then
-      -- The team's five words spent is a win: everyone ranked 1.
+      -- The team's five words spent ends the game with no result: any five
+      -- words reach it, so playing them out is not a win. Nobody ranked.
       perform common._end_game(
         p_game_id, 'resource_exhausted', 'complete', caller_id,
-        p_is_no_result => false,
-        p_final_rankings => (select jsonb_object_agg(user_id::text, 1)
-                               from common.game_players where game_id = p_game_id)
+        p_is_no_result => true,
+        p_final_rankings => '{}'::jsonb
       );
     else
       perform common._advance_turn(p_game_id);

@@ -33,6 +33,7 @@ export function BoardCol({
   gd,
   historyView,
   localFeedbackSlot,
+  myTurnJustStarted,
 }: {
   gd: GGameData
   historyView: GHistoryView
@@ -40,6 +41,8 @@ export function BoardCol({
   // physical, is the player's next move, so it dismisses a gesture-cleared
   // message.
   localFeedbackSlot: FeedbackSlot
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
 }) {
   // ─── Which board is on screen ─────────────────────────────────
   // Live, or a past row's (PlayArea picks); everything that would write to the
@@ -73,6 +76,8 @@ export function BoardCol({
           typedWord: submission.word,
           held: submission.answerMark.held,
           flash: submission.answerMark.flash,
+          myTurnJustStarted,
+          endingOutcome: gd.me.outcome,
         }}
         historyView={historyView}
         isInteractive={isInteractive}

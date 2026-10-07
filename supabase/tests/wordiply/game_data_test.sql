@@ -139,14 +139,16 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nGuessesUsed": 0, "lengthScore": null, "nLetters": null}, "maxGuesses": 5, "winnerLengthScore": null}'::jsonb,
+    || '{"team": {"nGuessesUsed": 0, "lengthScore": null, "nLetters": null}, "maxGuesses": 5, "winnerLengthScore": null,
+         "lengthScoreById": null, "nLettersById": null}'::jsonb,
   'the fresh coop game''s summary: the common part, then a team with nothing used, the budget, no winner''s score'
 );
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "winnerLengthScore": null}'::jsonb,
-  'the fresh compete game''s summary has no team, so no progress'
+    || '{"team": null, "maxGuesses": 5, "winnerLengthScore": null,
+         "lengthScoreById": null, "nLettersById": null}'::jsonb,
+  'the fresh compete game''s summary has no team, so no progress, and no scores before the end'
 );
 
 -- ─── (2) Mid-game coop: ada lands 'bar'; bea tries a word the list lacks ───
@@ -255,8 +257,8 @@ select is(
 );
 select is(
   pg_temp.game_data(pg_temp.coop()) ->> 'outcome',
-  'won',
-  'coop ended: the five words spent is a win'
+  'neutral',
+  'coop ended: the five words spent is no result'
 );
 select is(
   pg_temp.summary_data(pg_temp.coop()) -> 'team',
@@ -284,8 +286,12 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()),
   pg_temp.common_summary(pg_temp.compete())
-    || '{"team": null, "maxGuesses": 5, "winnerLengthScore": 100}'::jsonb,
-  'compete ended: the summary names the winner''s length score'
+    || jsonb_build_object('team', null, 'maxGuesses', 5, 'winnerLengthScore', 100,
+         'lengthScoreById', (select jsonb_object_agg(t.user_id::text, t.length_score)
+                               from wordiply._track_totals(pg_temp.compete()) t),
+         'nLettersById', (select jsonb_object_agg(t.user_id::text, t.n_letters)
+                            from wordiply._track_totals(pg_temp.compete()) t)),
+  'compete ended: the summary names the winner''s length score, and each racer''s scores'
 );
 select is(
   (pg_temp.shell_data(pg_temp.coop()) ->> 'ended')::boolean,

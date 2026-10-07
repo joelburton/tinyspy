@@ -6,6 +6,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
 import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
 import { useCelebration } from '@/common/ending/useCelebration'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
@@ -16,8 +17,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
-import { useGetGameEndingMessage } from '../hooks/useGetGameEndingMessage'
-import { useGetPlayerEndingMessage } from '../hooks/useGetPlayerEndingMessage'
+import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -81,22 +81,20 @@ function PlayArea({
   // into an off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // Confetti the moment a race is MINE, as the server ranked it. A coop table's
-  // five words spent is a win too, but not one to throw confetti at: the team
-  // did as well as it did, and the score says how well.
-  const celebration = useCelebration(gd.compete && gd.me.outcome === 'won')
+  // Confetti the moment a race is MINE, as the server ranked it. Coop has no
+  // win: its five words played is no result.
+  const celebration = useCelebration(gd.me.outcome === 'won')
 
   // ─── The local slot ────────────────────────────────────
   // Messages about ME: a refused word, the standing conditions, the ending.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  // The endings' messages, for the pill and the info column: the game's once
-  // it has ended, mine while I have ended and the others race on.
-  const gameEndingMessage = useGetGameEndingMessage(gd)
-  const playerEndingMessage = useGetPlayerEndingMessage(gd)
+  // My ending's message, for the pill and the info column: the game's once it
+  // has ended, mine while I am out of play and the others play on.
+  const { endingMessage, endedBy } = useGetEndingMessage(gd)
   useShowEndingFeedback(localFeedbackSlot, {
-    gameEndingMessage,
-    playerEndingMessage,
+    gameEndingMessage: endedBy === 'game' ? endingMessage : null,
+    playerEndingMessage: endedBy === 'player' ? endingMessage : null,
   })
 
   // A teammate holds the move (turn-order coop; never in a free-for-all).
@@ -105,6 +103,9 @@ function PlayArea({
     isWaiting: gd.me.waitingForTurn,
     holder: gd.turns?.holder ?? null,
   })
+
+  // The board frame flashes and the bell rings the moment the move becomes mine.
+  const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
   // ─── Narration ─────────────────────────────────────────
   // Messages about somebody ELSE, in the header slot.
@@ -140,15 +141,13 @@ function PlayArea({
 
   // ─── Render ────────────────────────────────────────────
 
-  // The ending that applies to me: the game's once it has ended, else mine.
-  const endingMessage = gameEndingMessage ?? playerEndingMessage
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         gd={gd}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
+        myTurnJustStarted={turnFlash}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

@@ -57,9 +57,10 @@ function makeCtx(facts: ZTest_GameDataFacts = {}): PlayAreaLoaderProps {
 function coopEnded(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts {
   return {
     events,
-    players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+    // Five words played is no result: nobody ranked, everyone neutral.
+    players: [{ ...ME, outcome: 'neutral' }],
     ending: { reason: 'resource_exhausted', detail: 'complete', by: 'u1' },
-    outcome: 'won',
+    outcome: 'neutral',
   }
 }
 
@@ -67,7 +68,10 @@ function coopEnded(events: ZTest_GameDataFacts['events']): ZTest_GameDataFacts {
 function raceLost(reason: 'conceded' | 'timeout' | 'resource_exhausted'): ZTest_GameDataFacts {
   return {
     mode: 'compete',
-    players: [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'lost' }],
+    // Everyone conceding leaves every player conceded; otherwise nobody scored.
+    players: reason === 'conceded'
+      ? [{ ...ME, ...ZTest_CONCEDED }, { ...MOTH, ...ZTest_CONCEDED }]
+      : [{ ...ME, outcome: 'lost' }, { ...MOTH, outcome: 'lost' }],
     ending: { reason, detail: reason, by: null },
     outcome: 'lost',
   }
@@ -223,9 +227,11 @@ describe('wordiply PlayArea — the end-of-game reveal', () => {
     expect(screen.queryByText('HANGARS')).not.toBeInTheDocument()
   })
 
-  it('coop\'s five words spent reads Ended with the scores, in the win\'s color', () => {
+  it('coop\'s five words spent reads Ended with the length score, as no result', () => {
     render(<PlayAreaLoader {...ended()} />)
-    expect(screen.getByText('Ended: 71%, 8 letters')).toBeInTheDocument()
+    expect(screen.getByText('Ended: 71%')).toBeInTheDocument()
+    expect(screen.getByText('Ended (71%)')).toBeInTheDocument()
+    expect(document.querySelector('[class*="endingFrame_neutral"]')).not.toBeNull()
   })
 
   it('Reveal names the longest possible word, click-to-define, with no RPC', async () => {
@@ -280,28 +286,37 @@ describe('wordiply PlayArea — the end-of-game reveal', () => {
 describe('wordiply PlayArea — the race\'s verdicts', () => {
   it('all conceded says so', () => {
     render(<PlayAreaLoader {...makeCtx(raceLost('conceded'))} />)
-    expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
+    expect(screen.getAllByText('Conceded').length).toBeGreaterThan(0)
   })
 
-  it('a nobody-scored timeout blames the timer', () => {
+  it('a nobody-scored timeout says no words were found', () => {
     render(<PlayAreaLoader {...makeCtx(raceLost('timeout'))} />)
-    expect(screen.getByText('Lost: out of time, nobody scored')).toBeInTheDocument()
+    expect(screen.getByText('Lost: no words found')).toBeInTheDocument()
   })
 
-  it('every guess spent with nobody scoring blames the guesses', () => {
+  it('every guess spent with nobody scoring says no words were found', () => {
     render(<PlayAreaLoader {...makeCtx(raceLost('resource_exhausted'))} />)
-    expect(screen.getByText('Lost: out of guesses, nobody scored')).toBeInTheDocument()
+    expect(screen.getByText('Lost: no words found')).toBeInTheDocument()
   })
 
   it('a Stop stays neutral', () => {
-    render(<PlayAreaLoader {...makeCtx({ mode: 'compete', players: [ME, MOTH], ...STOPPED })} />)
+    // A Stop writes every player neutral.
+    render(<PlayAreaLoader {...makeCtx({
+      mode: 'compete',
+      players: [{ ...ME, outcome: 'neutral' }, { ...MOTH, outcome: 'neutral' }],
+      ...STOPPED,
+    })} />)
     expect(screen.getByText('Stopped — no winner')).toBeInTheDocument()
   })
 
-  it('a loss names who won, at their score', () => {
-    render(<PlayAreaLoader {...makeCtx(raceMothWon([ZTest_guess(1, 'u2', 'stars')]))} />)
-    expect(screen.getByText('moth won')).toBeInTheDocument()
-    expect(screen.getByText(/won at 71%/)).toBeInTheDocument()
+  it('a place below first says what lost it', () => {
+    render(<PlayAreaLoader {...makeCtx(raceMothWon([
+      ZTest_guess(1, 'u1', 'bar'),
+      ZTest_guess(2, 'u2', 'stars'),
+    ]))} />)
+    // moth's longest is 5 letters to my 3: a shorter word.
+    expect(screen.getByText('2nd: shorter word')).toBeInTheDocument()
+    expect(screen.getByText('2nd (shorter word)')).toBeInTheDocument()
   })
 
   // The confetti is MY win, read off my own outcome, at the moment it lands —
@@ -322,24 +337,37 @@ describe('wordiply PlayArea — the race\'s verdicts', () => {
       />,
     )
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Won: 71%')).toBeInTheDocument()
+    expect(screen.getAllByText('Won').length).toBeGreaterThan(0)
+    expect(screen.getByText('71% (won)')).toBeInTheDocument()
   })
 
-  it('a coop win throws no confetti', () => {
+  it('coop\'s five words played throw no confetti: it is no result', () => {
     const { rerender } = render(<PlayAreaLoader {...makeCtx({ events: [ZTest_guess(1, 'u1', 'stars')] })} />)
     rerender(<PlayAreaLoader {...makeCtx(coopEnded([ZTest_guess(1, 'u1', 'stars')]))} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
 
+describe('wordiply PlayArea — the turn arriving', () => {
+  it('flashes the board when the move becomes mine, and not on mount', () => {
+    const board = () => document.querySelector('[data-board]')!
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u2' })} />)
+    // An EVENT, so never on mount: opening a game on your own turn is not
+    // being handed it.
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+    rerender(<PlayAreaLoader {...makeCtx({ players: [ME, MOTH], turnHolderId: 'u1' })} />)
+    expect(board().className).toMatch(/yourTurnFlash/)
+  })
+})
+
 describe('wordiply PlayArea — a racer out while the race goes on', () => {
-  it('a conceder sees "You conceded", with Stop for all and no Concede', () => {
+  it('a conceder sees their concession, with Stop for all and no Concede', () => {
     // Conceding is closed to a player already out; stopping the game for all is
     // open to anyone in it, so the row's flag is Stop.
     render(
       <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_CONCEDED }, MOTH] })} />,
     )
-    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(screen.getByText('Conceded (game continues)')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
@@ -357,8 +385,8 @@ describe('wordiply PlayArea — a racer out while the race goes on', () => {
     render(
       <PlayAreaLoader {...makeCtx({ mode: 'compete', players: [{ ...ME, ...ZTest_SPENT }, MOTH] })} />,
     )
-    expect(screen.getByText('Out of guesses — waiting')).toBeInTheDocument()
-    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
+    expect(screen.getByText('Finished: waiting on the rest')).toBeInTheDocument()
+    expect(screen.getByText('Finished (waiting on the rest)')).toBeInTheDocument()
   })
 })
 

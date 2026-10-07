@@ -2,6 +2,8 @@
 
 import type { ComponentProps } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { EndOutcome } from '@/common/ending/gameEnding'
+import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import type { GAnswerMark, GHistoryView } from '../types'
@@ -27,6 +29,10 @@ type BoardMarks = {
   held: GAnswerMark['held']
   // The answer on whichever line its word is in, for a beat.
   flash: GAnswerMark['flash']
+  // True for a beat as the turn becomes mine (useTurnStartFlash).
+  myTurnJustStarted: boolean
+  // How I came out, for the ended board's frame; null while I still play.
+  endingOutcome: EndOutcome | null
 }
 
 /**
@@ -79,7 +85,9 @@ export function Board({
     <ol
       className={cls(shared.boardSeal,
         styles.board,
-        historyView.isViewing && history.historyFrame)}
+        historyView.isViewing && history.historyFrame,
+        marks.myTurnJustStarted && shared.yourTurnFlash,
+        makeEndingFrameClasses(marks.endingOutcome, historyView.isViewing))}
       data-board
     >
       {Array.from({ length: grid.maxGuesses }, (_, lineIdx) => {
