@@ -4,7 +4,8 @@
  * codenamesduet's setup form: what it offers, in what order, what it writes,
  * and where a message naming one of its fields lands. Every refusal
  * `create_game` can make is a fault, so none of them is a validation the form
- * has to show.
+ * has to show; the one message it does show is the manifest's own gate, no
+ * word pool ticked.
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -54,8 +55,23 @@ describe('codenamesduet setup — what it offers', () => {
       'player_user_ids',
       'turns',
       'first_clue_giver_user_id',
+      'word_pools',
       'timer',
     ])
+  })
+
+  it('offers the three word pools in pool order, the adult one saying so', () => {
+    const boxes = draw().container.querySelectorAll('input[name^="word_pools."]')
+    expect([...boxes].map((b) => b.closest('label')?.textContent)).toEqual([
+      'Codenames Duet',
+      'Codenames',
+      'Undercover (adult)',
+    ])
+  })
+
+  it('sums up the chosen pools in the section summary', () => {
+    draw({ values: { word_pools: ['duet', 'undercover'] } })
+    expect(screen.getByText('Word pool: Codenames Duet, Undercover (adult)')).toBeInTheDocument()
   })
 
   it('names the clue-giver field for the setup key it writes', () => {
@@ -108,10 +124,28 @@ describe('codenamesduet setup — writing a setting', () => {
 
     expect(set).toHaveBeenCalledWith('turns', 11)
   })
+
+  it('writes the word pools in pool order, whichever box was ticked', async () => {
+    const user = userEvent.setup()
+    const { set } = draw({ values: { word_pools: ['codenames'] } })
+
+    await user.click(screen.getByRole('checkbox', { name: 'Codenames Duet' }))
+
+    expect(set).toHaveBeenCalledWith('word_pools', ['duet', 'codenames'])
+  })
+
+  it('writes an empty list when the last pool is unticked, for the gate to refuse', async () => {
+    const user = userEvent.setup()
+    const { set } = draw()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Codenames Duet' }))
+
+    expect(set).toHaveBeenCalledWith('word_pools', [])
+  })
 })
 
 describe('codenamesduet setup — where a message lands', () => {
-  it.each(['turns', 'first_clue_giver_user_id', 'player_user_ids'])(
+  it.each(['turns', 'first_clue_giver_user_id', 'player_user_ids', 'word_pools'])(
     'puts one naming %s under that field',
     (field) => {
       draw({ errors: { [field]: 'something to say' } })

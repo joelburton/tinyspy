@@ -8,7 +8,7 @@ import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { Member } from '@/common/members/member'
 import { db } from './db'
-import { DEFAULT_CODENAMESDUET_SETUP } from './lib/setup'
+import { DEFAULT_CODENAMESDUET_SETUP, wordPoolsError } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import { TOTAL_AGENTS } from './lib/agents'
 import { makeEndingLabel } from './lib/endingLabel'
@@ -52,14 +52,16 @@ class CodenamesduetManifest extends Manifest {
     import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
   )
 
-  // Turn-count radio + first-clue-giver radio. `defaults` is a tiny literal
-  // that travels with the manifest; see src/common/setup-form/setupForm.ts for
-  // why this split.
+  // Turn-count radio, first-clue-giver radio, word-pool checkboxes. `defaults`
+  // is a tiny literal that travels with the manifest; see
+  // src/common/setup-form/setupForm.ts for why this split.
   readonly setupForm: Manifest['setupForm'] = {
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_CODENAMESDUET_SETUP,
+    // Gate Start until a word pool is ticked. create_game re-checks.
+    validate: (setup) => wordPoolsError(setup as GSetup),
   }
 
   // submit_timeout ends the game lost, reason 'timeout' (distinct from a

@@ -94,7 +94,7 @@ a space, and nothing longer than 11 letters, the same as today's longest.
      field holds a `Set`, the setup an array kept in pool order.
    - `manifest.ts`: `setupForm.validate` answers "Pick at least one word
      pool." on `word_pools` when none is ticked.
-   - `lib/setupRows.ts`: a "Word pools" row (decision 7).
+   - `lib/setupRows.ts`: a "Word pool" row (decision 7), the section's own label as "Turns" is both.
      `src/guards/setupRows.test.ts` checks every default key has a row.
    - Tests beside each: the form's checkboxes and its at-least-one gate, the
      setup row.

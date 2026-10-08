@@ -24,9 +24,12 @@
  * that needs one finds it by `name`, which is what the name is for. This list
  * answers a narrower question: which SETTINGS does this game put in front of
  * you.
+ *
+ * Only the OUTERMOST boxes count, for the same reason: `<CheckboxListField>`
+ * draws each option as a `<CheckboxField>`, itself a field box, inside its own.
  */
 export function fieldNames(container: HTMLElement): string[] {
-  const seen = Array.from(container.querySelectorAll('[data-field]')).map(
+  const seen = Array.from(container.querySelectorAll('[data-field]:not([data-field] [data-field])')).map(
     (el) => el.getAttribute('data-field')!,
   )
   return [...new Set(seen)]

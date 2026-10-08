@@ -340,11 +340,18 @@ export type GSetupValues = {
   // Distinct from the rulebook's `turns` above — that's the in-game turn
   // budget; this is the countdown players can choose to layer on top.
   timer: TimerMode
+  // The word pools the board's 25 words come from, one or more, in pool order
+  // (`WORD_POOLS` in lib/setup.ts). `create_game` deals them in equal shares.
+  word_pools: GWordPool[]
   // WHO IS PLAYING — a field like any other, and the only one that is not
   // part of the setup blob: `create_game` takes it as its own argument and
   // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
+
+/** A word pool, by the name setup stores it under. `create_game` maps it to
+ *  `word_pool.pool`'s number. */
+export type GWordPool = 'duet' | 'codenames' | 'undercover'
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what

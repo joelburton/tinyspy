@@ -99,6 +99,12 @@ describe('codenamesduet makeGameData — the links become players and tiles', ()
     expect(gd.setupRows.find((r) => r.key === 'first_clue_giver_user_id')!.value).toBe('me')
   })
 
+  it('lists the chosen word pools by label, comma-separated in pool order', () => {
+    const raw = ZTest_makeGameDataRaw()
+    const gd = makeGameData({ ...raw, setup: { ...raw.setup, word_pools: ['undercover', 'duet'] } }, 'u1')
+    expect(gd.setupRows.find((r) => r.key === 'word_pools')!.value).toBe('Codenames Duet, Undercover (adult)')
+  })
+
   it('every player carries the team\'s agents and turns, and their own is the team\'s', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(PLAYED), 'u1')
     for (const facts of [gd.me, gd.partner, gd.me.own]) {

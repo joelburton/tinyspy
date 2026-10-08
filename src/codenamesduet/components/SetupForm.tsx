@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { CheckboxListField } from '@/common/fields/CheckboxListField'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { TURN_OPTIONS } from '../lib/setup'
+import { listWordPoolLabels, TURN_OPTIONS, WORD_POOLS } from '../lib/setup'
 import type { GSetupValues } from '../types'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 
@@ -18,6 +19,8 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
  *   - **First clue** — which of the chosen players gives it. `create_game`
  *     seats the chosen player as A, since A always opens the game, and the
  *     other as B.
+ *   - **Word pool** — which lists the 25 words come from, at least one;
+ *     `create_game` deals them in equal shares.
  *
  * and the timer. The manifest's defaults can't carry a member id (they are
  * evaluated before any club is known), so the first chosen player is seeded
@@ -82,6 +85,20 @@ export function SetupForm({
           options={players.map((p) => ({ value: p.id, label: p.username }))}
           value={s.first_clue_giver_user_id}
           onChange={(id) => set('first_clue_giver_user_id', id)}
+        />
+      </SetupSection>
+
+      <SetupSection label={`Word pool: ${listWordPoolLabels(s.word_pools) || 'none'}`}>
+        <CheckboxListField
+          help="Each board deals the same number of words from every list you tick."
+          name="word_pools"
+          error={errors.word_pools}
+          options={WORD_POOLS.map((p) => ({ value: p.name, label: p.label }))}
+          value={new Set(s.word_pools)}
+          // Kept in pool order, whichever box was ticked last.
+          onChange={(ticked) =>
+            set('word_pools', WORD_POOLS.filter((p) => ticked.has(p.name)).map((p) => p.name))
+          }
         />
       </SetupSection>
 
