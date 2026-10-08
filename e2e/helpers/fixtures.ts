@@ -873,7 +873,7 @@ export async function createWordleoneGame(
     .schema('wordleone')
     .rpc('create_game', {
       p_club_handle: club.handle,
-      p_setup: { legal_band: 2, difficulty: 'medium', timer: { kind: 'none' } },
+      p_setup: { answer_band: 0, difficulty: 'medium', timer: { kind: 'none' } },
       p_player_user_ids: playerUserIds,
       p_mode: mode,
       p_board: WORDLEONE_PUZZLE,

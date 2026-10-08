@@ -22,9 +22,10 @@
 -- What is particular to wordleone (plans/wordleone.md has the design):
 --   - The puzzle is a starter word and its colors against the hidden answer,
 --     and the answer is the only word at or below the legal band that makes
---     those colors. The starter is public from the first paint, in
---     `static_game_data`; the answer is hidden by a column grant, and
---     `game_data` carries it only once the game has ended.
+--     those colors. The legal band is not chosen: it is two above the setup's
+--     answer band (`_legal_band_for`). The starter is public from the first
+--     paint, in `static_game_data`; the answer is hidden by a column grant,
+--     and `game_data` carries it only once the game has ended.
 --   - Guesses are unlimited. A legal wrong word is a MISS: counted, logged
 --     with no colors, and nothing more. A guess that isn't a legal word, or
 --     repeats one, costs nothing: an `ok` that names the refusal, no row.
@@ -148,7 +149,7 @@ revoke execute on function wordleone._sync_title(uuid) from public;
 --
 --   summary_data, wordleone's part:
 --     team: {nMisses}                      null in compete
---     legalBand
+--     answerBand                           the setup's: 0 the NYT list, 1–6 a band
 --     difficulty                           the tier the puzzle was built to
 --     nWinnerMisses                        compete's, once the race is won; null in coop
 --     nMissesById                          each racer's misses; null in coop
@@ -362,7 +363,7 @@ set search_path = wordleone, common, public, extensions
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
     'team',          wordleone._make_json_team_counts(p_game_id),
-    'legalBand',     wg.legal_band,
+    'answerBand',    (cg.setup->>'answer_band')::int,
     'difficulty',    wg.difficulty,
     'nWinnerMisses', case when cg.mode = 'compete' then
                        (select wp.n_misses
@@ -484,12 +485,30 @@ revoke execute on function wordleone._rebuild_data_cols_for_all() from public;
 -- generator's alone, so refining it never touches this file.
 --
 -- Setup shape (server validates):
---   { "legal_band": 1..6 (the guess gate, and the pool the answer is unique in),
+--   { "answer_band": 0..6 (where the answer came from: 0 the NYT answer
+--       list, 1..6 any clean word at or below the band; the guess gate and
+--       the pool the answer is unique in are two bands above it,
+--       `_legal_band_for`, stored as the game's legal_band),
 --     "difficulty": 'easy' | 'medium' | 'hard' | 'any' (the tier asked for),
 --     "timer": (none | countup | countdown{seconds}),
 --     "coop_style": 'free-for-all' | 'turns' (coop only),
 --     "first_turn_user_id": a player (with 'turns'; stripped from the
 --       club's saved default) }
+
+-- The legal band — the words a guess must be in, and the pool the answer is
+-- unique in — is two bands above the answer band, capped at 6, with the NYT
+-- list (answer band 0) counting as band 2, every word of it being at band 2
+-- or easier (Joel, 2026-10-07). The generator's `poolBandFor` (gen.ts) is the
+-- same rule; the edge function builds at it and create_game re-checks at it.
+create or replace function wordleone._legal_band_for(p_answer_band int)
+returns int
+language sql
+immutable
+as $$
+  select least(6, (case when p_answer_band = 0 then 2 else p_answer_band end) + 2);
+$$;
+revoke execute on function wordleone._legal_band_for(int) from public;
+
 create or replace function wordleone.create_game(
   p_club_handle     text,
   p_setup           jsonb,
@@ -505,6 +524,7 @@ as $$
 declare
   new_id       uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  s_answer_band int;
   s_legal_band int;
   s_difficulty text;
   b_starter    text;
@@ -530,12 +550,13 @@ begin
 
   -- ─── Validate the setup ──────────────────────────────────
   -- No defaults: the setup form always sends both.
-  s_legal_band := (p_setup->>'legal_band')::int;
-  if s_legal_band is null or s_legal_band < 1 or s_legal_band > 6 then
-    raise exception 'BUG: legal band of %', s_legal_band
+  s_answer_band := (p_setup->>'answer_band')::int;
+  if s_answer_band is null or s_answer_band < 0 or s_answer_band > 6 then
+    raise exception 'BUG: answer band of %', s_answer_band
       using errcode = 'PN519', hint = 'fault', column = '_',
-      detail = 'setup.legal_band must be 1..6';
+      detail = 'setup.answer_band must be 0..6';
   end if;
+  s_legal_band := wordleone._legal_band_for(s_answer_band);
   s_difficulty := p_setup->>'difficulty';
   if s_difficulty is null or s_difficulty not in ('easy', 'medium', 'hard', 'any') then
     raise exception 'BUG: difficulty of %', s_difficulty

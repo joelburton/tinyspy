@@ -50,7 +50,7 @@ const base = {
   myId: 'u1',
   target: 'verse',
   answerShown: false,
-  setupRows: [{ key: 'legal_band', label: 'Dictionary', value: '2 (Common)' }],
+  setupRows: [{ key: 'answer_band', label: 'Answer', value: 'NYT Wordle list' }],
 }
 
 describe('buildPrintModel — the target is a secret', () => {

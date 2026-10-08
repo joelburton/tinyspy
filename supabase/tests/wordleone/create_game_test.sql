@@ -13,7 +13,7 @@ set search_path = wordleone, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(21);
+select plan(25);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -35,8 +35,8 @@ select pg_temp.envelope_is(
 select is(
   (select array[starter::text, starter_colors::text, target::text, legal_band::text, difficulty]
      from wordleone.games where game_id = (select id from g)),
-  array['sieve', 'yxyyg', 'verse', '2', 'medium'],
-  'the puzzle and the setup are stored on the games row');
+  array['sieve', 'yxyyg', 'verse', '4', 'medium'],
+  'the puzzle and the setup are stored on the games row, the legal band derived: the NYT list (0) counts as 2, plus two');
 select is(
   (select count(*) from wordleone.players
     where game_id = (select id from g) and n_misses = 0),
@@ -65,13 +65,39 @@ select pg_temp.envelope_is(
     (select handle from club), pg_temp.wordleone_setup(7),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.wordleone_puzzle()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN519"}'::jsonb,
-  'legal_band above 6 is a fault');
+  'answer_band above 6 is a fault');
 select pg_temp.envelope_is(
   wordleone.create_game(
-    (select handle from club), pg_temp.wordleone_setup() - 'legal_band',
+    (select handle from club), pg_temp.wordleone_setup(-1),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.wordleone_puzzle()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN519"}'::jsonb,
-  'a missing legal_band is the same fault: there is no default');
+  'answer_band below 0 is a fault');
+select pg_temp.envelope_is(
+  wordleone.create_game(
+    (select handle from club), pg_temp.wordleone_setup() - 'answer_band',
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.wordleone_puzzle()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN519"}'::jsonb,
+  'a missing answer_band is the same fault: there is no default');
+-- The legal band follows the answer band: two above, capped at 6. The helper
+-- is create_game's own (no grant), so it is read as the owner.
+reset role;
+select is(
+  (select array_agg(wordleone._legal_band_for(b) order by b) from generate_series(0, 6) b),
+  array[4, 3, 4, 5, 6, 6, 6],
+  '_legal_band_for: 0 → 4, 1 → 3, 2 → 4, 3 → 5, then 6');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table band3 on commit drop as
+select wordleone.create_game(
+  (select handle from club), pg_temp.wordleone_setup(3),
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop', pg_temp.wordleone_puzzle()) as env;
+select pg_temp.envelope_is(
+  (select env from band3),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'a band-3 answer creates');
+select is(
+  (select legal_band from wordleone.games
+    where game_id = (select (env->'data'->>'id')::uuid from band3)),
+  5, 'a band-3 answer stores legal band 5');
 select pg_temp.envelope_is(
   wordleone.create_game(
     (select handle from club), pg_temp.wordleone_setup() || '{"difficulty": "brutal"}',
@@ -133,18 +159,19 @@ select pg_temp.envelope_is(
     '{"starter": "sieve", "colors": "yxyyx", "answer": "verse"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN523"}'::jsonb,
   'colors that are not the starter scored against the answer are a fault');
--- MOXIE is band 3, so against a band-2 game it is no legal guess; the colors
--- are its own, so the colors check passes and this one is reached.
+-- STERE is band 5, so against the default game (legal band 4) it is no legal
+-- guess; the colors are its own, so the colors check passes and this one is
+-- reached.
 reset role;
-create temp table moxie on commit drop as
-select common._wordle_colors('sieve', 'moxie') as colors;
-grant select on moxie to authenticated;
+create temp table stere on commit drop as
+select common._wordle_colors('sieve', 'stere') as colors;
+grant select on stere to authenticated;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordleone.create_game(
-    (select handle from club), pg_temp.wordleone_setup(2),
+    (select handle from club), pg_temp.wordleone_setup(),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
-    jsonb_build_object('starter', 'sieve', 'colors', (select colors from moxie), 'answer', 'moxie')),
+    jsonb_build_object('starter', 'sieve', 'colors', (select colors from stere), 'answer', 'stere')),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN524"}'::jsonb,
   'an answer above the legal band is a fault');
 -- CRANE against VERSE: many words make those colors.

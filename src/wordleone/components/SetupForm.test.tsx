@@ -52,7 +52,7 @@ describe('wordleone setup — what it offers', () => {
     expect(fieldNames(draw().container)).toEqual([
       'player_user_ids',
       'coop_style',
-      'legal_band',
+      'answer_band',
       'difficulty',
       'timer',
     ])
@@ -68,10 +68,16 @@ describe('wordleone setup — what it offers', () => {
     expect(fieldNames(draw({ mode: 'compete' }).container)).not.toContain('coop_style')
   })
 
-  it('offers every band, 1 to 6', () => {
+  it('offers the Wordle list and every band, 0 to 6', () => {
     draw()
-    const band = document.querySelector('[name="legal_band"]')!
-    expect([...band.querySelectorAll('option')].map((o) => o.value)).toEqual(['1', '2', '3', '4', '5', '6'])
+    const band = document.querySelector('[name="answer_band"]')!
+    expect([...band.querySelectorAll('option')].map((o) => o.value)).toEqual(['0', '1', '2', '3', '4', '5', '6'])
+  })
+
+  it('names the difficulties by tier alone', () => {
+    draw()
+    const difficulty = document.querySelector('[name="difficulty"]')!
+    expect([...difficulty.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['Easy', 'Medium', 'Hard', 'Any'])
   })
 })
 
@@ -89,9 +95,9 @@ describe('wordleone setup — writing a setting', () => {
     const user = userEvent.setup()
     const { set } = draw()
 
-    await user.selectOptions(document.querySelector('[name="legal_band"]')!, '4')
+    await user.selectOptions(document.querySelector('[name="answer_band"]')!, '4')
 
-    expect(set).toHaveBeenCalledWith('legal_band', 4)
+    expect(set).toHaveBeenCalledWith('answer_band', 4)
   })
 })
 

@@ -65,7 +65,7 @@ describe('wordleone makeGameData — the links become players', () => {
   it('builds the setup rows once, for the info column and the printout', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ players: TWO }), 'u1')
     const keys = gd.setupRows.map((r) => r.key)
-    expect(keys.slice(keys.indexOf('legal_band'))).toEqual(['legal_band', 'difficulty', 'timer'])
+    expect(keys.slice(keys.indexOf('answer_band'))).toEqual(['answer_band', 'difficulty', 'timer'])
   })
 
   it('carries the puzzle, the counts, the tie-break and the rest through from the blob', () => {

@@ -2,18 +2,19 @@
 
 /**
  * Pure Wordle in 1 puzzle generation: a starter word, its colors against a
- * hidden answer, and the answer, chosen so that the answer is the only word at
- * or below the game's band that makes those colors against the starter. No IO
- * and nothing Deno's or Node's, so the edge function (`index.ts`) and the
+ * hidden answer, and the answer, chosen so that the answer is the only word in
+ * the game's pool that makes those colors against the starter. No IO and
+ * nothing Deno's or Node's, so the edge function (`index.ts`) and the
  * printable sheet (`supabase/scripts/wordleone/sheet.ts`) run the same code.
  *
  * The caller hands in every five-letter word with the columns the filters read
- * (`WordRow`) and a random source; `buildPuzzle` picks an answer and searches
- * starters until one isolates it under the filters, or answers null when no
- * answer it tried has a puzzle in the tier.
+ * (`WordRow`) and a random source; `buildPuzzle` picks an answer from the
+ * answer band and searches starters until one isolates it under the filters,
+ * or answers null when no answer it tried has a puzzle in the tier.
  *
- * The filters are the plan's reading of the NYT's published rounds, not a
- * calibration; the sheet is how they get tried.
+ * The shapes are the NYT's published rounds less the anagrams, read by Joel
+ * (src/wordleone/doc.md → The NYT's rounds); the sheet and the ratings survey
+ * are how they get tried.
  */
 
 /** One five-letter row of `common.words`, the columns the filters read. */
@@ -21,7 +22,7 @@ export interface WordRow {
   word: string
   /** `band`, the 1–6 recognizability band. */
   band: number
-  /** `wordle`: on the NYT answer list, which is where every answer comes from. */
+  /** `wordle`: on the NYT answer list, which is where a band-0 answer comes from. */
   isAnswerList: boolean
   /** The must-reach filter: `slur = 0 and crude = 0 and american and not slang`. */
   isClean: boolean
@@ -29,7 +30,7 @@ export interface WordRow {
   root: string | null
 }
 
-/** The shape of the colors, by how many greens anchor the answer. */
+/** The tier a puzzle's colors fall in: the shape of its greens, yellows and grays. */
 export type Tier = 'easy' | 'medium' | 'hard'
 export type TierChoice = Tier | 'any'
 
@@ -47,11 +48,17 @@ export interface Puzzle {
   loadBearing: number
 }
 
-/** Greens per tier: anchor on three, place around one or two, or place every letter. */
-export const TIER_GREENS: Record<Tier, readonly number[]> = { easy: [3], medium: [1, 2], hard: [0] }
-
-/** Four greens is fill-in-the-blank; the NYT never publishes one. */
-export const MAX_GREENS = 3
+/**
+ * The shapes a tier allows, as greens · yellows · grays (`shapeOf`). These are
+ * the NYT's shapes less two kinds (Joel, 2026-10-07): every tile colored is an
+ * anagram, not a deduction, and four greens is fill-in-the-blank. 0g4y1x is
+ * near an anagram and stays for now, until players say.
+ */
+export const TIER_SHAPES: Record<Tier, readonly string[]> = {
+  easy: ['3g0y2x', '3g1y1x'],
+  medium: ['2g2y1x', '1g2y2x', '2g1y2x', '1g3y1x', '2g0y3x'],
+  hard: ['0g3y2x', '0g4y1x'],
+}
 
 /** The NYT's ceiling over its 35 published rounds. */
 export const MAX_POSITIVE_SPACE = 4
@@ -59,10 +66,35 @@ export const MAX_POSITIVE_SPACE = 4
 /** A starter is an everyday word; the NYT's two off-list starters were band 2. */
 export const STARTER_MAX_BAND = 2
 
-/** The tier a green count falls in; null for a count no tier takes. */
-export function tierOf(greens: number): Tier | null {
+/** Answer band 0 is not a band: it is the NYT answer list, every word of which is at band 2 or easier. */
+export const ANSWER_LIST_BAND = 0
+
+/** How far above the answer band the pool and the guess gate reach. */
+const POOL_BANDS_ABOVE = 2
+const MAX_BAND = 6
+
+/**
+ * The pool the answer is unique in, which is also the band a guess must be
+ * in: two bands above the answer band, capped at 6, with the NYT list counting
+ * as band 2 (Joel, 2026-10-07). A smaller pool keeps puzzles open; two above
+ * keeps "not a word" rare for a word the player knows.
+ * `wordleone._legal_band_for` is the same rule in SQL.
+ */
+export function poolBandFor(answerBand: number): number {
+  const top = answerBand === ANSWER_LIST_BAND ? STARTER_MAX_BAND : answerBand
+  return Math.min(MAX_BAND, top + POOL_BANDS_ABOVE)
+}
+
+/** Colors as a tier reads them: `0g3y2x`. */
+export function shapeOf(colors: string): string {
+  return `${countOf(colors, 'g')}g${countOf(colors, 'y')}y${countOf(colors, 'x')}x`
+}
+
+/** The tier whose shapes include these colors; null for a shape no tier takes. */
+export function tierOf(colors: string): Tier | null {
+  const shape = shapeOf(colors)
   for (const tier of ['easy', 'medium', 'hard'] as const) {
-    if (TIER_GREENS[tier].includes(greens)) return tier
+    if (TIER_SHAPES[tier].includes(shape)) return tier
   }
   return null
 }
@@ -102,19 +134,83 @@ function countOf(colors: string, code: string): number {
   return n
 }
 
-/** How many of `words` agree with `colors` at `positions` when scored against `starter`. */
-function countConsistent(starter: string, colors: string, words: readonly string[], positions: readonly number[]): number {
-  let n = 0
-  for (const w of words) {
-    const c = colorsOf(starter, w)
-    let agrees = true
-    for (const i of positions) {
-      if (c[i] !== colors[i]) {
-        agrees = false
-        break
-      }
+const CODE_A = 97
+const CODE_G = 103
+const CODE_X = 120
+const CODE_Y = 121
+
+/** The letters in `word`, one bit each: `a` is bit 0. */
+function maskOf(word: string): number {
+  let mask = 0
+  for (let i = 0; i < 5; i++) mask |= 1 << (word.charCodeAt(i) - CODE_A)
+  return mask
+}
+
+/** A word with its letter mask, which rules most words out of a colors match before any scoring. */
+interface Entry {
+  word: string
+  mask: number
+}
+
+/** The five positions, as a bitmask of which tiles a match compares. */
+const ALL_TILES = 0b11111
+
+// Scratch for `scoresAs`: a count per letter, reused so a scan over the pool allocates nothing.
+const unclaimed = new Int8Array(26)
+
+/**
+ * Whether `word` scores `colors` against `starter` at every tile in `checked`
+ * — `colorsOf`'s rule, leaving at the first tile that differs and building no
+ * strings. An unchecked tile still claims its letter, as it does in `colorsOf`.
+ */
+function scoresAs(starter: string, word: string, colors: string, checked: number): boolean {
+  unclaimed.fill(0)
+  for (let i = 0; i < 5; i++) {
+    const w = word.charCodeAt(i)
+    const isChecked = (checked >> i) & 1
+    if (starter.charCodeAt(i) === w) {
+      if (isChecked && colors.charCodeAt(i) !== CODE_G) return false
+    } else {
+      if (isChecked && colors.charCodeAt(i) === CODE_G) return false
+      unclaimed[w - CODE_A]++
     }
-    if (agrees) n++
+  }
+  for (let i = 0; i < 5; i++) {
+    const s = starter.charCodeAt(i)
+    if (s === word.charCodeAt(i)) continue
+    const isChecked = (checked >> i) & 1
+    const left = unclaimed[s - CODE_A]
+    if (left > 0) {
+      unclaimed[s - CODE_A] = left - 1
+      if (isChecked && colors.charCodeAt(i) !== CODE_Y) return false
+    } else if (isChecked && colors.charCodeAt(i) !== CODE_X) return false
+  }
+  return true
+}
+
+/**
+ * How many of `entries` score `colors` against `starter` at the tiles in
+ * `checked`, stopping at `limit`. A letter colored at a checked tile must be
+ * in the word, and a letter gray at every one of its tiles, all checked, must
+ * not be; the masks settle both before `scoresAs` runs.
+ */
+function countConsistent(starter: string, colors: string, entries: readonly Entry[], checked: number, limit = Infinity): number {
+  let required = 0
+  let mayBePresent = 0
+  let inStarter = 0
+  for (let i = 0; i < 5; i++) {
+    const bit = 1 << (starter.charCodeAt(i) - CODE_A)
+    const isChecked = (checked >> i) & 1
+    const isColored = colors.charCodeAt(i) !== CODE_X
+    inStarter |= bit
+    if (isChecked && isColored) required |= bit
+    if (!isChecked || isColored) mayBePresent |= bit
+  }
+  const absent = inStarter & ~mayBePresent
+  let n = 0
+  for (const e of entries) {
+    if ((e.mask & required) !== required || (e.mask & absent) !== 0) continue
+    if (scoresAs(starter, e.word, colors, checked) && ++n >= limit) break
   }
   return n
 }
@@ -130,72 +226,77 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
 }
 
 export interface BuildOptions {
-  /** The legal band: the pool the answer is unique in, and the words a player may guess. */
-  band: number
+  /** The answer band: 0 the NYT answer list, 1–6 any clean non-plural word at or below. The pool follows it (`poolBandFor`). */
+  answerBand: number
   tier: TierChoice
   /** `Math.random`, or a seeded source for a reproducible puzzle. */
   random: () => number
   /** How many answers to try before giving up (each is a full pass over the starters). */
   maxAnswers?: number
   /**
-   * The sheet's sampling rule: the answer sits AT the band, not at or below it,
-   * and is any clean non-plural word rather than one on the NYT answer list,
-   * which has no word above band 2. A card marked band 6 then shows what a
-   * band-6 answer feels like. Off by default: the game draws from the list.
+   * The sheet's sampling rule: the answer sits AT the band, not at or below
+   * it, so a card marked band 6 shows what a band-6 answer feels like. Off by
+   * default: the game draws at or below.
    */
   answerAtBand?: boolean
 }
 
+/** Answers are tried until one has a puzzle; at a few milliseconds a try, a hundred refuses about one request in a million. */
+const DEFAULT_MAX_ANSWERS = 100
+
 /**
- * Build one puzzle. The answer is a random clean word on the NYT answer list
- * at or below the band (or, under `answerAtBand`, any clean non-plural word at
- * exactly the band); the starter is any clean non-plural word at band ≤ 2
- * that scores against the answer with the tier's green count, isolates it
- * among every word at or below the band, and leaves at most four answer-list
- * words consistent with its greens and yellows alone.
+ * Build one puzzle. The answer is a random word of the answer band — a clean
+ * word on the NYT answer list at band 0, any clean non-plural word at or
+ * below the band otherwise (or, under `answerAtBand`, at exactly it); the
+ * starter is any clean non-plural word at band ≤ 2 that scores against the
+ * answer in one of the tier's shapes, isolates it among every word in the
+ * pool, and leaves at most four answer-list words consistent with its greens
+ * and yellows alone.
  */
 export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzzle | null {
-  const { band, tier, random } = opts
-  const pool = words.filter((r) => r.band <= band).map((r) => r.word)
-  const answerList = words.filter((r) => r.isAnswerList && r.isClean).map((r) => r.word)
-  const answers = opts.answerAtBand
-    ? words.filter((r) => r.isClean && !isPlural(r) && r.band === band).map((r) => r.word)
-    : words.filter((r) => r.isAnswerList && r.isClean && r.band <= band).map((r) => r.word)
+  const { answerBand, tier, random } = opts
+  const entryOf = (r: WordRow): Entry => ({ word: r.word, mask: maskOf(r.word) })
+  const pool = words.filter((r) => r.band <= poolBandFor(answerBand)).map(entryOf)
+  const answerList = words.filter((r) => r.isAnswerList && r.isClean).map(entryOf)
+  const answers = answerBand === ANSWER_LIST_BAND
+    ? answerList.map((e) => e.word)
+    : words
+      .filter((r) => r.isClean && !isPlural(r) && (opts.answerAtBand ? r.band === answerBand : r.band <= answerBand))
+      .map((r) => r.word)
   const starters = words.filter((r) => r.isClean && r.band <= STARTER_MAX_BAND && !isPlural(r)).map((r) => r.word)
   if (answers.length === 0 || starters.length === 0) return null
 
-  const ALL = [0, 1, 2, 3, 4]
-  for (const answer of shuffled(answers, random).slice(0, opts.maxAnswers ?? 25)) {
+  const shapes = new Set(tier === 'any' ? Object.values(TIER_SHAPES).flat() : TIER_SHAPES[tier])
+  for (const answer of shuffled(answers, random).slice(0, opts.maxAnswers ?? DEFAULT_MAX_ANSWERS)) {
     // Positive space always counts the answer itself, so an off-list answer's number compares with a listed one's.
-    const positiveList = answerList.includes(answer) ? answerList : [...answerList, answer]
+    const positiveList = answerList.some((e) => e.word === answer) ? answerList : [...answerList, { word: answer, mask: maskOf(answer) }]
     for (const starter of shuffled(starters, random)) {
       if (starter === answer) continue
       const colors = colorsOf(starter, answer)
-      const greens = countOf(colors, 'g')
-      if (greens > MAX_GREENS) continue
-      const puzzleTier = tierOf(greens)
-      if (puzzleTier === null || (tier !== 'any' && puzzleTier !== tier)) continue
+      if (!shapes.has(shapeOf(colors))) continue
 
-      // Unique in the pool: no other legal word makes these colors.
-      let isUnique = true
-      for (const w of pool) {
-        if (w !== answer && colorsOf(starter, w) === colors) {
-          isUnique = false
-          break
-        }
-      }
-      if (!isUnique) continue
+      // Unique in the pool: the answer is the only legal word making these colors.
+      if (countConsistent(starter, colors, pool, ALL_TILES, 2) > 1) continue
 
-      const colored = ALL.filter((i) => colors[i] !== 'x')
-      const positiveSpace = colored.length === 0 ? positiveList.length : countConsistent(starter, colors, positiveList, colored)
+      let coloredTiles = 0
+      for (let i = 0; i < 5; i++) if (colors[i] !== 'x') coloredTiles |= 1 << i
+      const positiveSpace = countConsistent(starter, colors, positiveList, coloredTiles)
       if (positiveSpace > MAX_POSITIVE_SPACE) continue
 
       let loadBearing = 0
-      for (const hidden of ALL) {
-        const without = ALL.filter((i) => i !== hidden)
-        if (countConsistent(starter, colors, pool, without) > 1) loadBearing++
+      for (let hidden = 0; hidden < 5; hidden++) {
+        if (countConsistent(starter, colors, pool, ALL_TILES & ~(1 << hidden), 2) > 1) loadBearing++
       }
-      return { starter, colors, answer, tier: puzzleTier, greens, yellows: countOf(colors, 'y'), positiveSpace, loadBearing }
+      return {
+        starter,
+        colors,
+        answer,
+        tier: tierOf(colors)!,
+        greens: countOf(colors, 'g'),
+        yellows: countOf(colors, 'y'),
+        positiveSpace,
+        loadBearing,
+      }
     }
   }
   return null

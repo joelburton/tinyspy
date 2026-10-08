@@ -118,6 +118,29 @@ Added 2026-10-07:
     green, without the flip — that is for a word guessed. The keyboard keeps
     only what was earned.
 
+Added 2026-10-07, evening, after Joel played band 6 on prod and saw only
+everyday answers. These reverse 1 and 6 and close open question 2; the
+evidence is [doc.md → What the word list
+allows](../src/wordleone/doc.md#what-the-word-list-allows):
+
+18. **The answer band is the knob, in wordle's meaning**: 0 is the NYT answer
+    list, 1–6 any clean non-plural word at or below the band. The NYT list has
+    no word above band 2, so the legal band never made an answer obscure, and
+    a player with the vocabulary may want one.
+19. **The pool and the guess gate are the answer band plus two**, capped at
+    6, band 0 counting as 2 — fixed, not a second knob. A smaller pool keeps
+    puzzles open (two colored tiles rarely pin a word among thousands), and
+    plus two keeps "not a word" rare for a word the player knows; that
+    rejection costs nothing here anyway.
+20. **A tier is a set of color shapes**, greens · yellows · grays, not a green
+    count: easy 3g0y2x · 3g1y1x; medium 2g2y1x · 1g2y2x · 2g1y2x · 1g3y1x ·
+    2g0y3x; hard 0g3y2x · 0g4y1x; any is their union. These are the NYT's
+    shapes less the anagrams (all yellow, or greens and the rest yellow —
+    nothing to rule out) and four greens. 0g4y1x is near an anagram and
+    stays for now, loose on purpose, until players say.
+21. **Live generation, a hundred answers tried.** The search is milliseconds
+    per answer; pregeneration would serve only curation by hand.
+
 ## The puzzle — what the evidence says
 
 The downloaded design note (`wordle-in-1-generator.md`) gives the method —
@@ -214,7 +237,9 @@ Hard filters, applied by the generator:
    band ≤ 2, and not the answer;
 3. not all green, and **not four greens** (the NYT never does; it is
    fill-in-the-blank);
-4. positive space over the NYT list ≤ 4 (the NYT's ceiling).
+4. **at least one gray** (Joel, 2026-10-07): every tile colored is an anagram,
+   not a deduction, though the NYT publishes those;
+5. positive space over the NYT list ≤ 4 (the NYT's ceiling).
 
 Difficulty, by what the player has to do — anchor on greens, then place
 yellows:
@@ -336,13 +361,13 @@ is the one step that touches blessed files, and it is last.
 
 | control | values | note |
 |---|---|---|
-| legal band | 1–6 | the pool and the guess gate in one |
-| difficulty | easy · medium · hard · any | the green-count tiers above |
+| answer band | 0–6 | 0 the NYT answer list, N any clean non-plural word at or below; the pool and the guess gate are this plus two, capped at 6 (decisions 18–19) |
+| difficulty | easy · medium · hard · any | the shape tiers (decision 20) |
 | timer | wordle's | |
 | coop style | free-for-all · turns | coop only |
 
-The summary line shows the band in the `dict "…"` slot every band-sensitive
-game uses, and the difficulty beside it.
+The summary line shows the answer band in the `dict "…"` slot every
+band-sensitive game uses, and the difficulty beside it.
 
 ## Open questions
 
@@ -350,10 +375,8 @@ game uses, and the difficulty beside it.
    reads "Not it", a teammate's "guessed CRANE — not it"; the rejects keep
    wordle's words.
 2. **Does the answer source become a knob**, as wordle's `answer_band` is?
-   The plan fixes answers to the clean NYT list, since that is what every
-   NYT round draws from and it keeps the generator's "positive space" measured
-   over one list. A band-wide answer pool is a one-line change in the
-   generator if wanted.
+   Settled (Joel, 2026-10-07): yes, and it is the only band knob — decisions
+   18 and 19.
 3. **Learning from play.** The tiers are read off 35 NYT rounds, and the
    sheet below is the first check by hand. Once games are played, the cheap
    instrument is `summary_data`'s `difficulty` beside `nWinnerMisses` and the

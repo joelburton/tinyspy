@@ -50,7 +50,7 @@ select is(
                 legal_band::text, difficulty_asked, greens::text, positive_space::text, load_bearing::text]
      from wordleone.ratings where user_id = 'ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111', (select id from g)::text, 'sieve', 'yxyyg', 'verse',
-        '2', 'medium', '1', '2', '3'],
+        '4', 'medium', '1', '2', '3'],
   'the puzzle and the generator''s view are copied from the game');
 select is(
   (select array[rated_difficulty::text, suggested_band::text, seconds_reported::text, comment]

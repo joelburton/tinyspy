@@ -174,7 +174,6 @@ feedback) is read when app-audit opens a game's area.
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/wordleone.md](plans/wordleone.md) | **Being built**, on the `wordleone` branch: **WordNerdier**, Wordle in 1 — one pre-colored starter row, the only legal word that fits; built in wordle's shape, the puzzle generated in an edge function |
-| [plans/codenamesduet-word-pools.md](plans/codenamesduet-word-pools.md) | **Decided, not started.** codenamesduet's word pools: Codenames Duet, Codenames and Undercover (adult), chosen by checkbox at setup, the 25 words dealt in equal shares |
 
 ## Audience — friends, not strangers
 

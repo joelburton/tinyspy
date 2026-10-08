@@ -43,7 +43,7 @@ select pg_temp.envelope_is(
     "data":{"result":"notAWord","n_misses":0,"solved":false,"game_ended":false}}'::jsonb,
   'a five-letter non-word → notAWord');
 select pg_temp.envelope_is(
-  wordleone.submit_guess((select id from g), 'moxie'),
+  wordleone.submit_guess((select id from g), 'stere'),
   '{"type":"ok","data":{"result":"notAWord"}}'::jsonb,
   'a real word above the legal band → notAWord');
 select pg_temp.envelope_is(
@@ -56,7 +56,7 @@ reset role;
 select is(
   (select array_agg(word || ':' || verdict || ':' || took_turn || ':' || coalesce(colors, '-') order by id)
      from wordleone.events where game_id = (select id from g)),
-  array['zzzzz:not_a_word:false:-', 'moxie:not_a_word:false:-'],
+  array['zzzzz:not_a_word:false:-', 'stere:not_a_word:false:-'],
   'the two non-words are logged, uncolored, spending no go; the duplicate writes nothing');
 select is(
   (select sum(n_misses)::int from wordleone.players where game_id = (select id from g)),
@@ -158,15 +158,16 @@ update common.words set band = 1 where word = 'verse';
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- ── The legal band is the game's ────────────────────────────
--- MOXIE (band 3) was not a word at band 2 above; at band 3 it is a miss.
+-- STERE (band 5) was not a word at legal band 4 above; with a band-3 answer
+-- the legal band is 5, and it is a miss.
 create temp table g3 on commit drop as
 select (wordleone.create_game(
   '=ada', pg_temp.wordleone_setup(3),
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop', pg_temp.wordleone_puzzle())->'data'->>'id')::uuid as id;
 select is(
-  wordleone.submit_guess((select id from g3), 'moxie')->'data'->>'result',
-  'miss', 'at band 3 the same band-3 word is a miss');
+  wordleone.submit_guess((select id from g3), 'stere')->'data'->>'result',
+  'miss', 'at answer band 3 the same band-5 word is a miss');
 
 -- ── A guess into a game a friend deleted ────────────────────
 reset role;

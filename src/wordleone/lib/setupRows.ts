@@ -1,10 +1,9 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeCoopRows, makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import { DIFFICULTY_OPTIONS } from './setup'
+import { answerBandValue, DIFFICULTY_OPTIONS } from './setup'
 import type { GSetup } from '../types'
 
 /**
@@ -20,7 +19,7 @@ export function makeSetupRows(
   return [
     makeRosterRow(players),
     ...makeCoopRows(setup, mode, players),
-    { key: 'legal_band', label: 'Dictionary', value: dictBandValue(setup.legal_band) },
+    { key: 'answer_band', label: 'Answer', value: answerBandValue(setup.answer_band) },
     {
       key: 'difficulty',
       label: 'Difficulty',

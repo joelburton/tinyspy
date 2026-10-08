@@ -115,7 +115,7 @@ const SOLO_LOST: ZTest_GameDataFacts = { ...COOP_LOST, target: 'verse', players:
 
 /** A realistic setup blob — the info-column disclosure reads it (a `{}` here
  *  would crash timerLabel, exactly the kind of render bug these tests guard). */
-const SETUP: GSetup = { legal_band: 2, difficulty: 'medium', timer: { kind: 'none' } }
+const SETUP: GSetup = { answer_band: 0, difficulty: 'medium', timer: { kind: 'none' } }
 
 /** A play surface's context: a wordleone game, solo coop by default, built from
  *  the facts the way the builder would build it. */

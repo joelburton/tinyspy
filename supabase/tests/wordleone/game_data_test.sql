@@ -135,8 +135,8 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.coop()),
   pg_temp.common_summary(pg_temp.coop())
-    || '{"team": {"nMisses": 0}, "legalBand": 2, "difficulty": "medium", "nWinnerMisses": null, "nMissesById": null}'::jsonb,
-  'the fresh coop summary: the common part, a team with no misses, the band and the difficulty'
+    || '{"team": {"nMisses": 0}, "answerBand": 0, "difficulty": "medium", "nWinnerMisses": null, "nMissesById": null}'::jsonb,
+  'the fresh coop summary: the common part, a team with no misses, the answer band and the difficulty'
 );
 
 -- ─── (2) Mid-game coop: ada misses ───
@@ -185,7 +185,7 @@ select is(
 select is(
   pg_temp.summary_data(pg_temp.compete()) - 'statusChangedAt',
   (pg_temp.common_summary(pg_temp.compete()) - 'statusChangedAt')
-    || '{"team": null, "legalBand": 2, "difficulty": "medium", "nWinnerMisses": null}'::jsonb
+    || '{"team": null, "answerBand": 0, "difficulty": "medium", "nWinnerMisses": null}'::jsonb
     || jsonb_build_object('nMissesById', jsonb_build_object(
          'ada11111-1111-1111-1111-111111111111', 1, 'bea22222-2222-2222-2222-222222222222', 0)),
   'compete: the summary has no team, each racer''s misses, and no winner yet'

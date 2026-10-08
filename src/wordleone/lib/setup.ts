@@ -1,11 +1,12 @@
 // cs-unmet
 
+import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { GDifficulty, GSetup } from '../types'
 
-/** Initial setup the manifest hands the dialog as `defaults`: band 2, the
- *  everyday words the NYT's own answers come from, and a medium puzzle. */
+/** Initial setup the manifest hands the dialog as `defaults`: the NYT answer
+ *  list, as wordle's default is, and a medium puzzle. */
 export const DEFAULT_WORDLEONE_SETUP: GSetup = {
-  legal_band: 2,
+  answer_band: 0,
   difficulty: 'medium',
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the setup dialog's "Co-op"
@@ -14,13 +15,20 @@ export const DEFAULT_WORDLEONE_SETUP: GSetup = {
   coop_style: 'free-for-all',
 }
 
-/** The difficulties the form offers, with what each means to a player. */
+/** The difficulties the form offers. The labels say no more than the tier:
+ *  which shapes of colors each allows is the generator's (Joel, 2026-10-07). */
 export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: GDifficulty; label: string }> = [
-  { value: 'easy', label: 'Easy — three greens' },
-  { value: 'medium', label: 'Medium — one or two greens' },
-  { value: 'hard', label: 'Hard — no greens' },
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
   { value: 'any', label: 'Any' },
 ]
+
+/** The setup row's value for the answer band. `0` = the curated NYT-Wordle
+ *  answer list; `1..6` = a clean word of that dictionary band or easier. */
+export function answerBandValue(n: number): string {
+  return n === 0 ? 'NYT Wordle list' : `${dictBandValue(n)} or easier`
+}
 
 /** Every wordleone word is five letters: the starter, the answer, a guess, a
  *  board row, and the dictionary slice the band control offers. One home, so

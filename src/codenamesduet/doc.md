@@ -99,6 +99,11 @@ Codenames Duet (the game's own list, and the default), Codenames, and
 Undercover (adult), whose sexual terms its label warns of. Two pools deal
 13 + 12 and three 9 + 8 + 8, the extra words to pools picked at random, and
 the board is shuffled. A word belongs to one pool, so no board deals it twice.
+Three rulings about the lists (Joel, 2026-10-07): singular/plural pairs across
+the pools (apple/apples, nut/nuts, …) stay, and a board may deal both; the AI
+clue suggester sends adult words to Claude as-is; and sagelga's fourth list,
+"Advanced", is out — British spellings, hyphen and space variants of one word,
+words up to 19 letters.
 
 **A bystander marks one direction only.** It is a bystander on the clue-giver's
 side, and the same word may be the partner's agent, so it locks the word for

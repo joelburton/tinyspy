@@ -20,9 +20,10 @@
 --
 -- Provides:
 --   - pg_temp.wordleone_puzzle() — that puzzle, as `p_board`
---   - pg_temp.wordleone_setup(legal_band) — the setup jsonb (difficulty
---     medium, timer off); band 2 by default, so CRANE, STARE, MOUTH and ADIEU
---     are legal misses and MOXIE (band 3) is not a word
+--   - pg_temp.wordleone_setup(answer_band) — the setup jsonb (difficulty
+--     medium, timer off); answer band 0 by default, the NYT list, whose legal
+--     band is 4 (`_legal_band_for`), so CRANE, STARE, MOUTH, ADIEU and MOXIE
+--     (band 3) are legal misses and STERE (band 5) is not a word
 
 reset role;
 
@@ -33,12 +34,12 @@ as $$
   select '{"starter": "sieve", "colors": "yxyyg", "answer": "verse"}'::jsonb;
 $$;
 
-create function pg_temp.wordleone_setup(legal_band int default 2)
+create function pg_temp.wordleone_setup(answer_band int default 0)
 returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'legal_band', legal_band,
+    'answer_band', answer_band,
     'difficulty', 'medium',
     'timer', jsonb_build_object('kind', 'none')
   );

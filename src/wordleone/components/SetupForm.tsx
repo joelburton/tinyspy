@@ -14,9 +14,10 @@ import type { GDifficulty, GSetupValues } from '../types'
 /**
  * wordleone's setup form, rendered inside the common SetupGameModal.
  *
- *   - **Dictionary** — the legal band (1–6): the words you may guess, and the
- *     pool the answer is the only fit in.
- *   - **Difficulty** — the shape of the starter's colors, by its greens.
+ *   - **Answer source** — where the answer comes from: "0: Wordle" (the NYT
+ *     answer list) or a dictionary band 1–6. The words you may guess, and the
+ *     pool the answer is the only fit in, follow it: two bands above.
+ *   - **Difficulty** — the shape of the starter's colors.
  *
  * Plus the shared coop-pacing and timer sections. Controlled component (state
  * lives in the wrapper); shared by both manifests, the coop-pacing section
@@ -32,8 +33,10 @@ export function SetupForm({
   const players = members.filter((m) => s.player_user_ids.has(m.id))
 
   // Disclosure summaries carry the current values so each section reads
-  // without opening.
-  const puzzleLabel = `Puzzle: ${dictBandValue(s.legal_band)} / ${s.difficulty}`
+  // without opening. Answer source 0 is the curated Wordle list — not a
+  // dictionary band — so it formats as "0 (Wordle)".
+  const answerValue = s.answer_band === 0 ? '0 (Wordle)' : dictBandValue(s.answer_band)
+  const puzzleLabel = `Puzzle: ${answerValue} / ${s.difficulty}`
 
   return (
     <>
@@ -59,17 +62,18 @@ export function SetupForm({
       />
       <SetupSection label={puzzleLabel}>
         <DictBandField
-          name="legal_band"
-          error={errors.legal_band}
-          label="Dictionary"
+          name="answer_band"
+          error={errors.answer_band}
+          label="Answer source"
           length={WORD_LENGTH}
+          extraLowOption={{ value: 0, label: 'Wordle' }}
           minBand={1}
           maxBand={6}
-          value={s.legal_band}
-          onChange={(legal_band) => set('legal_band', legal_band)}
+          value={s.answer_band}
+          onChange={(answer_band) => set('answer_band', answer_band)}
         />
         <SelectField
-          help="How many greens the starter shows."
+          help="The shape of the starter's colors."
           name="difficulty"
           error={errors.difficulty}
           value={s.difficulty}

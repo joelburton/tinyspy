@@ -398,10 +398,10 @@ bold glyph.)
 - **Dictionary band at setup:** PN FB MC RA SD SS WN MG MW WW PP SB W1
   (PP's + SB's bands run the OTHER way: a wider dictionary means more hint words
   / more escape routes off an awkward tail letter, so a HIGHER band makes them
-  easier; W1's makes the puzzle fairer, not harder — more words the answer has
-  to be unique among)
-- **The shape of the puzzle:** W1 (easy · medium · hard · any — three greens,
-  one or two, none)
+  easier; W1's is wordle's answer band — 0 the NYT list, or a band the answer
+  is drawn at or below — and its legal band is derived, two above)
+- **The shape of the puzzle:** W1 (easy · medium · hard · any — a set of
+  color shapes per tier, greens · yellows · grays)
 - **A smaller DECK instead of a dictionary band:** HT (junior — shading
   dropped, 27 cards, dealt nine at a time)
 - **More turns:** TS (9/10/11, the rulebook's easier missions)

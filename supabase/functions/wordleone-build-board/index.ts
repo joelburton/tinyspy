@@ -13,13 +13,14 @@
  *
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
- *   2. As the caller, fetch every five-letter word at or below the larger of
- *      the legal band and the starters' band, with the columns the filters
- *      read. Not clean-filtered: any legal word is a guess the answer must be
- *      unique against.
- *   3. Build a puzzle at that band and difficulty — see gen.ts.
+ *   2. As the caller, fetch every five-letter word in the pool — two bands
+ *      above the answer band (gen.ts → `poolBandFor`) — with the columns the
+ *      filters read. Not clean-filtered: any legal word is a guess the answer
+ *      must be unique against.
+ *   3. Build a puzzle at that answer band and difficulty — see gen.ts.
  *   4. Call wordleone.create_game(target_club, setup, players, mode, board)
- *      over PostgREST; it checks the puzzle and stores it.
+ *      over PostgREST; it checks the puzzle and stores it, deriving the
+ *      game's legal band from the answer band by the same rule.
  *   5. Relay its envelope.
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The
@@ -30,7 +31,7 @@
  * Calling shape (from the FE):
  *   POST /functions/v1/wordleone-build-board
  *   { target_club: text,
- *     setup: jsonb,                 // { legal_band, difficulty, timer, coop_style?, first_turn_user_id? }
+ *     setup: jsonb,                 // { answer_band, difficulty, timer, coop_style?, first_turn_user_id? }
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → a result envelope, ALWAYS 200 (_shared/envelope.ts)
@@ -42,7 +43,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { buildPuzzle, STARTER_MAX_BAND, type TierChoice, type WordRow } from './gen.ts'
+import { ANSWER_LIST_BAND, buildPuzzle, poolBandFor, type TierChoice, type WordRow } from './gen.ts'
 import { preflight } from '../_shared/http.ts'
 import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
@@ -51,7 +52,7 @@ import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.t
  *  bound: the loop advances by the rows received and stops on an empty page
  *  (waffle-build-board's fetch has the reasoning). */
 const PAGE_SIZE = 10_000
-const MIN_BAND = 1
+const MIN_BAND = ANSWER_LIST_BAND
 const MAX_BAND = 6
 const DIFFICULTIES: readonly TierChoice[] = ['easy', 'medium', 'hard', 'any']
 
@@ -110,24 +111,25 @@ serve(async (req) => {
     const parsed = await parseBuildBoardRequest(req, 'wordleone-build-board')
     if (parsed instanceof Response) return parsed
     const { targetClub, mode, playerUserIds, supabase } = parsed
-    const setup = parsed.setup as { legal_band?: number; difficulty?: string }
+    const setup = parsed.setup as { answer_band?: number; difficulty?: string }
 
-    const band = setup.legal_band
+    const band = setup.answer_band
     if (!Number.isInteger(band) || band! < MIN_BAND || band! > MAX_BAND) {
-      console.log(`wordleone-build-board reject: invalid legal_band "${band}"`)
-      return fault('PN529', `BUG: legal band of '${band}'`, `wordleone-build-board: legal_band must be ${MIN_BAND}..${MAX_BAND}`)
+      console.log(`wordleone-build-board reject: invalid answer_band "${band}"`)
+      return fault('PN529', `BUG: answer band of '${band}'`, `wordleone-build-board: answer_band must be ${MIN_BAND}..${MAX_BAND}`)
     }
     const difficulty = setup.difficulty as TierChoice
     if (!DIFFICULTIES.includes(difficulty)) {
       console.log(`wordleone-build-board reject: invalid difficulty "${difficulty}"`)
       return fault('PN530', `BUG: difficulty of '${difficulty}'`, `wordleone-build-board: difficulty must be one of ${DIFFICULTIES.join(', ')}`)
     }
-    console.log(`wordleone-build-board: band=${band} difficulty=${difficulty}`)
+    const poolBand = poolBandFor(band!)
+    console.log(`wordleone-build-board: answer_band=${band} pool=${poolBand} difficulty=${difficulty}`)
 
     // ─── 1. The words ─────────────────────────────────────
-    // A band-1 game still draws its starter from band 2, so the fetch reaches
-    // the starters' band too; the generator keeps the pool to the legal band.
-    const words = await fetchWordRows(supabase, Math.max(band!, STARTER_MAX_BAND))
+    // The pool reaches past the starters' band (2) and the answer band both,
+    // so one fetch serves the generator's three lists.
+    const words = await fetchWordRows(supabase, poolBand)
     console.log(`fetched ${words.length} five-letter words`)
     if (words.length === 0) {
       console.log('wordleone-build-board reject: no words')
@@ -135,7 +137,7 @@ serve(async (req) => {
     }
 
     // ─── 2. The puzzle ────────────────────────────────────
-    const puzzle = buildPuzzle(words, { band: band!, tier: difficulty, random: Math.random })
+    const puzzle = buildPuzzle(words, { answerBand: band!, tier: difficulty, random: Math.random })
     if (puzzle === null) {
       console.log(`reject: no ${difficulty} puzzle at band ${band}`)
       return formValidation(

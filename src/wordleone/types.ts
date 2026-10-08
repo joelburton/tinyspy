@@ -216,11 +216,12 @@ export type GDifficulty = 'easy' | 'medium' | 'hard' | 'any'
  * `wordleone.create_game` (the authority for what's accepted).
  */
 export type GSetupValues = CoopTurnSetup & {
-  // What counts as a legal guess — any real 5-letter word at band ≤ this
-  // (1..6) — and the pool the answer is the only fit in.
-  legal_band: number
-  // The shape of the starter's colors: easy has three greens, medium one or
-  // two, hard none; any takes whatever the generator finds.
+  // Where the answer comes from: 0 the NYT answer list, 1..6 any clean word
+  // at band ≤ this. The legal band — what counts as a guess, and the pool the
+  // answer is the only fit in — is two above it, derived by `create_game`.
+  answer_band: number
+  // The shape of the starter's colors — its greens, yellows and grays; any
+  // takes whatever the generator finds.
   difficulty: GDifficulty
   // Timer mode. `none` / `countup` are purely informational; a `countdown`
   // ends the game when it expires, via `wordleone.submit_timeout`.
@@ -351,11 +352,11 @@ export type GAnswer =
  *
  * `team` is the team's misses in coop, null in compete, whose summary shows no
  * progress; the winner's misses are compete's, null until the end and always
- * null in coop. `legalBand` and `difficulty` are the setup's.
+ * null in coop. `answerBand` and `difficulty` are the setup's.
  */
 export type GSummaryData = SummaryData & {
   team: Pick<GFacts, 'nMisses'> | null
-  legalBand: number
+  answerBand: number
   difficulty: GDifficulty
   nWinnerMisses: number | null
   // Each racer's misses, by id, public in a race; null in coop.

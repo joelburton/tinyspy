@@ -60,13 +60,15 @@ abstract class WordleoneManifest extends Manifest {
 
   // The summary reads the game's `summary_data` (`GSummaryData`: the common
   // part with its ending; `team`, the team's misses, null in compete; compete's
-  // winner's misses; and the setup's band and difficulty). The band rides on
-  // every line in the `dict "…"` slot every band-sensitive game uses, the
-  // difficulty beside it.
+  // winner's misses; and the setup's answer band and difficulty). The answer
+  // band rides on every line in the `dict "…"` slot every band-sensitive game
+  // uses, as wordle's does, the difficulty beside it.
 
-  /** The band and the difficulty, as every line carries them. */
+  /** The answer band and the difficulty, as every line carries them: 0 is the
+   *  curated NYT-Wordle answer list, 1..6 the shared dictionary bands. */
   protected makePuzzleLabel(summary: GSummaryData): string | null {
-    return statusLine(dictLabel(summary.legalBand), summary.difficulty)
+    const dict = summary.answerBand === 0 ? 'dict "Wordle"' : dictLabel(summary.answerBand)
+    return statusLine(dict, summary.difficulty)
   }
 
   /**

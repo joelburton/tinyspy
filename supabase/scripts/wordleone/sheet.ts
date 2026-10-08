@@ -88,7 +88,7 @@ for (const band of BANDS) {
     let attempts = 0
     while (made < PER_CELL && attempts < PER_CELL * 10) {
       attempts++
-      const puzzle = buildPuzzle(words, { band, tier, random: mulberry32(SEED + k++), answerAtBand: true })
+      const puzzle = buildPuzzle(words, { answerBand: band, tier, random: mulberry32(SEED + k++), answerAtBand: true })
       if (puzzle === null) continue
       if (seen.has(puzzle.starter) || seen.has(puzzle.answer)) continue
       seen.add(puzzle.starter)
