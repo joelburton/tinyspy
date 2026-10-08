@@ -49,22 +49,38 @@ type Props = {
  * not move when one replaces the other.
  */
 export function RatingForm({ gameId, shownAnswer, targetBand }: Props) {
-  const answerName = shownAnswer === null ? 'The answer' : shownAnswer.toUpperCase()
+  const answerName = shownAnswer === null
+    ? 'The answer'
+    : shownAnswer.toUpperCase()
 
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
-  async function saveRating({ rated_difficulty, suggested_band, seconds_reported, comment }: Values) {
+  async function saveRating({
+    rated_difficulty,
+    suggested_band,
+    seconds_reported,
+    comment,
+  }: Values) {
     setIsSaving(true)
     setErrors({})
     const res = await runRpc<RatedAnswer>(
       // A field left blank is left out: the server takes it as null.
       db.rpc('rate_puzzle', {
         p_game_id: gameId,
-        p_rated_difficulty: rated_difficulty === '' ? undefined : Number(rated_difficulty),
-        p_suggested_band: suggested_band === '' ? undefined : Number(suggested_band),
-        p_seconds_reported: Number.isNaN(seconds_reported) ? undefined : seconds_reported,
+        p_rated_difficulty:
+          rated_difficulty === ''
+            ? undefined
+            : Number(rated_difficulty),
+        p_suggested_band:
+          suggested_band === ''
+            ? undefined
+            : Number(suggested_band),
+        p_seconds_reported:
+          Number.isNaN(seconds_reported)
+            ? undefined
+            : seconds_reported,
         p_comment: comment,
       }),
     )
@@ -94,7 +110,12 @@ export function RatingForm({ gameId, shownAnswer, targetBand }: Props) {
     <StandardForm
       className={styles.ratingForm}
       initialValues={
-        { rated_difficulty: '', suggested_band: '', seconds_reported: NaN, comment: '' } satisfies Values
+        {
+          rated_difficulty: '',
+          suggested_band: '',
+          seconds_reported: NaN,
+          comment: '',
+        } satisfies Values
       }
       onSubmit={saveRating}
     >
@@ -164,7 +185,11 @@ export function RatingForm({ gameId, shownAnswer, targetBand }: Props) {
                 disabled={isSaving}
               />
             </div>
-            <FormSubmitButton show="label" label={isSaving ? 'Saving…' : 'Save'} disabled={isSaving} />
+            <FormSubmitButton
+              show="label"
+              label={isSaving ? 'Saving…' : 'Save'}
+              disabled={isSaving}
+            />
           </div>
           <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>
         </>

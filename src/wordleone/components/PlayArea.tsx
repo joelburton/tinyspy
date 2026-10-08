@@ -1,10 +1,14 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { peerAnswerMessage } from '../lib/answer'
-import { CelebrationBlockingModal } from '@/common/ending/CelebrationBlockingModal'
+import {
+  CelebrationBlockingModal,
+} from '@/common/ending/CelebrationBlockingModal'
 import { useCelebration } from '@/common/ending/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useShowPeerFeedback } from '@/common/feedback/useShowPeerFeedback'
@@ -82,7 +86,8 @@ function PlayArea({
   // only when it happens.
   const celebration = useCelebration(gd.me.outcome === 'won')
 
-  // The board frame flashes and the bell rings the moment the move becomes mine.
+  // The board frame flashes and the bell rings the moment the move becomes
+  // mine.
   const turnFlash = useTurnStartFlash(gd.me.onTurn)
 
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -166,7 +171,9 @@ function PlayArea({
       {celebration.isOpen && (
         <CelebrationBlockingModal
           title="Solved! 🎉"
-          body={gd.compete ? 'You solved it with the fewest misses.' : 'The team found the word.'}
+          body={gd.compete
+            ? 'You solved it with the fewest misses.'
+            : 'The team found the word.'}
           onClose={celebration.close}
         />
       )}

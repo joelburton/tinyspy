@@ -47,7 +47,9 @@ export function Tile({
         marks.isInFlight && styles.inFlight,
         marks.isInFlight && shared.dimInFlight,
       )}
-      style={marks.isFlipping ? { animationDelay: `${marks.flipDelaySec}s` } : undefined}
+      style={marks.isFlipping
+        ? { animationDelay: `${marks.flipDelaySec}s` }
+        : undefined}
       role="gridcell"
     >
       <span className={styles.letter}>{letter.toUpperCase()}</span>

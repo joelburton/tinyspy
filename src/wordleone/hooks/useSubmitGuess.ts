@@ -14,8 +14,9 @@ import { WORD_LENGTH } from '../lib/setup'
 import type { GBoardRow } from '../types'
 
 /**
- * What `wordleone.submit_guess` puts in `data` — the fact, and nothing about how
- * it reads: the words and the color are `lib/answer.ts`'s, keyed on `result`.
+ * What `wordleone.submit_guess` puts in `data` — the fact, and nothing about
+ * how it reads: the words and the color are `lib/answer.ts`'s, keyed on
+ * `result`.
  *
  * A UNION, because the two halves are not the same answer wearing one shape: a
  * soft reject counts nothing, a miss and the solve are recorded.
@@ -91,7 +92,9 @@ export function useSubmitGuess({
 
   /** A judged word that lands no row: take it back, shake the typed row in the
    *  answer's outcome, say why, and clear the row when the shake ends. */
-  function shakeThenClear(answerType: 'duplicate' | 'not_a_word' | 'miss', clearTypedWord: () => void) {
+  function shakeThenClear(answerType: 'duplicate' | 'not_a_word' | 'miss',
+    clearTypedWord: () => void,
+  ) {
     const { outcome, text } = answerMessage({ answerType })
     setSubmittedWord(null)
     showRefusedGuessMark(outcome, { onEnd: clearTypedWord })

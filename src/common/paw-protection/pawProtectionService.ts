@@ -72,7 +72,8 @@ function getPendingRefusal(): Pending | null {
 /** Show the modal and resolve false once it is dismissed. */
 function refuse(gametype: string, cap: number): Promise<boolean> {
   if (!isHostMounted) {
-    console.error('ensureCanStart: no <PawProtectionHost> is mounted — refusing the start')
+    console.error(
+      'ensureCanStart: no <PawProtectionHost> is mounted — refusing the start')
     return Promise.resolve(false)
   }
   return new Promise<boolean>((resolve) => {
@@ -119,7 +120,8 @@ export async function ensureCanStart(subject: PawSubject): Promise<boolean> {
  */
 export function ensureCanStartRegistered(): Promise<boolean> {
   if (!registeredSubject) {
-    console.error('ensureCanStartRegistered: no subject registered — letting the start through')
+    console.error(
+      'ensureCanStartRegistered: no subject registered — letting the start through')
     return Promise.resolve(true)
   }
   return ensureCanStart(registeredSubject)

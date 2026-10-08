@@ -4,7 +4,9 @@ import { DictBandField } from '@/common/fields/DictBandField'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { SelectField } from '@/common/fields/SelectField'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
-import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import {
+  SetupCoopStyleSection,
+} from '@/common/setup-form/SetupCoopStyleSection'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
@@ -35,7 +37,9 @@ export function SetupForm({
   // Disclosure summaries carry the current values so each section reads
   // without opening. Answer source 0 is the curated Wordle list — not a
   // dictionary band — so it formats as "0 (Wordle)".
-  const answerValue = s.answer_band === 0 ? '0 (Wordle)' : dictBandValue(s.answer_band)
+  const answerValue = s.answer_band === 0
+    ? '0 (Wordle)'
+    : dictBandValue(s.answer_band)
   const puzzleLabel = `Puzzle: ${answerValue} / ${s.difficulty}`
 
   return (
@@ -56,9 +60,10 @@ export function SetupForm({
         players={players}
         coopStyle={s.coop_style ?? 'free-for-all'}
         firstTurnUserId={s.first_turn_user_id ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          { set('coop_style', coopStyle); set('first_turn_user_id', firstTurnUserId) }
-        }
+        onChange={({ coopStyle, firstTurnUserId }) => {
+          set('coop_style', coopStyle)
+          set('first_turn_user_id', firstTurnUserId)
+        }}
       />
       <SetupSection label={puzzleLabel}>
         <DictBandField

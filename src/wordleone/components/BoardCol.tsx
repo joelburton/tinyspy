@@ -36,6 +36,7 @@ export function BoardCol({
   // The answer while I have it revealed, else null.
   solution: string | null
 }) {
+
   const submission = useSubmitGuess({
     gameId: gd.id,
     liveRows: gd.me.board.rows,
@@ -106,7 +107,11 @@ export function BoardCol({
               board — the starter's, and the solve's once it lands; a miss
               earns nothing. */}
           {gd.ended ? (
-            <RatingForm gameId={gd.id} shownAnswer={solution} targetBand={gd.puzzle.targetBand} />
+            <RatingForm
+              gameId={gd.id}
+              shownAnswer={solution}
+              targetBand={gd.puzzle.targetBand}
+            />
           ) : (
             <GuessKeyboard
               keyColors={makeKeyColors(gd.me.board.rows)}

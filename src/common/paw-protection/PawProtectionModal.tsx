@@ -29,21 +29,30 @@ type Props = {
 export function PawProtectionModal({ gametype, cap, onDismiss }: Props) {
   const brand = manifestFor(gametype)!.name
   const games = cap === 1 ? 'game' : 'games'
+
   return (
     <BlockingModal
       layout="poster"
       onClose={onDismiss}
       buttons={
-        <StandardButton show="label" label="OK" weight="primary" onClick={onDismiss} autoFocus />
+        <StandardButton
+          show="label"
+          label="OK"
+          weight="primary"
+          onClick={onDismiss}
+          autoFocus
+        />
       }
     >
       <div className={styles.pawProtection}>
-        <img src={paw} alt="" className={styles.picture} />
+        <img src={paw} alt="" className={styles.picture}/>
         <div className={styles.notice}>
           <h1 className={styles.heading}>Paw Protection</h1>
           <p className={styles.words}>
             For your health and safety, this club can only play{' '}
-            <strong>{cap} {games}</strong> of <strong>{brand}</strong> per day. You have
+            <strong>{cap} {games}</strong> of
+            <strong>{brand}</strong> per day.
+            You have
             exceeded your limit.
           </p>
         </div>

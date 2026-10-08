@@ -12,11 +12,17 @@ import type { GGameData, GHistoryView } from '../types'
  * on the board. The replay is `lib/history.ts`'s.
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
-  const { historyId, historyN, showHistory, exitHistory } = useHistoryViewer<number>()
+  const {
+    historyId,
+    historyN,
+    showHistory,
+    exitHistory,
+  } = useHistoryViewer<number>()
   const replayed =
     historyId === null
       ? null
-      : replayTurn({ word: gd.puzzle.starter, colors: gd.puzzle.colors }, gd.events, historyId, historyN)
+      : replayTurn({ word: gd.puzzle.starter, colors: gd.puzzle.colors },
+        gd.events, historyId, historyN)
   const author = replayed?.author ?? null
   const isSomeoneElsesBoard = gd.compete && author !== null && author !== gd.me
 

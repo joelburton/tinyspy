@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
+import {
+  useEventLogPlayerPicker,
+} from '@/common/event-log/useEventLogPlayerPicker'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import {
   EventLog,
@@ -74,13 +76,18 @@ export function GameEventLog({
   // dictionary word — so one click on the five squares looks it up.
   function drawGuessSquares(guess: GEvent) {
     return (
-      <DefinableWord word={guess.word} className={cls(styles.squares, styles.definable)}>
+      <DefinableWord
+        word={guess.word}
+        className={cls(styles.squares, styles.definable)}
+      >
         {[...guess.word].map((letter, letterIdx) => (
           <span
             key={letterIdx}
             className={cls(
               styles.sq,
-              guess.colors === null ? styles.unjudged : styles[getTileColor(guess.colors[letterIdx])],
+              guess.colors === null
+                ? styles.unjudged
+                : styles[getTileColor(guess.colors[letterIdx])],
             )}
           >
             {letter.toUpperCase()}

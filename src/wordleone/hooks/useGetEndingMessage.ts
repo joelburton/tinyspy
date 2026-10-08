@@ -1,7 +1,10 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import { makeEndingMessage, type EndingLabel } from '@/common/ending/endingLabel'
+import {
+  makeEndingMessage,
+  type EndingLabel,
+} from '@/common/ending/endingLabel'
 import type { EndingMessage } from '@/common/ending/endingMessage'
 import type { GGameData } from '../types'
 

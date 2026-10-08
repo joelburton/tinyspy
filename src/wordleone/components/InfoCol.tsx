@@ -1,7 +1,10 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
+import {
+  InfoActionsRow,
+  type InfoActionsMessage,
+} from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
@@ -105,7 +108,8 @@ export function InfoCol({
         {solution !== null && (
           <div className={shared.endingExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
-              The answer was <DefinableWord word={solution} className={styles.answerReveal} />
+              The answer was
+              <DefinableWord word={solution} className={styles.answerReveal} />
             </p>
           </div>
         )}

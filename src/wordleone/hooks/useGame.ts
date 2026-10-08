@@ -2,7 +2,9 @@
 
 import { useMemo } from 'react'
 import { makeEnding } from '@/common/game-page/makeEnding'
-import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
+import type {
+  PlayAreaLoaderProps,
+} from '@/common/game-page/playAreaLoaderProps'
 import { findFewestMissesAhead, makeEndingLabel } from '../lib/endingLabel'
 import { makeSetupRows } from '../lib/setupRows'
 import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer } from '../types'
@@ -31,9 +33,14 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. Coop's one board is the same object on every
   // player; a racer's own is theirs alone to see mid-race.
-  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
+  const gameFacts = {
+    mode: raw.mode,
+    ended: raw.ended,
+    reason: ending?.reason ?? null,
+  }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
-    const endingLabel = makeEndingLabel(p, gameFacts, findFewestMissesAhead(p, raw.players))
+    const endingLabel = makeEndingLabel(p, gameFacts,
+      findFewestMissesAhead(p, raw.players))
     const board = team?.board ?? (seeRival || isMine(p.id) ? p.board : null)
     const own: GFacts = { nMisses: p.nMisses, board }
     return { ...p, ...(team ?? own), board, own, endingLabel }
@@ -68,11 +75,16 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
  * `puzzle` is in both, so its halves are joined rather than one replacing the
  * other.
  */
-function mergeStaticGameData(gameData: unknown, staticGameData: unknown): GGameDataRaw {
+function mergeStaticGameData(gameData: unknown,
+  staticGameData: unknown,
+): GGameDataRaw {
   // Each blob holds some of GGameDataRaw's keys; typed whole for the spread.
   const changing = gameData as GGameDataRaw
   const fixed = staticGameData as GGameDataRaw
-  return { ...changing, ...fixed, puzzle: { ...fixed.puzzle, ...changing.puzzle } }
+  return {
+    ...changing, ...fixed,
+    puzzle: { ...fixed.puzzle, ...changing.puzzle },
+  }
 }
 
 /**
@@ -86,7 +98,8 @@ function mergeStaticGameData(gameData: unknown, staticGameData: unknown): GGameD
  * lands in `PlayAreaErrorBoundary`'s card.
  *
  * The cross-cutting machinery (presence, manual-pause, timer) lives on
- * `useCommonGame` inside `GamePage` — see `src/common/game-page/useCommonGame.ts`.
+ * `useCommonGame` inside `GamePage` — see
+ * `src/common/game-page/useCommonGame.ts`.
  */
 export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   if (ctx.gameData === null) {
@@ -96,7 +109,8 @@ export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.
   const gd = useMemo(
-    () => makeGameData(mergeStaticGameData(ctx.gameData, ctx.staticGameData), myId),
+    () => makeGameData(mergeStaticGameData(ctx.gameData, ctx.staticGameData),
+      myId),
     [ctx.gameData, ctx.staticGameData, myId],
   )
   return { gd }

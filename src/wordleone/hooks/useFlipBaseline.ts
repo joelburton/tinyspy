@@ -19,7 +19,9 @@ import { useState } from 'react'
  * adjusting state to a prop change, which holds under StrictMode's double
  * render.
  */
-export function useFlipBaseline(nLiveRows: number, isViewingHistory: boolean): number {
+export function useFlipBaseline(nLiveRows: number,
+  isViewingHistory: boolean,
+): number {
   const [flipBaseline, setFlipBaseline] = useState(nLiveRows)
   const [wasViewingHistory, setWasViewingHistory] = useState(isViewingHistory)
 

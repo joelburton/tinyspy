@@ -2,7 +2,11 @@
 
 import { useEffect } from 'react'
 import { PawProtectionModal } from './PawProtectionModal'
-import { dismissRefusal, registerPawProtectionHost, usePendingRefusal } from './pawProtectionService'
+import {
+  dismissRefusal,
+  registerPawProtectionHost,
+  usePendingRefusal,
+} from './pawProtectionService'
 
 /**
  * Draws the paw-protection modal while `ensureCanStart` is refusing a start.
@@ -21,5 +25,9 @@ export function PawProtectionHost() {
   useEffect(registerPawProtectionHost, [])
 
   if (!pending) return null
-  return <PawProtectionModal gametype={pending.gametype} cap={pending.cap} onDismiss={dismissRefusal} />
+  return <PawProtectionModal
+    gametype={pending.gametype}
+    cap={pending.cap}
+    onDismiss={dismissRefusal}
+  />
 }
