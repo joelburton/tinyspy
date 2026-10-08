@@ -5,29 +5,34 @@
  * the surface slings around can be read side by side. The `G` says a type is
  * this game's and not the shell's (docs/code-conventions.md → A game's types).
  * A component's props stay with the component; a type one file uses stays in
- * that file; the printer's model stays in `pdf/`; the test fixtures' facts stay
- * in the fixture file. The types that reach React — built on an `Action` — are
- * in `reactTypes.ts`.
+ * that file; the printer's model stays in `pdf/`; the test fixtures' facts
+ * stay in the fixture file. The types that reach React — built on an `Action`
+ * — are in `reactTypes.ts`.
  *
- * Two layers of a crossword, two kinds of cell. The PUZZLE is frozen at create:
- * its grid of `GPuzzleCell`s (blocks, numbers, circles, shading, the givens),
- * its clues, and the answer key (ported from crossplay's
+ * Two layers of a crossword, two kinds of cell. The PUZZLE is frozen at
+ * create: its grid of `GPuzzleCell`s (blocks, numbers, circles, shading, the
+ * givens), its clues, and the answer key (ported from crossplay's
  * `packages/shared/src/index.ts`, the module its client and server both
  * imported). A seat's BOARD is what the players have written on it: a
  * `GCell` for every open, non-given cell, with its fill and its flags.
  *
- * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders wrote
- * them (ids, each board packed into flat arrays), and `GGameData` is what
- * `useGame` makes of it for the surface (players, each board's cells keyed by
- * id, the seat rule applied). `GPlayerRaw` / `GPlayer` and `GBoardRaw` /
- * `GBoard` are the same pair, one level down.
+ * Two shapes carry the game: `GGameDataRaw` is the two blobs as the builders
+ * wrote them (ids, each board packed into flat arrays), and `GGameData` is
+ * what `useGame` makes of it for the surface (players, each board's cells
+ * keyed by id, the seat rule applied). `GPlayerRaw` / `GPlayer` and
+ * `GBoardRaw` / `GBoard` are the same pair, one level down.
  *
  * Loaded by the NYT and Guardian edge functions (through `lib/nyt.ts` and
  * `lib/guardian.ts`) and by the import CLI, so every import is relative and
  * ends in `.ts` (src/guards/edgeFunctionImports.test.ts).
  */
 
-import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '../common/game-page/gameData.ts'
+import type {
+  FactsApart,
+  GameDataRaw,
+  GameEnding,
+  PlayerRaw,
+} from '../common/game-page/gameData.ts'
 import type { EndingLabel } from '../common/ending/endingLabel.ts'
 import type { SummaryData } from '../common/manifest/summaryData.ts'
 import type { TimerMode } from '../common/manifest/types.ts'
@@ -47,44 +52,43 @@ export type GScope = 'letter' | 'word' | 'puzzle'
  */
 export type GPuzzleCell =
   | {
-      kind: 'block'
-      // Irregular-grid "void" cell — functionally identical to a
-      // regular block (terminates words, unclickable, unfillable),
-      // but rendered as transparent space instead of a black square
-      // with an outline. Used to carve non-rectangular puzzle shapes
-      // (.ipuz `null` cells).
-      hidden?: boolean
-    }
+  kind: 'block'
+  // Irregular-grid "void" cell — functionally identical to a regular block
+  // (terminates words, unclickable, unfillable), but rendered as transparent
+  // space instead of a black square with an outline. Used to carve
+  // non-rectangular puzzle shapes (.ipuz `null` cells).
+  hidden?: boolean
+}
   | {
-      kind: 'cell'
-      number: number | null
-      // A given's printed letter; on a non-given cell, a saved fill an
-      // uploaded half-finished `.ipuz` carries, which `create_game` seeds
-      // into the grid. Null on a blank template.
-      fill: string | null
-      // A penciled letter: set only on the printers' copy of the grid
-      // (`makePrintState`), which carries the board's fills.
-      pencil?: boolean
-      // Author-defined circle around the cell (common theme marker).
-      // Pure presentation: set at parse time, never mutated, ignored
-      // by reveal/check/clear/fill.
-      circled?: boolean
-      // Author-defined background shading (alternative theme marker;
-      // ipuz `style.color` / .puz GEXT shade bit). Pure presentation
-      // like `circled`: set at parse time, never mutated.
-      shaded?: boolean
-      // Author-prefilled cell: the `fill` arrived with the puzzle and
-      // is part of the template. `set_cell` refuses to mutate it, and
-      // the client renders the letter underlined.
-      given?: boolean
-      // An author-drawn word-break / hyphen on this cell's RIGHT edge —
-      // the NYT overlay import writes these — which `create_game` seeds
-      // into the grid, where a player's own marks live too.
-      markRight?: GMarkType
-      // Same as `markRight`, for the BOTTOM edge (boundary with the
-      // cell below) — down-entry breaks.
-      markBottom?: GMarkType
-    }
+  kind: 'cell'
+  number: number | null
+  // A given's printed letter; on a non-given cell, a saved fill an uploaded
+  // half-finished `.ipuz` carries, which `create_game` seeds into the grid.
+  // Null on a blank template.
+  fill: string | null
+  // A penciled letter: set only on the printers' copy of the grid
+  // (`makePrintState`), which carries the board's fills.
+  pencil?: boolean
+  // Author-defined circle around the cell (common theme marker). Pure
+  // presentation: set at parse time, never mutated, ignored by
+  // reveal/check/clear/fill.
+  circled?: boolean
+  // Author-defined background shading (alternative theme marker; ipuz
+  // `style.color` / .puz GEXT shade bit). Pure presentation like `circled`: set
+  // at parse time, never mutated.
+  shaded?: boolean
+  // Author-prefilled cell: the `fill` arrived with the puzzle and is part of
+  // the template. `set_cell` refuses to mutate it, and the client renders the
+  // letter underlined.
+  given?: boolean
+  // An author-drawn word-break / hyphen on this cell's RIGHT edge — the NYT
+  // overlay import writes these — which `create_game` seeds into the grid,
+  // where a player's own marks live too.
+  markRight?: GMarkType
+  // Same as `markRight`, for the BOTTOM edge (boundary with the cell below) —
+  // down-entry breaks.
+  markBottom?: GMarkType
+}
 
 /** Which edge of a cell a mark sits on. `right` = the boundary with the
  *  cell to the right (across breaks); `bottom` = the cell below (down). */
@@ -211,6 +215,7 @@ export type GNytPuzzleResponse = {
  *  - `circles`: cells with a theme-marker circle drawn on them (most common
  *    use of the overlay channel — circles-on-shaded cells the per-cell `type`
  *    field can't represent).
+ *
  *  - `barsRight` / `barsBottom`: cells with a thick author-drawn line on their
  *    right / bottom edge. NYT uses these in some themed puzzles as a *visual*
  *    separator that doesn't actually break a word (the JSON's `clues` arrays
@@ -255,17 +260,20 @@ export type GGuardianData = {
  * The setup blob the dialog collects and `crosswords.create_game` /
  * `crosswords-import-nyt` / `crosswords-import-guardian` validate. `mode` is
  * NOT here — it's a top-level manifest/RPC arg (the sibling-pair split).
- * `timer` is the shared `<SetupTimerSection>`'s value, like every other game's setup;
- * a countdown expiring routes to `crosswords.submit_timeout`.
+ * `timer` is the shared `<SetupTimerSection>`'s value, like every other game's
+ * setup; a countdown expiring routes to `crosswords.submit_timeout`.
  *
  * Four ways to source the puzzle:
  *   - `source: 'library'` → `puzzle_id` names a `crosswords.puzzles` row;
  *     start goes straight to the `create_game` RPC.
+ *
  *   - `source: 'nyt'` → `date` (YYYY-MM-DD) is fetched + imported by the
  *     `crosswords-import-nyt` edge function, which then creates the game.
+ *
  *   - `source: 'guardian'` → `series` (quick / cryptic / …) picks the outlet;
  *     the `crosswords-import-guardian` edge function fetches TODAY's puzzle in
  *     that series and creates the game. Public (no auth).
+ *
  *   - `source: 'upload'` → the FE parses an uploaded `.puz`/`.ipuz` into
  *     `board` ({meta, solution}) client-side and passes it to `create_game`'s
  *     inline `board` arg (self-contained game, no `puzzles` row — like NYT).
@@ -365,7 +373,8 @@ export type GExplainState =
   | { kind: 'error'; message: string }
 
 /** Where the cursor goes once a rebus is submitted — Enter advances one cell,
- *  Tab / Shift+Tab jumps to the next / previous clue (mirrors Tab elsewhere). */
+ *  Tab / Shift+Tab jumps to the next / previous clue (mirrors Tab elsewhere).
+ * */
 export type GRebusAfterSubmit = 'advance' | 'jumpNext' | 'jumpPrev'
 
 /** The live play state the grid's keys act on. PlayArea passes it fresh every
@@ -395,7 +404,11 @@ export type GGridKeysOptions = {
   // Current fill at a cell (null if empty); ⌫'s two-step needs it.
   fillAt: (row: number, col: number) => string | null
   isGiven: (row: number, col: number) => boolean
-  setCell: (row: number, col: number, fill: string | null, pencil: boolean) => void
+  setCell: (row: number,
+    col: number,
+    fill: string | null,
+    pencil: boolean,
+  ) => void
   // Open the rebus (multi-char) overlay over a cell.
   onRebus: (row: number, col: number) => void
   // Open the jump-to-clue-number popup.
@@ -416,8 +429,9 @@ export type GGridKeysOptions = {
 export type GCellChanges = Partial<Omit<GCell, 'id' | 'row' | 'col'>>
 
 /**
- * My writes the blob does not carry yet, laid over my board (`usePendingWrites`):
- * the board as it is drawn, and what a trip to the server calls around its RPC.
+ * My writes the blob does not carry yet, laid over my board
+ * (`usePendingWrites`): the board as it is drawn, and what a trip to the
+ * server calls around its RPC.
  */
 export type GPendingWrites = {
   // `gd.me.board` with every pending write laid over it, in the order made.
@@ -580,7 +594,9 @@ export type GSummaryData = SummaryData & {
  * rows: crosswords has never had them (src/guards/setupRows.test.ts →
  * NO_SETUP_ROWS). Read-only: `useGame` builds it and nothing else writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'players'> & {
+export type GGameData =
+  Omit<GGameDataRaw, 'turns' | 'ending' | 'team' | 'players'>
+  & {
   turns: { holder: GPlayer } | null
   ending: GameEnding<GPlayer> | null
   // The players by username, and the same objects keyed by id.

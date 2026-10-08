@@ -49,10 +49,13 @@ const validate = (setup: unknown): FormErrors => {
   // picker always sets one of them, so this only fires for a client that
   // cleared both.
   if (s.source === 'nyt') {
-    return s.date || typeof s.weekday === 'number' ? {} : puzzle('Pick a weekday or a date.')
+    return s.date || typeof s.weekday === 'number' ? {} : puzzle(
+      'Pick a weekday or a date.')
   }
-  if (s.source === 'guardian') return s.series ? {} : puzzle('Pick a Guardian series.')
-  if (s.source === 'upload') return s.board ? {} : puzzle('Choose a .puz or .ipuz file.')
+  if (s.source === 'guardian') return s.series ? {} : puzzle(
+    'Pick a Guardian series.')
+  if (s.source === 'upload') return s.board ? {} : puzzle(
+    'Choose a .puz or .ipuz file.')
   return s.puzzle_id ? {} : puzzle('Pick a puzzle to start.')
 }
 
@@ -73,7 +76,11 @@ abstract class CrosswordsManifest extends Manifest {
   // Shared notepad (coop) / private per-player pad (compete — a shared pad
   // would leak solving progress).
   readonly scratchpad = 'perPlayerInCompete'
-  readonly setupForm: Manifest['setupForm'] = { Component: setupFormLoader, defaults: CROSSWORDS_DEFAULTS, validate }
+  readonly setupForm: Manifest['setupForm'] = {
+    Component: setupFormLoader,
+    defaults: CROSSWORDS_DEFAULTS,
+    validate,
+  }
   // stop_game in coop is a whole-table "stop now" (a neutral mutual give-up).
   // Compete has it beside `concede`, as every race does: `concede` is one
   // racer dropping out (a loss on their record), Stop is the whole table
@@ -89,29 +96,40 @@ abstract class CrosswordsManifest extends Manifest {
    *    puzzle already exists in the library;
    *  - **NYT / Guardian** → an import edge function (fetch → import → create),
    *    which relays that RPC's envelope untouched;
-   *  - **upload** → the FE already parsed the file into `setup.board`, so we call
-   *    `create_game` directly with the inline `board` arg (self-contained game,
+   *  - **upload** → the FE already parsed the file into `setup.board`, so we
+   *    call `create_game` directly with the inline `board` arg (self-contained
+   *    game,
    *    like NYT). The board is STRIPPED from the persisted `setup` blob so the
    *    solution never lands in the unshielded status / saved-default.
    */
-  async startGameInClub(clubHandle: string, setup: unknown, playerUserIds: string[]) {
+  async startGameInClub(clubHandle: string,
+    setup: unknown,
+    playerUserIds: string[],
+  ) {
     const s = setup as GSetup
-    // NYT (by date) and Guardian (today's, by series) both fetch server-side and
-    // create the game from the imported puzzle.
+    // NYT (by date) and Guardian (today's, by series) both fetch server-side
+    // and create the game from the imported puzzle.
     if (s.source === 'nyt' || s.source === 'guardian') {
       return runEdgeFn<CreatedGame>(
-        s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
-        { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode: this.mode },
+        s.source === 'nyt'
+          ? 'crosswords-import-nyt'
+          : 'crosswords-import-guardian',
+        {
+          target_club: clubHandle,
+          setup: s,
+          player_user_ids: playerUserIds,
+          mode: this.mode,
+        },
       )
     }
     // Upload: pass the parsed board inline (create_game's `board` arg). The
     // board + filename are stripped from the setup that create_game stores as
-    // status / saved-default — UNCONDITIONALLY, not just for an upload. A parsed
-    // board could otherwise linger in `s` after a source change; `PuzzleSourceField`
-    // clears every other source's keys when you choose one, so this is the
-    // second of three guards rather than the only real one. See
-    // docs/games/crosswords.md → Puzzle sourcing and the server backstop in
-    // create_game (`setup - 'board' - 'filename'`).
+    // status / saved-default — UNCONDITIONALLY, not just for an upload. A
+    // parsed board could otherwise linger in `s` after a source change;
+    // `PuzzleSourceField` clears every other source's keys when you choose
+    // one, so this is the second of three guards rather than the only real
+    // one. See docs/games/crosswords.md → Puzzle sourcing and the server
+    // backstop in create_game (`setup - 'board' - 'filename'`).
     const board = s.source === 'upload' ? s.board : undefined
     const setupToStore: GSetup = { ...s }
     delete setupToStore.board
@@ -130,7 +148,11 @@ abstract class CrosswordsManifest extends Manifest {
 
   /** The game's ending as an ending label reads it, from the summary. */
   protected makeGameFacts(summary: GSummaryData) {
-    return { mode: this.mode, ended: summary.ended, reason: summary.ending?.reason ?? null }
+    return {
+      mode: this.mode,
+      ended: summary.ended,
+      reason: summary.ending?.reason ?? null,
+    }
   }
 }
 
@@ -147,14 +169,20 @@ class CrosswordsCoopManifest extends CrosswordsManifest {
    * ends, the team's ending label (mine, when I played): "Solved", or the timer
    * running out on an unfinished grid, coop's one loss.
    */
-  summaryFor(data: SummaryData, _members: readonly Member[], myId: string): string {
+  summaryFor(
+    data: SummaryData,
+    _members: readonly Member[],
+    myId: string,
+  ): string {
     const summary = data as GSummaryData
     if (summary.ending === null) {
       // Coop always has its team count.
-      const percent = Math.round((summary.team!.nFilledCells / summary.nCells) * 100)
+      const percent = Math.round((summary.team!.nFilledCells / summary.nCells) *
+        100)
       return statusLine(verdict('Playing'), `${percent}% filled`)
     }
-    const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+    const player = summary.players.find((p) => p.id === myId) ??
+      summary.players[0]!
     return this.makeLead(makeEndingLabel(player, this.makeGameFacts(summary))!)
   }
 }
@@ -170,20 +198,28 @@ class CrosswordsCompeteManifest extends CrosswordsManifest {
    * No per-racer progress, and the race's one winner is named once it is won.
    * It leads with my ending label once I am out of play.
    */
-  summaryFor(data: SummaryData, members: readonly Member[], myId: string): string {
+  summaryFor(data: SummaryData,
+    members: readonly Member[],
+    myId: string,
+  ): string {
     const summary = data as GSummaryData
     const me = summary.players.find((p) => p.id === myId)
-    const myEndingLabel = me === undefined ? null : makeEndingLabel(me, this.makeGameFacts(summary))
-    if (summary.ending === null && myEndingLabel === null) return verdict('Playing')
+    const myEndingLabel = me === undefined ? null : makeEndingLabel(me,
+      this.makeGameFacts(summary))
+    if (summary.ending === null && myEndingLabel === null) return verdict(
+      'Playing')
 
-    const winnerName = findUsername(members, findWinnerIds(summary).find((id) => id !== myId) ?? null)
-    const noWinner = summary.outcome === 'lost' && summary.ending!.reason !== 'conceded'
+    const winnerName = findUsername(members,
+      findWinnerIds(summary).find((id) => id !== myId) ?? null)
+    const noWinner = summary.outcome === 'lost' && summary.ending!.reason !==
+    'conceded'
       ? 'no winner'
       : null
 
     if (myEndingLabel !== null) {
       if (summary.outcome === 'won') {
-        if (myEndingLabel.labelType === 'won') return this.makeLead(myEndingLabel)
+        if (myEndingLabel.labelType === 'won') return this.makeLead(
+          myEndingLabel)
         // Someone else won: name them, beside my concession; a loss to their
         // solve is said by naming them.
         return myEndingLabel.labelType === 'conceded'
