@@ -1221,8 +1221,12 @@ begin
          g_row.difficulty, g_row.tier, g_row.positive_space, g_row.load_bearing,
          p_rated_difficulty, p_suggested_band, p_seconds_reported, v_comment,
          gp.solved_at,
-         case when cg.restart_count = 0 and gp.solved_at is not null
-              then greatest(0, extract(epoch from gp.solved_at - cg.started_at))::int end,
+         -- Start to END, solved or not (Joel, 2026-10-08: how long someone
+         -- went before the game ended is the measure; `solved_at` beside it
+         -- tells a solve from a stop). A restart moves nothing back, so a
+         -- restarted game measures nothing.
+         case when cg.restart_count = 0
+              then greatest(0, extract(epoch from cg.ended_at - cg.started_at))::int end,
          wp.n_misses,
          (select count(*)::int from wordleone.events e
            where e.game_id = p_game_id and e.user_id = caller_id)

@@ -135,7 +135,9 @@ allows](../src/wordleone/doc.md#what-the-word-list-allows):
     rejection costs nothing here anyway.
 20. **A tier is a set of color shapes**, greens · yellows · grays, not a green
     count: easy 3g0y2x · 3g1y1x; medium 2g2y1x · 1g2y2x · 2g1y2x · 1g3y1x ·
-    2g0y3x; hard 0g3y2x · 0g4y1x; any is their union. These are the NYT's
+    2g0y3x; hard 0g3y2x · 0g4y1x; any draws a tier first, 25 / 50 / 25
+    (2026-10-08 — their union took the first passing starter, seven medium
+    for every two easy and one hard). These are the NYT's
     shapes less the anagrams (all yellow, or greens and the rest yellow —
     nothing to rule out) and four greens. 0g4y1x is near an anagram and
     stays for now, loose on purpose, until players say.
@@ -416,8 +418,9 @@ and the logged non-words stay.
   load-bearing tiles, kept on `wordleone.games` since migration
   20261007000007); and the caller's play from the server — when they solved
   (solved means never revealed, since Reveal opens only at the end), the
-  seconds from the game's start to that solve (an un-restarted game only),
-  their misses, and every guess the server logged for them.
+  seconds from the game's start to its end, solved or not (an un-restarted
+  game only; from 2026-10-08 — to the solve before, which left a stopped game
+  unmeasured), their misses, and every guess the server logged for them.
 - **Words outside the band are logged** (`events.verdict = 'not_a_word'`), so
   the players can see what they tried and the count includes them; they keep
   the turn, count no miss, and wear the warning bar in the log. A duplicate

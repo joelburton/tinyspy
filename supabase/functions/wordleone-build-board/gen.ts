@@ -60,6 +60,30 @@ export const TIER_SHAPES: Record<Tier, readonly string[]> = {
   hard: ['0g3y2x', '0g4y1x'],
 }
 
+/**
+ * What "any" means: a tier drawn first, one in four easy, one in two medium,
+ * one in four hard, and then a puzzle searched for in that tier (Joel,
+ * 2026-10-08). Taking the first starter that passed any tier gave seven medium
+ * puzzles for every two easy and one hard — medium's shapes are the commonest
+ * and the likeliest to isolate an answer.
+ */
+export const ANY_TIER_ODDS: ReadonlyArray<{ tier: Tier; share: number }> = [
+  { tier: 'easy', share: 0.25 },
+  { tier: 'medium', share: 0.5 },
+  { tier: 'hard', share: 0.25 },
+]
+
+/** The tier "any" lands on, from one draw of `random`. */
+export function drawTier(random: () => number): Tier {
+  const roll = random()
+  let edge = 0
+  for (const { tier, share } of ANY_TIER_ODDS) {
+    edge += share
+    if (roll < edge) return tier
+  }
+  return ANY_TIER_ODDS[ANY_TIER_ODDS.length - 1]!.tier
+}
+
 /** The NYT's ceiling over its 35 published rounds. */
 export const MAX_POSITIVE_SPACE = 4
 
@@ -245,16 +269,17 @@ export interface BuildOptions {
 const DEFAULT_MAX_ANSWERS = 100
 
 /**
- * Build one puzzle. The answer is a random word of the answer band — a clean
- * word on the NYT answer list at band 0, any clean non-plural word at or
- * below the band otherwise (or, under `answerAtBand`, at exactly it); the
- * starter is any clean non-plural word at band ≤ 2 that scores against the
- * answer in one of the tier's shapes, isolates it among every word in the
- * pool, and leaves at most four answer-list words consistent with its greens
- * and yellows alone.
+ * Build one puzzle. The tier is the one asked for, or drawn first under "any"
+ * (`drawTier`). The answer is a random word of the answer band — a clean word
+ * on the NYT answer list at band 0, any clean non-plural word at or below the
+ * band otherwise (or, under `answerAtBand`, at exactly it); the starter is any
+ * clean non-plural word at band ≤ 2 that scores against the answer in one of
+ * the tier's shapes, isolates it among every word in the pool, and leaves at
+ * most four answer-list words consistent with its greens and yellows alone.
  */
 export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzzle | null {
-  const { answerBand, tier, random } = opts
+  const { answerBand, random } = opts
+  const tier = opts.tier === 'any' ? drawTier(random) : opts.tier
   const entryOf = (r: WordRow): Entry => ({ word: r.word, mask: maskOf(r.word) })
   const pool = words.filter((r) => r.band <= poolBandFor(answerBand)).map(entryOf)
   const answerList = words.filter((r) => r.isAnswerList && r.isClean).map(entryOf)
@@ -266,7 +291,7 @@ export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzz
   const starters = words.filter((r) => r.isClean && r.band <= STARTER_MAX_BAND && !isPlural(r)).map((r) => r.word)
   if (answers.length === 0 || starters.length === 0) return null
 
-  const shapes = new Set(tier === 'any' ? Object.values(TIER_SHAPES).flat() : TIER_SHAPES[tier])
+  const shapes = new Set(TIER_SHAPES[tier])
   for (const answer of shuffled(answers, random).slice(0, opts.maxAnswers ?? DEFAULT_MAX_ANSWERS)) {
     // Positive space always counts the answer itself, so an off-list answer's number compares with a listed one's.
     const positiveList = answerList.some((e) => e.word === answer) ? answerList : [...answerList, { word: answer, mask: maskOf(answer) }]
@@ -291,7 +316,7 @@ export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzz
         starter,
         colors,
         answer,
-        tier: tierOf(colors)!,
+        tier,
         greens: countOf(colors, 'g'),
         yellows: countOf(colors, 'y'),
         positiveSpace,

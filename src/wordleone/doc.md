@@ -104,7 +104,10 @@ band 2 or below, in random order, keeping the first that:
    These are the NYT's published shapes less two kinds (Joel, 2026-10-07):
    every tile colored is an anagram, not a deduction, and four greens is
    fill-in-the-blank. 0g 4y 1x is near an anagram and stays for now, loose on
-   purpose, until players say. "Any" is the three tiers together;
+   purpose, until players say. "Any" draws the tier first — one in four easy,
+   one in two medium, one in four hard (`ANY_TIER_ODDS`; Joel, 2026-10-08) —
+   and then searches that tier: taking the first starter that passed any
+   tier gave seven medium for every two easy and one hard;
 2. leaves the answer the only word in the pool — every word at or below the
    legal band, two above the answer band — with those colors;
 3. leaves at most four NYT-list words consistent with its greens and yellows
@@ -240,7 +243,7 @@ reads the page blobs.
 | `wordleone.games` | one row per game, keyed `game_id` to `common.games`: `starter`, `starter_colors`, `target` (the column grant leaves it out), `legal_band` (derived from the setup's answer band at create, so `submit_guess` reads it off the row it locks), `difficulty` (what the setup asked for, "any" among them), `tier` (what the generator built — easy, medium or hard — kept because the shapes a tier allows move, and a puzzle's tier at the time would otherwise be lost; Joel, 2026-10-08), and the generator's `positive_space` and `load_bearing` (for the survey) |
 | `wordleone.players` | one row per player: `n_misses`, their own in both modes. A solve is `common.game_players.solved_at` |
 | `wordleone.events` | the guess log: `word`, `colors`, `verdict` (`correct` · `miss` · `not_a_word`) and `is_correct` worked out from it; `kind` `guess`; `took_turn` true but for a non-word. `colors` is `ggggg` for the solve and null otherwise, a check holding the two together |
-| `wordleone.ratings` | the temporary survey's rows: the puzzle, the answer's band then (`answer_band`), the tier asked (`difficulty_asked`) and built (`tier`) and the generator's view copied, what the player said (`suggested_band` among it), and their play — `solved_at`, the seconds from start to solve (an un-restarted game), misses, guesses logged. No grant: psql reads it. A printout's row has no game or user |
+| `wordleone.ratings` | the temporary survey's rows: the puzzle, the answer's band then (`answer_band`), the tier asked (`difficulty_asked`) and built (`tier`) and the generator's view copied, what the player said (`suggested_band` among it), and their play — `solved_at`, the seconds from the game's start to its end, solved or not (an un-restarted game; `solved_at` tells a solve from a stop), misses, guesses logged. No grant: psql reads it. A printout's row has no game or user |
 
 **The page blobs**, written by `wordleone._rebuild_data_cols` at create,
 Restart and every move:

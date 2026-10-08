@@ -15,7 +15,7 @@ set search_path = wordleone, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(16);
+select plan(17);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -65,7 +65,7 @@ select is(
   (select array[(solved_at is not null)::text, seconds_measured::text, n_misses::text, n_submits::text]
      from wordleone.ratings where user_id = 'ada11111-1111-1111-1111-111111111111'),
   array['true', '0', '1', '3'],
-  'the caller''s play: solved, timed from the start, one miss, three guesses logged (the non-word included)');
+  'the caller''s play: solved, timed from the start to the end, one miss, three guesses logged (the non-word included)');
 
 -- ── A blank rating is still a row ───────────────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -85,6 +85,25 @@ reset role;
 select is(
   (select count(*)::int from wordleone.ratings where user_id = 'ada11111-1111-1111-1111-111111111111'),
   2, 'a second save adds a second row');
+
+-- ── A stopped game is timed too ─────────────────────────────
+-- The seconds run from the start to the END, so a game nobody solved still
+-- says how long it went; `solved_at` is what tells the two apart.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table stopped on commit drop as
+select (wordleone.create_game(
+  (select handle from club), pg_temp.wordleone_setup(),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop', pg_temp.wordleone_puzzle())->'data'->>'id')::uuid as id;
+select wordleone.stop_game((select id from stopped));
+select wordleone.rate_puzzle((select id from stopped), 6, null, null);
+reset role;
+select is(
+  (select array[(solved_at is not null)::text, (seconds_measured is not null)::text]
+     from wordleone.ratings where game_id = (select id from stopped)),
+  array['false', 'true'],
+  'a stopped game''s rating: no solve, but the seconds to the end');
 
 -- ── The checks ──────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

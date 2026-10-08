@@ -9,7 +9,8 @@
 
 import { mulberry32 } from '../../../src/common/utils/mulberry32.ts'
 import {
-  buildPuzzle, colorsOf, isPlural, MAX_POSITIVE_SPACE, poolBandFor, shapeOf, TIER_SHAPES, tierOf, type WordRow,
+  buildPuzzle, colorsOf, drawTier, isPlural, MAX_POSITIVE_SPACE, poolBandFor, shapeOf, TIER_SHAPES, tierOf,
+  type WordRow,
 } from './gen.ts'
 
 function eq(actual: unknown, expected: unknown, msg: string): void {
@@ -73,22 +74,45 @@ Deno.test('poolBandFor: two above the answer band, capped at 6, the NYT list cou
   eq(poolBandFor(6), 6, 'band 6')
 })
 
+Deno.test('drawTier: a quarter easy, a half medium, a quarter hard, by where the roll lands', () => {
+  eq(drawTier(() => 0), 'easy', '0')
+  eq(drawTier(() => 0.24), 'easy', 'just under a quarter')
+  eq(drawTier(() => 0.25), 'medium', 'a quarter')
+  eq(drawTier(() => 0.74), 'medium', 'just under three quarters')
+  eq(drawTier(() => 0.75), 'hard', 'three quarters')
+  eq(drawTier(() => 0.999), 'hard', 'the top')
+})
+
+Deno.test('buildPuzzle: "any" draws the tier first and builds that tier', () => {
+  // The same seed and words as a fixed tier give the same puzzle, once the
+  // draw is spent: the first value of this seed's stream lands in medium.
+  const seeded = mulberry32(5)
+  eq(drawTier(seeded), 'medium', 'what seed 5 draws')
+  const viaAny = buildPuzzle(WORDS, { answerBand: 0, tier: 'any', random: mulberry32(5) })
+  const viaMedium = buildPuzzle(WORDS, { answerBand: 0, tier: 'medium', random: seeded })
+  eq(JSON.stringify(viaAny), JSON.stringify(viaMedium), 'the drawn tier, then the same search')
+  eq(viaAny?.tier, 'medium', 'the tier built is the one drawn')
+})
+
 Deno.test('isPlural: needs a different root and a final s', () => {
   eq(isPlural(row('rings', 1, false, { root: 'ring' })), true, 'rings')
   eq(isPlural(row('glass', 1, true, { root: 'glass' })), false, 'glass')
   eq(isPlural(row('crane', 1, true)), false, 'crane')
 })
 
-Deno.test('buildPuzzle: unique in the pool, in a tier, and within every filter', () => {
+Deno.test('buildPuzzle: unique in the pool, in the tier asked, and within every filter', () => {
+  const TIERS = ['easy', 'medium', 'hard'] as const
   for (let seed = 1; seed <= 30; seed++) {
     const answerBand = seed % 6
-    const puzzle = buildPuzzle(WORDS, { answerBand, tier: 'any', random: mulberry32(seed) })
-    ok(puzzle !== null, `seed ${seed} band ${answerBand}: a puzzle`)
+    const asked = TIERS[seed % 3]!
+    const puzzle = buildPuzzle(WORDS, { answerBand, tier: asked, random: mulberry32(seed) })
+    ok(puzzle !== null, `seed ${seed} band ${answerBand} ${asked}: a puzzle`)
     const { starter, colors, answer, positiveSpace, tier } = puzzle!
-    const at = `seed ${seed} band ${answerBand}`
+    const at = `seed ${seed} band ${answerBand} ${asked}`
     eq(colors, colorsOf(starter, answer), `${at}: the colors are the starter scored against the answer`)
     ok(EVERY_SHAPE.has(shapeOf(colors)), `${at}: ${colors} is a tier's shape`)
-    eq(tierOf(colors), tier, `${at}: the tier is the shape's`)
+    eq(tierOf(colors), asked, `${at}: the shape is the tier asked for`)
+    eq(tier, asked, `${at}: the tier built is the tier asked for`)
     ok(positiveSpace <= MAX_POSITIVE_SPACE, `${at}: the positive-space ceiling`)
     const answerRow = BY_WORD.get(answer)!
     if (answerBand === 0) ok(answerRow.isAnswerList, `${at}: a band-0 answer is on the NYT list`)
@@ -106,10 +130,12 @@ Deno.test('buildPuzzle: unique in the pool, in a tier, and within every filter',
 Deno.test('buildPuzzle: an anagram is no puzzle — every tile colored, nothing to rule out', () => {
   // The only starters are anagrams of the only answer: all yellow, or a green and the rest yellow.
   const anagrams = [row('stare', 1, true), row('rates', 1, false), row('tares', 1, false), row('aster', 1, false)]
-  eq(buildPuzzle(anagrams, { answerBand: 0, tier: 'any', random: mulberry32(1) }), null, 'no gray, no puzzle')
-  // Beside the anagrams, the one starter with a gray (STAIR → gggxy) is the one taken.
+  for (const tier of ['easy', 'medium', 'hard'] as const) {
+    eq(buildPuzzle(anagrams, { answerBand: 0, tier, random: mulberry32(1) }), null, `${tier}: no gray, no puzzle`)
+  }
+  // Beside the anagrams, the one starter with a gray (STAIR → gggxy, easy) is the one taken.
   const withGray = [...anagrams, row('stair', 1, false)]
-  eq(buildPuzzle(withGray, { answerBand: 0, tier: 'any', random: mulberry32(1) })?.starter, 'stair', 'the starter with a gray')
+  eq(buildPuzzle(withGray, { answerBand: 0, tier: 'easy', random: mulberry32(1) })?.starter, 'stair', 'the starter with a gray')
 })
 
 Deno.test('buildPuzzle: honors the tier asked for', () => {
@@ -121,12 +147,12 @@ Deno.test('buildPuzzle: the answer band picks the answer, the NYT list at 0 and 
   // Band 5 reaches the off-list words; across seeds, one of them is drawn.
   let offList = false
   for (let seed = 1; seed <= 40 && !offList; seed++) {
-    const puzzle = buildPuzzle(WORDS, { answerBand: 5, tier: 'any', random: mulberry32(seed) })
+    const puzzle = buildPuzzle(WORDS, { answerBand: 5, tier: 'medium', random: mulberry32(seed) })
     offList = puzzle !== null && !BY_WORD.get(puzzle.answer)!.isAnswerList
   }
   ok(offList, 'band 5 draws an off-list answer')
   for (let seed = 1; seed <= 20; seed++) {
-    const puzzle = buildPuzzle(WORDS, { answerBand: 0, tier: 'any', random: mulberry32(seed) })!
+    const puzzle = buildPuzzle(WORDS, { answerBand: 0, tier: 'medium', random: mulberry32(seed) })!
     ok(BY_WORD.get(puzzle.answer)!.isAnswerList, `seed ${seed}: band 0 stays on the list`)
   }
 })
@@ -139,8 +165,11 @@ Deno.test('buildPuzzle: reproducible from its seed', () => {
 
 Deno.test('buildPuzzle: under answerAtBand, the answer is a clean non-plural word at exactly the band', () => {
   for (const band of [3, 4, 5]) {
-    const puzzle = buildPuzzle(WORDS, { answerBand: band, tier: 'any', random: mulberry32(band), answerAtBand: true })
-    ok(puzzle !== null, `band ${band}: a puzzle`)
+    // The fixture is small: take the first tier that has a puzzle at this band.
+    const puzzle = (['medium', 'easy', 'hard'] as const)
+      .map((tier) => buildPuzzle(WORDS, { answerBand: band, tier, random: mulberry32(band), answerAtBand: true }))
+      .find((p) => p !== null) ?? null
+    ok(puzzle !== null, `band ${band}: a puzzle in some tier`)
     const answer = BY_WORD.get(puzzle!.answer)!
     eq(answer.band, band, `band ${band}: the answer's band`)
     eq(answer.isAnswerList, false, `band ${band}: off the list`)
@@ -149,11 +178,11 @@ Deno.test('buildPuzzle: under answerAtBand, the answer is a clean non-plural wor
     ok(puzzle!.positiveSpace >= 1, `band ${band}: positive space counts the answer`)
   }
   // Band 6 has no word at all in the fixture.
-  eq(buildPuzzle(WORDS, { answerBand: 6, tier: 'any', random: mulberry32(1), answerAtBand: true }), null, 'band 6')
+  eq(buildPuzzle(WORDS, { answerBand: 6, tier: 'medium', random: mulberry32(1), answerAtBand: true }), null, 'band 6')
 })
 
 Deno.test('buildPuzzle: null with no answer, and null with no starter', () => {
   const obscureOnly = WORDS.filter((r) => !r.isAnswerList)
-  eq(buildPuzzle(obscureOnly, { answerBand: 0, tier: 'any', random: mulberry32(1) }), null, 'band 0 with no list word')
-  eq(buildPuzzle(obscureOnly, { answerBand: 6, tier: 'any', random: mulberry32(1) }), null, 'no word at band 2 to start from')
+  eq(buildPuzzle(obscureOnly, { answerBand: 0, tier: 'medium', random: mulberry32(1) }), null, 'band 0 with no list word')
+  eq(buildPuzzle(obscureOnly, { answerBand: 6, tier: 'medium', random: mulberry32(1) }), null, 'no word at band 2 to start from')
 })
