@@ -6,8 +6,8 @@ import {
   MODE_LABEL,
   playerCountFits,
   playerCountLabel,
-  type GameManifest,
 } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { SelectionList } from '../lists/SelectionList'
 import { CurrentGameCard } from './CurrentGameCard'
 import { ModeFilter } from './ModeFilter'
@@ -46,7 +46,7 @@ export function NewGameCol({
   onStart,
   onDelete,
 }: Props) {
-  function fitsClub(g: GameManifest) {
+  function fitsClub(g: Manifest) {
     return playerCountFits(g.numberOfPlayers, numMembers)
   }
 

@@ -1,12 +1,12 @@
 // cs-unmet
 
 import { useEffect, useRef } from 'react'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { reportUnhandled } from '../supabase/dbEnvelope'
 
 type SubmitTimeoutOnExpiryOptions = {
   gameId: string
-  manifest: GameManifest
+  manifest: Manifest
   // A countdown reached zero.
   expired: boolean
   paused: boolean

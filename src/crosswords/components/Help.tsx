@@ -5,7 +5,7 @@ import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 /**
  * crosswords' help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose, brand }>`
- * contract on GameManifest.
+ * contract on Manifest.
  */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (

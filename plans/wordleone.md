@@ -346,10 +346,9 @@ game uses, and the difficulty beside it.
 
 ## Open questions
 
-1. **The words of a miss and a reject**: the pill's text for each (the
-   outcomes are settled — red is `lost`, orange is `warning`), and the peer
-   line in coop ("guessed CRANE" says nothing about being wrong). Copy is
-   Joel's.
+1. **The words of a miss and a reject** — settled (Joel, 2026-10-07): a miss
+   reads "Not it", a teammate's "guessed CRANE — not it"; the rejects keep
+   wordle's words.
 2. **Does the answer source become a knob**, as wordle's `answer_band` is?
    The plan fixes answers to the clean NYT list, since that is what every
    NYT round draws from and it keeps the generator's "positive space" measured

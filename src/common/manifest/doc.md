@@ -8,8 +8,10 @@ The shell draws every game on the roster and names none of them. It can do that
 because
 every game exports one object saying what it is — its identity, how it presents,
 what it needs from a club, and the handful of functions the shell may call on
-its behalf — and `GameManifest` is the shape of that object. A game
-that fills it is playable; a game that stops filling it does not compile.
+its behalf. That object is an instance of a class extending `Manifest`
+(`manifest.ts`), which is also the type the shell reads it as. A coop/compete
+pair is a family class holding what the two modes share and a leaf per mode,
+each leaf created once; a game that leaves out a member does not compile.
 
 Which games exist is a separate question, and its answer is a list rather than
 a type: `src/gametypes.ts`, the one file ESLint lets import from every game
@@ -24,8 +26,9 @@ shell CALLS — starting a game, ending one, and answering a countdown that
 expired — and all three answer in the envelope every RPC answers in, because
 the shell has to branch on them without knowing which game it is holding —
 and, for starting one, so a refusal that names a setup field can land under the
-box that wrote it. `manifestRpcs.ts` builds the other two, since every game's version is the
-same closure over a different schema.
+box that wrote it. `Manifest` itself implements the other two, since every
+game's version is the same call against a different schema, and `makeLead`,
+the one helper every club line uses.
 
 The one thing this folder produces rather than describes is the **status
 line**: the second line of a game's row on the club page, written by the

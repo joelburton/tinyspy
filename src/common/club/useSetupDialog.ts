@@ -6,7 +6,7 @@ import { manifestFor } from '@/gametypes'
 import { showFaultModal } from '../faults/faultStore'
 import { ensureCanStart } from '../paw-protection/pawProtectionService'
 import { showToast } from '../toasts/toastStore'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 
 type SetupDialogOptions = {
   // The start list, which gets focus back when the dialog closes.
@@ -20,7 +20,7 @@ type SetupDialogOptions = {
 
 /** What a `?new=` link asked for: the game to open the dialog on, or why it
  *  can't be. */
-type NewGameLink = { manifest: GameManifest } | { problem: string }
+type NewGameLink = { manifest: Manifest } | { problem: string }
 
 /** Read `?new=<gametype>` and check it the way a start row is checked: the app
  *  has the game, and this club plays it. Null when the URL has no `?new=`. */
@@ -87,7 +87,7 @@ export function useSetupDialog({
   clubGametypes,
 }: SetupDialogOptions) {
   // The manifest a press chose, or null. Set by `open`, cleared by `close`.
-  const [pressed, setPressed] = useState<GameManifest | null>(null)
+  const [pressed, setPressed] = useState<Manifest | null>(null)
 
   // Read ONCE at mount: the value is a navigation intent, not live state.
   const [link] = useState(() => readNewGameLink(clubName, clubGametypes))

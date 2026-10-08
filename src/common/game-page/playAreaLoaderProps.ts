@@ -12,12 +12,12 @@ import type { CommonGame } from './shell'
  * Reach for this when writing anything inside a game's play surface: the
  * PlayArea itself takes it as props, and its children take slices of it. It is
  * the runtime half of the game/shell contract, and its declaration half is
- * `GameManifest` in `gameManifest.ts` next door — a game says what it is there,
- * and gets this back here.
+ * `Manifest` in `manifest/manifest.ts` — a game says what it is there, and
+ * gets this back here.
  *
  * **Its own module because its readers are its own.** Every file that imports
- * it is a game's own component, bar `gameManifest.ts` itself — which needs the
- * type only to say `PlayArea: ComponentType<PlayAreaLoaderProps>`. `GameManifest`'s
+ * it is a game's own component, bar `manifest.ts` itself — which needs the
+ * type only to say `PlayArea: ComponentType<PlayAreaLoaderProps>`. `Manifest`'s
  * readers are the other population: every game's manifest and the club surfaces
  * that list them, and at the split exactly one file imported both. Declaring a
  * game and playing one are different moments with different audiences.

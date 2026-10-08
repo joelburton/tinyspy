@@ -6,13 +6,13 @@ import { useCommonGame } from './useCommonGame'
 import { GamePage } from './GamePage'
 import { NoSuchGamePage } from './NoSuchGamePage'
 import type { Session } from '@supabase/supabase-js'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 
 /** What the gate hands on once the URL names a real game. */
 type Props = {
   gameId: string
   auth: Session
-  manifest: GameManifest
+  manifest: Manifest
 }
 
 /**

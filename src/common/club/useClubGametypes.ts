@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { gametypes } from '@/gametypes'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import type { ClubPageData } from './ClubPage'
 
 /** What the edit dialog sets per gametype: listed or not, and the daily cap,
@@ -15,7 +15,7 @@ export type ClubGametypes = {
   // The club's listed gametypes, by `gametype`.
   allowed: Set<string>
   // Their manifests in the start list's order: by brand, coop before compete.
-  startable: GameManifest[]
+  startable: Manifest[]
   // Every registered gametype's settings, by `gametype` — the edit dialog's
   // starting values.
   settings: Map<string, GametypeSettings>

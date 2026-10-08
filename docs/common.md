@@ -47,7 +47,9 @@ player-count range against the club's size.
 A game with a co-op and a compete mode is **two registered gametypes**
 (`wordle_coop`, `wordle_compete`), each with its own manifest, start-list row,
 saved setup defaults and URL — and **one of everything else**: one folder, one
-schema, one `create_game` taking the mode, one doc. The mode is chosen by
+schema, one `create_game` taking the mode, one doc. In code the two manifests
+are leaves of one family class, which holds what they share
+([`common/manifest`](../src/common/manifest/doc.md)). The mode is chosen by
 picking the row, not by a radio in setup, which makes both modes visible and
 lets each remember its own defaults. Removing the family removes both lines
 together.

@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@supabase/supabase-js'
 import type { Envelope } from '../supabase/envelope'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import type { ListedGame } from './useClubGames'
 
 // The registry lives in `vi.hoisted` because `vi.mock('@/gametypes')`'s factory
@@ -117,7 +117,7 @@ const ENROLLED = [
 ]
 
 /** A listed game, as `useClubGames` would have built it. */
-function listed(over: Partial<ListedGame> & { gameId: string; manifest: GameManifest }): ListedGame {
+function listed(over: Partial<ListedGame> & { gameId: string; manifest: Manifest }): ListedGame {
   return {
     title: `Game ${over.gameId}`,
     statusChangedAt: '2026-09-01T00:00:00Z',
@@ -188,9 +188,9 @@ describe('ClubPage — the two lists', () => {
     clubGames.current = {
       games: [
         listed({
-          gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha', isCurrent: true,
+          gameId: 'g1', manifest: WORDLE as unknown as Manifest, title: 'Alpha', isCurrent: true,
         }),
-        listed({ gameId: 'g2', manifest: SYRUP as unknown as GameManifest, title: 'Beta' }),
+        listed({ gameId: 'g2', manifest: SYRUP as unknown as Manifest, title: 'Beta' }),
       ],
       currentGameId: 'g1',
       hasReadFailed: false,
@@ -216,8 +216,8 @@ describe('ClubPage — each filter reaches one list', () => {
   beforeEach(() => {
     clubGames.current = {
       games: [
-        listed({ gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha' }),
-        listed({ gameId: 'g2', manifest: SYRUP as unknown as GameManifest, title: 'Beta' }),
+        listed({ gameId: 'g1', manifest: WORDLE as unknown as Manifest, title: 'Alpha' }),
+        listed({ gameId: 'g2', manifest: SYRUP as unknown as Manifest, title: 'Beta' }),
       ],
       currentGameId: null,
       hasReadFailed: false,
@@ -310,7 +310,7 @@ describe('ClubPage — what a delete answer puts on screen', () => {
 
   beforeEach(() => {
     clubGames.current = {
-      games: [listed({ gameId: 'g1', manifest: WORDLE as unknown as GameManifest, title: 'Alpha' })],
+      games: [listed({ gameId: 'g1', manifest: WORDLE as unknown as Manifest, title: 'Alpha' })],
       currentGameId: null,
       hasReadFailed: false,
     }

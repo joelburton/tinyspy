@@ -5,7 +5,7 @@ import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 /**
  * boggle's help / rules modal — opened from the "Help" item in the GamePage
  * menu. Implements the `help: ComponentType<{ onClose }>` contract on
- * GameManifest. The frame (panel + title + Got-it) is the shared `<GameHelpCompanion>`;
+ * Manifest. The frame (panel + title + Got-it) is the shared `<GameHelpCompanion>`;
  * this is just the rules copy.
  */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {

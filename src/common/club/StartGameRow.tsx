@@ -1,12 +1,12 @@
 // cs-blessed-club-page
 
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { playerCountShort } from '../manifest/gameManifest'
 import { GameEntry } from './GameEntry'
 
 type Props = {
   // The gametype this row offers.
-  game: GameManifest
+  game: Manifest
   // Whether this is a solo club. Suppresses the "Co-op" badge and the player
   // count — both are noise when there's only one member and every game there
   // is played by them.

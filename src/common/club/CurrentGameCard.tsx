@@ -1,6 +1,6 @@
 // cs-blessed-club-page
 
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { Link } from '../routing/Link'
 import { gamePath } from '../routing/routes'
 import { friendlyDate } from '../utils/friendlyDate'
@@ -13,7 +13,7 @@ type Props = {
   gameId: string
   // The gametype's manifest — drives the routing target, the logo and the mode
   // badge. `useClubGames` resolves it when it builds the row.
-  manifest: GameManifest
+  manifest: Manifest
   // The algorithmic per-game title, from `common.games.title` — `not null`
   // there.
   title: string

@@ -15,8 +15,8 @@ import type { Member } from '../members/member'
  * and `GameSetupForm` is the object your manifest's `setupForm` must be.
  *
  * **`CreatedGame` is deliberately NOT here** even though it reads like setup.
- * It stays in `manifest/gameManifest.ts` beside `GameManifest.startGameInClub`,
- * the interface it satisfies, so the two cannot drift.
+ * It stays in `manifest/gameManifest.ts`, beside `Manifest` (whose
+ * `startGameInClub` answers with it), so the two cannot drift.
  *
  * **`SetupBodyProps.errors` is the form layer's `FormErrors`, on purpose.**
  * Every setup is a form, so a setup body's errors are a form's errors: one
@@ -36,8 +36,8 @@ export type SetupSetter<V> = <K extends keyof V>(name: K, value: V[K]) => void
  * wrapper. **Controlled**: state lives in the wrapper, the body renders
  * `values` and signals edits via `set`.
  *
- * `values` and `set` are `unknown`-typed here so `GameManifest` can stay
- * non-generic (the registry holds `GameManifest[]`, which can't carry per-game
+ * `values` and `set` are `unknown`-typed here so `Manifest` can stay
+ * non-generic (the registry holds `Manifest[]`, which can't carry per-game
  * type parameters). Each game's setup component casts once at the top and is
  * fully typed inside.
  */

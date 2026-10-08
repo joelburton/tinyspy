@@ -1,13 +1,13 @@
 // cs-blessed-branding
 
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import styles from './GameLogo.module.css'
 
 type Props = {
   /** The game whose logo to draw. Every caller already holds the manifest —
    *  taking the gametype string instead would mean looking it up a second
    *  time, and carrying a not-found branch none of them can reach. */
-  manifest: GameManifest
+  manifest: Manifest
 }
 
 /**

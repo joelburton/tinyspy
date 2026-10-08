@@ -10,7 +10,7 @@ type Props = {
 /**
  * stackdown's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
- * contract on GameManifest.
+ * contract on Manifest.
  */
 export function Help({ onClose, brand }: Props) {
   return (

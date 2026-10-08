@@ -6,7 +6,7 @@ import { useAction } from '../actions/actionsStore'
 import { askConfirmation } from '../floating-panels/confirmationService'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/feedbackSlotStore'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { setGameMenuSections } from '../menu/gameMenuStore'
 import type { MenuApi } from '../menu/menuModel'
 import { registerPawSubject } from '../paw-protection/pawProtectionService'
@@ -18,7 +18,7 @@ import type { GamePause } from '../pause-suspend/pause'
 import type { CommonGame } from './shell'
 
 type PageActionsOptions = {
-  manifest: GameManifest
+  manifest: Manifest
   cg: CommonGame
   pause: GamePause
   // Shelve the game and send every peer to the club page.

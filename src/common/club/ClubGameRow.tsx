@@ -1,6 +1,6 @@
 // cs-blessed-club-page
 
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { friendlyDate } from '../utils/friendlyDate'
 import { GameEntry, type ClubGameState } from './GameEntry'
 import { ClubGameDeleteButton } from './ClubGameDeleteButton'
@@ -8,7 +8,7 @@ import { ClubGameDeleteButton } from './ClubGameDeleteButton'
 type Props = {
   // The gametype's manifest — drives the logo and the mode badge.
   // `useClubGames` resolves it when it builds the row.
-  manifest: GameManifest
+  manifest: Manifest
   // The algorithmic per-game title, from `common.games.title` — `not null`
   // there.
   title: string

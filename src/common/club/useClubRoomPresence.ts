@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { useMemo } from 'react'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import type { Member } from '../members/member'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
@@ -14,7 +14,7 @@ type ClubRoomPresenceOptions = {
   // The `is_current_view` game's id, or null.
   currentGameId: string | null
   // The game my setup dialog is open on, or null.
-  setupManifest: GameManifest | null
+  setupManifest: Manifest | null
 }
 
 /**

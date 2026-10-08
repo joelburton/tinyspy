@@ -19,7 +19,7 @@ import { useEffect } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { type Action } from '../actions/useBindAction'
 import { getActions } from '../actions/actionsStore'
 import type { ActionId } from '../actions/registry'
@@ -100,7 +100,7 @@ const ENDED_OK = {
  *  assert it fired, and `PlayArea` draws a word the mounting tests look for —
  *  the shell builds the play surface off the manifest, so this IS how a test
  *  sees that the surface is up. */
-function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
+function makeManifest(over: Partial<Manifest> = {}): Manifest {
   return {
     gametype: 'psychicnum_coop',
     schema: 'psychicnum',
@@ -120,7 +120,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     submitTimeout: vi.fn(),
     stopGame: vi.fn(async () => ENDED_OK),
     ...over,
-  }
+  } as Manifest
 }
 
 type CommonGameState = ReturnType<typeof useCommonGame>

@@ -19,7 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SetupGameModal } from './SetupGameModal'
 import { PlayersSection } from './PlayersSection'
 import { NumberField } from '../fields/NumberField'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import type { Member } from '../members/member'
 import type { SetupBodyProps } from './setupForm'
 import { errorUnder, formError } from '../fields/errorUnder'
@@ -60,19 +60,19 @@ function Body({ values, set, members, myId, numberOfPlayers, errors }: SetupBody
 const startGameInClub = vi.fn()
 const validate = vi.fn<(setup: unknown, playerCount: number) => FormErrors>(() => ({}))
 
-function manifest(over: Partial<GameManifest> = {}): GameManifest {
+function manifest(over: Partial<Manifest> = {}): Manifest {
   return {
     name: 'PsychicNum',
     mode: 'coop',
     numberOfPlayers: [1, 4],
     startGameInClub,
-    help: (() => null) as unknown as GameManifest['help'],
+    help: (() => null) as unknown as Manifest['help'],
     setupForm: { Component: Body, defaults: { guesses: 7 }, validate },
     ...over,
-  } as GameManifest
+  } as Manifest
 }
 
-function draw(over: Partial<GameManifest> = {}, savedDefault?: unknown, soloClub = false) {
+function draw(over: Partial<Manifest> = {}, savedDefault?: unknown, soloClub = false) {
   const onStarted = vi.fn()
   render(
     <SetupGameModal

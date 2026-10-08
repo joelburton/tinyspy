@@ -9,7 +9,7 @@ type Props = {
 
 /**
  * psychicnum's help / rules modal — opened from the "Help" item
- * in the GamePage menu. Implements `GameManifest.help`.
+ * in the GamePage menu. Implements `Manifest.help`.
  *
  * The two assists are named apart here because they are the pair
  * this game is easiest to get wrong about: a hint gives the clue, a

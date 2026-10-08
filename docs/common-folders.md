@@ -351,7 +351,7 @@ from everyone else.
   (its job is "the common game," realtime is the mechanism).
 - **`GameLogo`** → `branding/` with the app logo. It's a logo (rendered in the
   game header AND on club cards), grouped with `PuzpuzpuzLogo` by that shape.
-- **`gameManifest.ts` and `playAreaLoaderProps.ts`** are THE contract a game is written
+- **`manifest.ts` and `playAreaLoaderProps.ts`** are THE contract a game is written
   against, so they keep dead-obvious paths: the manifest in `manifest/`, the
   context in `game-page/` with the page that builds it. The manifest LIST is
   `src/gametypes.ts` — the one file allowed to import games.

@@ -1,7 +1,7 @@
 // cs-blessed-club-page
 
 import type { ReactNode } from 'react'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { cls } from '../utils/cls'
 import { GameLogo } from '../branding/GameLogo'
 import { ModeBadge } from './ModeBadge'
@@ -19,7 +19,7 @@ export type ClubGameState = 'current' | 'suspended' | 'completed'
 
 type Props = {
   // Drives the logo and the mode badge. Every caller has one in hand.
-  manifest: GameManifest
+  manifest: Manifest
   // The prominent first line — a gametype's name on the start list, a game's
   // generated title everywhere else. Always present: `common.games.title` is
   // `not null`, and `useClubGames` builds every row from one.

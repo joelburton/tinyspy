@@ -19,7 +19,7 @@ type Props = {
 /**
  * The badge labeling a gametype's interaction mode — "Co-op" or "Compete".
  *
- * Mode lives on the manifest (`GameManifest.mode`) rather than in the
+ * Mode lives on the manifest (`Manifest.mode`) rather than in the
  * gametype's display name, and this badge is how it reaches the player: it
  * goes beside that name wherever the name appears. So a coop + compete
  * sibling pair reads as one name told apart by its badge.

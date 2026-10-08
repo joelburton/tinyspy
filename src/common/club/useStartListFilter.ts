@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { useStickyChoice } from '../web-storage/useStickyChoice'
 import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 
@@ -9,7 +9,7 @@ export type StartListFilter = {
   mode: ModeFilterValue
   setMode: (mode: ModeFilterValue) => void
   // The startable gametypes the mode leaves, in the same order.
-  visible: GameManifest[]
+  visible: Manifest[]
 }
 
 /**
@@ -24,7 +24,7 @@ export type StartListFilter = {
 export function useStartListFilter(
   myId: string,
   soloClub: boolean,
-  startable: GameManifest[],
+  startable: Manifest[],
 ): StartListFilter {
   const [storedMode, setMode] = useStickyChoice<ModeFilterValue>(
     `puzpuzpuz:club:modeFilter:${myId}`,

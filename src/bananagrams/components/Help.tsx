@@ -10,7 +10,7 @@ type Props = {
 /**
  * bananagrams's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the common `help: ComponentType<{ onClose }>`
- * contract on `GameManifest`.
+ * contract on `Manifest`.
  */
 export function Help({ onClose, brand }: Props) {
   return (

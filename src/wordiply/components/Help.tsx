@@ -9,7 +9,7 @@ type Props = {
 
 /**
  * wordiply's help / rules modal — opened from the "Help" item in the
- * GamePage menu. Implements the common `help` contract on `GameManifest`.
+ * GamePage menu. Implements the common `help` contract on `Manifest`.
  */
 export function Help({ onClose, brand }: Props) {
   return (

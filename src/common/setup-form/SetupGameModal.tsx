@@ -1,7 +1,8 @@
 // cs-blessed-setup-form
 
 import { Suspense, useCallback, useState } from 'react'
-import { MODE_LABEL, type GameManifest } from '../manifest/gameManifest'
+import { MODE_LABEL } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { type Member } from '../members/member'
 import { NormalModal } from '../floating-panels/NormalModal'
 import { ActionButton } from '../actions/ActionButton'
@@ -19,7 +20,7 @@ import { reportUnhandled } from '../supabase/dbEnvelope'
 type Props = {
   // Manifest of the game being set up. The dialog renders its lazy setup body
   // and calls `startGameInClub` on submit.
-  manifest: GameManifest
+  manifest: Manifest
   // Club members — forwarded to per-game forms for member-aware UI.
   members: Member[]
   // The creating user. Always a player — their checkbox in the picker is locked

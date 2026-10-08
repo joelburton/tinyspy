@@ -1,6 +1,6 @@
 // cs-blessed-manifest
 
-import type { GameManifest } from './common/manifest/gameManifest'
+import type { Manifest } from './common/manifest/manifest'
 import { codenamesduetManifest } from './codenamesduet/manifest'
 import {
   psychicnumCoopManifest,
@@ -59,7 +59,7 @@ import { setgameCoopManifest, setgameCompeteManifest } from './setgame/manifest'
  *   - **Nothing a PLAYER sees comes from this order**: the club page's lists
  *     sort for themselves.
  */
-export const gametypes: GameManifest[] = [
+export const gametypes: Manifest[] = [
   codenamesduetManifest,
   psychicnumCoopManifest,
   psychicnumCompeteManifest,
@@ -105,6 +105,6 @@ export const gametypes: GameManifest[] = [
  * `reportUnknownGametypes` says so), or another manifest (impossible, so it
  * faults). A helper that picked one answer would be wrong at the other two.
  */
-export function manifestFor(gametype: string): GameManifest | undefined {
+export function manifestFor(gametype: string): Manifest | undefined {
   return gametypes.find((g) => g.gametype === gametype)
 }

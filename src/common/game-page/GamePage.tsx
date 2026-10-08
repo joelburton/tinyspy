@@ -7,7 +7,7 @@ import { useIsMobile } from '../mobile/useIsMobile'
 import { setIsInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import type { useCommonGame } from './useCommonGame'
 import type { Session } from '@supabase/supabase-js'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import { usePageActions } from './usePageActions'
 import { useClubWhileInGame } from './useClubWhileInGame'
 import { useSubmitTimeoutOnExpiry } from './useSubmitTimeoutOnExpiry'
@@ -33,7 +33,7 @@ type LoadedCommonGame = Omit<ReturnType<typeof useCommonGame>, 'cg' | 'loading' 
 }
 
 type Props = LoadedCommonGame & {
-  manifest: GameManifest
+  manifest: Manifest
   auth: Session
 }
 

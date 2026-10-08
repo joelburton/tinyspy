@@ -149,7 +149,7 @@ game is next touched, never piecemeal within one game.
 
 **A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases
 of generated `Database[…]['Row']` types); a TS-native shape takes whatever names
-its role (`ClubListEntry`, `PlayAreaLoaderProps`, `GameManifest`). A snake_case type
+its role (`ClubListEntry`, `PlayAreaLoaderProps`, `Manifest`). A snake_case type
 without `Row` invites readers to forget they are touching schema-bound data.
 
 | kind | convention | examples |
@@ -653,9 +653,10 @@ A family of gametypes that share a schema, folder and docs
 ([common.md → The sibling-manifest
 pattern](common.md#the-sibling-manifest-pattern)):
 
-- **Each sibling is its own `GameManifest` export** from the same
-  `src/<base>/manifest.ts`, built by a factory where the fields are
-  near-identical.
+- **Each sibling is its own manifest export** from the same
+  `src/<base>/manifest.ts`: a family class holds what the siblings share, and
+  each sibling is a leaf class created once (`Manifest`'s docstring has the
+  shape).
 - **One `<base>.games.mode` column**, `check (mode in ('coop', 'compete'))`,
   denormalized at create time; RLS reads it rather than joining to
   `common.games.gametype`.

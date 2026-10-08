@@ -8,7 +8,7 @@ import { supabase } from '../supabase/supabase'
 import { channelLeaving, releaseChannel } from '../realtime/channelTeardown'
 import { manifestFor } from '@/gametypes'
 import { reportUnknownGametypes } from '../manifest/unknownGametype'
-import type { GameManifest } from '../manifest/gameManifest'
+import type { Manifest } from '../manifest/manifest'
 import type { SummaryData } from '../manifest/summaryData'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { FeedbackSlot } from '../feedback/useFeedbackSlot'
@@ -29,7 +29,7 @@ export type ListedGame = {
   // The gametype's manifest, resolved once when the row is built — a gametype
   // this FE doesn't know never becomes a `ListedGame`, so everything downstream
   // takes it as given instead of looking it up again.
-  manifest: GameManifest
+  manifest: Manifest
   title: string
   // When the game's status last changed: a create, a Restart, a move or the
   // end. The card dates by it and the list orders by it, so a long-suspended
