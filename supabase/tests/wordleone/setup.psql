@@ -11,7 +11,7 @@
 -- tests hand create_game one fixed puzzle instead, so every game's answer is
 -- known without reading the hidden column:
 --
---   starter SIEVE, colors yxyyg, answer VERSE
+--   starter SIEVE, colors yxyyg, answer VERSE — the medium tier (1g3y1x)
 --
 -- VERSE is the only word in the whole of common.words that makes those colors
 -- against SIEVE, so the puzzle is unique at every band, and VERSE is band 1,
@@ -31,7 +31,7 @@ create function pg_temp.wordleone_puzzle()
 returns jsonb
 language sql
 as $$
-  select '{"starter": "sieve", "colors": "yxyyg", "answer": "verse"}'::jsonb;
+  select '{"starter": "sieve", "colors": "yxyyg", "answer": "verse", "tier": "medium"}'::jsonb;
 $$;
 
 create function pg_temp.wordleone_setup(answer_band int default 0)

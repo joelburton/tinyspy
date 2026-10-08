@@ -21,14 +21,16 @@ puzzle is lives in the generator alone, so the printable sheet
 
 A guess comes back one of four ways. The starter or a word already guessed is
 a duplicate, and a word outside the legal band is not a word: both cost
-nothing and shake the typed row as wordle's do — a duplicate orange, a
-non-word red. A duplicate writes nothing; a non-word is logged, so the players
+nothing and shake the typed row amber, as wordle's duplicate does (Joel,
+2026-10-08: both refusals the warning; wordle's non-word is red). A duplicate
+writes nothing; a non-word is logged, so the players
 can see what was tried, but counts no miss and keeps the turn. A legal wrong
 word is a miss: logged with no colors, counted, and shaken red. Every one of
 the three clears the typed row once its shake ends. The answer solves, and its
 all-green row lands under the starter. Guesses are unlimited, so the board is
 two rows — the starter and the row the guess is typed into — and every miss
-and non-word lives in the event log, drawn uncolored.
+and non-word lives in the event log, drawn uncolored with the kind of wrong
+after it: "not it", "not word".
 
 Once a game has ended, a short survey takes the keyboard's place — how hard
 it felt, what band the answer should be in beside the band it has, how long
@@ -235,10 +237,10 @@ reads the page blobs.
 
 | table | holds |
 |---|---|
-| `wordleone.games` | one row per game, keyed `game_id` to `common.games`: `starter`, `starter_colors`, `target` (the column grant leaves it out), `legal_band` (derived from the setup's answer band at create, so `submit_guess` reads it off the row it locks), `difficulty`, and the generator's `positive_space` and `load_bearing` (for the survey) |
+| `wordleone.games` | one row per game, keyed `game_id` to `common.games`: `starter`, `starter_colors`, `target` (the column grant leaves it out), `legal_band` (derived from the setup's answer band at create, so `submit_guess` reads it off the row it locks), `difficulty` (what the setup asked for, "any" among them), `tier` (what the generator built — easy, medium or hard — kept because the shapes a tier allows move, and a puzzle's tier at the time would otherwise be lost; Joel, 2026-10-08), and the generator's `positive_space` and `load_bearing` (for the survey) |
 | `wordleone.players` | one row per player: `n_misses`, their own in both modes. A solve is `common.game_players.solved_at` |
 | `wordleone.events` | the guess log: `word`, `colors`, `verdict` (`correct` · `miss` · `not_a_word`) and `is_correct` worked out from it; `kind` `guess`; `took_turn` true but for a non-word. `colors` is `ggggg` for the solve and null otherwise, a check holding the two together |
-| `wordleone.ratings` | the temporary survey's rows: the puzzle, the answer's band then (`answer_band`) and the generator's view copied, what the player said (`suggested_band` among it), and their play — `solved_at`, the seconds from start to solve (an un-restarted game), misses, guesses logged. No grant: psql reads it. A printout's row has no game or user |
+| `wordleone.ratings` | the temporary survey's rows: the puzzle, the answer's band then (`answer_band`), the tier asked (`difficulty_asked`) and built (`tier`) and the generator's view copied, what the player said (`suggested_band` among it), and their play — `solved_at`, the seconds from start to solve (an un-restarted game), misses, guesses logged. No grant: psql reads it. A printout's row has no game or user |
 
 **The page blobs**, written by `wordleone._rebuild_data_cols` at create,
 Restart and every move:
@@ -298,11 +300,12 @@ an empty row cannot be submitted. Everything else is the server's.
 | `miss` / `miss_peer` | me / a coop teammate | `Not it` / `guessed CRANE — not it` | `lost` | shakes, then clears |
 | `solved_peer` | about a compete opponent | `solved it` | `won` | |
 | `duplicate` | me | `Already guessed` | `warning` | shakes, then clears |
-| `not_a_word` / `not_a_word_peer` | me / a coop teammate | `Not in word list` / `tried ZZZZZ — not a word` | `lost` / `warning` | shakes, then clears |
+| `not_a_word` / `not_a_word_peer` | me / a coop teammate | `Not in word list` / `tried ZZZZZ — not a word` | `warning` | shakes, then clears |
 | `too_short` | me | `Not enough letters` | `warning` | stays |
 
-The log draws a non-word with the warning bar: it is there to be seen, not
-counted.
+The log draws a non-word with the warning bar, the color its pill wore (Joel,
+2026-10-08: the two refusals are amber, the miss alone red). It is there to
+be seen, not counted.
 
 A refusal the server never judged the word for — not your turn, a race with
 the game's end — rings in the envelope's outcome and keeps the word. Start and
@@ -331,7 +334,9 @@ What is wordleone's own:
   only what was earned.
 - **`#N` replays a turn as the starter and that word**: a miss as it looked
   before it was sent, uncolored and unringed; the solve ringed.
-- **The log draws a miss uncolored** (`.unjudged`), the look of a typed tile.
+- **The log draws a miss uncolored** (`.unjudged`), the look of a typed tile,
+  and says the kind of wrong after the squares — "not it", "not word" —
+  nothing after the solve (`eventToLabel`).
 - **The setup** is the answer band — wordle's Answer source control, "0:
   Wordle" or a band — and the difficulty, named by tier alone, beside coop
   pacing and the timer. The setup rows show the answer band; the legal band

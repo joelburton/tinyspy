@@ -11,6 +11,21 @@
   gap: 0.15rem;
 }
 
+/* The kind of wrong after the squares — "not it", "not word" — inside the
+ * squares' own cell, so the table's columns never move as the words change,
+ * bold and in the ink of the row's outcome (the bar's family, on the page). */
+/* @@ */ .verdict {
+  margin-left: 0.5rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* @@ */ .lost {
+  color: var(--outcomes-lost-ink-color);
+}
+/* @@ */ .warning {
+  color: var(--outcomes-warning-ink-color);
+}
+
 /* The guess is one definable word, so it wears the same hover underline as
  * every other — but drawn here rather than by `.definable`'s `text-decoration`,
  * which paints beneath the squares' own backgrounds and so never shows. A

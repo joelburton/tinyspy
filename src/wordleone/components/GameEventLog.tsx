@@ -12,7 +12,7 @@ import {
   EventLogNumber,
 } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
-import { eventToOutcome } from '../lib/answer'
+import { eventToLabel, eventToOutcome } from '../lib/answer'
 import { getTileColor } from '../lib/colors'
 import type { Member } from '@/common/members/member'
 import styles from './GameEventLog.module.css'
@@ -35,8 +35,9 @@ type Props = {
 /**
  * wordleone's event log: its guesses in the shared `<EventLog>` table, one row
  * each — the outcome bar (`lib/answer.ts`'s: green on the solve, red on a
- * miss), the number, the guess as five squares — all green for the solve,
- * uncolored for a miss, which judged nothing — and who guessed it.
+ * miss or a non-word), the number, the guess as five squares — all green for
+ * the solve, uncolored for a miss or a non-word, which judged nothing — the
+ * kind of wrong after them ("not it", "not word"), and who guessed it.
  *
  * Whose guesses show is the shared `useEventLogPlayerPicker`'s: "Team" or each
  * player. In compete an opponent's rows are withheld until the game ends
@@ -97,13 +98,29 @@ export function GameEventLog({
     )
   }
 
+  // The kind of wrong, after the squares in the same cell — not a column of
+  // its own, so the table never reflows as the words change — in the ink of
+  // the row's outcome. Nothing after the solve.
+  function drawVerdict(guess: GEvent) {
+    const label = eventToLabel(guess)
+    if (label === '') return null
+    return (
+      <span className={cls(styles.verdict, styles[eventToOutcome(guess)])}>
+        {label}
+      </span>
+    )
+  }
+
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shownGuesses}>
       {shownGuesses.map((guess, index) => (
         <tr key={guess.id} className={gameEventLog.divider}>
           <EventLogOutcomeBar outcome={eventToOutcome(guess)} />
           {drawTurnNumber(guess, index)}
-          <td className={gameEventLog.main}>{drawGuessSquares(guess)}</td>
+          <td className={gameEventLog.main}>
+            {drawGuessSquares(guess)}
+            {drawVerdict(guess)}
+          </td>
           <EventLogActor actor={guess.by} />
         </tr>
       ))}

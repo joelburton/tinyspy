@@ -47,11 +47,11 @@ select pg_temp.envelope_is(
 reset role;
 select is(
   (select array[user_id::text, game_id::text, starter::text, starter_colors::text, answer::text,
-                legal_band::text, difficulty_asked, greens::text, positive_space::text, load_bearing::text]
+                legal_band::text, difficulty_asked, tier, greens::text, positive_space::text, load_bearing::text]
      from wordleone.ratings where user_id = 'ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111', (select id from g)::text, 'sieve', 'yxyyg', 'verse',
-        '4', 'medium', '1', '2', '3'],
-  'the puzzle and the generator''s view are copied from the game');
+        '4', 'medium', 'medium', '1', '2', '3'],
+  'the puzzle, the tier built and the generator''s view are copied from the game');
 select is(
   (select array[rated_difficulty::text, suggested_band::text, seconds_reported::text, comment]
      from wordleone.ratings where user_id = 'ada11111-1111-1111-1111-111111111111'),

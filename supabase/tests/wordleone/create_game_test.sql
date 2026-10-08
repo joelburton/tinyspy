@@ -13,7 +13,7 @@ set search_path = wordleone, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(25);
+select plan(27);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -33,10 +33,10 @@ select pg_temp.envelope_is(
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
   'the answer names itself, so a call site has a case to assert');
 select is(
-  (select array[starter::text, starter_colors::text, target::text, legal_band::text, difficulty]
+  (select array[starter::text, starter_colors::text, target::text, legal_band::text, difficulty, tier]
      from wordleone.games where game_id = (select id from g)),
-  array['sieve', 'yxyyg', 'verse', '4', 'medium'],
-  'the puzzle and the setup are stored on the games row, the legal band derived: the NYT list (0) counts as 2, plus two');
+  array['sieve', 'yxyyg', 'verse', '4', 'medium', 'medium'],
+  'the puzzle, the setup and the tier built are stored on the games row, the legal band derived: the NYT list (0) counts as 2, plus two');
 select is(
   (select count(*) from wordleone.players
     where game_id = (select id from g) and n_misses = 0),
@@ -152,6 +152,20 @@ select pg_temp.envelope_is(
     '{"starter": "verse", "colors": "ggggg", "answer": "verse"}'::jsonb),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN522"}'::jsonb,
   'a starter that is the answer is a fault');
+select pg_temp.envelope_is(
+  wordleone.create_game(
+    (select handle from club), pg_temp.wordleone_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+    pg_temp.wordleone_puzzle() - 'tier'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN542"}'::jsonb,
+  'a puzzle with no tier is a fault');
+select pg_temp.envelope_is(
+  wordleone.create_game(
+    (select handle from club), pg_temp.wordleone_setup(),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+    pg_temp.wordleone_puzzle() || '{"tier": "brutal"}'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN542"}'::jsonb,
+  'a tier outside the three is the same fault');
 select pg_temp.envelope_is(
   wordleone.create_game(
     (select handle from club), pg_temp.wordleone_setup(),

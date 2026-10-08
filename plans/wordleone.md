@@ -93,9 +93,10 @@ No `resource_exhausted` row: nothing runs out.
    guessing what is shared, and edits blessed wordle files mid-audit.
 9. **Brand WordNerdier, codename `wordleone`.**
 10. **Scheduled** (2026-10-07).
-11. **A miss shakes red; a soft reject shakes as wordle's does** (amended
-    2026-10-07 — "keep this in sync with wordle": a duplicate orange, a
-    non-word red). **A miss leaves the word
+11. **A miss shakes red; a soft reject shakes amber** (amended 2026-10-07 —
+    "keep this in sync with wordle": a duplicate orange, a non-word red; and
+    again 2026-10-08: the non-word is the warning too, pill and log row
+    alike, so only the miss is red). **A miss leaves the word
     uncolored** — the look of a wordle row before it is scored — on the board
     and in the log. So `events.colors` is null for a miss.
 12. **The first step is a printable sheet of generated puzzles**, to try by
@@ -409,7 +410,9 @@ and the logged non-words stay.
 - **The row**, besides those four: the puzzle (starter, colors, answer, legal
   band, and the answer's own band in the word list then — copied, since a band
   can move);
-  the generator's view (the tier asked, the green count, positive space and
+  the generator's view (the tier asked and the tier built — kept apart since
+  2026-10-08, as "any" asks for nothing and the shapes move; the green count,
+  positive space and
   load-bearing tiles, kept on `wordleone.games` since migration
   20261007000007); and the caller's play from the server — when they solved
   (solved means never revealed, since Reveal opens only at the end), the

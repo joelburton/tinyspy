@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest'
 import type { GAnswer } from '../types'
-import { answerMessage, eventToOutcome, peerAnswerMessage } from './answer'
+import { answerMessage, eventToLabel, eventToOutcome, peerAnswerMessage } from './answer'
 
 /**
  * wordleone's one presentation decision, both halves.
@@ -27,8 +27,8 @@ describe('answerMessage', () => {
     [{ answerType: 'miss_peer', guess: 'crane' }, 'lost', 'guessed CRANE — not it'],
     [{ answerType: 'solved_peer' }, 'won', 'solved it'],
     [{ answerType: 'duplicate' }, 'warning', 'Already guessed'],
-    // Red beside the amber duplicate, as wordle's — the reason is in answer.ts.
-    [{ answerType: 'not_a_word' }, 'lost', 'Not in word list'],
+    // Amber like the duplicate: refused, and free.
+    [{ answerType: 'not_a_word' }, 'warning', 'Not in word list'],
     // A teammate's, now logged: the warning, since it costs nothing.
     [{ answerType: 'not_a_word_peer', guess: 'zzzzz' }, 'warning', 'tried ZZZZZ — not a word'],
     [{ answerType: 'too_short' }, 'warning', 'Not enough letters'],
@@ -52,10 +52,18 @@ describe('answerMessage', () => {
 })
 
 describe('eventToOutcome and peerAnswerMessage', () => {
-  it('reads a row as its outcome: the solve won, a miss lost, a logged non-word a warning', () => {
+  it('reads a row as its outcome: the solve won, a miss lost, a logged non-word the warning its pill wore', () => {
     expect(eventToOutcome({ verdict: 'correct', word: 'verse' })).toBe('won')
     expect(eventToOutcome({ verdict: 'miss', word: 'crane' })).toBe('lost')
     expect(eventToOutcome({ verdict: 'not_a_word', word: 'zzzzz' })).toBe('warning')
+    expect(eventToOutcome({ verdict: 'not_a_word', word: 'zzzzz' }))
+      .toBe(answerMessage({ answerType: 'not_a_word' }).outcome)
+  })
+
+  it('names the kind of wrong after a row: nothing for the solve, "not it" for a miss, "not word" for a non-word', () => {
+    expect(eventToLabel({ verdict: 'correct', word: 'verse' })).toBe('')
+    expect(eventToLabel({ verdict: 'miss', word: 'crane' })).toBe('not it')
+    expect(eventToLabel({ verdict: 'not_a_word', word: 'zzzzz' })).toBe('not word')
   })
 
   it('gives a peer row the twin words and the same color', () => {

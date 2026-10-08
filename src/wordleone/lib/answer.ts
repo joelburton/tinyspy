@@ -33,11 +33,10 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
 
     case 'duplicate':
       return { outcome: 'warning', text: 'Already guessed' }
-    // Red where the duplicate is amber, though both cost nothing: a duplicate
-    // is a move refused for form — the word exists, it is just already there —
-    // while a non-word is a wrong answer of its own kind.
+    // Amber like the duplicate: both are refused, and both cost nothing
+    // (Joel, 2026-10-08). The miss alone is red: it was a wrong answer.
     case 'not_a_word':
-      return { outcome: 'lost', text: 'Not in word list' }
+      return { outcome: 'warning', text: 'Not in word list' }
     // Logged now, so a teammate's can be said — and in the warning, not the
     // loss: it costs nothing, and nobody should feel it counted against them.
     case 'not_a_word_peer':
@@ -57,8 +56,9 @@ type LoggedGuess = { verdict: GVerdict; word: string }
 
 /**
  * What COLOR a logged row is — for the event log, which writes its own words
- * (the guess is five squares there, not a sentence). A logged non-word wears
- * the warning: it is in the log to be seen, not counted.
+ * (the guess is five squares there, not a sentence). Every row wears the
+ * color its own pill wore, so a logged non-word is amber, as the pill that
+ * refused it was (Joel, 2026-10-08).
  */
 export function eventToOutcome(row: LoggedGuess): Outcome {
   switch (row.verdict) {
@@ -67,8 +67,23 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
     case 'miss':
       return answerMessage({ answerType: 'miss' }).outcome
     case 'not_a_word':
-      return answerMessage(
-        { answerType: 'not_a_word_peer', guess: row.word }).outcome
+      return answerMessage({ answerType: 'not_a_word' }).outcome
+  }
+}
+
+/**
+ * The word after a logged row's five squares, saying which kind of wrong it
+ * was — "not it" for a miss, "not word" for a non-word (Joel, 2026-10-08) —
+ * and nothing after the solve, whose green squares say it all.
+ */
+export function eventToLabel(row: LoggedGuess): string {
+  switch (row.verdict) {
+    case 'correct':
+      return ''
+    case 'miss':
+      return 'not it'
+    case 'not_a_word':
+      return 'not word'
   }
 }
 

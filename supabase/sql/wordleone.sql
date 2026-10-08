@@ -472,10 +472,12 @@ revoke execute on function wordleone._rebuild_data_cols_for_all() from public;
 -- wordleone.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode, p_board)
 -- ============================================================
 -- Called by the `wordleone-build-board` edge function, as the player, with the
--- puzzle it built: `p_board` is {starter, colors, answer}, and the generator's
--- scores {positive_space, load_bearing}, which are kept as given. The parameter is
--- `p_board` because the shared `invokeCreateGame` passes every build-board
--- game's puzzle under that name.
+-- puzzle it built: `p_board` is {starter, colors, answer}, the tier it was
+-- built to {tier: easy | medium | hard} — kept beside the setup's `difficulty`,
+-- which may have asked for "any", so the tier at the time survives a change
+-- to the shapes — and the generator's scores {positive_space, load_bearing},
+-- which are kept as given. The parameter is `p_board` because the shared
+-- `invokeCreateGame` passes every build-board game's puzzle under that name.
 --
 -- The puzzle is checked for what makes it a puzzle at all — the colors are the
 -- starter scored against the answer, the answer is a legal guess, and no other
@@ -530,6 +532,7 @@ declare
   b_starter    text;
   b_colors     text;
   b_answer     text;
+  b_tier       text;
   first_turn   uuid;
 begin
   perform common._require_club_member(p_club_handle);
@@ -606,6 +609,14 @@ begin
       detail = format('another word at band <= %s makes %L against %L',
         s_legal_band, b_colors, b_starter);
   end if;
+  -- Which tier the shapes put it in is the generator's call; only that it
+  -- named one is checked here.
+  b_tier := p_board->>'tier';
+  if b_tier is null or b_tier not in ('easy', 'medium', 'hard') then
+    raise exception 'BUG: generated puzzle''s tier is %', coalesce(b_tier, 'missing')
+      using errcode = 'PN542', hint = 'fault', column = '_',
+      detail = 'board.tier must be easy, medium or hard';
+  end if;
 
   new_id := common._create_game(
     -- The starting title; `_sync_title` owns both placeholders. The saved
@@ -630,9 +641,9 @@ begin
   -- The generator's scores ride along unchecked: they describe the puzzle and
   -- decide nothing (plans/wordleone.md → The ratings).
   insert into wordleone.games
-    (game_id, starter, starter_colors, target, legal_band, difficulty, positive_space, load_bearing)
+    (game_id, starter, starter_colors, target, legal_band, difficulty, tier, positive_space, load_bearing)
   values
-    (new_id, b_starter, b_colors, b_answer, s_legal_band, s_difficulty,
+    (new_id, b_starter, b_colors, b_answer, s_legal_band, s_difficulty, b_tier,
      (p_board->>'positive_space')::int, (p_board->>'load_bearing')::int);
 
   insert into wordleone.players (game_id, user_id)
@@ -1202,12 +1213,12 @@ begin
 
   insert into wordleone.ratings (
     user_id, game_id, starter, starter_colors, answer, legal_band, answer_band,
-    difficulty_asked, positive_space, load_bearing,
+    difficulty_asked, tier, positive_space, load_bearing,
     rated_difficulty, suggested_band, seconds_reported, comment,
     solved_at, seconds_measured, n_misses, n_submits)
   select caller_id, p_game_id, g_row.starter, g_row.starter_colors, g_row.target, g_row.legal_band,
          (select w.band from common.words w where w.word = g_row.target::text),
-         g_row.difficulty, g_row.positive_space, g_row.load_bearing,
+         g_row.difficulty, g_row.tier, g_row.positive_space, g_row.load_bearing,
          p_rated_difficulty, p_suggested_band, p_seconds_reported, v_comment,
          gp.solved_at,
          case when cg.restart_count = 0 and gp.solved_at is not null

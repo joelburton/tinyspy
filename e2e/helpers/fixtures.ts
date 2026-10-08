@@ -852,7 +852,7 @@ export async function seedWordleGuesses(
  * list that makes `yxyyg` against SIEVE, so it is unique at every band, and it
  * is band 1. A fixed puzzle keeps every test off the hidden column.
  */
-export const WORDLEONE_PUZZLE = { starter: 'sieve', colors: 'yxyyg', answer: 'verse' } as const
+export const WORDLEONE_PUZZLE = { starter: 'sieve', colors: 'yxyyg', answer: 'verse', tier: 'medium' } as const
 
 /** Legal band-1/2 words that are neither the starter nor the answer: misses. */
 const WORDLEONE_MISSES = ['crane', 'stare', 'mouth', 'adieu', 'plant', 'house'] as const

@@ -160,12 +160,14 @@ serve(async (req) => {
         p_setup: setup,
         p_player_user_ids: playerUserIds,
         p_mode: mode,
-        // The scores are kept on the game for the puzzle-feedback survey
-        // (`wordleone.rate_puzzle`); create_game checks the rest.
+        // The tier built and the scores are kept on the game for the
+        // puzzle-feedback survey (`wordleone.rate_puzzle`); create_game checks
+        // the rest.
         p_board: {
           starter: puzzle.starter,
           colors: puzzle.colors,
           answer: puzzle.answer,
+          tier: puzzle.tier,
           positive_space: puzzle.positiveSpace,
           load_bearing: puzzle.loadBearing,
         },

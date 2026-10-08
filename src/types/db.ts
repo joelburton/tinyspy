@@ -1,5 +1,4 @@
 // cs-na
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -270,13 +269,13 @@ isOneToOne: false
                   ]
                 },"word_pool": {
                   Row: {
-                    "word": string
+                    "pool": number,"word": string
                   }
                   Insert: {
-                    "word": string
+                    "pool": number,"word": string
                   }
                   Update: {
-                    "word"?: string
+                    "pool"?: number,"word"?: string
                   }
                   Relationships: [
                     
@@ -2763,13 +2762,13 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "difficulty": string,"game_id": string,"legal_band": number,"load_bearing": number | null,"positive_space": number | null,"starter": string,"starter_colors": string,"target": string
+                    "difficulty": string,"game_id": string,"legal_band": number,"load_bearing": number | null,"positive_space": number | null,"starter": string,"starter_colors": string,"target": string,"tier": string
                   }
                   Insert: {
-                    "difficulty": string,"game_id": string,"legal_band": number,"load_bearing"?: number | null,"positive_space"?: number | null,"starter": string,"starter_colors": string,"target": string
+                    "difficulty": string,"game_id": string,"legal_band": number,"load_bearing"?: number | null,"positive_space"?: number | null,"starter": string,"starter_colors": string,"target": string,"tier": string
                   }
                   Update: {
-                    "difficulty"?: string,"game_id"?: string,"legal_band"?: number,"load_bearing"?: number | null,"positive_space"?: number | null,"starter"?: string,"starter_colors"?: string,"target"?: string
+                    "difficulty"?: string,"game_id"?: string,"legal_band"?: number,"load_bearing"?: number | null,"positive_space"?: number | null,"starter"?: string,"starter_colors"?: string,"target"?: string,"tier"?: string
                   }
                   Relationships: [
                     
@@ -2795,13 +2794,13 @@ isOneToOne: false
                   ]
                 },"ratings": {
                   Row: {
-                    "answer": string,"answer_band": number | null,"comment": string | null,"created_at": string,"difficulty_asked": string | null,"game_id": string | null,"greens": number | null,"id": number,"legal_band": number,"load_bearing": number | null,"n_misses": number | null,"n_submits": number | null,"positive_space": number | null,"rated_difficulty": number | null,"seconds_measured": number | null,"seconds_reported": number | null,"solved_at": string | null,"starter": string,"starter_colors": string,"suggested_band": number | null,"user_id": string | null
+                    "answer": string,"answer_band": number | null,"comment": string | null,"created_at": string,"difficulty_asked": string | null,"game_id": string | null,"greens": number | null,"id": number,"legal_band": number,"load_bearing": number | null,"n_misses": number | null,"n_submits": number | null,"positive_space": number | null,"rated_difficulty": number | null,"seconds_measured": number | null,"seconds_reported": number | null,"solved_at": string | null,"starter": string,"starter_colors": string,"suggested_band": number | null,"tier": string,"user_id": string | null
                   }
                   Insert: {
-                    "answer": string,"answer_band"?: number | null,"comment"?: string | null,"created_at"?: string,"difficulty_asked"?: string | null,"game_id"?: string | null,"greens"?: never,"id"?: never,"legal_band": number,"load_bearing"?: number | null,"n_misses"?: number | null,"n_submits"?: number | null,"positive_space"?: number | null,"rated_difficulty"?: number | null,"seconds_measured"?: number | null,"seconds_reported"?: number | null,"solved_at"?: string | null,"starter": string,"starter_colors": string,"suggested_band"?: number | null,"user_id"?: string | null
+                    "answer": string,"answer_band"?: number | null,"comment"?: string | null,"created_at"?: string,"difficulty_asked"?: string | null,"game_id"?: string | null,"greens"?: never,"id"?: never,"legal_band": number,"load_bearing"?: number | null,"n_misses"?: number | null,"n_submits"?: number | null,"positive_space"?: number | null,"rated_difficulty"?: number | null,"seconds_measured"?: number | null,"seconds_reported"?: number | null,"solved_at"?: string | null,"starter": string,"starter_colors": string,"suggested_band"?: number | null,"tier": string,"user_id"?: string | null
                   }
                   Update: {
-                    "answer"?: string,"answer_band"?: number | null,"comment"?: string | null,"created_at"?: string,"difficulty_asked"?: string | null,"game_id"?: string | null,"greens"?: never,"id"?: never,"legal_band"?: number,"load_bearing"?: number | null,"n_misses"?: number | null,"n_submits"?: number | null,"positive_space"?: number | null,"rated_difficulty"?: number | null,"seconds_measured"?: number | null,"seconds_reported"?: number | null,"solved_at"?: string | null,"starter"?: string,"starter_colors"?: string,"suggested_band"?: number | null,"user_id"?: string | null
+                    "answer"?: string,"answer_band"?: number | null,"comment"?: string | null,"created_at"?: string,"difficulty_asked"?: string | null,"game_id"?: string | null,"greens"?: never,"id"?: never,"legal_band"?: number,"load_bearing"?: number | null,"n_misses"?: number | null,"n_submits"?: number | null,"positive_space"?: number | null,"rated_difficulty"?: number | null,"seconds_measured"?: number | null,"seconds_reported"?: number | null,"solved_at"?: string | null,"starter"?: string,"starter_colors"?: string,"suggested_band"?: number | null,"tier"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     
@@ -2814,6 +2813,9 @@ isOneToOne: false
           Functions: {
             "_finish_compete":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string,"p_reason": string,"p_reason_detail": string }; Returns: undefined
+                           },
+"_legal_band_for":
+{ Args: { "p_answer_band": number }; Returns: number
                            },
 "_make_json_board":
 { Args: { "p_game_id": string,"p_user_id": string }; Returns: Json

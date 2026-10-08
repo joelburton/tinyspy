@@ -99,10 +99,10 @@ describe('useSubmitGuess', () => {
   })
 
   it.each([
-    // A duplicate first, deliberately: it is `warning`, not the `lost` a
-    // default would say.
+    // Both refusals are `warning`, not the `lost` a default would say; the
+    // miss above is the red one.
     ['duplicate', 'warning'],
-    ['notAWord', 'lost'],
+    ['notAWord', 'warning'],
   ])('a %s rings in its own outcome, then clears the typed row when the shake ends', async (resultName, outcome) => {
     vi.useFakeTimers()
     rpc.mockResolvedValue(answer({ result: resultName, n_misses: 0, solved: false, game_ended: false }))

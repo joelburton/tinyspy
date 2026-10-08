@@ -32,6 +32,7 @@ import {
   ZTest_CONCEDED,
   ZTest_SOLVED_WAITING,
   ZTest_guess,
+  ZTest_notAWord,
   ZTest_makeWordleoneCtx,
   type ZTest_GameDataFacts,
   type ZTest_PlayerFacts,
@@ -213,6 +214,17 @@ describe('wordleone PlayArea — render smoke', () => {
     const squares = [...document.querySelectorAll('[class*="sq"]')].map((el) => el.className).join(' ')
     expect(squares).toMatch(/unjudged/)
     expect(squares).not.toMatch(/wordle(Green|Yellow|Gray)/)
+    // The kind of wrong, after the squares in their cell, in the miss's red ink.
+    const verdict = screen.getByText('not it')
+    expect(verdict.className).toMatch(/lost/)
+    expect(verdict.closest('td')).toBe(screen.getByText('C').closest('td'))
+  })
+
+  it('a non-word logs uncolored too, and says "not word" after it in the warning ink', () => {
+    render(<PlayAreaLoader {...makeCtx({ events: [ZTest_notAWord(1, 'u1', 'zzzzz')] })} />)
+    const verdict = screen.getByText('not word')
+    expect(verdict.className).toMatch(/warning/)
+    expect(verdict.className).not.toMatch(/lost/)
   })
 
   it('renders an ended game without crashing', () => {
@@ -1095,7 +1107,7 @@ describe('wordleone Board — the refusal mark', () => {
     vi.useRealTimers()
   })
 
-  it('rings a non-word red, then clears the word when the shake ends', async () => {
+  it('rings a non-word amber, as the duplicate, then clears the word when the shake ends', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     answer('notAWord')
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
@@ -1103,8 +1115,8 @@ describe('wordleone Board — the refusal mark', () => {
 
     await user.keyboard('zzzzz{Enter}')
 
-    await waitFor(() => expect(typingRow().className).toMatch(/verdictLost/))
-    expect(typingRow().className).not.toMatch(/verdictWarning/)
+    await waitFor(() => expect(typingRow().className).toMatch(/verdictWarning/))
+    expect(typingRow().className).not.toMatch(/verdictLost/)
     expect(typingRow().textContent?.toLowerCase()).toBe('zzzzz')
 
     await act(async () => void vi.advanceTimersByTime(WORD_ANSWER_MS + 1))
