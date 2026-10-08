@@ -1307,7 +1307,12 @@ export async function createCodenamesduetGame(
     .schema('codenamesduet')
     .rpc('create_game', {
       p_club_handle: club.handle,
-      p_setup: { turns: 9, first_clue_giver_user_id: firstClueGiverUserId, timer: { kind: 'none' } },
+      p_setup: {
+        turns: 9,
+        first_clue_giver_user_id: firstClueGiverUserId,
+        timer: { kind: 'none' },
+        word_pools: ['duet'],
+      },
       p_player_user_ids: club.members.map((m) => m.userId),
     })
   return { id: createdGameId(res, 'codenamesduet.create_game'), gametype: 'codenamesduet' }

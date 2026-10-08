@@ -120,9 +120,10 @@ Where to look when a board is wrong — distinct from "Board origin" above.
   `create_game`:** FB MC SS MW WW SB W1 (W1's `create_game` re-checks the
   puzzle is one: the colors, the answer's legality, and no other legal fit)
 - **Built inline in `create_game` (plpgsql):** PN WN (sampling `common.words`),
-  TS (sampling `codenamesduet.word_pool`), RA MG (a tile distribution), HT (no
-  sampling at all — a setgame board is a SHUFFLE, so `create_game` deals one
-  and runs the deal-three rule until it holds a set)
+  TS (sampling `codenamesduet.word_pool` in equal shares from the pools picked
+  at setup), RA MG (a tile distribution), HT (no sampling at all — a setgame
+  board is a SHUFFLE, so `create_game` deals one and runs the deal-three rule
+  until it holds a set)
 - **Picked from a CLI-imported library table:** WK (`connections.puzzles`) SD
   (`stackdown.boards`) PP (`strands.puzzles`)
 - **Multi-source:** CP — the CLI-imported `crosswords.puzzles` library, a

@@ -105,8 +105,8 @@ a space, and nothing longer than 11 letters, the same as today's longest.
      schema's `pool` column, the equal-shares draw.
    - [docs/features.md](../docs/features.md): its "sampling
      `codenamesduet.word_pool`" line.
-   - codenamesduet's card in [plans/game-cards.md](game-cards.md), since what
-     setup allows changed.
+   - codenamesduet's card in [plans/game-cards.md](game-cards.md) stays: a
+     card records how a game ends, and the pools change nothing about that.
    - `components/Help.tsx`: one line saying the board's words come from the
      pools picked at setup.
 5. **Deploy.** The migration reaches prod through `db push`. The FE reads the

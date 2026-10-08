@@ -94,6 +94,12 @@ agents are all found gives no more clues**: the partner takes every clue from
 then on (the rulebook's own words). Both players are told this happened, so
 neither reads the lopsided turns as a bug.
 
+**The 25 words** come from the word pools ticked at setup, in equal shares:
+Codenames Duet (the game's own list, and the default), Codenames, and
+Undercover (adult), whose sexual terms its label warns of. Two pools deal
+13 + 12 and three 9 + 8 + 8, the extra words to pools picked at random, and
+the board is shuffled. A word belongs to one pool, so no board deals it twice.
+
 **A bystander marks one direction only.** It is a bystander on the clue-giver's
 side, and the same word may be the partner's agent, so it locks the word for
 the guesser alone and the partner may still guess it. Only a word both players
@@ -146,7 +152,7 @@ Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql` and
 | | |
 |---|---|
 | `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 keys indexed by board position), the budget (`max_turns`) and the turn state (`turn_number`, `current_clue_giver`). The ending is on `common.games` |
-| `codenamesduet.word_pool` | the word list a board is drawn from, seeded by the migration, lowercase as every game's words are. No policy and no grant: only `create_game` reads it |
+| `codenamesduet.word_pool` | the words a board is drawn from, seeded by the migrations, lowercase as every game's words are, each with its `pool`: 1 Codenames Duet, 2 Codenames, 3 Undercover (adult). The key is the word, so a word in two source lists belongs to the lower-numbered one (`20261007000008_codenamesduet_word_pools.sql`). Setup names a pool (`duet`, `codenames`, `undercover`) and `create_game` maps it to the number. No policy and no grant: only `create_game` reads it |
 | `codenamesduet.words` | the board, 25 rows per game: the word, and what has happened to it — `revealed_as` (`G` or `A`, the same for both players) and `neutral_a` / `neutral_b` (a bystander hit by that seat) |
 | `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
 
@@ -223,9 +229,10 @@ game on the local stack, `PAGE-CHAIN-EGG`, seat A giving the first clue.
 ### `codenamesduet.create_game(p_club_handle, p_setup, p_player_user_ids)`
 
 Starts a game. It checks the setup — a turn budget of 7 to 15, a
-first clue-giver who is one of the players, the timer — and that there are
-exactly two players. It draws twenty-five words at random from
-`codenamesduet.word_pool`, titles the game after the first three in board
+first clue-giver who is one of the players, the timer, one or more known word
+pools, none twice — and that there are exactly two players. It draws
+twenty-five words from `codenamesduet.word_pool` in equal shares across the
+chosen pools, shuffled, titles the game after the first three in board
 order (`PAGE-CHAIN-EGG`: the top-left three cells, which never move), seats the
 first clue-giver as A and the other player as B — on the common turn order
 too, A first, with the pointer on A — and deals the two key cards
@@ -245,7 +252,8 @@ The play surface's New game calls it too, with this game's setup and roster.
   "p_setup": {
     "turns": 9,
     "first_clue_giver_user_id": "deadbeef-…-000000000001",
-    "timer": { "kind": "none" }
+    "timer": { "kind": "none" },
+    "word_pools": ["duet"]
   },
   "p_player_user_ids": ["deadbeef-…-000000000001", "deadbeef-…-000000000002"]
 }

@@ -24,7 +24,8 @@ export function Help({ onClose, brand }: Props) {
     >
       <p>
         You and your partner are spies trying to identify <strong>15 agents</strong> hidden
-        among 25 words on the board.
+        among 25 words on the board. The words come from the word pools picked when the game
+        was set up.
       </p>
 
       <h3>What you see</h3>
