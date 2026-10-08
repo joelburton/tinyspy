@@ -182,7 +182,15 @@ export function useActionsAndMenu({
       )
       return () => menu.setGameSections([])
     },
-    [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
+    [
+      menu,
+      actConcede,
+      actStopGame,
+      actRestart,
+      actNewGame,
+      actReveal,
+      actPrintBoard,
+    ])
 
   return {
     actions: {

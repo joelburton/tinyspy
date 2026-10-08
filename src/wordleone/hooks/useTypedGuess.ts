@@ -45,7 +45,8 @@ export function useTypedGuess({
   const typeLetter = useCallback((letter: string) => {
     localFeedbackSlot.dismiss()
     setTypedWord(
-      (word) => (word.length < WORD_LENGTH ? word + letter.toLowerCase() : word))
+      (word) =>
+        (word.length < WORD_LENGTH ? word + letter.toLowerCase() : word))
   }, [localFeedbackSlot])
 
   async function submitTypedWord() {

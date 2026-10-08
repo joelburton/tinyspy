@@ -23,7 +23,10 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     case 'miss':
       return { outcome: 'lost', text: 'Not it' }
     case 'miss_peer':
-      return { outcome: 'lost', text: `guessed ${answer.guess.toUpperCase()} — not it` }
+      return {
+        outcome: 'lost',
+        text: `guessed ${answer.guess.toUpperCase()} — not it`,
+      }
 
     case 'solved_peer':
       return { outcome: 'won', text: 'solved it' }
@@ -38,7 +41,10 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     // Logged now, so a teammate's can be said — and in the warning, not the
     // loss: it costs nothing, and nobody should feel it counted against them.
     case 'not_a_word_peer':
-      return { outcome: 'warning', text: `tried ${answer.guess.toUpperCase()} — not a word` }
+      return {
+        outcome: 'warning',
+        text: `tried ${answer.guess.toUpperCase()} — not a word`,
+      }
     case 'too_short':
       return { outcome: 'warning', text: 'Not enough letters' }
   }
@@ -61,7 +67,8 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
     case 'miss':
       return answerMessage({ answerType: 'miss' }).outcome
     case 'not_a_word':
-      return answerMessage({ answerType: 'not_a_word_peer', guess: row.word }).outcome
+      return answerMessage(
+        { answerType: 'not_a_word_peer', guess: row.word }).outcome
   }
 }
 

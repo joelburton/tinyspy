@@ -1,6 +1,9 @@
 // cs-unmet
 
-import { makeEndingLabelWord, type EndingLabel } from '@/common/ending/endingLabel'
+import {
+  makeEndingLabelWord,
+  type EndingLabel,
+} from '@/common/ending/endingLabel'
 import type { GameEndedReason } from '@/common/ending/gameEnding'
 import type { PlayerRaw } from '@/common/game-page/gameData'
 
@@ -15,9 +18,9 @@ import type { PlayerRaw } from '@/common/game-page/gameData'
  * they missed as many. A solver waits on the rest until the game ends.
  */
 export function makeEndingLabel(
-  player: Pick<PlayerRaw, 'outcome' | 'conceded' | 'finalRanking' | 'solved' | 'stillPlaying' | 'ending'> & {
-    nMisses: number
-  },
+  player: Pick<PlayerRaw,
+    'outcome' | 'conceded' | 'finalRanking'
+    | 'solved' | 'stillPlaying' | 'ending'> & { nMisses: number },
   game: {
     mode: 'coop' | 'compete'
     ended: boolean
@@ -26,6 +29,7 @@ export function makeEndingLabel(
   // The fewest misses any player ranked above this one made; null when none is.
   fewestMissesAhead: number | null,
 ): EndingLabel | null {
+
   if (player.stillPlaying) return null
   const endedBy = game.ended ? 'game' : 'player'
   const result = makeEndingLabelWord(player, game)!
@@ -37,12 +41,18 @@ export function makeEndingLabel(
       return withDetail(game.mode === 'coop' ? 'solved it' : '')
     case 'placed':
       return withDetail(
-        fewestMissesAhead !== null && fewestMissesAhead < player.nMisses ? 'more misses' : 'solved later',
+        fewestMissesAhead !== null && fewestMissesAhead < player.nMisses
+          ? 'more misses'
+          : 'solved later',
       )
     case 'solved':
       return withDetail('waiting on the rest')
     case 'stopped':
-      return { ...base, long: '', pill: game.mode === 'coop' ? '' : 'no winner' }
+      return {
+        ...base,
+        long: '',
+        pill: game.mode === 'coop' ? '' : 'no winner',
+      }
     case 'conceded':
       return withDetail(game.ended ? '' : 'game continues')
     case 'lost':
@@ -61,7 +71,8 @@ export function findFewestMissesAhead(
   player: { finalRanking: number | null },
   players: readonly { finalRanking: number | null; nMisses: number }[],
 ): number | null {
-  const ahead = players.filter((o) =>
-    player.finalRanking !== null && o.finalRanking !== null && o.finalRanking < player.finalRanking)
+  const ahead = players.filter((o) => player.finalRanking !== null
+    && o.finalRanking !== null
+    && o.finalRanking < player.finalRanking)
   return ahead.length === 0 ? null : Math.min(...ahead.map((o) => o.nMisses))
 }

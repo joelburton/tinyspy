@@ -22,6 +22,7 @@ export function useShowOppsSolvedMessages(
   gd: GGameData,
   globalFeedbackSlot: FeedbackSlot,
 ): void {
+
   // Keyed on the players, which keep their identity across renders, so the
   // narration sees a new list only when someone's solve lands.
   const solved = useMemo(() => gd.players.filter((p) => p.solved), [gd.players])

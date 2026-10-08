@@ -103,14 +103,12 @@ function mergeStaticGameData(gameData: unknown,
  */
 export function useGame(ctx: PlayAreaLoaderProps): { gd: GGameData } {
   if (ctx.gameData === null) {
-    throw new Error(
-      `wordleone: game ${ctx.cg.id} has no game_data; run wordleone._rebuild_data_cols_for_all()`)
-  }
+    throw new Error(`no game_data; run wordleone._rebuild_data_cols_for_all()`)}
   const myId = ctx.auth.user.id
   // Rebuilt when the page hands down a new blob, and not on every render.
   const gd = useMemo(
-    () => makeGameData(mergeStaticGameData(ctx.gameData, ctx.staticGameData),
-      myId),
+    () =>
+      makeGameData(mergeStaticGameData(ctx.gameData, ctx.staticGameData), myId),
     [ctx.gameData, ctx.staticGameData, myId],
   )
   return { gd }

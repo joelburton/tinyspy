@@ -34,13 +34,20 @@ export function replayTurn(
   id: number,
   n: number | null,
 ): GReplayedTurn {
+
   const viewedEvent = events.find((g) => g.id === id)
   if (!viewedEvent) {
     // An id the log does not hold: the starter alone, and no ring, is the
     // honest answer.
-    return { rows: [starter], litRowIdx: -1, label: 'This guess', author: null }
+    return {
+      rows: [starter],
+      litRowIdx: -1,
+      label: 'This guess',
+      author: null,
+    }
   }
   const word = viewedEvent.word.toUpperCase()
+
   return {
     rows: [starter, { word: viewedEvent.word, colors: viewedEvent.colors }],
     litRowIdx: viewedEvent.correct ? 1 : -1,

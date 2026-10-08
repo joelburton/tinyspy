@@ -5,7 +5,9 @@ import type { EndOutcome } from '@/common/ending/gameEnding'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'
-import { makeEndingFrameClasses } from '@/common/game-page/makeEndingFrameClasses'
+import {
+  makeEndingFrameClasses,
+} from '@/common/game-page/makeEndingFrameClasses'
 import history from '@/common/event-log/historyViewer.module.css'
 import { useFlipBaseline } from '../hooks/useFlipBaseline'
 import { WORD_LENGTH } from '../lib/setup'
@@ -70,15 +72,21 @@ export function Board({
   brand: string
 }) {
   const shownRows =
-    historyView.rows ?? (grid.revealedRow === null ? grid.liveRows : [...grid.liveRows, grid.revealedRow])
+    historyView.rows ?? (grid.revealedRow === null
+      ? grid.liveRows
+      : [...grid.liveRows, grid.revealedRow])
   const typingRowIdx = canType ? shownRows.length : -1
-  const flipBaseline = useFlipBaseline(grid.liveRows.length, historyView.isViewing)
+  const flipBaseline = useFlipBaseline(grid.liveRows.length,
+    historyView.isViewing)
 
   return (
     <div
       className={cls(shared.boardSeal, styles.board)}
       // The grid's shape, for the stylesheet's aspect ratio and row template.
-      style={{ ['--rows' as string]: grid.maxGuesses, ['--cols' as string]: WORD_LENGTH }}
+      style={{
+        ['--rows' as string]: grid.maxGuesses,
+        ['--cols' as string]: WORD_LENGTH,
+      }}
     >
       <div
         className={cls(
@@ -98,7 +106,8 @@ export function Board({
           const isTypingRow = rowIdx === typingRowIdx
           // The in-flight word sits in the first empty row.
           const isInFlightRow =
-            !guessRow && marks.inFlightWord !== null && rowIdx === shownRows.length
+            !guessRow && marks.inFlightWord !== null && rowIdx ===
+            shownRows.length
           const refusedGuessMark = isTypingRow ? marks.refusedGuessMark : null
 
           // What the row's tiles spell: its guess, the word out with the
@@ -114,7 +123,9 @@ export function Board({
             <BoardRow
               // The mark's nonce rides in the KEY: a CSS animation only
               // replays if its element is remounted.
-              key={refusedGuessMark ? `${rowIdx}-${refusedGuessMark.nonce}` : rowIdx}
+              key={refusedGuessMark
+                ? `${rowIdx}-${refusedGuessMark.nonce}`
+                : rowIdx}
               word={getRowWord()}
               colors={guessRow?.colors ?? null}
               marks={{

@@ -81,9 +81,11 @@ export function useSubmitGuess({
   // The word I last sent, or null. Cleared by a refusal; it outlives an
   // accepted guess, so what is still out is derived below.
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
+
   // `liveRows` only grows within a run, so once the row has landed it stays.
   const hasSubmittedWordLanded =
     submittedWord !== null && liveRows.some((row) => row.word === submittedWord)
+
   const inFlight = hasSubmittedWordLanded ? null : submittedWord
 
   // `WORD_ANSWER_MS` is the beat for a word wearing its answer, and the row

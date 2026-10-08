@@ -43,7 +43,8 @@ export function makeKeyColors(rows: readonly GBoardRow[]): ReadonlyMap<string, K
       const color = getTileColor(row.colors[i])
       if (color === 'blank') continue
       const earned = keyColors.get(letter)
-      if (!earned || colorRank(color) > colorRank(earned)) keyColors.set(letter, color)
+      if (!earned || colorRank(color) > colorRank(earned)) keyColors.set(letter,
+        color)
     }
   }
   return keyColors

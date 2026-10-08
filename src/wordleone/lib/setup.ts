@@ -17,7 +17,10 @@ export const DEFAULT_WORDLEONE_SETUP: GSetup = {
 
 /** The difficulties the form offers. The labels say no more than the tier:
  *  which shapes of colors each allows is the generator's (Joel, 2026-10-07). */
-export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: GDifficulty; label: string }> = [
+export const DIFFICULTY_OPTIONS: ReadonlyArray<{
+  value: GDifficulty;
+  label: string
+}> = [
   { value: 'easy', label: 'Easy' },
   { value: 'medium', label: 'Medium' },
   { value: 'hard', label: 'Hard' },

@@ -52,7 +52,8 @@ export function BoardRow({
       role="row"
     >
       {Array.from({ length: WORD_LENGTH }, (_, letterIdx) => {
-        const color: TileColor = colors === null ? 'blank' : getTileColor(colors[letterIdx])
+        const color: TileColor =
+          colors === null ? 'blank' : getTileColor(colors[letterIdx])
         return (
           <Tile
             key={letterIdx}
