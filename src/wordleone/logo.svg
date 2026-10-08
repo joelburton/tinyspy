@@ -1,6 +1,7 @@
 <!-- wordleone logo — two Wordle-style letter tiles in the shared feedback
-     colors (common/fixed.css): "W" on yellow, "1" on green — Wordle in 1, the
-     one row it takes. The tiles are taller than wide so the pair fills a
+     colors (common/fixed.css): "W" on green, "1" on yellow — Wordle in 1, the
+     one row it takes; the colors are wordle's logo's swapped, so the two tell
+     apart at a glance. The tiles are taller than wide so the pair fills a
      square (no letterboxing in the app's square logo slots). Hand-authored;
      no external source.
 
@@ -8,8 +9,8 @@
      because an SVG file cannot read CSS custom properties. Keep them in step by
      hand: yellow #BD9F35, green #66A45F. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="wordleone">
-  <rect x="2" y="2" width="60" height="124" rx="6" fill="#bd9f35"/>
-  <rect x="66" y="2" width="60" height="124" rx="6" fill="#66a45f"/>
+  <rect x="2" y="2" width="60" height="124" rx="6" fill="#66a45f"/>
+  <rect x="66" y="2" width="60" height="124" rx="6" fill="#bd9f35"/>
   <g fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="44" text-anchor="middle">
     <text x="32" y="80">W</text>
     <text x="96" y="80">1</text>
