@@ -77,12 +77,24 @@ language sql as $$
   -- exercise the wall-clock timer) pass create_game's
   -- common._require_valid_timer gate without further setup. The
   -- create_game and submit_timeout-specific tests pass an
-  -- explicit countdown timer where they need it.
+  -- explicit countdown timer where they need it. word_pools is the
+  -- default-default, Codenames Duet alone; create_game_test passes its own
+  -- through `codenamesduet_setup_pools` to exercise the shares.
   select jsonb_build_object(
     'turns', turns,
     'first_clue_giver_user_id', first_user,
-    'timer', jsonb_build_object('kind', 'none')
+    'timer', jsonb_build_object('kind', 'none'),
+    'word_pools', jsonb_build_array('duet')
   );
+$$;
+
+-- ─── codenamesduet_setup_pools ───────────────────────────────
+-- The standard setup with the given word pools in place of the default:
+--
+--   codenamesduet_setup_pools('["duet", "codenames"]')
+create function pg_temp.codenamesduet_setup_pools(pools jsonb) returns jsonb
+language sql as $$
+  select pg_temp.codenamesduet_setup() || jsonb_build_object('word_pools', pools);
 $$;
 
 -- ─── codenamesduet_players ──────────────────────────────────

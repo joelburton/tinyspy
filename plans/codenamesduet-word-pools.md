@@ -81,8 +81,10 @@ a space, and nothing longer than 11 letters, the same as today's longest.
      the positions are assigned, so the title's first three words come from the
      mixed board.
    - pgTAP in `supabase/tests/codenamesduet/`: the default deals only pool 1;
-     two pools split 13/12 and three 9/8/8; every refusal; the backfilled
-     setup. The existing tests' setups gain `word_pools`.
+     two pools split 13/12 and three 9/8/8; every refusal; the choice stored
+     and saved. The existing tests' setups gain `word_pools`. (The backfill is
+     the migration's, tested by step 1's rehearsal over prod's rows: pgTAP
+     runs over a database that has none.)
 3. **Frontend: `src/codenamesduet/`.**
    - `types.ts`: `word_pools` on the setup values, typed to the three names.
    - `lib/setup.ts`: the pools in order (name and label), and

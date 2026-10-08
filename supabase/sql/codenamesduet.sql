@@ -29,6 +29,8 @@
 --     and `turn_number` (_turns_remaining). Sudden death is `turn_number`
 --     past `max_turns` while the game hasn't ended: no more clues, and
 --     whoever still has words to find guesses.
+--   - The 25 words come from the word pools chosen at setup, in equal shares
+--     (create_game); `word_pool.pool` is a number, setup names it.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -663,11 +665,18 @@ drop function if exists codenamesduet.create_game(text, jsonb, uuid[]);
 --   {
 --     "turns": 7..15,
 --     "first_clue_giver_user_id": "<uuid; must be one of p_player_user_ids>",
---     "timer": { "kind": ... }   (common._require_valid_timer)
+--     "timer": { "kind": ... },  (common._require_valid_timer)
+--     "word_pools": ["duet" | "codenames" | "undercover", ...]   (one or more)
 --   }
 --
 -- `turns` is copied to `max_turns`, the budget; the turns left are worked
 -- out from it and `turn_number` (_turns_remaining).
+--
+-- The 25 words are dealt in EQUAL SHARES from the chosen pools — 25, 13 + 12,
+-- or 9 + 8 + 8, each extra word going to a pool picked at random — and then
+-- shuffled onto the board. `word_pool` stores a pool's NUMBER and setup its
+-- name; `pool_names` below is the one place the two meet. A word sits in one
+-- pool only (its primary key), so no board deals a word twice.
 create or replace function codenamesduet.create_game(
   p_club_handle text,
   p_setup jsonb,
@@ -692,6 +701,10 @@ declare
   seat_a uuid;
   seat_b uuid;
   game_title text;
+  -- `word_pool.pool` is the position of the pool's name in this array.
+  pool_names constant text[] := array['duet', 'codenames', 'undercover'];
+  s_pools smallint[];
+  n_pools int;
 begin
   -- ─── Validate setup shape ────────────────────────────
   -- Missing-vs-bad-value split so each rejection has its own
@@ -730,6 +743,34 @@ begin
   -- codenamesduet.submit_timeout (below).
   perform common._require_valid_timer(p_setup->'timer');
 
+  -- The word pools. Faults, not validations: the setup form refuses to Start
+  -- with none ticked, so a bad list here is a client bug.
+  if jsonb_typeof(p_setup->'word_pools') is distinct from 'array' then
+    raise exception 'BUG: game with no word pools'
+      using errcode = 'PN538', hint = 'fault', column = '_',
+      detail = 'setup.word_pools absent or not an array';
+  end if;
+  if jsonb_array_length(p_setup->'word_pools') = 0 then
+    raise exception 'BUG: game with no word pool chosen'
+      using errcode = 'PN539', hint = 'fault', column = '_',
+      detail = 'setup.word_pools is empty';
+  end if;
+  select array_agg(array_position(pool_names, name)::smallint order by ord)
+    into s_pools
+    from jsonb_array_elements_text(p_setup->'word_pools') with ordinality as t(name, ord);
+  if array_position(s_pools, null) is not null then
+    raise exception 'BUG: a word pool the server does not know'
+      using errcode = 'PN540', hint = 'fault', column = '_',
+      detail = format('setup.word_pools %s names one outside %s',
+                      p_setup->'word_pools', to_jsonb(pool_names));
+  end if;
+  n_pools := array_length(s_pools, 1);
+  if (select count(distinct p) from unnest(s_pools) p) <> n_pools then
+    raise exception 'BUG: a word pool chosen twice'
+      using errcode = 'PN541', hint = 'fault', column = '_',
+      detail = format('setup.word_pools %s repeats a pool', p_setup->'word_pools');
+  end if;
+
   -- ─── Validate the players + first-clue-giver ─────────
   -- codenamesduet is intrinsically 2-player.
   if array_length(p_player_user_ids, 1) <> 2 then
@@ -754,8 +795,22 @@ begin
   -- ─── Pick 25 words ────────────────────────────────────
   -- Pulled forward (before common._create_game) so we can use the
   -- picked words to build the title.
-  select array_agg(word) into picked_words
-    from (select word from codenamesduet.word_pool order by random() limit 25) sub;
+  --
+  -- Equal shares: every pool deals 25 / n_pools, and the 25 % n_pools pools
+  -- that rank first in a random order deal one more. The whole draw is then
+  -- shuffled, so the board — and the title's first three — mixes the pools.
+  with chosen as (
+    select pool, row_number() over (order by random()) as draw_rank
+      from unnest(s_pools) as pool
+  )
+  select array_agg(dealt.word order by random()) into picked_words
+    from chosen
+    cross join lateral (
+      select w.word from codenamesduet.word_pool w
+       where w.pool = chosen.pool
+       order by random()
+       limit 25 / n_pools + case when chosen.draw_rank <= 25 % n_pools then 1 else 0 end
+    ) dealt;
   if coalesce(array_length(picked_words, 1), 0) <> 25 then
     raise exception 'BUG: Too few words on server to build a board'
       using errcode = 'PN093', hint = 'fault', column = '_',

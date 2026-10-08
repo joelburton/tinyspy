@@ -34,6 +34,10 @@
 --     bea when she's chosen — exercises both directions)
 --   - key-card distribution matches the Duet rulebook
 --   - the saved club default drops first_clue_giver_user_id
+--   - word pools: a missing, non-array, empty, unknown or repeated
+--     setup.word_pools is a fault; the default deals all 25 from Codenames
+--     Duet; two pools deal 13 + 12 and three 9 + 8 + 8; the choice is
+--     stored and saved as the club default
 --   - an unseeded word pool is a fault
 --
 -- Doubles as the pgTAP primer for the rest of the test suite —
@@ -45,7 +49,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(38);
+select plan(49);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -296,7 +300,8 @@ select lives_ok(
       jsonb_build_object(
         'turns', 9,
         'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
-        'timer', jsonb_build_object('kind', 'countup')
+        'timer', jsonb_build_object('kind', 'countup'),
+        'word_pools', jsonb_build_array('duet')
       ),
       pg_temp.codenamesduet_players()
     )->'data'->>'id')::uuid as id;$q$,
@@ -584,6 +589,115 @@ select is(
     where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
   false,
   'saved defaults: codenamesduet STRIPS first_clue_giver_user_id (per-game decision, not a per-club preference)'
+);
+
+-- ============================================================
+-- Word pools: the refusals, and the equal shares
+-- ============================================================
+-- `word_pool.pool` is 1 duet, 2 codenames, 3 undercover. Each deal is random,
+-- so the shares are checked as counts per pool, never as words.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup() - 'word_pools', pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN538"}'::jsonb,
+  'create_game: missing setup.word_pools is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup_pools('"duet"'), pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN538"}'::jsonb,
+  'create_game: setup.word_pools that is not an array is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup_pools('[]'), pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN539"}'::jsonb,
+  'create_game: no word pool chosen is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup_pools('["duet", "advanced"]'), pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN540"}'::jsonb,
+  'create_game: a word pool the server does not know is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup_pools('["codenames", "codenames"]'), pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN541"}'::jsonb,
+  'create_game: a word pool chosen twice is a fault'
+);
+
+create temp table two_pools on commit drop as
+select (codenamesduet.create_game((select handle from club2),
+  pg_temp.codenamesduet_setup_pools('["duet", "codenames"]'),
+  pg_temp.codenamesduet_players()
+)->'data'->>'id')::uuid as id;
+
+create temp table three_pools on commit drop as
+select (codenamesduet.create_game((select handle from club2),
+  pg_temp.codenamesduet_setup_pools('["undercover", "duet", "codenames"]'),
+  pg_temp.codenamesduet_players()
+)->'data'->>'id')::uuid as id;
+
+-- The counts read `word_pool`, which no player may, so they run as the test.
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- How many of a game's 25 words each pool dealt, as {pool: count}.
+create function pg_temp.pool_counts(p_game_id uuid) returns jsonb
+language sql as $$
+  select jsonb_object_agg(wp.pool, n)
+    from (select wp.pool, count(*) as n
+            from codenamesduet.words w
+            join codenamesduet.word_pool wp on wp.word = w.word
+           where w.game_id = p_game_id
+           group by wp.pool) wp;
+$$;
+
+-- The happy-path game used the default, Codenames Duet alone.
+select is(
+  pg_temp.pool_counts((select id from created)),
+  '{"1": 25}'::jsonb,
+  'create_game: the default deals all 25 from Codenames Duet'
+);
+
+select is(
+  (select setup -> 'word_pools' from common.games where id = (select id from created)),
+  '["duet"]'::jsonb,
+  'create_game: setup column persists word_pools'
+);
+
+-- 13 + 12, whichever pool drew the extra word.
+select is(
+  (select array_agg(n order by n) from jsonb_each_text(pg_temp.pool_counts((select id from two_pools))) as t(pool, n)),
+  array['12', '13'],
+  'create_game: two pools deal 13 + 12'
+);
+
+select is(
+  (select array_agg(pool order by pool) from jsonb_object_keys(pg_temp.pool_counts((select id from two_pools))) as pool),
+  array['1', '2'],
+  'create_game: two pools deal only from the two chosen'
+);
+
+select is(
+  (select array_agg(n order by n) from jsonb_each_text(pg_temp.pool_counts((select id from three_pools))) as t(pool, n)),
+  array['8', '8', '9'],
+  'create_game: three pools deal 9 + 8 + 8'
+);
+
+select is(
+  (select default_setup -> 'word_pools' from common.clubs_gametypes
+    where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
+  '["undercover", "duet", "codenames"]'::jsonb,
+  'saved defaults: codenamesduet saves word_pools as chosen'
 );
 
 -- ── PN093: an unseeded word pool ──

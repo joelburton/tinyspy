@@ -51,7 +51,8 @@ select (codenamesduet.create_game(
   jsonb_build_object(
     'turns', 9,
     'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
-    'timer', jsonb_build_object('kind', 'countdown', 'seconds', 600)
+    'timer', jsonb_build_object('kind', 'countdown', 'seconds', 600),
+    'word_pools', jsonb_build_array('duet')
   ),
   pg_temp.codenamesduet_players()
 )->'data'->>'id')::uuid as id;
