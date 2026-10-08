@@ -2,97 +2,74 @@
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
-import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import { db } from './db'
-import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { CreatedGame } from '@/common/manifest/gameManifest'
+import { Manifest } from '@/common/manifest/manifest'
 import { count, verdict, statusLine, tally } from '@/common/manifest/summary'
+import type { SummaryData } from '@/common/manifest/summaryData'
+import type { Member } from '@/common/members/member'
+import { db } from './db'
 import { DEFAULT_CODENAMESDUET_SETUP } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import { TOTAL_AGENTS } from './lib/agents'
 import { makeEndingLabel } from './lib/endingLabel'
-import type { EndingLabel } from '@/common/ending/endingLabel'
 import logoUrl from './logo.svg?url'
 
-// The single source of truth for this game's user-facing brand name —
-// `name` reads it, so a fork rebrands by editing this one line. The
-// codename (`codenamesduet`) is unrelated and stays lowercase everywhere
-// in code.
-const BRAND = 'TinySpy'
-
 /**
- * codenamesduet's registration with the shell. Exported as the only thing
- * outside `src/codenamesduet/` needs to know about this gametype —
- * `src/gametypes.ts` imports this constant and adds it to the registry.
+ * codenamesduet's manifest: one mode, so one class with no family level.
  *
- * The `gametype` matches the Postgres `schema` name by convention.
- * Nothing enforces that today; the type just keeps them as separate
- * fields so we don't conflate two roles into one string.
- *
- * The game's components (`PlayArea`, `Help`, `SetupForm`) are
- * lazy-loaded so that Vite emits codenamesduet's code into its own chunk.
- * The main bundle ships only the shell + common + this manifest (a
- * tiny constant); the actual game code arrives the first time a user
- * navigates into codenamesduet in a session. `GamePage` wraps the mount in
- * `<Suspense>` so the brief between-chunk-fetch render is handled
- * cleanly.
- *
- * The `.then(m => ({ default: m.PlayAreaLoader }))` shim re-exports the
- * named export as a default, since React.lazy expects a module with
- * a default export. We keep `PlayAreaLoader` (and friends) named exports
- * for symmetry with everything else.
+ * The game's components (`PlayArea`, `Help`, `SetupForm`) are lazy-loaded so
+ * that Vite emits codenamesduet's code into its own chunk; the actual game
+ * code arrives the first time a user navigates into codenamesduet in a
+ * session. `GamePage` wraps the mount in `<Suspense>` for the brief
+ * between-chunk-fetch render. The `.then(m => ({ default: m.PlayAreaLoader }))`
+ * shim re-exports a named export as a default, since React.lazy expects one.
  */
-export const codenamesduetGame: GameManifest = {
-  gametype: 'codenamesduet',
-  schema: 'codenamesduet',
-  baseGametype: 'codenamesduet',
-  mode: 'coop',
-  name: BRAND,
-  shortDescription: 'Find agents using word clues',
-  logoUrl,
+class CodenamesduetManifest extends Manifest {
+  readonly gametype = 'codenamesduet'
+  readonly schema = 'codenamesduet'
+  readonly baseGametype = 'codenamesduet'
+  readonly mode = 'coop'
+  // The brand keeps its display casing; the codename stays lowercase in code.
+  readonly name = 'TinySpy'
+  readonly shortDescription = 'Find agents using word clues'
+  readonly logoUrl = logoUrl
 
-  // Help / rules modal opened from the GamePage menu's "Help"
-  // item. Lazy-loaded so the help content ships in codenamesduet's
-  // chunk, not the main bundle.
-  help: lazy(() =>
+  readonly help = lazy(() =>
     import('./components/Help').then((m) => ({ default: m.Help })),
-  ),
+  )
 
   // Codenames Duet is intrinsically 2-player. Must agree with
   // the player-count check in codenamesduet.create_game (in
   // supabase/sql/codenamesduet.sql). See
   // docs/code-conventions.md → "Per-game player counts" for the
   // cross-reference convention.
-  numberOfPlayers: [2, 2],
+  readonly numberOfPlayers: [number, number] = [2, 2]
 
-  draftsOffTurn: false,
-  scratchpad: 'none',
+  readonly draftsOffTurn = false
+  readonly scratchpad = 'none'
 
-  PlayArea: lazy(() =>
+  readonly PlayArea = lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
-  ),
+  )
 
-  // Per-game setup form: turn-count radio + first-clue-giver
-  // radio. The Component is lazy-loaded so the form ships in
-  // codenamesduet's chunk (not the registry); `defaults` is a tiny
-  // literal that travels with the manifest itself. See
-  // src/common/setup-form/setupForm.ts for why this split.
-  setupForm: {
+  // Turn-count radio + first-clue-giver radio. `defaults` is a tiny literal
+  // that travels with the manifest; see src/common/setup-form/setupForm.ts for
+  // why this split.
+  readonly setupForm: Manifest['setupForm'] = {
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_CODENAMESDUET_SETUP,
-  },
+  }
 
-  // Called by SetupGameModal when the player clicks Start. The
-  // RPC validates the setup shape server-side and uses it to
-  // initialize the game (turns_remaining from s.turns; seat A
-  // assigned to s.first_clue_giver_user_id). See
-  // supabase/sql/codenamesduet.sql.
-  //
-  // The `unknown` → GSetup cast is safe because we own
-  // both ends of the boundary (this manifest's setupForm
-  // Component is the only thing populating the wrapper's value).
-  startGameInClub: async (clubHandle, setup, playerUserIds) => {
+  // submit_timeout ends the game lost, reason 'timeout' (distinct from a
+  // bystander in sudden death, the Duet rulebook's turns-spent ending).
+  protected readonly db = db
+
+  // The RPC validates the setup shape server-side and uses it to initialize
+  // the game (turns_remaining from s.turns; seat A assigned to
+  // s.first_clue_giver_user_id). See supabase/sql/codenamesduet.sql.
+  startGameInClub(clubHandle: string, setup: unknown, playerUserIds: string[]) {
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -101,47 +78,36 @@ export const codenamesduetGame: GameManifest = {
         p_player_user_ids: playerUserIds,
       }),
     )
-  },
-
-  // The club card's label, from `summary_data`: the verdict, a loss's cause,
-  // and the agent tally on every line; mid-game the turns left ride too, and
-  // sudden death leads in their place.
-  summaryFor: (data, _members, myId) => makeLabel(data as GSummaryData, myId),
-
-  // Called by common's GamePage when its countdown timer hits 0.
-  // submit_timeout ends the game lost, reason 'timeout' (distinct from a
-  // bystander in sudden death, the Duet rulebook's turns-spent ending).
-  // Idempotent, so both players racing to fire it is fine. stop_game is the
-  // irreversible in-game "Stop game" button.
-  // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
-  submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
-  stopGame: makeRpcDispatcher(db, 'stop_game'),
-}
-
-/** An ending label as the club line leads with it: the word, its detail in parentheses. */
-function makeLead(endingLabel: EndingLabel) {
-  return endingLabel.long === '' ? endingLabel.word : `${endingLabel.word} (${endingLabel.long})`
-}
-
-/** The club card's label for one game (see `summaryFor`). */
-function makeLabel(summary: GSummaryData, myId: string): string {
-  const team = summary.team
-  // The agent tally is the useful "should I come back to this?" fact, so it
-  // rides on every line.
-  const agents = tally(team.nFoundAgents, TOTAL_AGENTS, 'agents')
-  if (summary.ending === null) {
-    // The one lead outside summary.ts's four words, by decision: sudden death
-    // is the thing to scan a club list for.
-    if (team.suddenDeath) return statusLine('Sudden death', agents)
-    const turnsLeft = team.maxTurns - team.nTurnsUsed
-    return statusLine(verdict('Playing'), count(turnsLeft, 'turn left', 'turns left'), agents)
   }
-  // The team comes out as one: led by its ending label (mine, when I played).
-  const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
-  const endingLabel = makeEndingLabel(player, {
-    ended: summary.ended,
-    reason: summary.ending.reason,
-    detail: summary.ending.detail,
-  })!
-  return statusLine(makeLead(endingLabel), agents)
+
+  /**
+   * The club card's label, from `summary_data`: the verdict, a loss's cause,
+   * and the agent tally on every line; mid-game the turns left ride too, and
+   * sudden death leads in their place.
+   */
+  summaryFor(data: SummaryData, _members: readonly Member[], myId: string): string {
+    const summary = data as GSummaryData
+    const team = summary.team
+    // The agent tally is the useful "should I come back to this?" fact, so it
+    // rides on every line.
+    const agents = tally(team.nFoundAgents, TOTAL_AGENTS, 'agents')
+    if (summary.ending === null) {
+      // The one lead outside summary.ts's four words, by decision: sudden death
+      // is the thing to scan a club list for.
+      if (team.suddenDeath) return statusLine('Sudden death', agents)
+      const turnsLeft = team.maxTurns - team.nTurnsUsed
+      return statusLine(verdict('Playing'), count(turnsLeft, 'turn left', 'turns left'), agents)
+    }
+    // The team comes out as one: led by its ending label (mine, when I played).
+    const player = summary.players.find((p) => p.id === myId) ?? summary.players[0]!
+    const endingLabel = makeEndingLabel(player, {
+      ended: summary.ended,
+      reason: summary.ending.reason,
+      detail: summary.ending.detail,
+    })!
+    return statusLine(this.makeLead(endingLabel), agents)
+  }
 }
+
+/** codenamesduet: two spies, one board. */
+export const codenamesduetManifest = new CodenamesduetManifest()

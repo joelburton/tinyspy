@@ -87,9 +87,10 @@ Every game has two names:
   thing is a **claim**. `wordleone` is the NYT's "Wordle in 1", spelled as one
   word.
 - The **brand** — the custom, user-facing display name, the only thing players
-  ever see. It lives in **exactly one place**: a `const BRAND` at the top of
-  each game's `manifest.ts`, which `name` and any user-facing string (e.g. the
-  start-game error) read. A fork rebrands a game by editing that one line.
+  ever see. In code it lives in **exactly one place**: the `name` on each
+  game's manifest (the family class's, for a coop/compete pair), and anything
+  else that shows it reads `manifest.name`. A fork rebrands a game by editing
+  that one line.
 
 | codename | brand | | codename | brand |
 |---|---|---|---|---|
@@ -110,8 +111,8 @@ the display-cased token).
 **Rules that follow from this:**
 
 - **Code uses the codename, never the brand.** The brand appears nowhere in the
-  codebase except the manifest `BRAND` const (+ this doc, which explains the
-  idea). Comments referring to a game use the lowercase codename.
+  codebase except the manifest's `name` (+ this doc, which explains the idea,
+  and test fixtures standing in for the database's copy). Comments referring to a game use the lowercase codename.
 - **No mid-caps in code identifiers.** A codename is one token, so its
   PascalCase is a single leading capital: `SpellingbeeSetup`,
   `CodenamesduetSetup`, `Psychicnum…` — never `SpellingBee`, `CodenamesDuet`,

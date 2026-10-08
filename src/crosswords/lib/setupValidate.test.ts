@@ -16,9 +16,9 @@
  * tabs could not have.
  */
 import { describe, expect, it } from 'vitest'
-import { crosswordsCoopGame } from '../manifest'
+import { crosswordsCoopManifest } from '../manifest'
 
-const validate = crosswordsCoopGame.setupForm.validate!
+const validate = crosswordsCoopManifest.setupForm.validate!
 const check = (setup: Record<string, unknown>) => validate(setup, 1)
 
 describe('crosswords setup — the NYT source', () => {

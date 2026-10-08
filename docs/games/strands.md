@@ -6,8 +6,8 @@ theme. You trace a word by clicking its letters in order. **Hint words** — rea
 words that aren't puzzle words — earn hint points; enough of them buys a hint.
 
 "strands" is the codename (as "codenamesduet" is for Codenames Duet). The
-user-facing brand is **PaulPath**, which lives only in the manifest's `BRAND`
-const; gametype / schema / folder are all `strands`.
+user-facing brand is **PaulPath**, which lives only in the manifest's
+`name`; gametype / schema / folder are all `strands`.
 
 **Sibling pair** — `strands_coop` + `strands_compete`, one schema, one folder,
 mode branching at render time on `gd.mode`. See [Compete](#8-compete).

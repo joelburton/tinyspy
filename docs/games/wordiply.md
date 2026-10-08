@@ -7,7 +7,7 @@ manifests over one `wordiply` schema. This is the canonical reference doc
 **Codename:** `wordiply` (one token, lowercase everywhere in code — schema,
 folder, gametypes `wordiply_coop` / `wordiply_compete`). "Wordiply" is the
 recognizable name of the Guardian game we're porting; the fun display **brand**
-is **WordWire**, and it lives only in the manifest `BRAND` const.
+is **WordWire**, and it lives only in the manifest's `name`.
 
 **Source of truth for _what the game does_:** the Guardian's Wordiply. As with
 every game here, the existing game is the spec; the work is fitting it into the
@@ -555,8 +555,9 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   Layout stability](../ui.md#layout-stability). There is **no `<WordList>`**
   (the board lines are the words), and the info column is a FIXED width
   (`--info-col-width` on `.layout`).
-- **`manifest.ts`** — the two sibling manifests, one `BRAND`, the shared lazy
-  loaders, `startGameInClub` → `runEdgeFn('wordiply-build-board', …)`, and each
+- **`manifest.ts`** — the family class and one leaf per mode, the brand in
+  its `name`, the shared lazy loaders, `startGameInClub` →
+  `runEdgeFn('wordiply-build-board', …)`, and each
   mode's `summaryFor` over `summary_data` (§4 → The club card).
 - **`lib/setup.ts`** — `wordiplySetupError` (the band, and `customBaseError`'s
   2–4 letter shape gate, §5b), `cleanBase` shared with the form, the two
@@ -774,7 +775,7 @@ sheet works, at phone sizes) and `wordiply-print` (a real PDF downloads).
   and the shell's `act-back-to-club`), each placed as an `<ActionButton>`.
 - **The ending:** `useShowEndingFeedback`, `useCelebration`,
   `buildStoppedMessage` for a race's Stop.
-- **RPC helpers:** `makeRpcDispatcher`, `runEdgeFn`.
+- **RPC helpers:** `runEdgeFn`; `submitTimeout` and `stopGame` come from `Manifest`.
 - **Not applicable:** `WordList` (the board lines are the words).
 
 ---
@@ -786,8 +787,7 @@ Kept as a list rather than folded into the prose above because each one is a
 real alternative someone will re-propose, and the answer is easier to defend
 next to the thing it was chosen over. The chosen option is in **bold**.
 
-1. **Brand name** — **resolved: "WordWire".** Lives only in the manifest `BRAND`
-   const.
+1. **Brand name** — **resolved: "WordWire".** Lives only in the manifest's `name`.
 2. **Validation model** — **resolved: ship-list trusting-commit** (§2). Per the
    trust model we don't care about cheating, so the legal list ships to the FE
    (simpler build, reuses `useFoundWordSubmit`, no per-guess round-trip).

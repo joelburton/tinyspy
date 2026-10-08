@@ -40,7 +40,8 @@ export type ManifestDb = {
  *   - A field whose type is a literal is `readonly` or annotated. A class field
  *     takes its type from its initializer, not from the member it fills, so
  *     `mode = 'coop'` is a `string`; write `readonly mode = 'coop'` and
- *     `numberOfPlayers: [number, number] = [1, 6]`.
+ *     `numberOfPlayers: [number, number] = [1, 6]`. `setupForm` is annotated
+ *     `Manifest['setupForm']`, so its `validate` takes the shell's arguments.
  *   - Method parameters are typed.
  *   - A middle level's field cannot read `this.mode` in its initializer: the
  *     leaf's fields are set after it. What varies by mode is a method, which

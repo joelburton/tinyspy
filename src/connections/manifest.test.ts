@@ -40,16 +40,16 @@ vi.mock('./db', () => ({
   },
 }))
 
-import { connectionsCoopGame } from './manifest'
+import { connectionsCoopManifest } from './manifest'
 
 beforeEach(() => {
   rpcCalls.length = 0
   rpcResult.current = { data: { type: 'ok', data: { id: 'new-game' } }, error: null }
 })
 
-describe('connectionsCoopGame.startGameInClub', () => {
+describe('connectionsCoopManifest.startGameInClub', () => {
   it('creates a game via create_game and returns its id', async () => {
-    const res = await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, [
+    const res = await connectionsCoopManifest.startGameInClub('pals', { timer: { kind: 'none' } }, [
       'cade-id',
     ])
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
@@ -59,7 +59,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
   })
 
   it('sends NO puzzle_id when the setup carries none — that is how the server is told to choose', async () => {
-    await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, ['cade-id'])
+    await connectionsCoopManifest.startGameInClub('pals', { timer: { kind: 'none' } }, ['cade-id'])
     const setup = rpcCalls[0]!.args.p_setup as Record<string, unknown>
     expect('puzzle_id' in setup).toBe(false)
   })
@@ -67,7 +67,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
   it('passes an explicit puzzle_id straight through when one IS given', async () => {
     // Not a path the dialog takes, but create_game still honors it and the
     // test fixtures depend on that staying true.
-    await connectionsCoopGame.startGameInClub('pals', { puzzle_id: 'p1', timer: { kind: 'none' } }, [
+    await connectionsCoopManifest.startGameInClub('pals', { puzzle_id: 'p1', timer: { kind: 'none' } }, [
       'cade-id',
     ])
     expect((rpcCalls[0]!.args.p_setup as Record<string, unknown>).puzzle_id).toBe('p1')
@@ -75,7 +75,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
 
   it('surfaces a create_game failure as a not-ok envelope rather than an id', async () => {
     rpcResult.current = { data: null, error: { message: 'boom' } }
-    const res = await connectionsCoopGame.startGameInClub('pals', { timer: { kind: 'none' } }, [
+    const res = await connectionsCoopManifest.startGameInClub('pals', { timer: { kind: 'none' } }, [
       'cade-id',
     ])
     expect(res.type).toBe('not-ok')

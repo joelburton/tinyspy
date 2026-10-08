@@ -7,7 +7,7 @@ the game knows every word that's *findable* — which is what makes the "did you
 find them all?" reveal and the board-difficulty constraints possible.
 
 > **Brand ≠ codename.** The user-facing brand is **MothCubes** (it lives only in
-> the manifest `BRAND` const — see [docs/naming.md](../naming.md) and
+> the manifest's `name` — see [docs/naming.md](../naming.md) and
 > [[feedback_codename_brand_naming]]). Everywhere in *code / DB / schema / tests*
 > the codename is `boggle`. Ported from `~/src/wsboggle` (the rules/spec) and
 > `~/src/cboggle/make-dawg` (consulted only while building the solver).

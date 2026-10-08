@@ -1,38 +1,38 @@
 // cs-blessed-manifest
 
 import type { GameManifest } from './common/manifest/gameManifest'
-import { codenamesduetGame } from './codenamesduet/manifest'
+import { codenamesduetManifest } from './codenamesduet/manifest'
 import {
   psychicnumCoopManifest,
   psychicnumCompeteManifest,
 } from './psychicnum/manifest'
 import {
-  connectionsCoopGame,
-  connectionsCompeteGame,
+  connectionsCoopManifest,
+  connectionsCompeteManifest,
 } from './connections/manifest'
 import {
-  spellingbeeCoopGame,
-  spellingbeeCompeteGame,
+  spellingbeeCoopManifest,
+  spellingbeeCompeteManifest,
 } from './spellingbee/manifest'
 import {
-  wordwheelCoopGame,
-  wordwheelCompeteGame,
+  wordwheelCoopManifest,
+  wordwheelCompeteManifest,
 } from './wordwheel/manifest'
-import { bananagramsGame } from './bananagrams/manifest'
-import { waffleCoopGame, waffleCompeteGame } from './waffle/manifest'
-import { wordleCoopGame, wordleCompeteGame } from './wordle/manifest'
-import { wordleoneCoopGame, wordleoneCompeteGame } from './wordleone/manifest'
-import { stackdownCoopGame, stackdownCompeteGame } from './stackdown/manifest'
-import { scrabbleCoopGame, scrabbleCompeteGame } from './scrabble/manifest'
-import { boggleCoopGame, boggleCompeteGame } from './boggle/manifest'
-import { crosswordsCoopGame, crosswordsCompeteGame } from './crosswords/manifest'
-import { wordiplyCoopGame, wordiplyCompeteGame } from './wordiply/manifest'
-import { strandsCoopGame, strandsCompeteGame } from './strands/manifest'
+import { bananagramsManifest } from './bananagrams/manifest'
+import { waffleCoopManifest, waffleCompeteManifest } from './waffle/manifest'
+import { wordleCoopManifest, wordleCompeteManifest } from './wordle/manifest'
+import { wordleoneCoopManifest, wordleoneCompeteManifest } from './wordleone/manifest'
+import { stackdownCoopManifest, stackdownCompeteManifest } from './stackdown/manifest'
+import { scrabbleCoopManifest, scrabbleCompeteManifest } from './scrabble/manifest'
+import { boggleCoopManifest, boggleCompeteManifest } from './boggle/manifest'
+import { crosswordsCoopManifest, crosswordsCompeteManifest } from './crosswords/manifest'
+import { wordiplyCoopManifest, wordiplyCompeteManifest } from './wordiply/manifest'
+import { strandsCoopManifest, strandsCompeteManifest } from './strands/manifest'
 import {
-  letterboxedCoopGame,
-  letterboxedCompeteGame,
+  letterboxedCoopManifest,
+  letterboxedCompeteManifest,
 } from './letterboxed/manifest'
-import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
+import { setgameCoopManifest, setgameCompeteManifest } from './setgame/manifest'
 
 /**
  * THE REGISTRY — which games this monorepo includes. Nothing else in the
@@ -60,38 +60,38 @@ import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
  *     sort for themselves.
  */
 export const gametypes: GameManifest[] = [
-  codenamesduetGame,
+  codenamesduetManifest,
   psychicnumCoopManifest,
   psychicnumCompeteManifest,
-  connectionsCoopGame,
-  connectionsCompeteGame,
-  spellingbeeCoopGame,
-  spellingbeeCompeteGame,
-  wordwheelCoopGame,
-  wordwheelCompeteGame,
-  bananagramsGame,
-  waffleCoopGame,
-  waffleCompeteGame,
-  wordleCoopGame,
-  wordleCompeteGame,
-  wordleoneCoopGame,
-  wordleoneCompeteGame,
-  stackdownCoopGame,
-  stackdownCompeteGame,
-  scrabbleCoopGame,
-  scrabbleCompeteGame,
-  boggleCoopGame,
-  boggleCompeteGame,
-  crosswordsCoopGame,
-  crosswordsCompeteGame,
-  wordiplyCoopGame,
-  wordiplyCompeteGame,
-  strandsCoopGame,
-  strandsCompeteGame,
-  letterboxedCoopGame,
-  letterboxedCompeteGame,
-  setgameCoopGame,
-  setgameCompeteGame,
+  connectionsCoopManifest,
+  connectionsCompeteManifest,
+  spellingbeeCoopManifest,
+  spellingbeeCompeteManifest,
+  wordwheelCoopManifest,
+  wordwheelCompeteManifest,
+  bananagramsManifest,
+  waffleCoopManifest,
+  waffleCompeteManifest,
+  wordleCoopManifest,
+  wordleCompeteManifest,
+  wordleoneCoopManifest,
+  wordleoneCompeteManifest,
+  stackdownCoopManifest,
+  stackdownCompeteManifest,
+  scrabbleCoopManifest,
+  scrabbleCompeteManifest,
+  boggleCoopManifest,
+  boggleCompeteManifest,
+  crosswordsCoopManifest,
+  crosswordsCompeteManifest,
+  wordiplyCoopManifest,
+  wordiplyCompeteManifest,
+  strandsCoopManifest,
+  strandsCompeteManifest,
+  letterboxedCoopManifest,
+  letterboxedCompeteManifest,
+  setgameCoopManifest,
+  setgameCompeteManifest,
 ]
 
 /**

@@ -187,8 +187,12 @@ for Joel's review**.
    gametypes](../docs/code-conventions.md#sibling-gametypes-coopcompete-variants),
    which says siblings are "built by a factory",
    [src/common/manifest/doc.md](../src/common/manifest/doc.md), the header of
-   [gameManifest.ts](../src/common/manifest/gameManifest.ts), and the
-   factory mentions in the boggle, scrabble, waffle and wordiply game docs.
+   [gameManifest.ts](../src/common/manifest/gameManifest.ts). (Done with
+   steps 3–4: the brand lives in the manifest's `name` and everything else
+   reads it from there — Joel, 2026-10-07 — so
+   [docs/naming.md](../docs/naming.md) and the boggle, crosswords,
+   letterboxed, scrabble, strands, waffle and wordiply docs say so, and
+   wordiply's no longer names `makeRpcDispatcher`.)
 7. **Close**: what lasts goes into `common/manifest/doc.md`, the "Make each
    manifest an instance of a class" item leaves
    [src/common/manifest/todo.md](../src/common/manifest/todo.md), and this

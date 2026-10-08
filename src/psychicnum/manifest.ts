@@ -44,7 +44,7 @@ abstract class PsychicnumManifest extends Manifest {
   // Reads `cg.mode` for what differs.
   readonly PlayArea = playAreaLoader
   // No mode picker: the mode is the manifest's, not a setup choice.
-  readonly setupForm = { Component: setupFormLoader, defaults: DEFAULT_PSYCHICNUM_SETUP }
+  readonly setupForm: Manifest['setupForm'] = { Component: setupFormLoader, defaults: DEFAULT_PSYCHICNUM_SETUP }
   protected readonly db = db
 
   // `psychicnum.create_game` routes on the mode: it writes the gametype and

@@ -120,7 +120,7 @@ export type GameSetupForm = {
   // From here the modal can put it above the body.
   //
   // **A plain string, not a function of mode**, because a manifest is already
-  // per-mode: `spellingbeeCoopGame` and `spellingbeeCompeteGame` are separate
+  // per-mode: `spellingbeeCoopManifest` and `spellingbeeCompeteManifest` are separate
   // objects. Every intro is a fixed sentence per mode and none reads live
   // setup state, so a mode branch inside the form would be the sibling-manifest
   // pattern spelled out by hand.

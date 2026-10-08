@@ -46,7 +46,7 @@ vi.mock('./db', () => ({
   },
 }))
 
-import { crosswordsCoopGame } from './manifest'
+import { crosswordsCoopManifest } from './manifest'
 
 /** The args the last `create_game` rpc was invoked with. */
 function lastCreateArgs(): Record<string, unknown> {
@@ -66,10 +66,10 @@ beforeEach(() => {
   rpcResult.current = { data: { type: 'ok', data: { id: 'new-game' } }, error: null }
 })
 
-describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
+describe('crosswordsCoopManifest.startGameInClub — setup-leak backstop', () => {
   it('a genuine upload passes the board as the top-level arg, never in the setup', async () => {
     const setup = { timer: { kind: 'none' }, source: 'upload', board: UPLOAD_BOARD, filename: 'x.puz' }
-    const res = await crosswordsCoopGame.startGameInClub('pals', setup, ['ada-id'])
+    const res = await crosswordsCoopManifest.startGameInClub('pals', setup, ['ada-id'])
 
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()
@@ -90,7 +90,7 @@ describe('crosswordsCoopGame.startGameInClub — setup-leak backstop', () => {
       board: UPLOAD_BOARD,
       filename: 'x.puz',
     }
-    const res = await crosswordsCoopGame.startGameInClub('pals', setup, ['ada-id'])
+    const res = await crosswordsCoopManifest.startGameInClub('pals', setup, ['ada-id'])
 
     expect(res).toEqual({ type: 'ok', data: { id: 'new-game' } })
     const args = lastCreateArgs()

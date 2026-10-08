@@ -531,8 +531,9 @@ The shape [`docs/playarea.md`](../playarea.md) describes, on the page blobs
   `GameEventLog` draws its own `<tr>` rows on the shared `<EventLog>` table —
   the outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper.
-- **`manifest.ts`** — the `waffle_coop` + `waffle_compete` sibling pair, one
-  `BRAND`, the shared lazy loaders, the start through
+- **`manifest.ts`** — the `waffle_coop` + `waffle_compete` sibling pair: the
+  family class with the brand in its `name`, one leaf per mode, the shared
+  lazy loaders, the start through
   `runEdgeFn('waffle-build-board', …)`, and each mode's `summaryFor` over
   `summary_data` (above → The club card).
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers

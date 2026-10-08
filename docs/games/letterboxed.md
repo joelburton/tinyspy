@@ -8,8 +8,8 @@ reused freely, within a word and across words. You win by **touching all twelve
 letters within the game's word cap**.
 
 "letterboxed" is the codename (as "codenamesduet" is for Codenames Duet). The
-user-facing brand is **SnakeBox**, which lives only in the manifest's `BRAND`
-const; gametype / schema / folder are all `letterboxed`.
+user-facing brand is **SnakeBox**, which lives only in the manifest's
+`name`; gametype / schema / folder are all `letterboxed`.
 
 **Sibling pair** — `letterboxed_coop` + `letterboxed_compete`, one schema, one
 folder, mode branching at render time on `gd.mode`. See

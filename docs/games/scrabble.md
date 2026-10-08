@@ -6,8 +6,8 @@ by letter values × board premiums. The first game in the roster that is
 **turn-based with a shared, contended resource** (one board, one bag) — which is
 where almost all of its novelty lives.
 
-> **Brand ≠ codename.** User-facing brand is **RackAttack** (the manifest
-> `title`); the identifier everywhere in code / DB / schema / tests is the
+> **Brand ≠ codename.** User-facing brand is **RackAttack** (the manifest's
+> `name`); the identifier everywhere in code / DB / schema / tests is the
 > codename `scrabble` — it keeps the link to the original game obvious in source,
 > the same brand/codename split waffle (SyrupSwap) and wordle (WordNerd) make.
 > ("Scrabble" is a trademark, so it can't be the public brand, but as an internal

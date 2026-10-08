@@ -6,7 +6,7 @@ crossplay app (`~/src/crossplay`); the source code there is the spec for *what
 the game does*, and this doc is the Supabase + React fit.
 
 > **Brand ≠ codename.** The user-facing brand is **CrossPlay** (it lives only in
-> the manifest `BRAND` const — see [docs/naming.md](../naming.md) and
+> the manifest's `name` — see [docs/naming.md](../naming.md) and
 > [[feedback_codename_brand_naming]]). Everywhere in *code / DB / schema / tests*
 > the codename is `crosswords`. **This doc is the canonical reference** — the
 > build plan + the 2026-07-05 / -07-06 code-review docs it was built from have

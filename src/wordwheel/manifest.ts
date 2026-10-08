@@ -1,11 +1,13 @@
 // cs-blessed-wordwheel
 
 import { lazy } from 'react'
-import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import { db } from './db'
-import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { CreatedGame } from '@/common/manifest/gameManifest'
+import { Manifest } from '@/common/manifest/manifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
+import type { Member } from '@/common/members/member'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { makeBeeCompeteSummary, makeBeeCoopSummary } from '@/shared/bee-games/beeSummary'
+import { db } from './db'
 import {
   DEFAULT_WORDWHEEL_SETUP_COMPETE,
   DEFAULT_WORDWHEEL_SETUP_COOP,
@@ -14,140 +16,99 @@ import {
 import logoUrl from './logo.svg?url'
 import type { GSetup, GSummaryData } from './types'
 
-/**
- * wordwheel's registration with the shell — **two manifests, one
- * schema, one folder.** "wordwheel" is the codename; the brand is `BRAND`
- * below. The game itself is `doc.md`.
- *
- * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame`
- * and CSS; the mode branches at render time on `game.mode`, which
- * `create_game` writes onto `wordwheel.games` from its own `mode`
- * argument. Two rows in `common.gametypes`, one set of tables — the
- * sibling-manifest pattern (docs/common.md → The sibling-manifest pattern).
- *
- * What differs between the two: the `gametype` string (the URL segment and
- * registry key), `mode`, `numberOfPlayers` (compete needs an opponent), the
- * setup defaults (compete seeds a target rank), the dialog's intro, and
- * `summaryFor`'s line (`shared/bee-games/beeSummary.ts`, one per mode).
- */
-
-// Help loader is shared — both modes link to the same rules modal.
-// Lazy so the prose ships in wordwheel's chunk.
+// One lazy component each, shared by both modes, so each ships in wordwheel's
+// chunk.
 const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
-
-// One surface for both modes — it branches on `game.mode` for the
-// compete-only OpponentStrip and the win-vs-loss verdict.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
-
-// SetupForm is shared — the target-rank picker's caption and its "None"
-// option follow the SetupBodyProps.mode prop.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
 /**
- * Shared start-game caller. Forwards `mode` as a top-level body field to the
- * edge function, which builds the board and calls
- * `wordwheel.create_game(target_club, setup, players, mode, board)`.
+ * What wordwheel's two modes share: the schema, and the `PlayArea`,
+ * `SetupForm`, `Help`, `useGame` and CSS, which branch at render time on
+ * `game.mode`. Each mode's setup defaults (compete seeds a target rank), the
+ * dialog's intro and the club line (`shared/bee-games/beeSummary.ts`) are the
+ * leaves'. The game itself is `doc.md`.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
-  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    // The wheel is chosen in Deno, so this goes through an edge function rather
-    // than straight to the RPC — but it comes back the same envelope a direct
-    // create_game returns, relayed untouched (see _shared/startGame.ts).
-    runEdgeFn<CreatedGame>('wordwheel-build-board', {
+abstract class WordwheelManifest extends Manifest {
+  readonly schema = 'wordwheel'
+  readonly baseGametype = 'wordwheel'
+  // The brand keeps its display casing; the codename stays lowercase in code.
+  readonly name = 'MooseWheel'
+  readonly logoUrl = logoUrl
+  readonly help = helpLoader
+  readonly draftsOffTurn = false
+  readonly scratchpad = 'none'
+  // Branches on `game.mode` for the compete-only OpponentStrip and the
+  // win-vs-loss verdict.
+  readonly PlayArea = playAreaLoader
+  // submit_timeout writes the ending the mode calls for, and is idempotent.
+  protected readonly db = db
+
+  // The wheel is chosen in Deno, so this goes through an edge function rather
+  // than straight to the RPC — but it comes back the same envelope a direct
+  // create_game returns, relayed untouched (see _shared/startGame.ts).
+  startGameInClub(clubHandle: string, setup: unknown, playerUserIds: string[]) {
+    return runEdgeFn<CreatedGame>('wordwheel-build-board', {
       target_club: clubHandle,
       setup: setup as GSetup,
       player_user_ids: playerUserIds,
-      mode,
+      mode: this.mode,
     })
+  }
 }
 
-// Timeout + manual end — the shared one-arg RPC dispatchers (see
-// common/manifest/manifestRpcs). submit_timeout writes the ending the mode
-// calls for, and is idempotent.
-const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const stopGame = makeRpcDispatcher(db, 'stop_game')
-
-// The single source of truth for this game's user-facing brand name.
-// Both sibling manifests set `name: BRAND`, and the start-game error
-// reads it too — so a fork rebrands by editing this one line. The
-// codename (`wordwheel`) is unrelated and stays lowercase everywhere
-// in code.
-const BRAND = 'MooseWheel'
-
-export const wordwheelCoopGame: GameManifest = {
-  gametype: 'wordwheel_coop',
-  schema: 'wordwheel',
-  baseGametype: 'wordwheel',
-  mode: 'coop',
-  name: BRAND,
-  shortDescription: 'Find words on a 9-letter wheel',
-  logoUrl,
-
-  help: helpLoader,
-
+class WordwheelCoopManifest extends WordwheelManifest {
+  readonly gametype = 'wordwheel_coop'
+  readonly mode = 'coop'
+  readonly shortDescription = 'Find words on a 9-letter wheel'
   // Plays solo (1 player in their solo club) or coop (up to 6).
   // Must agree with the player-count guard in
   // wordwheel.create_game.
-  numberOfPlayers: [1, 6],
+  readonly numberOfPlayers: [number, number] = [1, 6]
 
-  draftsOffTurn: false,
-  scratchpad: 'none',
-
-  PlayArea: playAreaLoader,
-
-  setupForm: {
+  // The target-rank picker's caption and its "None" option follow the
+  // SetupBodyProps.mode prop.
+  readonly setupForm: Manifest['setupForm'] = {
     intro:
       'Everyone in the club types words into the same wheel and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COOP,
     validate: (setup) => wordwheelSetupError(setup as GSetup),
-  },
+  }
 
-  startGameInClub: startGameInClubFactory('coop'),
-
-  summaryFor: (data, _members, myId) => makeBeeCoopSummary(data as GSummaryData, myId),
-
-  submitTimeout,
-  stopGame,
+  summaryFor(data: SummaryData, _members: readonly Member[], myId: string): string {
+    return makeBeeCoopSummary(data as GSummaryData, myId)
+  }
 }
 
-export const wordwheelCompeteGame: GameManifest = {
-  gametype: 'wordwheel_compete',
-  schema: 'wordwheel',
-  baseGametype: 'wordwheel',
-  mode: 'compete',
-  name: BRAND,
-  shortDescription: 'Race to your chosen rank',
-  logoUrl,
-
-  help: helpLoader,
-
+class WordwheelCompeteManifest extends WordwheelManifest {
+  readonly gametype = 'wordwheel_compete'
+  readonly mode = 'compete'
+  readonly shortDescription = 'Race to your chosen rank'
   // Compete needs an opposing PLAYER. The RPC enforces ≥2 too.
-  numberOfPlayers: [2, 6],
+  readonly numberOfPlayers: [number, number] = [2, 6]
 
-  draftsOffTurn: false,
-  scratchpad: 'none',
-
-  PlayArea: playAreaLoader,
-
-  setupForm: {
+  readonly setupForm: Manifest['setupForm'] = {
     intro:
       'Each player works the same wheel independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_WORDWHEEL_SETUP_COMPETE,
     validate: (setup) => wordwheelSetupError(setup as GSetup),
-  },
+  }
 
-  startGameInClub: startGameInClubFactory('compete'),
-
-  summaryFor: (data, members, myId) => makeBeeCompeteSummary(data as GSummaryData, members, myId),
-
-  submitTimeout,
-  stopGame,
+  summaryFor(data: SummaryData, members: readonly Member[], myId: string): string {
+    return makeBeeCompeteSummary(data as GSummaryData, members, myId)
+  }
 }
+
+/** wordwheel in coop: the team builds one score on one wheel. */
+export const wordwheelCoopManifest = new WordwheelCoopManifest()
+
+/** wordwheel in compete: a race to the chosen rank. */
+export const wordwheelCompeteManifest = new WordwheelCompeteManifest()

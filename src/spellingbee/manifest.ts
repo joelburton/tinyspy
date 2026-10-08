@@ -1,11 +1,13 @@
 // cs-blessed-spellingbee
 
 import { lazy } from 'react'
-import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
-import { db } from './db'
-import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import type { CreatedGame } from '@/common/manifest/gameManifest'
+import { Manifest } from '@/common/manifest/manifest'
+import type { SummaryData } from '@/common/manifest/summaryData'
+import type { Member } from '@/common/members/member'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { makeBeeCompeteSummary, makeBeeCoopSummary } from '@/shared/bee-games/beeSummary'
+import { db } from './db'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
@@ -14,140 +16,99 @@ import {
 import logoUrl from './logo.svg?url'
 import type { GSetup, GSummaryData } from './types'
 
-/**
- * spellingbee's registration with the shell — **two manifests, one
- * schema, one folder.** "spellingbee" is the codename; the brand is `BRAND`
- * below. The game itself is `doc.md`.
- *
- * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame`
- * and CSS; the mode branches at render time on `game.mode`, which
- * `create_game` writes onto `spellingbee.games` from its own `mode`
- * argument. Two rows in `common.gametypes`, one set of tables — the
- * sibling-manifest pattern (docs/common.md → The sibling-manifest pattern).
- *
- * What differs between the two: the `gametype` string (the URL segment and
- * registry key), `mode`, `numberOfPlayers` (compete needs an opponent), the
- * setup defaults (compete seeds a target rank), the dialog's intro, and
- * `summaryFor`'s line (`shared/bee-games/beeSummary.ts`, one per mode).
- */
-
-// Help loader is shared — both modes link to the same rules modal.
-// Lazy so the prose ships in spellingbee's chunk.
+// One lazy component each, shared by both modes, so each ships in
+// spellingbee's chunk.
 const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
-
-// One surface for both modes — it branches on `game.mode` for the
-// compete-only OpponentStrip and the win-vs-loss verdict.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
-
-// SetupForm is shared — the target-rank picker's caption and its "None"
-// option follow the SetupBodyProps.mode prop.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
 /**
- * Shared start-game caller. Forwards `mode` as a top-level body field to the
- * edge function, which builds the board and calls
- * `spellingbee.create_game(target_club, setup, players, mode, board)`.
+ * What spellingbee's two modes share: the schema, and the `PlayArea`,
+ * `SetupForm`, `Help`, `useGame` and CSS, which branch at render time on
+ * `game.mode`. Each mode's setup defaults (compete seeds a target rank), the
+ * dialog's intro and the club line (`shared/bee-games/beeSummary.ts`) are the
+ * leaves'. The game itself is `doc.md`.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
-  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
-    // The letters are chosen in Deno, so this goes through an edge function
-    // rather than straight to the RPC — but it comes back the same envelope a
-    // direct create_game returns, relayed untouched (see _shared/startGame.ts).
-    runEdgeFn<CreatedGame>('spellingbee-build-board', {
+abstract class SpellingbeeManifest extends Manifest {
+  readonly schema = 'spellingbee'
+  readonly baseGametype = 'spellingbee'
+  // The brand keeps its display casing; the codename stays lowercase in code.
+  readonly name = 'FreeBee'
+  readonly logoUrl = logoUrl
+  readonly help = helpLoader
+  readonly draftsOffTurn = false
+  readonly scratchpad = 'none'
+  // Branches on `game.mode` for the compete-only OpponentStrip and the
+  // win-vs-loss verdict.
+  readonly PlayArea = playAreaLoader
+  // submit_timeout writes the ending the mode calls for, and is idempotent.
+  protected readonly db = db
+
+  // The letters are chosen in Deno, so this goes through an edge function
+  // rather than straight to the RPC — but it comes back the same envelope a
+  // direct create_game returns, relayed untouched (see _shared/startGame.ts).
+  startGameInClub(clubHandle: string, setup: unknown, playerUserIds: string[]) {
+    return runEdgeFn<CreatedGame>('spellingbee-build-board', {
       target_club: clubHandle,
       setup: setup as GSetup,
       player_user_ids: playerUserIds,
-      mode,
+      mode: this.mode,
     })
+  }
 }
 
-// Timeout + manual end — the shared one-arg RPC dispatchers (see
-// common/manifest/manifestRpcs). submit_timeout writes the ending the mode
-// calls for, and is idempotent.
-const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const stopGame = makeRpcDispatcher(db, 'stop_game')
-
-// The single source of truth for this game's user-facing brand name.
-// Both sibling manifests set `name: BRAND`, and the start-game error
-// reads it too — so a fork rebrands by editing this one line. The
-// codename (`spellingbee`) is unrelated and stays lowercase everywhere
-// in code.
-const BRAND = 'FreeBee'
-
-export const spellingbeeCoopGame: GameManifest = {
-  gametype: 'spellingbee_coop',
-  schema: 'spellingbee',
-  baseGametype: 'spellingbee',
-  mode: 'coop',
-  name: BRAND,
-  shortDescription: 'Find words on a 7-letter honeycomb',
-  logoUrl,
-
-  help: helpLoader,
-
+class SpellingbeeCoopManifest extends SpellingbeeManifest {
+  readonly gametype = 'spellingbee_coop'
+  readonly mode = 'coop'
+  readonly shortDescription = 'Find words on a 7-letter honeycomb'
   // Plays solo (1 player in their solo club) or coop (up to 6).
   // Must agree with the player-count guard in
   // spellingbee.create_game.
-  numberOfPlayers: [1, 6],
+  readonly numberOfPlayers: [number, number] = [1, 6]
 
-  draftsOffTurn: false,
-  scratchpad: 'none',
-
-  PlayArea: playAreaLoader,
-
-  setupForm: {
+  // The target-rank picker's caption and its "None" option follow the
+  // SetupBodyProps.mode prop.
+  readonly setupForm: Manifest['setupForm'] = {
     intro:
       'Everyone in the club types words into the same honeycomb and the team racks up the score together.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COOP,
     validate: (setup) => spellingbeeSetupError(setup as GSetup),
-  },
+  }
 
-  startGameInClub: startGameInClubFactory('coop'),
-
-  summaryFor: (data, _members, myId) => makeBeeCoopSummary(data as GSummaryData, myId),
-
-  submitTimeout,
-  stopGame,
+  summaryFor(data: SummaryData, _members: readonly Member[], myId: string): string {
+    return makeBeeCoopSummary(data as GSummaryData, myId)
+  }
 }
 
-export const spellingbeeCompeteGame: GameManifest = {
-  gametype: 'spellingbee_compete',
-  schema: 'spellingbee',
-  baseGametype: 'spellingbee',
-  mode: 'compete',
-  name: BRAND,
-  shortDescription: 'Race to your chosen rank',
-  logoUrl,
-
-  help: helpLoader,
-
+class SpellingbeeCompeteManifest extends SpellingbeeManifest {
+  readonly gametype = 'spellingbee_compete'
+  readonly mode = 'compete'
+  readonly shortDescription = 'Race to your chosen rank'
   // Compete needs an opposing PLAYER. The RPC enforces ≥2 too.
-  numberOfPlayers: [2, 6],
+  readonly numberOfPlayers: [number, number] = [2, 6]
 
-  draftsOffTurn: false,
-  scratchpad: 'none',
-
-  PlayArea: playAreaLoader,
-
-  setupForm: {
+  readonly setupForm: Manifest['setupForm'] = {
     intro:
       'Each player works the same honeycomb independently. First to the target rank wins; the rest of the time you only see each other\'s rank, not the words you found.',
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COMPETE,
     validate: (setup) => spellingbeeSetupError(setup as GSetup),
-  },
+  }
 
-  startGameInClub: startGameInClubFactory('compete'),
-
-  summaryFor: (data, members, myId) => makeBeeCompeteSummary(data as GSummaryData, members, myId),
-
-  submitTimeout,
-  stopGame,
+  summaryFor(data: SummaryData, members: readonly Member[], myId: string): string {
+    return makeBeeCompeteSummary(data as GSummaryData, members, myId)
+  }
 }
+
+/** spellingbee in coop: the team builds one score on one honeycomb. */
+export const spellingbeeCoopManifest = new SpellingbeeCoopManifest()
+
+/** spellingbee in compete: a race to the chosen rank. */
+export const spellingbeeCompeteManifest = new SpellingbeeCompeteManifest()
