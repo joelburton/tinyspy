@@ -332,6 +332,11 @@ What is wordleone's own:
   through its shake and empties after.
 - **The keyboard is tinted by the board** — the starter's colors, and the
   solve's — so a miss earns its letters nothing.
+- **A dot holds a letter you haven't settled**, as in wordle: `.` on either
+  keyboard puts a blank in the next slot, in the placeholder ink, so the
+  word's shape can be laid out against the starter's colors before every
+  letter is known. A word holding one cannot be sent — Enter and its cap wait
+  until each dot is replaced (`lib/setup.ts`'s `hasBlank`).
 - **Reveal puts the answer on the board**, as an all-green second row on a
   board nobody solved, drawn without the flip a solve gets; the keyboard keeps
   only what was earned.

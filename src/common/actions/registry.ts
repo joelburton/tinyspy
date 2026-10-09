@@ -297,6 +297,10 @@ export const ACTIONS = {
 
   // ─── Typing into an entry ──────────────────────────────────────────────
   'act-type-letter': { label: 'Type a letter', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
+  // A slot the player has not settled, in a game whose typed word may hold one
+  // (wordle, wordleone). A key of its own rather than a letter the pattern
+  // admits, so the games that take no blank never see it.
+  'act-type-blank': { label: 'Type a blank', keys: [char('.')], repeat: true },
   'act-delete-last': { label: 'Delete the last letter', icon: IconDelete, keys: [named('Backspace', '⌫')], repeat: true },
   'act-recall-last': { label: 'Recall your last entry', keys: [named('ArrowUp', '↑')] },
   'act-clear-entry': { label: 'Clear the entry', keys: [named('ArrowDown', '↓')] },

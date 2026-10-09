@@ -36,6 +36,11 @@ type Props = {
   // hard-coding its own letter would be a registry entry per keycap.
   actSubmit: Action
   actDelete: Action
+  // Type a blank — a `.` cap at the end of the middle row, for a game whose
+  // typed word may hold a slot the player has not settled (wordle, wordleone).
+  // A KEY like the letters, not an action: it hands back nothing, the game
+  // knows what a blank is. Absent, there is no cap.
+  onBlank?: () => void
   // No move to make right now — not your turn, a guess in flight, or the game
   // is over. The keyboard stays on screen either way: its caps carry the color
   // each letter has earned, which is a readout of the game and is worth most
@@ -63,6 +68,7 @@ export function GuessKeyboard({
   onKey,
   actSubmit,
   actDelete,
+  onBlank,
   disabled = false,
   keyColors,
 }: Props) {
@@ -113,6 +119,21 @@ export function GuessKeyboard({
               </button>
             )
           })}
+          {/* The middle row has nine letters, so the blank's cap is its tenth
+              and every row keeps the same cap width. It is never tinted: a
+              blank earns no color. */}
+          {i === 1 && onBlank !== undefined && (
+            <button
+              type="button"
+              className={styles.key}
+              onClick={onBlank}
+              disabled={disabled}
+              aria-label="."
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              .
+            </button>
+          )}
           {i === 2 && (
             <button
               type="button"

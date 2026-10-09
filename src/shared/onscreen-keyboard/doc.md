@@ -48,6 +48,12 @@ nothing and every cap stays neutral.
   game-agnostic token that a game then sets to the same value. A game outside
   that family which ever tints keys adds classes of its own: "this key has been
   used" needs its own color, never wordle-gray, which means *not in the word*.
+- **The blank's cap is opt-in.** A game whose typed word may hold a slot the
+  player has not settled (wordle, wordleone) passes `onBlank`, and a `.` cap
+  joins the end of the middle row — the row with nine letters, so it is the
+  tenth and every row keeps one cap width. It is a key like the letters, never
+  tinted, since a blank earns no color; what a blank is belongs to the game.
+  A game without one (wordiply) passes nothing and shows no cap.
 - **`aria-label="Keyboard"` on the container is a test handle.** Both a browser
   and a unit test reach the caps through it, so it is load-bearing rather than
   decorative.

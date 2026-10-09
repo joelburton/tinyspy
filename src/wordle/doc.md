@@ -468,6 +468,14 @@ What is wordle's own:
   `makeKeyColors`, which the printout's keyboard uses too). Once the game has
   ended the keyboard stays, disabled, because its caps are the record of the
   game.
+- **A dot holds a letter you haven't settled.** `.` on either keyboard — the
+  physical key is `act-type-blank`, the on-screen cap the keyboard's opt-in
+  `onBlank` — puts a blank in the next slot, drawn in the placeholder ink so
+  it is visibly not a letter (`Tile.module.css`'s `.blankLetter`), and the
+  word's shape can be laid out before every letter is known. A word holding
+  one is no submission: the entry vetoes Enter and grays its cap until each
+  dot is replaced (`lib/setup.ts`'s `hasBlank`, the capture's
+  `submitDisabled`), so a blank never reaches the server.
 - **Two checks are local** — five letters typed, and a row that is not empty
   (see FE submissions). Everything else is the server's, and the pill reads
   `lib/answer.ts`.

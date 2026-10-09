@@ -4,6 +4,7 @@ import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import type { TileColor } from '../lib/colors'
+import { BLANK } from '../lib/setup'
 import styles from './Tile.module.css'
 
 /** What a tile wears on or around it. */
@@ -23,14 +24,16 @@ type TileMarks = {
  *
  * A judged tile wears its color class. A tile with a letter but no judgment
  * (typed, or sent and waiting) is `filled`; an empty one wears only the grid's
- * tokens, which are what an empty slot looks like.
+ * tokens, which are what an empty slot looks like. A typed blank (`BLANK`) is
+ * filled too, its glyph in the placeholder's ink: the slot is taken, by a
+ * letter not yet settled.
  */
 export function Tile({
   letter,
   color,
   marks,
 }: {
-  // Upper-cased here; empty for an empty slot.
+  // Upper-cased here; empty for an empty slot; `BLANK` for a typed blank.
   letter: string
   color: TileColor
   marks: TileMarks
@@ -44,6 +47,7 @@ export function Tile({
         color !== 'blank' && tileColors[color],
         marks.isFlipping && styles.reveal,
         isFilled && styles.filled,
+        letter === BLANK && styles.blankLetter,
         marks.isInFlight && styles.inFlight,
         marks.isInFlight && shared.dimInFlight,
       )}

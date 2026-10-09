@@ -29,6 +29,14 @@
 /* @@ */   --tile-slot-ink-color: var(--page-text-color);
 }
 
+/* A typed BLANK — the dot standing for a letter not yet settled. The slot is
+ * taken, so the tile keeps the filled edge; only the ink says it is not a
+ * letter, and it is the placeholder's, the ink the app gives a hint that is
+ * visibly not data. After `.filled`, whose ink it overrides. */
+/* @@ */ .blankLetter {
+/* @@ */   --tile-slot-ink-color: var(--field-placeholder-ink-color);
+}
+
 /* The three JUDGED colors are the shared ones
  * (shared/wordle-style/tileColors.module.css, indexed by `getTileColor`);
  * waffle paints its lattice from the same sheet. What is left here is what only

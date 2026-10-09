@@ -1069,6 +1069,35 @@ describe('wordleone PlayArea — the ⌫ and Enter caps follow the entry', () =>
     expect(control('act-delete-last')).toBeEnabled()
     expect(control('act-submit')).toBeEnabled()
   })
+
+  it('a dot holds a slot in the placeholder ink and vetoes Enter until it is replaced', async () => {
+    // The word's shape can be laid out before every letter is known — but a
+    // word with a blank in it is no submission, so Enter and its cap wait.
+    rpc.mockResolvedValue({ data: { result: 'miss', n_misses: 1 }, error: null })
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+
+    await user.keyboard('cr.n')
+    // The typing row: the one below the starter.
+    const typedRow = screen.getAllByRole('row')[1]!
+    const tiles = [...typedRow.querySelectorAll('[role="gridcell"]')]
+    expect(tiles[2]!.textContent).toBe('.')
+    expect(tiles[2]!.className).toMatch(/blankLetter/)
+    expect(tiles[1]!.className).not.toMatch(/blankLetter/)
+    expect(control('act-submit')).toBeDisabled()
+    await user.keyboard('{Enter}')
+    expect(rpc).not.toHaveBeenCalled()
+
+    // The on-screen cap types the same blank, in the next slot.
+    await user.click(screen.getByRole('button', { name: '.' }))
+    expect(tiles[4]!.textContent).toBe('.')
+
+    // Replace both and the word goes.
+    await user.keyboard('{Backspace}{Backspace}{Backspace}ane{Enter}')
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { p_game_id: 'g1', p_guess: 'crane' }),
+    )
+  })
 })
 
 describe('wordleone Board — the refusal mark', () => {

@@ -116,6 +116,7 @@ export function BoardCol({
             <GuessKeyboard
               keyColors={makeKeyColors(gd.me.board.rows)}
               onKey={entry.typeLetter}
+              onBlank={entry.typeBlank}
               actSubmit={entry.actions.actSubmit}
               actDelete={entry.actions.actDeleteLast}
               disabled={!canGuess}

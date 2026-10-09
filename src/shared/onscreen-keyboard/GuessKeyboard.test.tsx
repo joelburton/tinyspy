@@ -64,6 +64,19 @@ describe('GuessKeyboard — typing', () => {
     expect(cap('Backspace')).toBeInTheDocument()
     expect(cap('Enter')).toBeInTheDocument()
   })
+
+  it('offers a blank cap only to a game that asks, and it calls back with nothing', async () => {
+    // A blank is a slot the player has not settled; a game that takes none
+    // (wordiply) must not show a cap that types one.
+    draw()
+    expect(screen.queryByRole('button', { name: '.' })).not.toBeInTheDocument()
+
+    const onBlank = vi.fn()
+    const { onKey } = draw({ onBlank })
+    await userEvent.setup().click(screen.getByRole('button', { name: '.' }))
+    expect(onBlank).toHaveBeenCalledTimes(1)
+    expect(onKey).not.toHaveBeenCalled()
+  })
 })
 
 describe('GuessKeyboard — what can be pressed', () => {

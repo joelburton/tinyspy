@@ -25,6 +25,17 @@ export const GUESS_OPTIONS: ReadonlyArray<number> = [5, 6, 7, 8]
  *  the entry, the form and the printer cannot disagree. */
 export const WORD_LENGTH = 5
 
+/** The glyph a blank holds in the typed word — a slot the player has not
+ *  settled, typed with `.` on either keyboard so the word's shape can be laid
+ *  out before every letter is known. It is never sent: see `hasBlank`. */
+export const BLANK = '.'
+
+/** Whether the typed word still holds a blank — a word that cannot be
+ *  submitted, so the entry vetoes Enter and its cap until each is replaced. */
+export function hasBlank(word: string): boolean {
+  return word.includes(BLANK)
+}
+
 /**
  * The hardest band a possible answer can be — the floor `legal_band` must
  * reach, since every possible answer has to be a word the game accepts as a

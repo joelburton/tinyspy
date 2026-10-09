@@ -14,7 +14,7 @@
  * under a value that was fine a moment ago.
  */
 import { describe, expect, it } from 'vitest'
-import { answerMaxBand, DEFAULT_WORDLE_SETUP, legalError } from './setup'
+import { answerMaxBand, BLANK, DEFAULT_WORDLE_SETUP, hasBlank, legalError } from './setup'
 
 const setup = (over: Partial<typeof DEFAULT_WORDLE_SETUP> = {}) => ({
   ...DEFAULT_WORDLE_SETUP,
@@ -62,5 +62,14 @@ describe('legalError', () => {
       legal_band: expect.stringMatching(/at least band 2/),
     })
     expect(legalError(setup({ answer_band: 0, legal_band: 2 }))).toEqual({})
+  })
+})
+
+describe('hasBlank', () => {
+  it('is true while a typed blank is still in the word, and false once every slot is a letter', () => {
+    expect(hasBlank(`cr${BLANK}ne`)).toBe(true)
+    expect(hasBlank(BLANK)).toBe(true)
+    expect(hasBlank('crane')).toBe(false)
+    expect(hasBlank('')).toBe(false)
   })
 })
