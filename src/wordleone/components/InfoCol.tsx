@@ -108,8 +108,7 @@ export function InfoCol({
         {solution !== null && (
           <div className={shared.endingExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
-              The answer was
-              <DefinableWord word={solution} className={styles.answerReveal} />
+              The answer was <DefinableWord word={solution} className={styles.answerReveal} />
             </p>
           </div>
         )}
