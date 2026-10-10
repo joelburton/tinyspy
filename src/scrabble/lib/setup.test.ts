@@ -22,10 +22,16 @@ const setup = (over: Partial<typeof DEFAULT_SCRABBLE_SETUP> = {}) => ({
 })
 
 describe('validateScrabbleSetup — with no AI', () => {
-  it('has nothing to say, whatever the dictionaries are', () => {
-    // Every rule here is the AI's. A table of humans plays at any band.
+  it('has nothing to say about the dictionaries', () => {
+    // The band rule is the AI's. A table of humans plays at any band.
     expect(validateScrabbleSetup(setup({ ai_count: 0, dict_2: 1 }), 4)).toEqual({})
-    expect(validateScrabbleSetup(setup({ ai_count: 0 }), 1)).toEqual({})
+    expect(validateScrabbleSetup(setup({ ai_count: 0 }), 2)).toEqual({})
+  })
+
+  it('refuses one person alone, under the AI count that fixes it', () => {
+    expect(validateScrabbleSetup(setup({ ai_count: 0 }), 1)).toEqual({
+      ai_count: expect.stringMatching(/at least 2 players/),
+    })
   })
 })
 

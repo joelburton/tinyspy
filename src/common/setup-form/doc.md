@@ -20,9 +20,11 @@ means a game's setup form is a list of fields and nothing else.
 
 Every setting is a collapsible `<SetupSection>` whose summary carries its
 current value ("Timer: none", "Co-op: turns (ada first)"), so the dialog reads
-at a glance and you open a section only to change it. A section is shared when
-it is the same question wherever it is asked — who is playing, the timer, coop
-pacing, which puzzle — and a game writes the rest itself.
+at a glance and you open a section only to change it. A field inside showing
+an error turns the summary red, open or closed — a `:has([data-field-error])`
+rule in its stylesheet, so no section is told which fields it holds. A section
+is shared when it is the same question wherever it is asked — who is playing,
+the timer, coop pacing, which puzzle — and a game writes the rest itself.
 
 The same choices are read back later. `setupRows.ts` builds the setup rows,
 the one array the in-game info column and the printed board both draw from, and

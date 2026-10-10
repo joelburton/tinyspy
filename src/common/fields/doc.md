@@ -61,7 +61,7 @@ component lives.
 - **Names compose.** A group's controls are `${name}.${id}`; a field with no
   control carries `data-field={name}` on its wrapper. `data-field-error` on
   the error span is what `errorUnder(name)` reads, so a message is found by
-  identity, not by position.
+  identity, not by position; a setup section's red summary reads it too.
 - **`field.module.css` is read by `Field` alone.** The column, the caption and
   the three sentences are its rules; a component's own module holds only its
   control.

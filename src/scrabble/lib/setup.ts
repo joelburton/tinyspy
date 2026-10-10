@@ -51,17 +51,16 @@ export const DEFAULT_SCRABBLE_SETUP: GSetup = {
 
 /**
  * Compete setup validation (the friendly front door — `create_game` re-checks
- * as the authority). Returns a blocking error message, or null when valid.
- * Only bites when an AI is present:
- *   - the total (humans + AI) must fit 2..4;
- *   - both dictionary bands must be ≥ the AI level's band. Crucially we do NOT
- *     auto-raise the dictionary (a silent change would be a trap) — we ask the
- *     player to raise it themselves (Joel's call).
+ * as the authority). Returns the blocking errors by field; empty when valid.
+ *   - the total (humans + AI) must fit 2..4, so one person alone must add an
+ *     AI;
+ *   - with an AI, both dictionary bands must be ≥ its level's band. Crucially
+ *     we do NOT auto-raise the dictionary (a silent change would be a trap) —
+ *     we ask the player to raise it themselves (Joel's call).
  */
 export function validateScrabbleSetup(setup: unknown, playerCount: number): FormErrors {
   const s = setup as GSetup
   const ai = s.ai_count ?? 0
-  if (ai === 0) return {}
   const total = playerCount + ai
   // The headcount ones go on `ai_count`: the human count is the club roster's
   // checkboxes, and the number you can actually change to fix this is the AI's.
@@ -70,6 +69,8 @@ export function validateScrabbleSetup(setup: unknown, playerCount: number): Form
   }
   if (total <
     2) return { ai_count: 'A compete game needs at least 2 players (humans + AI).' }
+  // A table of humans plays at any band.
+  if (ai === 0) return {}
   const band = AI_BAND[s.ai_level]
   if (s.dict_2 < band || s.dict_3plus < band) {
     // TWO fields at once — the case a server raise cannot express, because a

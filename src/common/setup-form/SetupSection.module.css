@@ -29,6 +29,14 @@
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+/* A field inside is showing its error: the header turns the error's red, so a
+ * closed section still says where the problem is. A closed <details> keeps its
+ * body in the page, so `:has` finds the error either way. `data-field-error`
+ * is `<Field>`'s error span. */
+/* @@ */ .section:has([data-field-error]) > .summary {
+  color: var(--chrome-fault-color);
+}
+
 /* The revealed controls. Top padding is 0 because the summary already spaces
  * it. */
 /* @@ */ .sectionContent {

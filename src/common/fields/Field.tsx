@@ -44,7 +44,9 @@ type Props = {
   // field: a test scopes to it and asks what this field says, rather than
   // searching the page and hoping only one thing matches. `data-field-error`
   // goes on the error span, because inside that block the error and the entry
-  // help are both spans of prose and only the attribute tells them apart.
+  // help are both spans of prose and only the attribute tells them apart. A
+  // setup section's header also reads it, to turn red while a field inside
+  // has an error (`<SetupSection>`).
   //
   // Here rather than in each component, so no field can be the one that
   // forgot, and so the wrapper — the part a caption assertion wants — always

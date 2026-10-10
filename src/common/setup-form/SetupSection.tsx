@@ -8,7 +8,8 @@ import styles from './SetupSection.module.css'
  * the field's label WITH its current value baked in (e.g. `Timer: none`,
  * `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-BCDEFG`). So a
  * player sees the current setting at a glance and expands only to change it.
- * Closed by default.
+ * Closed by default. While a field inside shows an error the summary is red,
+ * so a closed section still says where the problem is.
  *
  * Distinct from the info-column `<SetupDisclosure>` (the Setup options list
  * shown WHILE playing): this one wraps a single editable field in the setup
