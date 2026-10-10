@@ -49,7 +49,7 @@ select is(
             values ('common'), ('codenamesduet'), ('psychicnum'), ('connections'),
                    ('bananagrams'), ('waffle'), ('wordle'), ('wordleone'), ('stackdown'),
                    ('scrabble'), ('spellingbee'), ('boggle'), ('crosswords'),
-                   ('wordwheel'), ('wordiply')
+                   ('wordwheel'), ('wordiply'), ('wordsy')
           ) as s(gametype_schema))
       and has_function_privilege('public', p.oid, 'EXECUTE')),
   '',

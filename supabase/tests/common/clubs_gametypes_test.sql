@@ -46,14 +46,14 @@ select plan(19);
 
 select is(
   (select count(*) from common.gametypes),
-  32::bigint,
-  'common.gametypes contains thirty-two rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 wordleone + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + 2 strands + 2 letterboxed + 2 setgame)'
+  33::bigint,
+  'common.gametypes contains thirty-three rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 wordleone + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + 2 strands + 2 letterboxed + 2 setgame + wordsy_compete)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordleone_compete','wordleone_coop','wordwheel_compete','wordwheel_coop'],
-  'common.gametypes contains the thirty-two registered gametypes by name'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordleone_compete','wordleone_coop','wordsy_compete','wordwheel_compete','wordwheel_coop'],
+  'common.gametypes contains the thirty-three registered gametypes by name'
 );
 
 -- ============================================================
@@ -77,7 +77,7 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  32::bigint,
+  33::bigint,
   'claim_username populated a clubs_gametypes row for every registered gametype on ada''s solo club'
 );
 
@@ -110,7 +110,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  32::bigint,
+  33::bigint,
   'create_club populated a row for every registered gametype on the new club'
 );
 
@@ -120,8 +120,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club) and is_enabled
   ),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordleone_compete','wordleone_coop','wordwheel_compete','wordwheel_coop'],
-  'new club lists the thirty default-enroll gametypes — no psychicnum'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordleone_compete','wordleone_coop','wordsy_compete','wordwheel_compete','wordwheel_coop'],
+  'new club lists the thirty-one default-enroll gametypes — no psychicnum'
 );
 
 -- ============================================================
@@ -136,7 +136,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  32::bigint,
+  33::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -165,7 +165,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  32::bigint,
+  33::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 
@@ -243,7 +243,7 @@ select is(
   (select array_agg(gametype order by gametype)
      from common.clubs_gametypes
     where club_handle = (select handle from club) and is_enabled),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','psychicnum_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordleone_compete','wordleone_coop','wordwheel_compete','wordwheel_coop'],
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','psychicnum_coop','scrabble_compete','scrabble_coop','setgame_compete','setgame_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordleone_compete','wordleone_coop','wordsy_compete','wordwheel_compete','wordwheel_coop'],
   'set_club_gametypes listed psychicnum_coop, unlisted wordle_coop, and left the rest'
 );
 
@@ -275,7 +275,7 @@ select pg_temp.envelope_is(
 select is(
   (select count(*) from common.clubs_gametypes
     where club_handle = (select handle from club) and is_enabled),
-  30::bigint,
+  31::bigint,
   'set_club_gametypes with an empty table leaves every row as it was'
 );
 

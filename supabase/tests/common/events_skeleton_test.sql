@@ -54,7 +54,8 @@ insert into roster values
   ('letterboxed', 'events',      true),
   ('setgame',     'events',      true),
   ('codenamesduet', 'events',    true),
-  ('bananagrams', 'events',      true);
+  ('bananagrams', 'events',      true),
+  ('wordsy',      'events',      true);
 
 -- 1. The six columns, with the right types. Bidirectional: a game that
 --    grows the skeleton without flipping its roster row shows up as an

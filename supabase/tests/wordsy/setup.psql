@@ -1,0 +1,242 @@
+-- cs-unmet
+
+-- ============================================================
+-- Per-test-file wordsy fixtures
+-- ============================================================
+-- Loaded by every wordsy/*_test.sql via `\ir setup.psql` (after the shared
+-- persona setup).
+--
+-- A board is a shuffle, so a test PLANTS the deck: `ws_game` creates a game
+-- through the real create_game, then replaces its deck and re-deals round 1
+-- through the real `_deal_round`, so every test knows the table.
+--
+-- THE TABLE, `ws_table()`, in slot order (slots 1–2 under the 5, 3–4 under
+-- the 4, 5–6 under the 3, 7–8 under the 2):
+--
+--   slot   1    2    3    4    5    6    7    8
+--   card   F45  B1   C5   D9   L17  C6   Q58  R33
+--   worth  6    5    4    4    3    3    4    2      (value + bonus)
+--
+-- Words score against it by the letters they share; the vowels are never
+-- cards, so a word of vowels scores 0 at every table. `ws_word(score)` is a
+-- word worth exactly that much against the table: vowel padding plus R (2),
+-- L (3), D (4), B (5), F (6), combined above 6.
+--
+-- Helpers:
+--   pg_temp.ws_uid(name)                 — a persona's id
+--   pg_temp.ws_club(names)               — a club of those personas (abe-bot
+--                                          joined by hand, since no RPC seats a bot)
+--   pg_temp.ws_game(names, style)        — a game on the planted table, ada creating
+--   pg_temp.ws_plant(gid, deck_prefix)   — the deck begins with these, the rest
+--                                          ascending; round 1 re-dealt
+--   pg_temp.ws_plant_word(word, band, root) — a word in common.words
+--   pg_temp.ws_word(score, n, m)         — a distinct word worth `score`, one per (n, m)
+--   pg_temp.ws_submit(gid, name, word)   — plant the word at band 1, submit it as name
+--   pg_temp.ws_buzz(gid)                 — run the clock out and fire submit_timeout
+--   pg_temp.ws_plant_table(gid)          — the planted table on the round in play
+--   pg_temp.ws_play_round(gid, names, scores) — each submits a word worth its
+--                                          score on the planted table; the clock runs out
+--   pg_temp.ws_round(gid)                — the round in play, read past RLS
+--   pg_temp.ws_event(gid, num, name)     — that player's log row for that round
+--
+-- Every helper that reads a revoked function or table runs as postgres and
+-- puts the session back on the role it found, as setgame's do.
+
+reset role;
+
+create function pg_temp.ws_uid(p_name text) returns uuid
+language sql stable as $$
+  select user_id from common.profiles where username = p_name;
+$$;
+
+-- The planted table's deck prefix: round 1 deals deck[1] into slot 8 down to
+-- deck[8] into slot 1, so the prefix is the table reversed.
+create function pg_temp.ws_table() returns smallint[]
+language sql immutable as $$
+  select array[45, 1, 5, 9, 17, 6, 58, 33]::smallint[];
+$$;
+
+create function pg_temp.ws_reversed(p smallint[]) returns smallint[]
+language sql immutable as $$
+  select coalesce(array_agg(x order by o desc), '{}')
+    from unnest(p) with ordinality u(x, o);
+$$;
+
+create function pg_temp.ws_club(p_names text[]) returns text
+language plpgsql as $$
+declare
+  prev text := current_user;
+  v_handle text;
+begin
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  -- A name of its own each time: a test may want several clubs.
+  v_handle := pg_temp.create_club('wordsy ' || left(gen_random_uuid()::text, 8),
+    array(select n from unnest(p_names) n where n <> 'abe-bot'));
+  perform set_config('role', 'postgres', true);
+  if 'abe-bot' = any(p_names) then
+    insert into common.clubs_members (club_handle, user_id)
+    values (v_handle, pg_temp.ws_uid('abe-bot'));
+  end if;
+  perform set_config('role', prev, true);
+  return v_handle;
+end;
+$$;
+
+-- Replace the deck with `p_prefix` then every other number ascending, and
+-- deal round 1 again through the real `_deal_round`, keeping its First
+-- Wordsmith. For a fresh game only.
+create function pg_temp.ws_plant(p_gid uuid, p_prefix smallint[]) returns void
+language plpgsql as $$
+declare
+  prev text := current_user;
+  v_first uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  select fastest_user_id into v_first from wordsy.rounds where game_id = p_gid and num = 1;
+  delete from wordsy.rounds where game_id = p_gid;
+  update wordsy.games
+     set deck = p_prefix || array(select n::smallint from generate_series(1, 60) n
+                                   where n <> all(p_prefix) order by n),
+         drawn = '{}'
+   where game_id = p_gid;
+  perform wordsy._deal_round(p_gid, 1, null, v_first);
+  perform wordsy._rebuild_data_cols(p_gid, p_update_status_changed_at => true);
+  perform set_config('role', prev, true);
+end;
+$$;
+
+-- A game of these personas on the planted table, created by ada (who must be
+-- among them), in the `timer` style unless said otherwise.
+create function pg_temp.ws_game(p_names text[], p_style text default 'timer') returns uuid
+language plpgsql as $$
+declare
+  v_club text := pg_temp.ws_club(p_names);
+  v_env jsonb;
+  v_gid uuid;
+begin
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  v_env := wordsy.create_game(
+    v_club,
+    jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
+                       'legal_band', 4, 'round_style', p_style),
+    array(select pg_temp.ws_uid(n) from unnest(p_names) n),
+    'compete');
+  if v_env ->> 'type' <> 'ok' then
+    raise exception 'ws_game: create_game refused: %', v_env;
+  end if;
+  v_gid := (v_env -> 'data' ->> 'id')::uuid;
+  perform pg_temp.ws_plant(v_gid, pg_temp.ws_reversed(pg_temp.ws_table()));
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  return v_gid;
+end;
+$$;
+
+-- A word in common.words, its root as given (null: it is its own).
+-- SECURITY DEFINER: common.words takes no writes from `authenticated`.
+create function pg_temp.ws_plant_word(p_word text, p_band int default 1, p_root text default null)
+returns void
+language sql security definer as $$
+  insert into common.words (word, band, len, american, british, canadian, australian,
+                            slang, slur, crude, wordle, root_word)
+  values (p_word, p_band, length(p_word), true, true, true, true, false, 0, 0, false, p_root)
+  on conflict (word) do update set band = excluded.band, root_word = excluded.root_word;
+$$;
+
+-- A distinct word worth exactly `p_score` against the planted table, one per
+-- (`p_n`, `p_m`): `n` A's and `m` E's of padding, then the scoring letters.
+-- `ws_play_round` passes the round as `m`, so no word repeats a root.
+create function pg_temp.ws_word(p_score int, p_n int default 1, p_m int default 0) returns text
+language sql immutable as $$
+  select repeat('a', p_n) || repeat('e', p_m) || case p_score
+    when 0 then '' when 2 then 'r' when 3 then 'l' when 4 then 'd'
+    when 5 then 'b' when 6 then 'f' when 7 then 'br' when 8 then 'bl'
+    when 9 then 'bd' when 10 then 'df' when 11 then 'bf'
+  end;
+$$;
+
+-- Plant `p_word` at band 1 and submit it as `p_name`. Answers the envelope.
+create function pg_temp.ws_submit(p_gid uuid, p_name text, p_word text) returns jsonb
+language plpgsql as $$
+begin
+  perform pg_temp.ws_plant_word(p_word);
+  perform pg_temp.as_user(pg_temp.ws_uid(p_name));
+  return wordsy.submit_word(p_gid, p_word);
+end;
+$$;
+
+-- Run the round's clock to its 30 and fire submit_timeout as ada.
+create function pg_temp.ws_buzz(p_gid uuid) returns jsonb
+language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  update common.timers set ticks = 30 where game_id = p_gid;
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  return wordsy.submit_timeout(p_gid);
+end;
+$$;
+
+-- Put the planted table on the round in play, so `ws_word` scores as drawn
+-- above in any round.
+create function pg_temp.ws_plant_table(p_gid uuid) returns void
+language plpgsql as $$
+declare prev text := current_user;
+begin
+  perform set_config('role', 'postgres', true);
+  update wordsy.rounds set tiles = pg_temp.ws_table()
+   where game_id = p_gid and ended_at is null;
+  perform set_config('role', prev, true);
+end;
+$$;
+
+-- Play the round in play on the planted table: each of `p_names` in turn
+-- submits a word worth its `p_scores` (null: no submit), then in the `timer`
+-- style the clock runs out. Answers the round's number.
+create function pg_temp.ws_play_round(p_gid uuid, p_names text[], p_scores int[]) returns int
+language plpgsql as $$
+declare
+  v_num int;
+  v_i   int;
+begin
+  perform pg_temp.ws_plant_table(p_gid);
+  v_num := (pg_temp.ws_round(p_gid)).num;
+  for v_i in 1 .. cardinality(p_names) loop
+    if p_scores[v_i] is not null then
+      perform pg_temp.ws_submit(p_gid, p_names[v_i], pg_temp.ws_word(p_scores[v_i], v_i, v_num));
+    end if;
+  end loop;
+  perform set_config('role', 'postgres', true);
+  if (select round_style from wordsy.games where game_id = p_gid) = 'timer'
+     and (pg_temp.ws_round(p_gid)).num = v_num then
+    perform pg_temp.ws_buzz(p_gid);
+  end if;
+  perform set_config('role', 'postgres', true);
+  return v_num;
+end;
+$$;
+
+create function pg_temp.ws_round(p_gid uuid) returns wordsy.rounds
+language plpgsql as $$
+declare
+  prev text := current_user;
+  r wordsy.rounds;
+begin
+  perform set_config('role', 'postgres', true);
+  select * into r from wordsy.rounds where game_id = p_gid and ended_at is null;
+  perform set_config('role', prev, true);
+  return r;
+end;
+$$;
+
+create function pg_temp.ws_event(p_gid uuid, p_num int, p_name text) returns wordsy.events
+language plpgsql as $$
+declare
+  prev text := current_user;
+  e wordsy.events;
+begin
+  perform set_config('role', 'postgres', true);
+  select * into e from wordsy.events
+   where game_id = p_gid and num = p_num and user_id = pg_temp.ws_uid(p_name);
+  perform set_config('role', prev, true);
+  return e;
+end;
+$$;

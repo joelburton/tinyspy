@@ -57,7 +57,7 @@ select set_eq(
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'wordleone', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
-         'strands', 'letterboxed', 'setgame'])
+         'strands', 'letterboxed', 'setgame', 'wordsy'])
   $$,
   $$
     values
@@ -104,6 +104,7 @@ select set_eq(
       ('wordiply.games'),
       ('wordle.games'),
       ('wordleone.games'),
+      ('wordsy.games'),
       ('wordwheel.games')
   $$,
   'every FK into common.games cascades — delete_game stays a total teardown'

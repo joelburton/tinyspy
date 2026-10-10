@@ -94,7 +94,7 @@ create policy events_select on wordsy.events
 -- ============================================================
 -- The cards — a deck number's letter, bonus and slot value
 -- ============================================================
--- `src/wordsy/lib/tiles.ts` writes the same mapping; a test pins the two on
+-- The frontend's `lib/tiles.ts` writes the same mapping; a test pins the two on
 -- all 60.
 
 -- The letter on card `p_id`: B C D G L M N P R S T four each, then F H K V W
@@ -139,7 +139,7 @@ revoke execute on function wordsy._slot_value(int) from public;
 -- as the word has of it, the highest-valued first, each worth its slot's
 -- value plus its bonus. So two Bs against one B card score one B, and one C
 -- against two C cards scores the better C. A letter with no card scores
--- nothing, and '' scores 0. `src/wordsy/lib/score.ts` mirrors it.
+-- nothing, and '' scores 0. The frontend's `scoreWord` mirrors it.
 create or replace function wordsy._score_word(p_word text, p_tiles smallint[])
 returns int
 language sql
@@ -229,9 +229,10 @@ as $$
     from unnest(p_deck) with ordinality as d(id, o)
    where not (d.id = any(p_drawn))
      and (select count(*) from unnest(p_table) t
-           where wordsy._tile_letter(t) = wordsy._tile_letter(d.id)) < 2
+           where t is not null and wordsy._tile_letter(t) = wordsy._tile_letter(d.id)) < 2
      and (wordsy._tile_bonus(d.id) = 0
-          or (select count(*) from unnest(p_table) t where wordsy._tile_bonus(t) > 0) < 2)
+          or (select count(*) from unnest(p_table) t
+               where t is not null and wordsy._tile_bonus(t) > 0) < 2)
    order by d.o
    limit 1;
 $$;
@@ -791,7 +792,7 @@ declare
   v_first       uuid;
 begin
   perform common._require_club_member(p_club_handle);
-  -- Must agree with numberOfPlayers in src/wordsy/manifest.ts ([2, 6]).
+  -- Must agree with numberOfPlayers in the game's manifest ([2, 6]).
   perform common._require_player_count_max(p_player_user_ids, 6);
 
   perform common._require_valid_mode(p_mode);

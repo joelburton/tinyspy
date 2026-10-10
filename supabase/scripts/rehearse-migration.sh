@@ -110,7 +110,7 @@ count_rows() {
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'wordleone', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
-         'strands', 'letterboxed', 'setgame'])
+         'strands', 'letterboxed', 'setgame', 'wordsy'])
      order by 1
   "
 }
