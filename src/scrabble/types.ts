@@ -240,6 +240,12 @@ export type GEventRaw = {
   // The tiles an exchange swapped, or the tiles a `leftovers` row's rack still
   // held; null otherwise.
   nTiles: number | null
+  // The rack the move was played from — a `leftovers` row's, the rack it
+  // counted. Every rack is in the blob; `useGame` withholds a rival's
+  // mid-race. Null on a row written before racks were kept.
+  rack: string[] | null
+  // The tiles an exchange put back; null otherwise.
+  exchanged: string[] | null
   // A word, an exchange or a pass takes the player's go; the end's rows do not.
   tookTurn: boolean
   at: string
@@ -315,6 +321,8 @@ export type GPlayerRaw = PlayerRaw & {
  *   words
  *   score
  *   nTiles
+ *   rack                                     # the rack played from; a rival's null mid-race
+ *   exchanged                                # an exchange's tiles put back
  *   tookTurn
  *   at
  */
@@ -434,6 +442,10 @@ export type GHistoryView = {
   // The board just after the viewed turn; null when live, and for a preview,
   // which is drawn on the live board.
   cells: GCell[] | null
+  // The rack the viewed turn was played from, and the slots of the tiles that
+  // left it; no tiles when the row keeps no rack I may see. Null when live, and
+  // for a preview, which leaves my live rack showing.
+  rack: { tiles: string[]; spentSlots: ReadonlySet<number> } | null
   // The viewed turn's tiles, or the preview's, ringed; empty when live.
   litCellIds: string[]
   // The banner's words for a viewed turn ("#1 moth: +10 APPLE"); null when

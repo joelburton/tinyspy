@@ -173,7 +173,12 @@ create policy players_select on scrabble.players
     )
   );
 
-grant select on scrabble.events to authenticated;
+-- Everything except the racks a row keeps (`rack`, `exchanged`), hidden as
+-- the players' are. Revoke first, as for the games grant.
+revoke select on scrabble.events from authenticated;
+grant select
+  (id, game_id, user_id, kind, placements, words, score, tile_count, took_turn, created_at)
+  on scrabble.events to authenticated;
 drop policy if exists events_select on scrabble.events;
 create policy events_select on scrabble.events
   for select to authenticated
@@ -264,7 +269,15 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 --       id, userId, kind                   word / exchange / pass / leftovers / went_out
 --       placements                         a word's, ["x,y:c", …] under the
 --                                          board's case rule; null otherwise
---       words, score, nTiles, tookTurn, at
+--       words, score, nTiles
+--       rack                               the rack the move was played from
+--                                          (a `leftovers` row's: the rack it
+--                                          counted); null on a row older than
+--                                          the column. Every rack is in the
+--                                          blob, as on the players
+--       exchanged                          an exchange's tiles put back; null
+--                                          otherwise
+--       tookTurn, at
 --     players: [player, …]                 the common player, plus:
 --       aiLevel                            a bot's strength in this game; null
 --                                          for a person
@@ -334,6 +347,8 @@ as $$
            'words',      to_jsonb(e.words),
            'score',      e.score,
            'nTiles',     e.tile_count,
+           'rack',       to_jsonb(e.rack),
+           'exchanged',  to_jsonb(e.exchanged),
            'tookTurn',   e.took_turn,
            'at',         e.created_at) order by e.id), '[]'::jsonb)
     from scrabble.events e
@@ -571,9 +586,9 @@ begin
   if (select mode from common.games where id = p_game_id) = 'coop' then
     v_left := coalesce((select sum(scrabble._tile_value(t)) from unnest(g.team_rack) t), 0);
     if v_left > 0 then
-      insert into scrabble.events (game_id, user_id, kind, score, tile_count, took_turn)
+      insert into scrabble.events (game_id, user_id, kind, score, tile_count, rack, took_turn)
       values (p_game_id, coalesce(p_ended_by_user_id, auth.uid()), 'leftovers',
-              -v_left, cardinality(g.team_rack), false);
+              -v_left, cardinality(g.team_rack), g.team_rack, false);
     end if;
     return;
   end if;
@@ -584,8 +599,8 @@ begin
             where p.game_id = p_game_id
   loop
     if r.left_value > 0 then
-      insert into scrabble.events (game_id, user_id, kind, score, tile_count, took_turn)
-      values (p_game_id, r.user_id, 'leftovers', -r.left_value, cardinality(r.rack), false);
+      insert into scrabble.events (game_id, user_id, kind, score, tile_count, rack, took_turn)
+      values (p_game_id, r.user_id, 'leftovers', -r.left_value, cardinality(r.rack), r.rack, false);
       update scrabble.players set score = score - r.left_value
        where game_id = p_game_id and user_id = r.user_id;
       v_total_left := v_total_left + r.left_value;
@@ -593,8 +608,8 @@ begin
   end loop;
 
   if p_going_out_user_id is not null and v_total_left > 0 then
-    insert into scrabble.events (game_id, user_id, kind, score, took_turn)
-    values (p_game_id, p_going_out_user_id, 'went_out', v_total_left, false);
+    insert into scrabble.events (game_id, user_id, kind, score, rack, took_turn)
+    values (p_game_id, p_going_out_user_id, 'went_out', v_total_left, '{}', false);
     update scrabble.players set score = score + v_total_left
      where game_id = p_game_id and user_id = p_going_out_user_id;
   end if;
@@ -1002,6 +1017,7 @@ declare
   v_mode       text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   v_rack       text[];   -- the acting rack (compete: the player's; coop: team_rack)
+  v_played_from text[];  -- the acting rack before this move, for the log
   v_board      jsonb;
   v_consumed   text[] := '{}';
   v_nplay      int := 0;
@@ -1031,6 +1047,7 @@ begin
   v_rack  := case when v_mode = 'coop' then g.team_rack
                   else (select rack from scrabble.players
                          where game_id = p_game_id and user_id = p_user_id) end;
+  v_played_from := v_rack;
   v_board := g.board;
 
   -- ─── Integrity guards: apply placements to a LOCAL board ──
@@ -1087,8 +1104,8 @@ begin
   v_drawn := g.bag[1:v_ndraw];
   v_new_rack := v_rack || v_drawn;
 
-  insert into scrabble.events (game_id, user_id, kind, placements, words, score, took_turn)
-  values (p_game_id, p_user_id, 'word', p_placements, p_words, p_score, true);
+  insert into scrabble.events (game_id, user_id, kind, placements, words, score, rack, took_turn)
+  values (p_game_id, p_user_id, 'word', p_placements, p_words, p_score, v_played_from, true);
 
   update scrabble.games
      set board = v_board,
@@ -1306,6 +1323,7 @@ declare
   g          scrabble.games%rowtype;
   v_mode     text;
   v_rack     text[];
+  v_played_from text[];  -- the acting rack before this move, for the log
   v_bag      text[];
   v_n        int;
   v_drawn    text[];
@@ -1331,6 +1349,7 @@ begin
   v_rack := case when v_mode = 'coop' then g.team_rack
                  else (select rack from scrabble.players
                         where game_id = p_game_id and user_id = p_user_id) end;
+  v_played_from := v_rack;
 
   -- Remove the chosen tiles (guards they're in the rack), return them to
   -- the bag, reshuffle the whole bag, redraw the same count.
@@ -1341,8 +1360,8 @@ begin
   v_bag   := v_bag[v_n+1:];
   v_rack  := v_rack || v_drawn;
 
-  insert into scrabble.events (game_id, user_id, kind, tile_count, took_turn)
-  values (p_game_id, p_user_id, 'exchange', v_n, true);
+  insert into scrabble.events (game_id, user_id, kind, tile_count, rack, exchanged, took_turn)
+  values (p_game_id, p_user_id, 'exchange', v_n, v_played_from, p_rack_tiles, true);
 
   update scrabble.games
      set bag = v_bag, version = version + 1,
@@ -1472,8 +1491,11 @@ begin
   end if;
   perform common._require_turn(p_game_id, p_user_id);
 
-  insert into scrabble.events (game_id, user_id, kind, took_turn)
-  values (p_game_id, p_user_id, 'pass', true);
+  insert into scrabble.events (game_id, user_id, kind, rack, took_turn)
+  values (p_game_id, p_user_id, 'pass',
+          (select rack from scrabble.players
+            where game_id = p_game_id and user_id = p_user_id),
+          true);
 
   update scrabble.games
      set version = version + 1,

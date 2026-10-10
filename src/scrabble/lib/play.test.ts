@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { cellIndex, makeCellId, makeEmptyBoard } from './board'
-import { historyBoard, evaluatePlay, tilesUsed } from './play'
+import { findSpentSlots, historyBoard, evaluatePlay, tilesUsed } from './play'
 import type { GCell, GPlacement, GTile } from '../types'
 
 const emptyBoard = makeEmptyBoard
@@ -144,6 +144,20 @@ describe('scoring', () => {
 describe('tilesUsed', () => {
   it('maps blanks to ? and keeps letters otherwise', () => {
     expect(tilesUsed([at(7, 7, 'q', true), at(8, 7, 'i')])).toEqual(['?', 'i'])
+  })
+})
+
+describe('findSpentSlots', () => {
+  it('takes the first free slot for each tile, a repeated letter its next one', () => {
+    expect(findSpentSlots(['a', 'e', '?', 'a', 't'], ['a', '?', 'a'])).toEqual(new Set([0, 2, 3]))
+  })
+
+  it('spends nothing for no tiles', () => {
+    expect(findSpentSlots(['a', 'b'], [])).toEqual(new Set())
+  })
+
+  it('throws on a tile the rack does not hold', () => {
+    expect(() => findSpentSlots(['a'], ['a', 'a'])).toThrow()
   })
 })
 

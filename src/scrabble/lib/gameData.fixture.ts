@@ -63,26 +63,35 @@ export const ZTest_CONCEDED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
 const at = (id: number) => `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`
 
 /** A word play: its placements as the blob writes them (`"x,y:c"`, a capital
- *  for a blank), the words it formed and their score. It takes the player's
- *  go; `tile_count` is an exchange's, so a word's is null. */
+ *  for a blank), the words it formed and their score, and the rack it was
+ *  played from (none by default). It takes the player's go; `tile_count` is an
+ *  exchange's, so a word's is null. */
 export function ZTest_word(
   id: number,
   userId: string,
   placements: string[],
   words: string[],
   score: number,
+  rack: string[] | null = null,
 ): GEventRaw {
   return {
     id, userId, kind: 'word', placements, words, score,
-    nTiles: null, tookTurn: true, at: at(id),
+    nTiles: null, rack, exchanged: null, tookTurn: true, at: at(id),
   }
 }
 
-/** An exchange of `nTiles` tiles. It takes the player's go. */
-export function ZTest_exchange(id: number, userId: string, nTiles: number): GEventRaw {
+/** An exchange of `nTiles` tiles, and the rack it was made from with the
+ *  tiles it put back (none by default). It takes the player's go. */
+export function ZTest_exchange(
+  id: number,
+  userId: string,
+  nTiles: number,
+  rack: string[] | null = null,
+  exchanged: string[] | null = null,
+): GEventRaw {
   return {
     id, userId, kind: 'exchange', placements: null, words: null, score: null,
-    nTiles, tookTurn: true, at: at(id),
+    nTiles, rack, exchanged, tookTurn: true, at: at(id),
   }
 }
 
@@ -90,7 +99,7 @@ export function ZTest_exchange(id: number, userId: string, nTiles: number): GEve
 export function ZTest_pass(id: number, userId: string): GEventRaw {
   return {
     id, userId, kind: 'pass', placements: null, words: null, score: null,
-    nTiles: null, tookTurn: true, at: at(id),
+    nTiles: null, rack: null, exchanged: null, tookTurn: true, at: at(id),
   }
 }
 
@@ -99,7 +108,7 @@ export function ZTest_pass(id: number, userId: string): GEventRaw {
 export function ZTest_leftovers(id: number, userId: string, score: number, nTiles: number): GEventRaw {
   return {
     id, userId, kind: 'leftovers', placements: null, words: null, score,
-    nTiles, tookTurn: false, at: at(id),
+    nTiles, rack: null, exchanged: null, tookTurn: false, at: at(id),
   }
 }
 
@@ -107,7 +116,7 @@ export function ZTest_leftovers(id: number, userId: string, score: number, nTile
 export function ZTest_wentOut(id: number, userId: string, score: number): GEventRaw {
   return {
     id, userId, kind: 'went_out', placements: null, words: null, score,
-    nTiles: null, tookTurn: false, at: at(id),
+    nTiles: null, rack: null, exchanged: null, tookTurn: false, at: at(id),
   }
 }
 

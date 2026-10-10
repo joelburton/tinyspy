@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { makeGameData } from './useGame'
 import { cellIndex } from '../lib/board'
 import {
-  ZTest_leftovers, ZTest_makeGameDataRaw, ZTest_pass, ZTest_word,
+  ZTest_exchange, ZTest_leftovers, ZTest_makeGameDataRaw, ZTest_pass, ZTest_word,
 } from '../lib/gameData.fixture'
 
 const PLAYERS = [
@@ -57,6 +57,36 @@ describe('makeGameData', () => {
     expect(gd.me.rack).toEqual(['q', 'u', 'i', 'z'])
     expect(gd.playersById.u2!.rack).toBeNull()
     expect(gd.playersById.u2!.nRackTiles).toBe(2)
+  })
+
+  it('withholds a rival\'s log racks mid-race, and keeps my own', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({
+      mode: 'compete',
+      players: PLAYERS,
+      events: [
+        ZTest_word(1, 'u2', ['7,7:a', '8,7:t'], ['at'], 2, ['a', 't', 'x']),
+        ZTest_exchange(2, 'u1', 1, ['q', 'u', 'i', 'z'], ['q']),
+        ZTest_exchange(3, 'u2', 1, ['x', 'y'], ['y']),
+      ],
+    }), 'u1')
+    expect(gd.events.map((e) => [e.rack, e.exchanged])).toEqual([
+      [null, null],
+      [['q', 'u', 'i', 'z'], ['q']],
+      [null, null],
+    ])
+  })
+
+  it('shows every log rack once the race has ended, and in coop', () => {
+    const events = [ZTest_word(1, 'u2', ['7,7:a', '8,7:t'], ['at'], 2, ['a', 't', 'x'])]
+    const ended = makeGameData(ZTest_makeGameDataRaw({
+      mode: 'compete',
+      players: PLAYERS,
+      events,
+      ending: { reason: 'all_passed', detail: 'blocked', by: 'u2' },
+      outcome: 'won',
+    }), 'u1')
+    const coop = makeGameData(ZTest_makeGameDataRaw({ players: PLAYERS, events }), 'u1')
+    expect([ended.events[0].rack, coop.events[0].rack]).toEqual([['a', 't', 'x'], ['a', 't', 'x']])
   })
 
   it('shows every rack once the race has ended', () => {

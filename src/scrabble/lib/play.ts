@@ -49,8 +49,21 @@ function isEmpty(board: GCell[], x: number, y: number) {
 
 
 /** The tiles a play consumes from the rack: `?` per blank, else the letter. */
-export function tilesUsed(placements: GPlacement[]): string[] {
+export function tilesUsed(placements: ReadonlyArray<Pick<GPlacement, 'letter' | 'blank'>>): string[] {
   return placements.map((p) => (p.blank ? BLANK : p.letter))
+}
+
+/** The rack slots `spent` came out of: each tile takes the first slot holding
+ *  it that no earlier tile took. The server took every one of them from this
+ *  rack, so a tile it does not hold is a bug, and throws. */
+export function findSpentSlots(rack: readonly string[], spent: readonly string[]): Set<number> {
+  const slots = new Set<number>()
+  for (const tile of spent) {
+    const i = rack.findIndex((t, idx) => t === tile && !slots.has(idx))
+    if (i === -1) throw new Error(`${tile} is not in the rack ${rack.join('')}`)
+    slots.add(i)
+  }
+  return slots
 }
 
 /**

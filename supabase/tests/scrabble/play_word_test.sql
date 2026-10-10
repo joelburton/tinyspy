@@ -16,7 +16,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(35);
+select plan(36);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -83,6 +83,8 @@ select is((select acc.res -> 'data' -> 'drawn' from acc), '["x","y","z"]'::jsonb
 select is((select string_agg(kind || ':' || took_turn, ',' order by id)
              from scrabble.events where game_id = (select id from ga)),
   'word:true', 'one word play is logged, and it spent a turn');
+select is((select rack from scrabble.events where game_id = (select id from ga)),
+  array['c','a','t','s','e','r','d'], 'the row keeps the rack the word was played from');
 select is((select title from common.games where id = (select id from ga)),
   'CAT', 'the game title becomes the first word played, in capitals: it is drawn text');
 

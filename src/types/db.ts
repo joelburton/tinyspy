@@ -1549,13 +1549,13 @@ isOneToOne: false
           Tables: {
             "events": {
                   Row: {
-                    "created_at": string,"game_id": string,"id": number,"kind": string,"placements": Json | null,"score": number | null,"tile_count": number | null,"took_turn": boolean,"user_id": string,"words": (string)[] | null
+                    "created_at": string,"exchanged": (string)[] | null,"game_id": string,"id": number,"kind": string,"placements": Json | null,"rack": (string)[] | null,"score": number | null,"tile_count": number | null,"took_turn": boolean,"user_id": string,"words": (string)[] | null
                   }
                   Insert: {
-                    "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"placements"?: Json | null,"score"?: number | null,"tile_count"?: number | null,"took_turn"?: boolean,"user_id": string,"words"?: (string)[] | null
+                    "created_at"?: string,"exchanged"?: (string)[] | null,"game_id": string,"id"?: never,"kind": string,"placements"?: Json | null,"rack"?: (string)[] | null,"score"?: number | null,"tile_count"?: number | null,"took_turn"?: boolean,"user_id": string,"words"?: (string)[] | null
                   }
                   Update: {
-                    "created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"placements"?: Json | null,"score"?: number | null,"tile_count"?: number | null,"took_turn"?: boolean,"user_id"?: string,"words"?: (string)[] | null
+                    "created_at"?: string,"exchanged"?: (string)[] | null,"game_id"?: string,"id"?: never,"kind"?: string,"placements"?: Json | null,"rack"?: (string)[] | null,"score"?: number | null,"tile_count"?: number | null,"took_turn"?: boolean,"user_id"?: string,"words"?: (string)[] | null
                   }
                   Relationships: [
                     {

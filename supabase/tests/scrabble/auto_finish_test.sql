@@ -17,7 +17,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(30);
+select plan(31);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -102,6 +102,9 @@ select is((select string_agg(kind || ':' || score || ':' || left(user_id::text, 
 select is((select tile_count from scrabble.events
             where game_id = (select id from gcp) and kind = 'leftovers'),
   2, 'a leftovers row counts the tiles left');
+select is((select string_agg(kind || ':' || array_to_string(rack, ''), ',' order by id)
+             from scrabble.events where game_id = (select id from gcp) and not took_turn),
+  'leftovers:qz,went_out:', 'the leftovers row keeps the rack it counted; going out, an empty one');
 
 -- ─── Compete blocked (everyone passed in a row) ──────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

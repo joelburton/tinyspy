@@ -5,7 +5,7 @@
 -- ============================================================
 -- The page reads the blobs on common.games; these rules cover what a club
 -- member may still read off scrabble's own tables. The dictionary bands, the
--- bag's order and the racks stay out of the column grant; the board is
+-- bag's order and the racks, the log's among them, stay out of the column grant; the board is
 -- readable by any club member and by nobody outside the club. Who may see a
 -- rack is the page's seat rule now (game_data_test.sql).
 
@@ -14,7 +14,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(7);
+select plan(9);
 
 -- A compete game between ada + bea; cade is a club member but NOT a
 -- player; dee is outside the club.
@@ -38,6 +38,10 @@ select throws_ok($$ select bag from scrabble.games where game_id = (select id fr
   '42501', null, 'the bag''s order is not selectable');
 select throws_ok($$ select rack from scrabble.players where game_id = (select id from g) $$,
   '42501', null, 'a rack is not selectable off the table — even one''s own');
+select throws_ok($$ select rack from scrabble.events where game_id = (select id from g) $$,
+  '42501', null, 'nor is the rack a log row keeps');
+select throws_ok($$ select exchanged from scrabble.events where game_id = (select id from g) $$,
+  '42501', null, 'nor the tiles an exchange put back');
 reset role;
 
 -- ─── Board + events are public to any club member ────────

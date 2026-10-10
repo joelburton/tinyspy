@@ -105,7 +105,8 @@ Without that the viewer opens behind the page you are on, and the tap on
 to live.
 
 **The input under the banner is frozen to the eye and alive underneath.** The
-banner is opaque and covers the whole below-board region, but the game's entry
+banner is opaque and covers the whole below-board region — in scrabble only the
+controls, beside a rack that shows the past turn's — but the game's entry
 stays mounted, so a half-typed word or a staged rack survives a trip through the
 history and is there again on the way out. Neither half is the accident: don't
 "fix" the docs that call it frozen, and don't unmount what is under it.

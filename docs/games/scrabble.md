@@ -302,7 +302,7 @@ tables: it reads the two blobs on `common.games` (below).
 |---|---|---|
 | `games` | one row per game, keyed `game_id`. `dict_2` + `dict_3plus` (the two acceptance bands), `board` jsonb (a flat 225-cell array of `{l, b}` or null — the RPCs' working state, and the shape the AI reads), `bag` text[] (the remaining draw order), `version` int (the move counter for optimistic concurrency — see [§6](#6-where-validation-lives)), `team_rack` text[] (coop's one rack; null in compete), `consecutive_passes` (compete's blocked-end counter). The mode and the club are `common.games`'. | `game_id`, `board`, `version`, `team_rack`, `consecutive_passes` — never the bands or the bag |
 | `players` | PK `(game_id, user_id)`; every player, bot or person, is found by `user_id`. `score` is the player's own in both modes — the points from the words they played, less their leftovers in compete. `rack` is compete's (null in coop). `ai_level` is non-null on a bot's row: its strength in this game. A compete game's turn order is `common.game_players.turn_seat`: people, then bots. | everything but `rack` |
-| `events` | the move log, keyed by a `bigint identity` and read `order by id`. `user_id` is the player whose row it is. `kind`: `word` (`placements` jsonb `[{x, y, letter, blank}]`, `words`, `score`) / `exchange` (`tile_count`) / `pass` / `leftovers` (negative `score`, the rack's `tile_count`) / `went_out` (positive `score`). `took_turn` is true on the three moves and false on the two rows an ending writes. | everything, both modes |
+| `events` | the move log, keyed by a `bigint identity` and read `order by id`. `user_id` is the player whose row it is. `kind`: `word` (`placements` jsonb `[{x, y, letter, blank}]`, `words`, `score`) / `exchange` (`tile_count`, `exchanged`: the tiles put back) / `pass` / `leftovers` (negative `score`, the rack's `tile_count`) / `went_out` (positive `score`). `rack` is the rack the move was played from — a `leftovers` row's, the rack it counted; a `went_out` row's, empty; null on rows from before 2026-10-10. `took_turn` is true on the three moves and false on the two rows an ending writes. | everything but `rack` and `exchanged` |
 
 Letters are lowercase in every column; a capital never reaches the database.
 
@@ -331,7 +331,7 @@ common part:
 | `nBagTiles` | the tiles left in the bag; the bag's order never leaves the server |
 | `board.letters` | the one board, shared in both modes: 225 characters, row by row — `.` an empty cell, `c` a C tile, `C` a blank played as C. Case carries the blank, and `makeGameData` is its one reader, decoding each cell into a `GCell` holding its `GTile` |
 | `team` | coop's own facts, sent once: `{rack, score, nRackTiles}`; null in compete |
-| `events` | every row, every player's: `id`, `userId`, `kind`, `placements` (a word's tiles as `"x,y:c"`, the board's case rule), `words`, `score`, `nTiles`, `tookTurn`, `at` |
+| `events` | every row, every player's: `id`, `userId`, `kind`, `placements` (a word's tiles as `"x,y:c"`, the board's case rule), `words`, `score`, `nTiles`, `rack` and `exchanged` (every rack; `makeGameData` withholds a rival's mid-race, as it does the players'), `tookTurn`, `at` |
 | `players` | the common player, plus `aiLevel`, `score` (own, every mode), `rack` and `nRackTiles` (compete; null in coop) |
 
 | `summary_data` key | what it is |
@@ -666,7 +666,15 @@ folds every word's tiles up to that row, since no row keeps a board; that
 turn's tiles wear the attention face and a green ring; the banner reads "#12
 Bea: +54 JUKEBOX" or "#5 Bea passed"), and in coop a teammate's **preview**
 (below). `useHistoryView` picks the cells, and PlayArea hands BoardCol the
-board to show. The rack stays mounted underneath the banner, so a staged move
+board to show.
+
+A past turn also shows **the rack it was played from**, in the rack's own spot
+and in the board's history frame: the tiles that went to the board, or back to
+the bag in an exchange, are dimmed (the staged-tile look), so the rest is what
+was kept. A `leftovers` row shows the rack the ending counted. A rival's row
+mid-race, and a row from before racks were kept, show an empty rack. The banner
+covers only the controls, so a long label ends in an ellipsis; the log keeps
+the full words. My live rack is state in BoardCol's hooks, so a staged move
 survives a look back.
 
 **One case, the data's.** Letters are lowercase in the blob, in state, in
@@ -689,10 +697,10 @@ sketch at its top), or in `reactTypes.ts` for the one that reaches React.
         │     ├── Board             the 15×15 grid; decides each cell's marks
         │     │     └── Cell        one spot: its premium, the cursor, a drop ring
         │     │           └── Tile  the tile on it: letter, value, a blank's ring
-        │     ├── HistoryBanner ←   over the rack row while a turn or a preview is open
-        │     ├── Rack              my rack in my order
+        │     ├── Rack              my rack in my order, or a past turn's
         │     │     └── Tile        the same tile, in a slot
         │     ├── Controls          Recall, Show move, and the move slot or its pill
+        │     │     └── HistoryBanner ←   over the controls while a turn or a preview is open
         │     └── BlankPickerBlockingModal   a placed blank's letter
         ├── InfoSheet ←             off-canvas on a phone, a flex child on desktop
         │     └── InfoCol           the readouts and the action row
@@ -807,19 +815,19 @@ a Stop alike (the first is a `won` outcome, drawn green), `Lost (out of time) ·
 | file | pins |
 |---|---|
 | `lib/board.test.ts` | the premium layout, the tile values and distribution, the board-string decoders |
-| `lib/play.test.ts` | geometry (off-line / gap / disconnected / center-first), main + cross-word extraction, scoring (premiums only under new tiles, stacked multipliers, bingo +50, blanks 0), `historyBoard` |
+| `lib/play.test.ts` | geometry (off-line / gap / disconnected / center-first), main + cross-word extraction, scoring (premiums only under new tiles, stacked multipliers, bingo +50, blanks 0), `historyBoard`, `findSpentSlots` |
 | `lib/suggest.test.ts` | the move generator's exact move-set against a brute-force reference, on hand-built and random boards |
 | `lib/rank.test.ts`, `lib/policy.test.ts` | the leave heuristic and ranking; the bots' choice and a self-played game |
 | `lib/rackOrder.test.ts` | the rack order after a draw |
 | `lib/answer.test.ts`, `lib/endingLabel.test.ts` | every answer's words and outcome, and every ending's label, both modes |
 | `lib/setup.test.ts` | the setup's checks |
-| `hooks/useGame.test.ts` | `makeGameData`: the decoded board, the log's tiles, a rival's rack withheld mid-race and shown at the end, the board and bag on every player, the side's facts and `own` |
+| `hooks/useGame.test.ts` | `makeGameData`: the decoded board, the log's tiles, a rival's rack withheld mid-race and shown at the end, the log's racks likewise, the board and bag on every player, the side's facts and `own` |
 | `hooks/useStagedTiles.test.ts` | staged tiles kept when an opponent's move misses them, a typed letter's tile, a tap-placed tile |
 | `hooks/useSubmitMove.test.ts` | the claim on the rack, taken once on a played word and given back on a refusal |
 | `components/Board.test.tsx` | which marks a cell's tile wears |
 | `components/GameEventLog.test.tsx` | the whose-moves picker (a bot pickable like anyone), the ending rows' words |
 | `components/SetupForm.test.tsx` | the form's checks |
-| `components/PlayArea.test.tsx` | the wiring, on the fixture: both modes, the turn, the bots' poke, the viewer and a preview, the strip, the action row, the rack row, a typed word submitted, a tap-placed tile, Pass, `+`, `⌥⌫`, Restart |
+| `components/PlayArea.test.tsx` | the wiring, on the fixture: both modes, the turn, the bots' poke, the viewer (with a past turn's rack, and a rival's empty one) and a preview, the strip, the action row, the rack row, a typed word submitted, a tap-placed tile, Pass, `+`, `⌥⌫`, Restart |
 
 The fixture (`lib/gameData.fixture.ts`) builds the `game_data` blob from a
 game's facts as the builder would.

@@ -39,11 +39,6 @@
   width: var(--side);
   min-height: 3.4rem;
   margin-top: 0.25rem;
-  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/event-log/historyViewer.module.css), which overlays this slot while a
-     past turn is being viewed. This region's height (game-specific) sets the
-     banner's; the banner's appearance is common. */
-  position: relative;
 }
 
 /* One horizontal row: the rack on the left, then the controls filling the rest.
@@ -85,6 +80,13 @@
 /* @@ */ .rackWrap {
   flex: 0 0 auto;
   position: relative;
+}
+
+/* The rack a past turn was played from, in the board's history frame
+ * (historyViewer.module.css → .historyFrame); the rack's own radius, so the
+ * frame's corners follow the tray's. */
+/* @@ */ .pastRack {
+  border-radius: 8px;
 }
 
 /* The shuffle control, floated over the rack's top-right corner and scaled down

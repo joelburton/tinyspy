@@ -40,6 +40,8 @@ import styles from './BoardCol.module.css'
  *  live move. */
 const NO_CELLS: ReadonlySet<string> = new Set()
 const NO_TILES: ReadonlyMap<string, GTile> = new Map()
+/** No rack slots — a past rack is never picked or drawn. */
+const NO_SLOTS: ReadonlySet<number> = new Set()
 
 /**
  * scrabble's board column: the 15×15 board, and beneath it the rack and the
@@ -47,6 +49,8 @@ const NO_TILES: ReadonlyMap<string, GTile> = new Map()
  * and the cursor keys), the rack's order (`useRackOrder`), and the move's trip
  * to the server (`useSubmitMove`) are all here, since each one reads the
  * others' state; `useBoardColActions` binds the commands the row places.
+ * While a past turn is open, the rack slot shows the rack that turn was played
+ * from, and the history banner covers the controls beside it.
  *
  * Above the board sits the shared `<MobileStatusBar>`, `display: none` on
  * desktop: on a phone the info column is off-canvas, and the state line is
@@ -135,6 +139,7 @@ export function BoardCol({
     ? submission.liveCells
     : shownCells
   const preview = historyView.preview
+  const pastRack = historyView.rack
 
   /** The tiles laid but not played: a preview's over the live board, none
    *  over a past turn, my own staged tiles otherwise. */
@@ -183,38 +188,37 @@ export function BoardCol({
         />
 
         <div className={styles.belowBoard}>
-          {/* The banner covers the rack row while viewing; the rack stays
-              mounted underneath, so a staged move survives a look back. */}
-          {historyView.isViewing && (
-            <HistoryBanner
-              onExit={historyView.exit}
-              label={preview === null ? historyView.label : (
-                <>
-                  <Dot
-                    color={preview.by.color}/> {preview.by.username} showing:{' '}
-                  {preview.words.length > 0
-                    ? `+${preview.score} ${preview.words.map((w) => w.toUpperCase()).join(
-                      ', ')}`
-                    : `${preview.tiles.size} tile${preview.tiles.size === 1 ? '' : 's'}`}
-                </>
-              )}
-            />
-          )}
           <div className={styles.moveArea}>
-            <div className={styles.rackWrap}>
-              <Rack
-                tiles={rackOrder.tiles}
-                usedSlots={staged.usedSlots}
-                pickedSlots={staged.pickedSlots}
-                drawnSlots={rackOrder.drawnSlots}
-                isInteractive={isInteractive}
-                onPointerDown={pointer.onRackPointerDown}
-              />
-              {/* Shuffle floats over the rack's corner: it reorders the rack,
-                  not the move. It hides itself on an empty rack. */}
-              <ShuffleButton action={actions.actShuffle} tooltip="Shuffle rack"
-                             className={styles.rackShuffle}/>
-            </div>
+            {pastRack === null ? (
+              <div className={styles.rackWrap}>
+                <Rack
+                  tiles={rackOrder.tiles}
+                  usedSlots={staged.usedSlots}
+                  pickedSlots={staged.pickedSlots}
+                  drawnSlots={rackOrder.drawnSlots}
+                  isInteractive={isInteractive}
+                  onPointerDown={pointer.onRackPointerDown}
+                />
+                {/* Shuffle floats over the rack's corner: it reorders the rack,
+                    not the move. It hides itself on an empty rack. */}
+                <ShuffleButton action={actions.actShuffle} tooltip="Shuffle rack"
+                               className={styles.rackShuffle}/>
+              </div>
+            ) : (
+              // A past turn's rack, in the board's history frame, its spent
+              // tiles dimmed. My live rack is only state in the hooks above,
+              // so a staged move survives the look back.
+              <div className={cls(styles.rackWrap, styles.pastRack, history.historyFrame)}>
+                <Rack
+                  tiles={pastRack.tiles.map((glyph, rackIdx) => ({ glyph, rackIdx }))}
+                  usedSlots={pastRack.spentSlots}
+                  pickedSlots={NO_SLOTS}
+                  drawnSlots={NO_SLOTS}
+                  isInteractive={false}
+                  onPointerDown={pointer.onRackPointerDown}
+                />
+              </div>
+            )}
             <Controls
               submitScore={actions.submitScore}
               actSubmit={actions.actSubmit}
@@ -223,6 +227,21 @@ export function BoardCol({
               actExchange={actions.actExchange}
               actPass={actions.actPass}
               localFeedbackSlot={localFeedbackSlot}
+              banner={historyView.isViewing ? (
+                <HistoryBanner
+                  onExit={historyView.exit}
+                  label={preview === null ? historyView.label : (
+                    <>
+                      <Dot
+                        color={preview.by.color}/> {preview.by.username} showing:{' '}
+                      {preview.words.length > 0
+                        ? `+${preview.score} ${preview.words.map((w) => w.toUpperCase()).join(
+                          ', ')}`
+                        : `${preview.tiles.size} tile${preview.tiles.size === 1 ? '' : 's'}`}
+                    </>
+                  )}
+                />
+              ) : null}
             />
           </div>
         </div>

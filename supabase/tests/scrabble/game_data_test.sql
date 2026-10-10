@@ -140,8 +140,10 @@ select is(
   jsonb_build_array(jsonb_build_object(
     'userId', 'ada11111-1111-1111-1111-111111111111', 'kind', 'word',
     'placements', '["7,7:C", "8,7:a", "9,7:t"]'::jsonb,
-    'words', '["cat"]'::jsonb, 'score', 4, 'nTiles', null, 'tookTurn', true)),
-  'the log: the word''s placements under the same case rule, its words and score');
+    'words', '["cat"]'::jsonb, 'score', 4, 'nTiles', null,
+    'rack', '["?", "a", "t", "s", "e", "r", "d"]'::jsonb, 'exchanged', null,
+    'tookTurn', true)),
+  'the log: the word''s placements under the same case rule, its words, score and the rack it was played from');
 select is(
   array[pg_temp.sc_player((select id from g where mode = 'coop'), 'ada11111-1111-1111-1111-111111111111'),
         pg_temp.sc_player((select id from g where mode = 'coop'), 'bea22222-2222-2222-2222-222222222222')],

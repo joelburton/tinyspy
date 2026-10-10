@@ -182,6 +182,40 @@ describe('scrabble PlayArea — the board viewer', () => {
     expect(screen.queryByText('#1 me: +10 CAT')).not.toBeInTheDocument()
   })
 
+  it('a past turn shows the rack it was played from, its played tiles spent', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <PlayAreaLoader
+        {...ZTest_makeScrabbleCtx({
+          events: [ZTest_word(1, 'u1', ['7,7:c', '8,7:a', '9,7:t'], ['cat'], 10,
+            ['c', 'a', 't', 'q', 'u', 'i', 'z'])],
+        })}
+      />,
+    )
+    await user.click(screen.getByText('#1'))
+    const tiles = [...container.querySelectorAll('[data-rack-tile]')]
+    // Each tile draws its letter, then its value.
+    expect(tiles.map((t) => t.textContent).join('')).toBe('c3a1t1q10u1i1z10')
+    // CSS modules are proxies under vitest, so `_used_` is the wiring only.
+    expect(tiles.map((t) => /_used_/.test(t.innerHTML))).toEqual(
+      [true, true, true, false, false, false, false])
+  })
+
+  it("a rival's past turn mid-race shows an empty rack", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <PlayAreaLoader
+        {...ZTest_makeScrabbleCtx({
+          ...RACE,
+          events: [ZTest_word(1, 'u2', ['7,7:c', '8,7:a', '9,7:t'], ['cat'], 10,
+            ['c', 'a', 't', 'q', 'u', 'i', 'z'])],
+        })}
+      />,
+    )
+    await user.click(screen.getByText('#1'))
+    expect(container.querySelectorAll('[data-rack-tile]')).toHaveLength(0)
+  })
+
   it("opens a teammate's preview, and exits on ✕", async () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: [ME, MOTH], version: 3 })} />)

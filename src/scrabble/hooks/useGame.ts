@@ -23,7 +23,9 @@ import type {
  *
  * The seat rule: in a race, a rival's rack is null until the game ends — the
  * blob carries every rack, and this is where a seat stops seeing the others'.
- * Their rack's count stays. Coop has one rack, the team's, and it is public.
+ * Their rack's count stays, and so does every log row's but the rack it kept
+ * and what an exchange put back. Coop has one rack, the team's, and it is
+ * public.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // `team`, the board and the bag go onto the players; `gd` has none of them.
@@ -57,12 +59,18 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 
   // Every row is a seated player's: a player's rows go with their profile
-  // (`on delete cascade`), so the lookup cannot miss.
-  const events: GEvent[] = raw.events.map(({ userId, placements, ...row }) => ({
-    ...row,
-    by: playersById[userId]!,
-    placements: placements === null ? null : placements.map(decodePlacement),
-  }))
+  // (`on delete cascade`), so the lookup cannot miss. A row's rack follows
+  // the seat rule, as the players' do.
+  const events: GEvent[] = raw.events.map(({ userId, placements, ...row }) => {
+    const maySeeRack = team !== null || raw.ended || userId === myId
+    return {
+      ...row,
+      by: playersById[userId]!,
+      placements: placements === null ? null : placements.map(decodePlacement),
+      rack: maySeeRack ? row.rack : null,
+      exchanged: maySeeRack ? row.exchanged : null,
+    }
+  })
 
   // The gate has checked that I am seated, and my own rack is never withheld.
   const me = playersById[myId] as GGameData['me']

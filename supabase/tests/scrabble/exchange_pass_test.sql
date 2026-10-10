@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(19);
+select plan(22);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -61,6 +61,10 @@ select is((select version from scrabble.games where game_id = (select id from gc
 select is((select kind || ':' || tile_count from scrabble.events
            where game_id = (select id from gco)), 'exchange:2',
   'the exchange is logged with its tile count');
+select is((select rack from scrabble.events where game_id = (select id from gco)),
+  array['a','b','c','d','e','f','g'], 'the row keeps the rack the exchange was made from');
+select is((select exchanged from scrabble.events where game_id = (select id from gco)),
+  array['a','b'], 'and the tiles it put back');
 
 -- ─── Pass (compete) advances the turn + pass streak ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -81,6 +85,11 @@ select is((select consecutive_passes from scrabble.games where game_id = (select
   'pass bumps the pass streak');
 select is(pg_temp.sc_current_user((select id from gcp)),
   'bea22222-2222-2222-2222-222222222222'::uuid, 'pass advances the turn');
+select is((select e.rack from scrabble.events e
+            where e.game_id = (select id from gcp) and e.kind = 'pass'),
+  (select p.rack from scrabble.players p
+    where p.game_id = (select id from gcp) and p.user_id = 'ada11111-1111-1111-1111-111111111111'),
+  'a pass keeps the rack it passed on');
 
 -- ─── The blocked end: everyone passed in a row ───────────
 -- The casual house rule (not tournament Scrabble's 6 scoreless turns): one

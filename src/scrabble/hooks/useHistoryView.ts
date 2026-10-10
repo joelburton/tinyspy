@@ -3,7 +3,7 @@
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { makeCellId } from '../lib/board'
 import { makeEventText } from '../lib/eventText'
-import { historyBoard } from '../lib/play'
+import { findSpentSlots, historyBoard, tilesUsed } from '../lib/play'
 import type {
   GGameData,
   GHistoryTarget,
@@ -17,10 +17,12 @@ import type {
  * another `#N`, and any key.
  *
  * It shows two things on one chrome: a past turn — the log's `#N` click,
- * drawn as the board just after it — and, in coop, a teammate's preview,
- * drawn as their staged tiles over my live board. The board is one shared
- * board in both modes, so any row opens, whoever played it; a past board is
- * the words laid down in order (`historyBoard`), since no row keeps one.
+ * drawn as the board just after it with the rack it was played from — and, in
+ * coop, a teammate's preview, drawn as their staged tiles over my live board.
+ * The board is one shared board in both modes, so any row opens, whoever
+ * played it; a past board is the words laid down in order (`historyBoard`),
+ * since no row keeps one. A row does keep its rack, which a rival's row
+ * shows only once the race is over.
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
   const {
@@ -62,6 +64,21 @@ export function useHistoryView(gd: GGameData): GHistoryView {
       : `${prefix} ${text}`
   }
 
+  /** The rack the viewed turn was played from, with the tiles that went to
+   *  the board or back to the bag marked spent. */
+  function makePastRack(): GHistoryView['rack'] {
+    if (viewedEvent === null) return null
+    // A rival's mid-race, or a row older than the racks: an empty rack.
+    if (viewedEvent.rack === null) return { tiles: [], spentSlots: new Set() }
+    const spent = viewedEvent.kind === 'word'
+      ? tilesUsed(viewedEvent.placements!)
+      : viewedEvent.exchanged ?? []
+    return {
+      tiles: viewedEvent.rack,
+      spentSlots: findSpentSlots(viewedEvent.rack, spent),
+    }
+  }
+
   function makeLitCellIds(): string[] {
     if (preview !== null) return [...preview.tiles.keys()]
     if (viewedEvent?.placements) return viewedEvent.placements.map((t) => t.id)
@@ -91,6 +108,7 @@ export function useHistoryView(gd: GGameData): GHistoryView {
     exit: exitHistory,
     cells:
       viewedEvent === null ? null : historyBoard(gd.events, viewedEvent.id),
+    rack: makePastRack(),
     litCellIds: makeLitCellIds(),
     label: makeLabel(),
   }
