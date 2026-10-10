@@ -11,7 +11,8 @@
  * **What's covered here:**
  *   - Initial load populates `cg` from shell_data, `me` as my entry in it,
  *     hands game_data and static_game_data through opaque, takes the timer
- *     from static_game_data's setup, and clears `loading`.
+ *     from shell_data (and follows it as a later read changes it), and
+ *     clears `loading`.
  *   - static_game_data is asked for until a read carrying it has been
  *     applied, and never after.
  *   - A game whose builders have not written a shell or a static blob is a
@@ -157,6 +158,7 @@ const SHELL: Shell = {
   title: 'Game One',
   restartCount: 0,
   ended: false,
+  timer: { kind: 'none' },
   players: PLAYERS,
 }
 
@@ -272,14 +274,24 @@ describe('useCommonGame — initial load', () => {
     expect(result.current.staticGameData).toEqual(STATIC_GAME_DATA)
   })
 
-  it('takes the timer from static_game_data\'s setup, and reads no other table', async () => {
-    serve([{
-      ...GAME_ROW,
-      static_game_data: { ...STATIC_GAME_DATA, setup: { timer: { kind: 'countdown', seconds: 90 } } },
-    }])
+  it('takes the timer from shell_data, not the setup, and reads no other table', async () => {
+    // A game that re-armed its clock: the setup says none, the shell a countdown.
+    serve([{ ...GAME_ROW, shell_data: { ...SHELL, timer: { kind: 'countdown', seconds: 30 } } }])
     const result = await load()
-    expect(result.current.timer.mode).toEqual({ kind: 'countdown', seconds: 90 })
+    expect(result.current.timer.mode).toEqual({ kind: 'countdown', seconds: 30 })
     expect(mockSchemaFrom.mock.calls.every((c) => c[0] === 'games')).toBe(true)
+  })
+
+  it('follows the timer as a later shell changes it', async () => {
+    const result = await load()
+    expect(result.current.timer.mode).toEqual({ kind: 'none' })
+
+    serve([{ ...GAME_ROW, shell_data: { ...SHELL, timer: { kind: 'countdown', seconds: 30 } } }])
+    act(() => {
+      handlers['broadcast:changed']?.({ payload: {} })
+    })
+    await waitFor(() =>
+      expect(result.current.timer.mode).toEqual({ kind: 'countdown', seconds: 30 }))
   })
 })
 

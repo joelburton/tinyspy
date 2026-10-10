@@ -66,8 +66,11 @@ while someone is reviewing it. Pause is computed by the clients.
 `common.timers (game_id, ticks, last_tick, kind, countdown_seconds_at_setup)`,
 its own table so the tick doesn't churn the games stream. `kind` (`none`,
 `countup`, `countdown`) and the countdown's length are copied from
-`setup.timer` at create; the page reads them from `setup.timer` in
-`static_game_data`, and nothing reads the copies. `ticks`
+`setup.timer` at create, and the page reads them off this row, through
+`shell_data`'s `timer`. A game may re-arm its clock mid-game by writing the
+row — kind, length, `ticks` back to 0 — and its builder's next call carries
+the change to every client; `setup.timer` stays what the game was created
+with. `ticks`
 counts whole seconds of **active play**: every
 playing client calls `common.tick_timer` once a second, and it advances by at
 most one per real second, which removes duplicates across players and makes a

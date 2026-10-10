@@ -1,8 +1,8 @@
 # wordsy — FlipWord
 
-**Not scheduled.** Decided in outline (Joel, 2026-10-08); the process below
-was written 2026-10-10 and waits on the rulings in [Proposed — not yet
-ruled](#proposed--not-yet-ruled). Nothing is built and no branch exists. Brand
+**Being built**, on the `wordsy` branch (Joel, 2026-10-10). Decided in
+outline 2026-10-08; the process below was written 2026-10-10 and every
+proposal is ruled (decisions 10–19). Step 1 is in the working tree. Brand
 **FlipWord**, codename `wordsy` by the roster's rule that a folder carries the
 original game's name. Starts compete-only; the two coop modes are in
 [Later](#later).

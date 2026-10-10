@@ -9,7 +9,7 @@
  *   staticGameData                        # the game's static_game_data blob, read once; null while loading
  *   pause: {paused, presentUserIds, stillPlayingHumanPlayers, manuallyPausedBy, sendManualPause, sendManualUnpause}
  *   timer:
- *     mode: {kind, seconds}               # seconds only for a countdown; static_game_data's setup.timer
+ *     mode: {kind, seconds}               # seconds only for a countdown; the same object as cg.timer
  *     displaySeconds
  *     expired
  *   sendSuspend
@@ -23,6 +23,7 @@
  *   title
  *   restartCount
  *   ended
+ *   timer: {kind, seconds}                # off common.timers as it is now
  *   players: [player, …]                  # seat order
  *   me                                    # same object as my entry in players
  *
@@ -64,8 +65,8 @@ import { noShellEnvelope, type CommonGame, type Shell } from './shell'
  * too until a read carrying it has been applied — nothing after create
  * changes it, so later reads skip it (docs/supabase.md → Reading data). The
  * hook reads no other column of that table. `shell_data` is what the page
- * shows, and the timer comes from the static blob's `setup`; `game_data` and
- * `static_game_data` are the game's, handed down opaque. A game's `useGame`
+ * shows, the timer among it; `game_data` and `static_game_data` are the
+ * game's, handed down opaque. A game's `useGame`
  * is a pure function of the two.
  *
  * The room is a Realtime channel named `game:${gameId}` — stable, because
@@ -91,7 +92,7 @@ export function useCommonGame(
   // null until the game's builder has written one.
   gameData: unknown
   // The game's `static_game_data` blob, as `create_game` wrote it. Opaque to
-  // the page but for `setup.timer`; null while loading.
+  // the page; null while loading.
   staticGameData: unknown
   // Whether the game is paused, who it waits for, and the controls.
   pause: GamePause
@@ -272,7 +273,7 @@ export function useCommonGame(
     ended,
   })
 
-  const timerMode: TimerMode = loaded?.staticGameData.setup.timer ?? { kind: 'none' }
+  const timerMode: TimerMode = shell?.timer ?? { kind: 'none' }
 
   // Idle until the game loads, and stopped once it ends.
   const timer = useGameTimer({

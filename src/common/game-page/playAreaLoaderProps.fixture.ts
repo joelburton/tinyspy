@@ -88,6 +88,7 @@ export function ZTest_makePlayAreaLoaderProps(facts: ZTest_PlayAreaFacts = {}): 
       title,
       restartCount,
       ended,
+      timer: { kind: 'none' },
       players,
       me,
     },

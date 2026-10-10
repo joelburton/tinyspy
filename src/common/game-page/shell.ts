@@ -1,5 +1,6 @@
 // cs-unmet
 
+import type { TimerMode } from '../manifest/types'
 import type { Member } from '../members/member'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { faultEnvelope, OUR_BUG_TO_CODE_AND_TEXT } from '../supabase/dbEnvelope'
@@ -21,6 +22,9 @@ export type Shell = {
   restartCount: number
   // The game has ended.
   ended: boolean
+  // The clock's kind as `common.timers` holds it now: the setup's, unless the
+  // game re-arms it mid-game, as FlipWord's round timer does.
+  timer: TimerMode
   // Everyone in the game, in seat order.
   players: ShellPlayer[]
 }

@@ -52,6 +52,16 @@ returns false, and the second pass is the one React keeps — the timeout would
 never fire in development. An effect runs once per commit, which is why
 `GamePage`'s ref works where the hook's would not.
 
+**A change of kind starts the local count over.** A game may re-arm its clock
+mid-game — FlipWord's round timer goes countdown, none, countdown — and the
+server zeroes the row when it does. The local count must follow, or
+`mergeTicks` below would keep last round's 30 and the new countdown would
+arrive expired, firing the timeout on a round nobody has played. So the hook
+remembers the kind its count belongs to and zeroes the count when it changes,
+in render, not in an effect. The first kind a live game shows is not a change:
+the page has no kind while it loads, and the seed read's count must survive
+the shell's arrival.
+
 **Local ticks merge forward-only — except against a big drop.** Several players
 poll the same clock, so responses land out of order and differ by a tick or
 two; those are floored with `Math.max` so the display never rewinds. A drop
@@ -73,7 +83,8 @@ attempts.
 
 **The SQL half is one table and one conditional.** `common.timers (game_id,
 ticks, last_tick)` is its own table rather than a column on `common.games`, so
-the per-second UPDATE does not churn the games realtime stream. `tick_timer`'s
+the per-second UPDATE does not churn the games realtime stream; its `kind` and
+countdown length are what `shell_data`'s `timer` reads. `tick_timer`'s
 `now() - last_tick >= 1 second` is the whole of dedup, pause and idle in one
 line. `common._reset_game` zeroes the row on a replay, the view-state RPCs are
 pointer flips that do no timer work, and `common._require_valid_timer` validates

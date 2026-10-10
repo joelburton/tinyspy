@@ -53,6 +53,16 @@ export function useGameTimer({
 }): { displaySeconds: number; expired: boolean } {
   const [ticks, setTicks] = useState(0)
 
+  // A game that re-arms its clock (FlipWord's round timer) changes the kind
+  // and zeroes the row; the count from the last clock must not carry over,
+  // or `mergeTicks` would keep it and a fresh countdown would land expired.
+  // The first kind a live game shows is not a change: it keeps the seed.
+  const [countedKind, setCountedKind] = useState<TimerMode['kind'] | null>(null)
+  if (running && mode.kind !== countedKind) {
+    setCountedKind(mode.kind)
+    if (countedKind !== null) setTicks(0)
+  }
+
   // Initial read, so a (re)mount or late-join shows the right value
   // immediately rather than flashing 0 before the driver's first
   // round-trip lands.

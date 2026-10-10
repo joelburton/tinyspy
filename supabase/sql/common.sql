@@ -1376,9 +1376,9 @@ begin
   -- Seed the additive game clock at zero. last_tick = now() so the
   -- first tick_timer call doesn't immediately jump (it needs a full
   -- real second to elapse before the first +1). The kind and the
-  -- countdown's length are copied from `setup.timer`, which is where the
-  -- page reads them (static_game_data); _require_valid_timer has checked
-  -- the shape.
+  -- countdown's length are copied from `setup.timer`, and the page reads
+  -- them here, through shell_data's `timer`; _require_valid_timer has
+  -- checked the shape.
   insert into common.timers (game_id, kind, countdown_seconds_at_setup)
   values (
     new_id,
@@ -2023,8 +2023,8 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --   static_game_data  What `create_game` fixes and nothing after it changes:
 --                     the setup, the game facts every game shares, and the
 --                     game's puzzle less what it shows only once the game has
---                     ended. The page reads it once, takes the timer from
---                     `setup`, and hands it to the game; the game's `useGame`
+--                     ended. The page reads it once and hands it to the
+--                     game; the game's `useGame`
 --                     merges it into `game_data`, each key back in its place.
 --                     `_make_json_static_game_data` builds the common part;
 --                     the game's builder adds its puzzle on top.
@@ -2055,12 +2055,13 @@ revoke execute on function common._set_player_ended(uuid, uuid, text, text, text
 --   shell_data:
 --     id, gametype, club: {handle}
 --     title, restartCount, ended
+--     timer: {kind, seconds}               off common.timers; seconds only for a countdown
 --     players: [{id, username, color, ai, stillPlaying}, …]   seat order
 --
 --   static_game_data, the common part:
 --     id, gametype, brand, club: {handle}
 --     mode, coop, compete
---     setup                                as create_game was handed it; setup.timer is the clock
+--     setup                                as create_game was handed it; setup.timer is the clock as created
 --
 --   game_data, the common part:
 --     title
@@ -2301,6 +2302,10 @@ drop function if exists common._write_shell_data(uuid);
 -- The game's shell_data. `_create_game` writes it once the players are seated,
 -- and each game's status builder writes it again after every move, beside the
 -- game's own two blobs, so it is as fresh as they are.
+--
+-- `timer` is the clock's kind as `common.timers` holds it now, not as setup
+-- fixed it: a game that changes its clock mid-game (FlipWord's round timer)
+-- writes the row, and its builder's next call carries the change to the page.
 create or replace function common._make_json_shell_data(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -2309,6 +2314,7 @@ set search_path = common, public, extensions
 as $$
 declare
   g       common.games%rowtype;
+  t       common.timers%rowtype;
   players jsonb;
 begin
   select * into g from common.games where id = p_game_id;
@@ -2316,6 +2322,7 @@ begin
     raise exception 'game-not-found|' using errcode = 'P0002',
       detail = 'no common.games row for p_game_id';
   end if;
+  select * into t from common.timers where game_id = p_game_id;
 
   select jsonb_agg(common._make_json_shell_player(cp.player) order by cp.ord)
     into players
@@ -2328,6 +2335,9 @@ begin
     'title',        g.title,
     'restartCount', g.restart_count,
     'ended',        g.ended_at is not null,
+    'timer',        case when t.kind = 'countdown'
+                      then jsonb_build_object('kind', t.kind, 'seconds', t.countdown_seconds_at_setup)
+                      else jsonb_build_object('kind', t.kind) end,
     'players',      players);
 end;
 $$;

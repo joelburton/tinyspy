@@ -145,6 +145,7 @@ function commonGameState({ paused = false, players = [ADA], game = {} }: Overrid
           title: 'Secrets',
           restartCount: 0,
           ended: false,
+          timer: { kind: 'none' },
           players,
           ...game,
         }

@@ -14,6 +14,7 @@
 --   3. The game's ending
 --   4. A Restart undoes it and counts
 --   5. The roster is in seat order
+--   6. The timer, each kind, read off common.timers as it is now
 --
 -- The common helpers do not write shell_data themselves — a game's builder
 -- does, after them — so this file writes shell_data by hand where a builder
@@ -25,7 +26,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(9);
+select plan(13);
 
 \ir ../_shared/setup.psql
 
@@ -59,6 +60,15 @@ select set_config('test.turns', (common._create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'turns-title', '{"timer": {"kind": "none"}}'::jsonb, null))::text, true);
+-- Two more, each created with another kind of timer.
+select set_config('test.countup', (common._create_game(
+  (select handle from club), 'psychicnum_coop', 'coop',
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'countup-title', '{"timer": {"kind": "countup"}}'::jsonb, null))::text, true);
+select set_config('test.countdown', (common._create_game(
+  (select handle from club), 'psychicnum_coop', 'coop',
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'countdown-title', '{"timer": {"kind": "countdown", "seconds": 90}}'::jsonb, null))::text, true);
 reset role;
 select set_config('request.jwt.claims', '', true);
 
@@ -96,6 +106,7 @@ select is(
     'title',        'test-title',
     'restartCount', 0,
     'ended',        false,
+    'timer',        jsonb_build_object('kind', 'none'),
     'players',      jsonb_build_array(
       pg_temp.playing('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.playing('bea22222-2222-2222-2222-222222222222', 'bea'))),
@@ -155,6 +166,7 @@ select is(
     'title',        'test-title',
     'restartCount', 1,
     'ended',        false,
+    'timer',        jsonb_build_object('kind', 'none'),
     'players',      jsonb_build_array(
       pg_temp.playing('ada11111-1111-1111-1111-111111111111', 'ada'),
       pg_temp.playing('bea22222-2222-2222-2222-222222222222', 'bea'))),
@@ -174,6 +186,40 @@ select is(
   pg_temp.shell_data(pg_temp.turns()) ? 'turns',
   false,
   '… and shell_data carries nothing about the turn: that is the game_data''s'
+);
+
+-- ─── (6) The timer, each kind ───
+select is(
+  pg_temp.shell_data(current_setting('test.countup')::uuid) -> 'timer',
+  '{"kind": "countup"}'::jsonb,
+  'a count-up clock is its kind alone'
+);
+select is(
+  pg_temp.shell_data(current_setting('test.countdown')::uuid) -> 'timer',
+  '{"kind": "countdown", "seconds": 90}'::jsonb,
+  'a countdown carries its seconds'
+);
+
+-- A game that re-arms its clock mid-game writes the row; the next build
+-- carries it, whatever the setup said.
+update common.timers
+   set kind = 'countdown', countdown_seconds_at_setup = 30
+ where game_id = pg_temp.race();
+select pg_temp.write_shell_data(pg_temp.race());
+select is(
+  pg_temp.shell_data(pg_temp.race()) -> 'timer',
+  '{"kind": "countdown", "seconds": 30}'::jsonb,
+  'the timer is read off common.timers as it is now, not off the setup'
+);
+
+update common.timers
+   set kind = 'none', countdown_seconds_at_setup = null
+ where game_id = pg_temp.race();
+select pg_temp.write_shell_data(pg_temp.race());
+select is(
+  pg_temp.shell_data(pg_temp.race()) -> 'timer',
+  '{"kind": "none"}'::jsonb,
+  '… and back to none when the row goes back'
 );
 
 select * from finish();

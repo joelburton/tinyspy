@@ -248,8 +248,9 @@ export abstract class Manifest {
   abstract summaryFor(summary: SummaryData, members: readonly Member[], myId: string): string
 
   /**
-   * End the game on its countdown, through the game's `submit_timeout`. Called
-   * by GamePage when `useGameTimer.expired` flips true in countdown mode.
+   * End the game on its countdown, or whatever the game's countdown bounds,
+   * through the game's `submit_timeout`. Called by GamePage when
+   * `useGameTimer.expired` flips true in countdown mode.
    *
    * Every connected client fires it on the same countdown edge, so all but one
    * arrive to find the game already over. That answer is PN486, a race

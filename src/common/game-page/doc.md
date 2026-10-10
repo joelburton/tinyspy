@@ -24,9 +24,10 @@ builders write onto `common.games` (plans/seat-view.md → The page is written,
 not assembled), presence, the two kinds of pause, suspend, and the timer.
 `shell_data` is everything this page shows, the same shape for every game, and
 `cg` is that blob plus `me`, my entry in its roster; `game_data` and
-`static_game_data` are the game's, handed down opaque, and the timer's kind
-and length are the one thing the page reads in the static blob (its
-`setup.timer`). The static blob is read once, since nothing after create
+`static_game_data` are the game's, handed down opaque. The timer's kind and
+length are the shell's `timer`, read off `common.timers` as it is now rather
+than off the setup, so a game that re-arms its clock mid-game reaches the
+header with its next build. The static blob is read once, since nothing after create
 changes it (docs/supabase.md → Reading data). What a game gets is
 `PlayAreaLoaderProps`, one object of props the shell hands its `PlayArea`:
 `cg`, `gameData`, `staticGameData`, the session, the global feedback slot, the

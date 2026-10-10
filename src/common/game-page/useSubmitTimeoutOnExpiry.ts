@@ -14,9 +14,9 @@ type SubmitTimeoutOnExpiryOptions = {
 }
 
 /**
- * Ends the game when its countdown runs out, by calling the manifest's
- * `submitTimeout` — on the moment `expired` turns true, not while it stays
- * true.
+ * Ends the game, or whatever the game's countdown bounds, when its countdown
+ * runs out, by calling the manifest's `submitTimeout` — on the moment
+ * `expired` turns true, not while it stays true.
  *
  * **An edge, not a level.** Replaying the board un-ends a timed-out game while
  * `expired` is still true for a beat, so firing on the level would end the

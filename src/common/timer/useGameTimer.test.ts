@@ -30,6 +30,7 @@ vi.mock('../supabase/db', () => ({
 }))
 
 import { ZTest_clearFaultMessages, ZTest_peekFaultMessages } from '../faults/faultStore'
+import type { TimerMode } from '../manifest/types'
 import { useGameTimer } from './useGameTimer'
 
 /** `common.tick_timer`'s answer when it advanced the clock. Every key of the ok
@@ -213,5 +214,36 @@ describe('useGameTimer', () => {
     })
     expect(result.current.displaySeconds).toBe(59) // followed the reset down
     expect(result.current.expired).toBe(false) // a fresh countdown, not a re-loss
+  })
+
+  it('a change of kind starts the count over — a re-armed countdown is not born expired', async () => {
+    rpcMock.mockResolvedValue(ticked(30))
+    const { result, rerender } = renderHook((mode: TimerMode) =>
+      useGameTimer({ gameId: 'g', mode, paused: false, running: true }),
+    { initialProps: { kind: 'countdown', seconds: 30 } })
+    await flush()
+    expect(result.current.expired).toBe(true) // the round's clock ran out
+
+    rerender({ kind: 'none' }) // the round ended; the clock is put away
+    await flush()
+    // Re-armed, with the first tick of the new countdown still on its way.
+    rpcMock.mockReturnValue(new Promise(() => {}))
+    rerender({ kind: 'countdown', seconds: 30 })
+    expect(result.current.displaySeconds).toBe(30)
+    expect(result.current.expired).toBe(false)
+  })
+
+  it('the first kind a live game shows keeps the seed', async () => {
+    seedMock.mockResolvedValue({ data: [{ ticks: 5 }], error: null, status: 200 })
+    rpcMock.mockReturnValue(new Promise(() => {}))
+    // Loading: the page has no shell yet, so no kind either.
+    const { result, rerender } = renderHook(
+      ({ mode, running }: { mode: TimerMode; running: boolean }) =>
+        useGameTimer({ gameId: 'g', mode, paused: false, running }),
+      { initialProps: { mode: { kind: 'none' }, running: false } },
+    )
+    await flush()
+    rerender({ mode: { kind: 'countup' }, running: true })
+    expect(result.current.displaySeconds).toBe(5)
   })
 })

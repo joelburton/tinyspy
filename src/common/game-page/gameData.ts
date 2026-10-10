@@ -8,8 +8,7 @@ import type { Player } from '../members/member.ts'
  * The common part of every game's `static_game_data`, as
  * `common._make_json_static_game_data` writes it (supabase/sql/common.sql →
  * The page blobs' common parts): what nothing after create changes. The page
- * reads it once and takes the timer from `setup`; the game's `useGame` merges
- * the whole blob into `game_data`.
+ * reads it once; the game's `useGame` merges the whole blob into `game_data`.
  */
 export type StaticGameDataRaw = {
   id: string
@@ -21,7 +20,8 @@ export type StaticGameDataRaw = {
   coop: boolean
   compete: boolean
   // The setup form's record, frozen at create. A game reads it as its own type;
-  // every game's carries the timer.
+  // every game's carries the timer it was created with, which the setup rows
+  // name. The running clock is shell_data's `timer`.
   setup: Record<string, unknown> & { timer: TimerMode }
 }
 
