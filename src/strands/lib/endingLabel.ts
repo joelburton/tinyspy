@@ -34,7 +34,7 @@ export function makeEndingLabel(
 
   switch (result.labelType) {
     case 'won':
-      return withDetail(game.mode === 'coop' ? 'every word found' : '')
+      return withDetail(game.mode === 'coop' ? 'all found' : '')
     case 'placed':
       return withDetail(
         fewestHintsAhead !== null && fewestHintsAhead < player.nHintsUsed ? 'more hints' : 'solved later',

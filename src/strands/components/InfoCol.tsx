@@ -100,14 +100,10 @@ export function InfoCol({
               its own, and out of the race Stop takes Concede's place. */}
           <ActionButton action={actions.actConcede} show="icon" />
           <ActionButton action={actions.actStopGame} show="icon" />
-          {/* Right of the bar is about the END of the game rather than
-              playing it; the bar hides itself when nothing is left of it. */}
           <span className={shared.actionsDivider} />
           <ActionButton action={actions.actReveal} show="icon" />
           <ActionButton action={actions.actRestart} show="icon" />
           <ActionButton action={actions.actNewGame} show="icon" />
-          {/* Filled once the game has ended: the weight is the placement's
-              choice, not the action's (docs/ui.md → What a `<button>` is). */}
           <ActionButton
             action={actions.actBackToClub}
             show="icon"

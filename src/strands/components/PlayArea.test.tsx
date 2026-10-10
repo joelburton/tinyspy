@@ -223,7 +223,7 @@ describe('strands PlayArea — the turn arriving', () => {
 })
 
 describe('strands PlayArea — the ending', () => {
-  it('coop: every word found wins, in the won frame', () => {
+  it('coop: all found wins, in the won frame', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
@@ -233,7 +233,7 @@ describe('strands PlayArea — the ending', () => {
         })}
       />,
     )
-    expect(screen.getAllByText('Won (every word found)').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Won (all found)').length).toBeGreaterThan(0)
     expect(document.querySelector('[class*="endingFrame_won"]')).not.toBeNull()
   })
 

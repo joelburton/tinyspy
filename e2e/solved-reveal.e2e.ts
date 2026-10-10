@@ -115,7 +115,7 @@ test('strands: a coop win names the words unasked', async ({ browser }) => {
     await page.waitForTimeout(120)
   }
 
-  await expect(page.getByText('Won: every word found').first()).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Won: all found').first()).toBeVisible({ timeout: 10000 })
 
   // The words are named without anyone asking — the payoff the reveal adds
   // over a consumed board, since a board draws paths and never spellings.

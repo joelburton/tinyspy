@@ -24,10 +24,11 @@
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@supabase/supabase-js'
 import type { Envelope } from '../supabase/envelope'
 import type { Manifest } from '../manifest/manifest'
+import { ZTest_installFakeStorage, type ZTest_InstalledStorage } from '../web-storage/storage.fake'
 import type { ListedGame } from './useClubGames'
 
 // The registry lives in `vi.hoisted` because `vi.mock('@/gametypes')`'s factory
@@ -169,11 +170,22 @@ function emptyLine(list: ReturnType<typeof within>) {
     el?.className === 'emptyState')
 }
 
+// The mode filter is a sticky choice, written to local storage when clicked.
+// A fake, emptied per case, so a click in one test cannot filter the next —
+// which it does on CI, where storage is live (storage.fake.ts says why it is
+// not on a Mac).
+let storage: ZTest_InstalledStorage
+
+beforeAll(() => {
+  storage = ZTest_installFakeStorage()
+})
+
 beforeEach(() => {
   mockRunRpc.mockReset()
   mockToast.mockReset()
   clubGames.current = { games: [], currentGameId: null, hasReadFailed: false }
   ZTest_clearFaultMessages()
+  storage.clear()
   window.history.replaceState(null, '', '/c/trio')
 })
 

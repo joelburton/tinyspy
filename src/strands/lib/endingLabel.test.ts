@@ -46,8 +46,8 @@ describe('makeEndingLabel', () => {
 
   // [case, player, game, fewest hints ahead, word, long, pill, outcome, endedBy]
   const cases: [string, Player, Game, number | null, string, string, string, string, string][] = [
-    ['coop: every word found', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal'), null,
-      'Won', 'every word found', 'every word found', 'won', 'game'],
+    ['coop: all found', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'reached_goal'), null,
+      'Won', 'all found', 'all found', 'won', 'game'],
     ['coop: out of time', player({ outcome: 'lost' }), gameEnded('coop', 'timeout'), null,
       'Lost', 'out of time', 'out of time', 'lost', 'game'],
     ['coop: a Stop', player({ outcome: 'neutral' }), gameEnded('coop', 'stopped'), null,
