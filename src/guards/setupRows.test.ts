@@ -84,6 +84,16 @@ const NOT_A_ROW: Record<string, string> = {
 }
 
 /**
+ * Setup keys that produce no row in ONE game, and why — for a key every other
+ * game must still show, which NOT_A_ROW would excuse everywhere.
+ */
+const NOT_A_ROW_IN: Record<string, Record<string, string>> = {
+  wordsy: {
+    timer: 'fixed at none; FlipWord has no whole-game timer, and its round clock is the Round row',
+  },
+}
+
+/**
  * Setup keys holding a NESTED OBJECT, whose parts appear as their own rows
  * keyed `<key>.<part>` — so the parent key needs no row of its own.
  *
@@ -158,7 +168,7 @@ describe('setup rows', () => {
       it('covers every key of the default setup', () => {
         const shown = new Set(rows.map((r) => r.key))
         const uncovered = Object.keys(manifest.setupForm.defaults as object).filter(
-          (k) => !shown.has(k) && !NOT_A_ROW[k] && !PARTS_AS_ROWS[k],
+          (k) => !shown.has(k) && !NOT_A_ROW[k] && !NOT_A_ROW_IN[schema]?.[k] && !PARTS_AS_ROWS[k],
         )
         expect(
           uncovered,

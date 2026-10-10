@@ -748,6 +748,9 @@ isOneToOne: false
 "_ok_envelope":
 { Args: { "data"?: Json,"message"?: string,"meta"?: Json,"outcome"?: string }; Returns: Json
                            },
+"_paw_protection_today":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "_raise_already_conceded":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -2887,6 +2890,220 @@ isOneToOne: false
           CompositeTypes: {
             [_ in never]: never
           }
+        },"wordsy": {
+          Tables: {
+            "events": {
+                  Row: {
+                    "bonus": number,"created_at": string,"game_id": string,"id": number,"kind": string,"num": number,"score": number,"took_turn": boolean,"user_id": string,"word": string
+                  }
+                  Insert: {
+                    "bonus": number,"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"num": number,"score": number,"took_turn"?: boolean,"user_id": string,"word": string
+                  }
+                  Update: {
+                    "bonus"?: number,"created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"num"?: number,"score"?: number,"took_turn"?: boolean,"user_id"?: string,"word"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "events_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    }
+                  ]
+                },"games": {
+                  Row: {
+                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"round_style": string
+                  }
+                  Insert: {
+                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"round_style": string
+                  }
+                  Update: {
+                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"round_style"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"players": {
+                  Row: {
+                    "game_id": string,"user_id": string
+                  }
+                  Insert: {
+                    "game_id": string,"user_id": string
+                  }
+                  Update: {
+                    "game_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "players_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    }
+                  ]
+                },"round_words": {
+                  Row: {
+                    "game_id": string,"num": number,"submitted_at": string,"user_id": string,"word": string
+                  }
+                  Insert: {
+                    "game_id": string,"num": number,"submitted_at"?: string,"user_id": string,"word": string
+                  }
+                  Update: {
+                    "game_id"?: string,"num"?: number,"submitted_at"?: string,"user_id"?: string,"word"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "round_words_game_id_num_fkey"
+      columns: ["game_id","num"]
+isOneToOne: false
+      referencedRelation: "rounds"
+      referencedColumns: ["game_id","num"]
+    },{
+      foreignKeyName: "round_words_game_id_user_id_fkey"
+      columns: ["game_id","user_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["game_id","user_id"]
+    }
+                  ]
+                },"rounds": {
+                  Row: {
+                    "ended_at": string | null,"fastest_user_id": string | null,"game_id": string,"no_flip_user_id": string | null,"num": number,"tiles": (number)[],"timer_started_at": string | null
+                  }
+                  Insert: {
+                    "ended_at"?: string | null,"fastest_user_id"?: string | null,"game_id": string,"no_flip_user_id"?: string | null,"num": number,"tiles": (number)[],"timer_started_at"?: string | null
+                  }
+                  Update: {
+                    "ended_at"?: string | null,"fastest_user_id"?: string | null,"game_id"?: string,"no_flip_user_id"?: string | null,"num"?: number,"tiles"?: (number)[],"timer_started_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "rounds_game_id_fastest_user_id_fkey"
+      columns: ["game_id","fastest_user_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["game_id","user_id"]
+    },{
+      foreignKeyName: "rounds_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["game_id"]
+    },{
+      foreignKeyName: "rounds_game_id_no_flip_user_id_fkey"
+      columns: ["game_id","no_flip_user_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["game_id","user_id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "_arm_timer":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
+"_deal_round":
+{ Args: { "p_first_user_id": string,"p_game_id": string,"p_no_flip_user_id": string,"p_num": number }; Returns: undefined
+                           },
+"_deal_tile":
+{ Args: { "p_deck": (number)[],"p_drawn": (number)[],"p_table": (number)[] }; Returns: number
+                           },
+"_disarm_timer":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
+"_earlier_word_with_root":
+{ Args: { "p_game_id": string,"p_word": string }; Returns: string
+                           },
+"_end_round":
+{ Args: { "p_ended_by_user_id": string,"p_game_id": string }; Returns: undefined
+                           },
+"_finish":
+{ Args: { "p_ended_by_user_id": string,"p_game_id": string }; Returns: undefined
+                           },
+"_is_legal":
+{ Args: { "p_band": number,"p_word": string }; Returns: boolean
+                           },
+"_make_json_events":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_game_data":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_players":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_rounds":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"_make_json_summary_data":
+{ Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_tiles":
+{ Args: { "p_tiles": (number)[] }; Returns: Json
+                           },
+"_n_still_playing":
+{ Args: { "p_game_id": string }; Returns: number
+                           },
+"_player_totals":
+{ Args: { "p_game_id": string }; Returns: {
+              "n_bonuses": number,"total": number,"user_id": string
+            }[]
+                           },
+"_rebuild_data_cols":
+{ Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined
+                           },
+"_rebuild_data_cols_for_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"_root_of":
+{ Args: { "p_word": string }; Returns: string
+                           },
+"_score_word":
+{ Args: { "p_tiles": (number)[],"p_word": string }; Returns: number
+                           },
+"_slot_value":
+{ Args: { "p_slot": number }; Returns: number
+                           },
+"_tile_bonus":
+{ Args: { "p_id": number }; Returns: number
+                           },
+"_tile_letter":
+{ Args: { "p_id": number }; Returns: string
+                           },
+"_write_static_game_data":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
+"concede":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"create_game":
+{ Args: { "p_club_handle": string,"p_mode": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
+                           },
+"replay_board":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"stop_game":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"submit_timeout":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"submit_word":
+{ Args: { "p_game_id": string,"p_word": string }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         },"wordwheel": {
           Tables: {
             "found_words": {
@@ -3191,6 +3408,10 @@ export const Constants = {
             
           }
         },"wordleone": {
+          Enums: {
+            
+          }
+        },"wordsy": {
           Enums: {
             
           }

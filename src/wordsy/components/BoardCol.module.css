@@ -1,0 +1,14 @@
+/* cs-unmet */
+
+/* wordsy's board column: the table, then the entry and its two lines. */
+/* @@ */ .boardCol {
+  gap: 1rem;
+}
+
+/* Everything under the board, as wide as the board. */
+/* @@ */ .belowBoard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}

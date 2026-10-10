@@ -1,0 +1,16 @@
+/* cs-unmet */
+
+/* "Round 3 of 7 · 24 pts": full-strength text, the numbers a size up. */
+/* @@ */ .stateLine {
+  color: var(--page-text-color);
+  font-size: 0.95rem;
+}
+
+/* @@ */ .stateLine strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* @@ */ .dot {
+  margin: 0 0.4rem;
+}

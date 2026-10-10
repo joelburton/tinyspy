@@ -350,6 +350,19 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, nWinnerSets: null }, 'Stop'],
     ],
   },
+  // wordsy._make_json_summary_data: compete only, so `team` is always null; the rounds
+  // finished, and the total every winner shares once seven rounds end it. A tie is shared, so
+  // co-winners are an ordinary result; a player who scored nothing is not ranked.
+  wordsy: {
+    live: { team: null, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' },
+    compete: [
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'rounds_played', winners: ['u-alice'] }, { team: null, nRoundsPlayed: 7, winnerTotal: 46, legalBand: 4, roundStyle: 'timer' }, 'highest total'],
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'rounds_played', winners: ['u-alice', 'u-bob'] }, { team: null, nRoundsPlayed: 7, winnerTotal: 39, legalBand: 4, roundStyle: 'timer' }, 'tied — co-winners'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'rounds_played' }, { team: null, nRoundsPlayed: 7, winnerTotal: null, legalBand: 4, roundStyle: 'timer' }, 'nobody scored'],
+      [{ outcome: 'lost', reason: 'conceded' }, { team: null, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' }, 'all conceded'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' }, 'Stop'],
+    ],
+  },
   // letterboxed._make_json_summary_data: `team` holds coop's chain and is null in compete; the
   // best coverage and the winner's chain are compete's. The race ENDS on the first solve, so a
   // win names the winner's word count; a TIMEOUT resolves on the most letters covered, which is

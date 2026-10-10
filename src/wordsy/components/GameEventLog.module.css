@@ -1,0 +1,25 @@
+/* cs-unmet */
+
+/* The log's word cell: the word, its score, and a bonus after it. */
+/* @@ */ .wordCell {
+  padding: 0.2rem 0;
+}
+
+/* Lowercase in the data; capitals drawn. */
+/* @@ */ .word {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* @@ */ .score {
+  font-variant-numeric: tabular-nums;
+}
+
+/* @@ */ .bonus {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* @@ */ .noWord {
+  font-style: italic;
+}

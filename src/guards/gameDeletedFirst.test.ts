@@ -94,6 +94,8 @@ describe('a deleted game says so', () => {
       'wordle.submit_timeout',
       'wordleone.concede', 'wordleone.rate_puzzle', 'wordleone.replay_board', 'wordleone.stop_game',
       'wordleone.submit_guess', 'wordleone.submit_timeout',
+      'wordsy.concede', 'wordsy.replay_board', 'wordsy.stop_game', 'wordsy.submit_timeout',
+      'wordsy.submit_word',
       'wordwheel.concede', 'wordwheel.replay_board', 'wordwheel.stop_game', 'wordwheel.submit_timeout',
       'wordwheel.submit_word',
     ])

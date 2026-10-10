@@ -519,6 +519,7 @@ revoke execute on function wordsy._end_round(uuid, uuid) from public;
 -- `static_game_data` is the common part alone: the table changes every round.
 --
 --   game_data, wordsy's part:
+--     team                                 null: compete only, so no team
 --     nTilesInDeck                         60 less the cards dealt
 --     rounds: [round, …]                   every round dealt, the one in play last
 --     events: [{id, userId, kind, num, word, score, bonus, tookTurn, at}, …]
@@ -648,6 +649,7 @@ language sql
 stable
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
+           'team',         null,
            'nTilesInDeck', 60 - cardinality(g.drawn),
            'rounds',       wordsy._make_json_rounds(p_game_id),
            'events',       wordsy._make_json_events(p_game_id),

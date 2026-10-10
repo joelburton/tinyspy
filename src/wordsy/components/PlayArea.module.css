@@ -1,0 +1,12 @@
+/* cs-unmet */
+
+/* wordsy's play-surface specifics. The two-column shell itself is the shared
+ * common/game-page/playArea.module.css. */
+
+/* @@ */ .layout {
+  /* A fixed info column, as setgame's: it holds the state line, the strip of
+   * totals, the actions and a log of short rows. Mandatory — the scaffold has
+   * no default, and without it `--avail-w` (and the board's card size with
+   * it) is invalid. */
+/* @@ */   --info-col-width: 22rem;
+}

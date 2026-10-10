@@ -17,7 +17,9 @@ import { useTurnArrival } from './useTurnArrival'
  * spent. The turn coming back is a fresh arrival on a full clock.
  *
  * A game calls it once from its PlayArea with `gd.me.onTurn`; `null` while that
- * is not known yet, so the load itself marks nothing. A finished game passes
+ * is not known yet, so the load itself marks nothing. A game with no turns
+ * passes the moment it marks instead: FlipWord's is "a rival's first word has
+ * started the round's clock on me". A finished game passes
  * false, which is a falling edge, not an arrival. In a free-for-all game the
  * value never rises, so nothing is marked and no gate is needed at the call.
  *

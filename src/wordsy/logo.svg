@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- wordsy (brand FlipWord) logo: a card flipping. The card in front is a
+     green common card with a white "W"; the one behind it, turned and caught
+     mid-flip, is a red rare card. Hand-authored; no external source.
+
+     The fills are COPIES of theme.css's common and red card colors, because
+     an SVG file cannot read CSS custom properties. Keep them in step by hand:
+     green #2E7D32, red #C62828.
+
+     The two cards fill the square between them, so the logo has no
+     letterboxing in the app's square slots, and the letter is heavy because
+     it is read at 40px in a club list. -->
+<svg
+   role="img"
+   aria-label="FlipWord"
+   viewBox="0 0 2000 2000"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <!-- The card behind, turned partway: red, narrowed by the flip. -->
+  <rect x="1020" y="140" width="820" height="1280" rx="140" ry="140"
+        fill="#C62828" transform="rotate(14 1430 780)"/>
+  <!-- The card in front: green, with its letter. -->
+  <rect x="160" y="560" width="1100" height="1300" rx="160" ry="160" fill="#2E7D32"/>
+  <text x="710" y="1530" text-anchor="middle"
+        font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="1000"
+        fill="#FFFFFF">W</text>
+</svg>

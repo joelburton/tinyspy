@@ -1,0 +1,46 @@
+/* cs-unmet */
+
+/* One card. Square, sized by the board (`--tile-size`), the letter scaled to
+ * the card; the kind's color is the card's whole face, as the deck prints it. */
+/* @@ */ .tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  container-type: size;
+  border-radius: 0.5rem;
+  color: var(--wordsy-tile-ink-color);
+}
+
+/* The letter: lowercase in the data, capitals drawn. */
+/* @@ */ .letter {
+  font-size: 55cqmin;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* A rare card's bonus, small in the top-right corner, as the card prints it. */
+/* @@ */ .bonus {
+  position: absolute;
+  top: 6cqmin;
+  right: 9cqmin;
+  font-size: 20cqmin;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* The three kinds, by `bonus` (`styles[`kind_${bonus}`]`). */
+/* @@ */ .kind_0 {
+  background: var(--wordsy-tile-common-color);
+}
+
+/* @@ */ .kind_1 {
+  background: var(--wordsy-tile-red-color);
+}
+
+/* @@ */ .kind_2 {
+  background: var(--wordsy-tile-blue-color);
+}

@@ -1,0 +1,38 @@
+/* cs-unmet */
+
+/* The table: four columns, each a plaque over two cards.
+ *
+ * ─── Card size — TINKER HERE ────────────────────────────────────────────────
+ * A card is the smallest of a cap and what four columns may take of the width
+ * beside the info column (`--avail-w`, the scaffold's). The height is not a
+ * bound: two cards and a plaque sit well inside any column. */
+/* @@ */ .board {
+/* @@ */   --max-tile-size: 7rem;
+/* @@ */   --grid-gap: 0.8rem;
+/* @@ */   --tile-size: min(
+    var(--max-tile-size),
+    calc((var(--avail-w) - 3 * var(--grid-gap)) / 4)
+  );
+  display: flex;
+  gap: var(--grid-gap);
+  justify-content: center;
+  padding: 0.6rem;
+  border-radius: 0.8rem;
+}
+
+/* @@ */ .column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The column's value, above its cards: the number every card under it is
+ * worth. A real value, so full-strength ink. */
+/* @@ */ .plaque {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--page-text-color);
+  font-variant-numeric: tabular-nums;
+}
