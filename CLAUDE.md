@@ -174,7 +174,7 @@ feedback) is read when app-audit opens a game's area.
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/wordleone.md](plans/wordleone.md) | **Being built**, on the `wordleone` branch: **WordNerdier**, Wordle in 1 — one pre-colored starter row, the only legal word that fits; built in wordle's shape, the puzzle generated in an edge function |
-| [plans/wordsy.md](plans/wordsy.md) | **Not scheduled**, decided in outline: **FlipWord**, Gil Hova's Wordsy — eight consonant cards in four scoring columns, one word each per round, a 30-second clock from the first lock-in, best five of seven rounds; compete first |
+| [plans/wordsy.md](plans/wordsy.md) | **Not scheduled**, the process written and every open point ruled: **FlipWord**, Gil Hova's Wordsy — eight consonant cards in four scoring columns, one word each per round, a 30-second clock from the first lock-in, best five of seven rounds; compete first |
 
 ## Audience — friends, not strangers
 
