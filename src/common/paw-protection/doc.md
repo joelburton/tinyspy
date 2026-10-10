@@ -18,8 +18,8 @@ The asking is one function, `ensureCanStart`, in the shape of
 drawn by `<PawProtectionHost>` at the app root and the caller awaits a yes or
 a no. It reads the club's row for the gametype fresh each time — friends start
 games while a page sits open — through the `clubs_gametypes_today` view, which
-hands back today's count with the UTC-day rule already applied, so no client
-computes a date. A read that fails answers no, since the wrapper has shown
+hands back today's count with the day rule (midnight Pacific) already
+applied, so no client computes a date. A read that fails answers no, since the wrapper has shown
 that fault already; a club with no row answers yes, so the server's refusal
 names the bug rather than a button that silently does nothing.
 

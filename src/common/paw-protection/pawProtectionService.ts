@@ -34,7 +34,7 @@ import type { Database } from '@/types/db'
 export type PawSubject = { clubHandle: string; gametype: string }
 
 /** The two columns the gate reads off `clubs_gametypes_today`: the cap and
- *  today's count, with the UTC-day rule already applied. */
+ *  today's count, with the day rule (midnight Pacific) already applied. */
 type PawRow = Pick<
   Database['common']['Views']['clubs_gametypes_today']['Row'],
   'max_daily_games' | 'used_today'

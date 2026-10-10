@@ -7,10 +7,11 @@
 -- Coverage (docs/common-schema.md → Paw protection):
 --   1. The cap is met in `_create_game`: the first starts land, the one
 --      past the cap is a fault (PN514), and `clubs_gametypes_today`'s
---      `used_today` counts them.
+--      `used_today` counts them, the counter stamped with San Francisco's
+--      date.
 --   2. The count is a COUNTER: deleting a game refunds nothing, and a
 --      Restart creates no row, so it counts nothing.
---   3. A new UTC day zeroes the counter; a cap of 0 refuses every start;
+--   3. A new day zeroes the counter; a cap of 0 refuses every start;
 --      a null cap is no limit.
 --   4. A gametype the club does not list is refused (PN513), listed or
 --      missing alike.
@@ -29,7 +30,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(27);
+select plan(28);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -89,6 +90,16 @@ select pg_temp.envelope_is(
 
 select is(pg_temp.used_today('psychicnum_coop'), 2,
   'the view counts the two starts as used_today');
+
+-- The day is San Francisco's: the counter is stamped with the Pacific date,
+-- so the caps reset at midnight there, not at midnight UTC.
+reset role;
+select is(
+  (select started_on from common.clubs_gametypes
+    where club_handle = (select handle from club) and gametype = 'psychicnum_coop'),
+  (now() at time zone 'America/Los_Angeles')::date,
+  'the counter is for San Francisco''s calendar day');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select pg_temp.envelope_is(
   pg_temp.start_game('coop'),

@@ -18,8 +18,9 @@
 --   n_started_today   the counter `common._create_game` increments. A counter
 --                     rather than a count of games rows, so deleting a game
 --                     refunds nothing.
---   started_on        the UTC day the counter is for; a different day means
---                     the counter is zero.
+--   started_on        the day the counter is for — San Francisco's calendar
+--                     day since 2026-10-10 (`common._paw_protection_today`);
+--                     a different day means the counter is zero.
 --
 -- `can_edit_settings` on the club gates the edit dialog: off, and the Edit
 -- club action is hidden and `set_club_gametypes` refuses. Nothing in the app

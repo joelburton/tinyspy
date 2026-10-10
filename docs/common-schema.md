@@ -197,8 +197,10 @@ psychicnum's is the model to copy (`supabase/sql/psychicnum.sql`).
 A club can cap how many games of a gametype are started each day. The cap is
 `max_daily_games` on the club's `clubs_gametypes` row for that gametype, null
 for no limit and zero for a game that is listed but never startable; a day is
-the UTC calendar day, and the limit is per registered gametype, so a coop and
-a compete sibling are capped apart.
+San Francisco's calendar day, so the caps reset at midnight Pacific
+(`common._paw_protection_today`, the one definition the gate and the view
+share), and the limit is per registered gametype, so a coop and a compete
+sibling are capped apart.
 
 **The count is a counter, not a count.** `_create_game` locks the row, zeroes
 `n_started_today` when `started_on` is not today, refuses at the cap, and

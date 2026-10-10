@@ -1172,6 +1172,24 @@ revoke execute on function common._rank_idx(int, int) from public;
 
 drop function if exists common.create_game(text, text, uuid[], text, jsonb, jsonb);
 
+-- ─── common._paw_protection_today ───────────────────────
+-- The day paw protection counts in: the calendar day in San Francisco, so
+-- the daily caps reset at midnight Pacific (Joel, 2026-10-10). The one
+-- definition both readers share — `_create_game`'s gate and the
+-- `clubs_gametypes_today` view — so they can never disagree about which day
+-- it is. Granted to the members the view runs as (`security_invoker`).
+create or replace function common._paw_protection_today()
+returns date
+language sql
+stable
+set search_path = common, public, extensions
+as $$
+  select (now() at time zone 'America/Los_Angeles')::date;
+$$;
+
+revoke execute on function common._paw_protection_today() from public;
+grant execute on function common._paw_protection_today() to authenticated;
+
 -- ─── common._create_game ────────────────────────────────
 -- The common (header) half of starting a new game. Called by
 -- every gametype's `<gametype>.create_game` first to get the
@@ -1316,8 +1334,8 @@ begin
       detail = 'no enabled clubs_gametypes row; the club page lists only enabled gametypes';
   end if;
 
-  -- A day is the UTC calendar day; a counter from another day is zero.
-  v_today := (now() at time zone 'UTC')::date;
+  -- A day is San Francisco's calendar day; a counter from another day is zero.
+  v_today := common._paw_protection_today();
   v_n_started_today := case
     when v_listing.started_on = v_today then v_listing.n_started_today
     else 0
@@ -3001,8 +3019,9 @@ grant execute on function common.set_club_gametypes(text, jsonb) to authenticate
 -- ============================================================
 --
 -- What the club page and the paw-protection gate read: each row's listing,
--- its cap, and `used_today`, the counter resolved by the UTC-day rule
--- (docs/common-schema.md → Paw protection), so no client computes a date.
+-- its cap, and `used_today`, the counter resolved by the day rule
+-- (`_paw_protection_today`, midnight Pacific; docs/common-schema.md → Paw
+-- protection), so no client computes a date.
 -- `security_invoker`, so the base table's members-only policy decides which
 -- rows a caller sees.
 create or replace view common.clubs_gametypes_today
@@ -3012,7 +3031,7 @@ as
          gametype,
          is_enabled,
          max_daily_games,
-         case when started_on = (now() at time zone 'UTC')::date
+         case when started_on = common._paw_protection_today()
               then n_started_today else 0 end as used_today,
          default_setup
     from common.clubs_gametypes;
