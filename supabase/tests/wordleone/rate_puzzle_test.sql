@@ -36,7 +36,7 @@ select pg_temp.envelope_is(
 
 -- ada misses once, tries a non-word, then solves.
 select wordleone.submit_guess((select id from g), 'crane');
-select wordleone.submit_guess((select id from g), 'zzzzz');
+select wordleone.submit_guess((select id from g), 'vesre');
 select wordleone.submit_guess((select id from g), 'verse');
 
 select pg_temp.envelope_is(

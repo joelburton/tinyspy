@@ -7,8 +7,8 @@
 --
 --   create_game     starts a game on a puzzle the `wordleone-build-board`
 --                   edge function built, after checking it is one
---   submit_guess    guesses a word: the answer solves, a legal wrong word is
---                   a miss
+--   submit_guess    guesses a word: the answer solves, anything that breaks
+--                   the starter's colors is a miss
 --   concede         a racer drops out of a compete game
 --   stop_game       stops the game for everyone, with no result
 --   submit_timeout  ends the game when the countdown runs out
@@ -26,9 +26,10 @@
 --     answer band (`_legal_band_for`). The starter is public from the first
 --     paint, in `static_game_data`; the answer is hidden by a column grant,
 --     and `game_data` carries it only once the game has ended.
---   - Guesses are unlimited. A legal wrong word is a MISS: counted, logged
---     with no colors, and nothing more. A guess that isn't a legal word, or
---     repeats one, costs nothing: an `ok` that names the refusal, no row.
+--   - Guesses are unlimited. A guess that breaks the starter's colors, a word
+--     or not, is a MISS: counted, logged with no colors, and nothing more. One
+--     that fits them but isn't a legal word is logged and costs nothing, and a
+--     repeat costs nothing and logs nothing: an `ok` that names the refusal.
 --   - Coop shares one board and one miss count, and ends on the solve. A
 --     compete race plays out: each racer plays until they solve or concede,
 --     and the ranking is fewest misses, then the earlier solve.
@@ -752,9 +753,11 @@ revoke execute on function wordleone._maybe_finish_compete(uuid, text, text, uui
 -- ============================================================
 -- Soft rejections (an `ok`: nothing counted, no turn spent) are a word
 -- already on this board — the starter, or an earlier guess — ('duplicate'),
--- which writes nothing, and a word outside the legal band ('notAWord'), which
--- is logged so the players can see what was tried. The answer solves; any
--- other legal word is a miss: logged with no colors and counted. Hard
+-- which writes nothing, and an entry that fits the starter's colors but is
+-- outside the legal band ('notAWord'), which is logged so the players can see
+-- what was tried. The answer solves; anything else is a miss — an entry that
+-- breaks the colors, word or not, since the answer is the only legal word that
+-- fits them: logged with no colors and counted. Hard
 -- rejections (raised): not a player, the game has ended, out of turn, the
 -- caller conceded, a malformed entry, the caller already solved.
 --
@@ -856,12 +859,17 @@ begin
                          'solved', false, 'game_ended', false));
   end if;
 
-  -- ─── Soft reject: not in the legal band ──────────────────
-  -- The answer is compared first, before the dictionary, as wordle's is: the
-  -- band is read live, so a re-band mid-game must not make the answer "not a
-  -- word". Logged, so the players can see what was tried, but it counts no
-  -- miss and keeps the turn: `took_turn` false.
-  if norm <> lower(g_row.target) and not exists (
+  -- ─── Soft reject: fits the clues, but not in the legal band ─
+  -- An entry that breaks the starter's colors could never be the answer, word
+  -- or not, so it skips this and is a miss below (Joel, 2026-10-10). It fits
+  -- when the starter scores the starter's colors against it — the rule the
+  -- generator proves the answer unique by. The answer is compared first,
+  -- before the dictionary, as wordle's is: the band is read live, so a re-band
+  -- mid-game must not make the answer "not a word". Logged, so the players can
+  -- see what was tried, but it counts no miss and keeps the turn: `took_turn`
+  -- false.
+  if common._wordle_colors(lower(g_row.starter), norm) = g_row.starter_colors::text
+     and norm <> lower(g_row.target) and not exists (
     select 1 from common.words
      where word = norm and len = 5 and band <= g_row.legal_band
   ) then

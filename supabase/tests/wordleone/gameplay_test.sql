@@ -4,10 +4,16 @@
 -- Test: wordleone.submit_guess (coop) — the four answers, the shared board
 -- ============================================================
 -- A guess is one of four: a duplicate (the starter, or a word already
--- guessed) costs nothing and writes nothing; a word outside the legal band
--- costs nothing and is logged, keeping the turn; any other legal word is a
--- miss, logged with no colors and counted; the answer solves. A malformed entry is a fault, the frontend having refused it
--- first. A guess into a game a friend deleted is the shared race (PN485).
+-- guessed) costs nothing and writes nothing; an entry that fits the starter's
+-- colors but is outside the legal band costs nothing and is logged, keeping
+-- the turn; anything that breaks the colors, a word or not, is a miss, logged
+-- with no colors and counted; the answer solves. A malformed entry is a fault,
+-- the frontend having refused it first. A guess into a game a friend deleted
+-- is the shared race (PN485).
+--
+-- VERSE is the only word in common.words that fits SIEVE's colors, so the
+-- fitting entries here are made up: VESRE is no word, and VESSE is planted at
+-- band 5, above this game's legal band 4.
 
 begin;
 set search_path = wordleone, common, public, extensions;
@@ -15,7 +21,10 @@ set search_path = wordleone, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(25);
+select plan(26);
+
+insert into common.words (word, band, american, british, canadian, australian, len)
+values ('vesse', 5, true, true, true, true, 5);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -38,14 +47,14 @@ select pg_temp.envelope_is(
 -- Every `ok` carries no outcome and no message: what each answer is worth is
 -- decided once, in the frontend's lib/answer.ts.
 select pg_temp.envelope_is(
-  wordleone.submit_guess((select id from g), 'zzzzz'),
+  wordleone.submit_guess((select id from g), 'vesre'),
   '{"type":"ok","outcome":null,"message":null,
     "data":{"result":"notAWord","n_misses":0,"solved":false,"game_ended":false}}'::jsonb,
-  'a five-letter non-word → notAWord');
+  'a non-word that fits the colors → notAWord');
 select pg_temp.envelope_is(
-  wordleone.submit_guess((select id from g), 'stere'),
+  wordleone.submit_guess((select id from g), 'vesse'),
   '{"type":"ok","data":{"result":"notAWord"}}'::jsonb,
-  'a real word above the legal band → notAWord');
+  'a word that fits the colors, above the legal band → notAWord');
 select pg_temp.envelope_is(
   wordleone.submit_guess((select id from g), 'SIEVE'),
   '{"type":"ok","outcome":null,"message":null,
@@ -56,14 +65,14 @@ reset role;
 select is(
   (select array_agg(word || ':' || verdict || ':' || took_turn || ':' || coalesce(colors, '-') order by id)
      from wordleone.events where game_id = (select id from g)),
-  array['zzzzz:not_a_word:false:-', 'stere:not_a_word:false:-'],
+  array['vesre:not_a_word:false:-', 'vesse:not_a_word:false:-'],
   'the two non-words are logged, uncolored, spending no go; the duplicate writes nothing');
 select is(
   (select sum(n_misses)::int from wordleone.players where game_id = (select id from g)),
   0, '… and counted no miss');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  wordleone.submit_guess((select id from g), 'zzzzz')->'data'->>'result',
+  wordleone.submit_guess((select id from g), 'vesre')->'data'->>'result',
   'duplicate', 'a non-word already tried is a duplicate the second time');
 reset role;
 
@@ -73,7 +82,7 @@ select pg_temp.envelope_is(
   wordleone.submit_guess((select id from g), 'crane'),
   '{"type":"ok","outcome":null,"message":null,
     "data":{"result":"miss","n_misses":1,"solved":false,"game_ended":false}}'::jsonb,
-  'a legal wrong word → miss, the count the team''s');
+  'a legal word that breaks the colors → miss, the count the team''s');
 
 reset role;
 select is(
@@ -157,17 +166,25 @@ reset role;
 update common.words set band = 1 where word = 'verse';
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- ── The legal band is the game's ────────────────────────────
--- STERE (band 5) was not a word at legal band 4 above; with a band-3 answer
--- the legal band is 5, and it is a miss.
+-- ── A non-word that breaks the colors is a miss ─────────────
+-- It could never be the answer, so it is wrong before it is "not a word":
+-- counted, and the go spent. (A word that fits the colors inside the legal
+-- band cannot exist: create_game refuses that puzzle, PN525.)
 create temp table g3 on commit drop as
 select (wordleone.create_game(
-  '=ada', pg_temp.wordleone_setup(3),
+  '=ada', pg_temp.wordleone_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop', pg_temp.wordleone_puzzle())->'data'->>'id')::uuid as id;
+select pg_temp.envelope_is(
+  wordleone.submit_guess((select id from g3), 'zzzzz'),
+  '{"type":"ok","data":{"result":"miss","n_misses":1}}'::jsonb,
+  'a non-word that breaks the colors → miss, counted');
+reset role;
 select is(
-  wordleone.submit_guess((select id from g3), 'stere')->'data'->>'result',
-  'miss', 'at answer band 3 the same band-5 word is a miss');
+  (select verdict || ':' || took_turn from wordleone.events
+    where game_id = (select id from g3) and word = 'zzzzz'),
+  'miss:true', '… logged as a miss that spent a go');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- ── A guess into a game a friend deleted ────────────────────
 reset role;

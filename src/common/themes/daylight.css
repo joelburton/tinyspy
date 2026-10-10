@@ -531,12 +531,7 @@
 /* @@ */   --pill-lost-tint-color:     color-mix(in oklab, var(--outcomes-lost-base-color) 18%, var(--default-bg-color));
 /* @@ */   --pill-near-tint-color:     color-mix(in oklab, var(--outcomes-near-base-color) 18%, var(--default-bg-color));
 /* @@ */   --pill-warning-tint-color:  color-mix(in oklab, var(--outcomes-warning-base-color) 18%, var(--default-bg-color));
-  /* Neutral has no tone to carry recognition, so the BORDER does the
-     whole job of saying "this is a feedback pill" — and its tint is
-     the plain surface, on purpose: the one pill that says nothing
-     should look like it. Written as a cell rather than left out, so
-     the family stays a rectangle. */
-/* @@ */   --pill-neutral-tint-color:  var(--default-bg-color);
+/* @@ */   --pill-neutral-tint-color:  color-mix(in oklab, var(--outcomes-neutral-base-color) 30%, var(--default-bg-color));
 /* @@ */   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--default-bg-color));
 /* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--default-bg-color));
 

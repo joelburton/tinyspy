@@ -23,8 +23,8 @@ describe('answerMessage', () => {
     [{ answerType: 'correct' }, 'won', ''],
     [{ answerType: 'correct_peer', guess: 'crane' }, 'won', 'guessed CRANE'],
     // Red: a miss is a wrong answer, and says nothing more.
-    [{ answerType: 'miss' }, 'lost', 'Not it'],
-    [{ answerType: 'miss_peer', guess: 'crane' }, 'lost', 'guessed CRANE — not it'],
+    [{ answerType: 'miss' }, 'lost', "Doesn't fit"],
+    [{ answerType: 'miss_peer', guess: 'crane' }, 'lost', "guessed CRANE — doesn't fit"],
     [{ answerType: 'solved_peer' }, 'won', 'solved it'],
     [{ answerType: 'duplicate' }, 'warning', 'Already guessed'],
     // Amber like the duplicate: refused, and free.
@@ -60,9 +60,9 @@ describe('eventToOutcome and peerAnswerMessage', () => {
       .toBe(answerMessage({ answerType: 'not_a_word' }).outcome)
   })
 
-  it('names the kind of wrong after a row: nothing for the solve, "not it" for a miss, "not word" for a non-word', () => {
+  it(`names the kind of wrong after a row: nothing for the solve, "doesn't fit" for a miss, "not word" for a non-word`, () => {
     expect(eventToLabel({ verdict: 'correct', word: 'verse' })).toBe('')
-    expect(eventToLabel({ verdict: 'miss', word: 'crane' })).toBe('not it')
+    expect(eventToLabel({ verdict: 'miss', word: 'crane' })).toBe("doesn't fit")
     expect(eventToLabel({ verdict: 'not_a_word', word: 'zzzzz' })).toBe('not word')
   })
 
@@ -70,7 +70,7 @@ describe('eventToOutcome and peerAnswerMessage', () => {
     expect(peerAnswerMessage({ verdict: 'correct', word: 'verse' }))
       .toEqual({ outcome: 'won', text: 'guessed VERSE' })
     expect(peerAnswerMessage({ verdict: 'miss', word: 'slate' }))
-      .toEqual({ outcome: 'lost', text: 'guessed SLATE — not it' })
+      .toEqual({ outcome: 'lost', text: "guessed SLATE — doesn't fit" })
     expect(peerAnswerMessage({ verdict: 'not_a_word', word: 'zzzzz' }))
       .toEqual({ outcome: 'warning', text: 'tried ZZZZZ — not a word' })
   })

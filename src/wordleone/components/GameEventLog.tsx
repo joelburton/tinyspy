@@ -37,7 +37,7 @@ type Props = {
  * each — the outcome bar (`lib/answer.ts`'s: green on the solve, red on a
  * miss or a non-word), the number, the guess as five squares — all green for
  * the solve, uncolored for a miss or a non-word, which judged nothing — the
- * kind of wrong after them ("not it", "not word"), and who guessed it.
+ * kind of wrong after them ("doesn't fit", "not word"), and who guessed it.
  *
  * Whose guesses show is the shared `useEventLogPlayerPicker`'s: "Team" or each
  * player. In compete an opponent's rows are withheld until the game ends

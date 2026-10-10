@@ -282,8 +282,8 @@ guesses.
 ### wordleone
 
 A starter word already colored against a hidden word, which is the only legal
-word that fits; a wrong guess is a miss and says nothing more. Guesses are
-unlimited.
+word that fits; a guess that breaks the colors, word or not, is a miss and
+says nothing more. Guesses are unlimited.
 
 - **goal**
   - `game-goal` — `goal-intrinsic`: the word found

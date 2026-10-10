@@ -11,7 +11,9 @@ import type { GAnswer, GVerdict } from '../types'
  *
  * The reading: a miss is a wrong answer. It comes back with no colors — it
  * tells you only that it was wrong — so it is `lost`, red, where wordle's
- * colored guess is `neutral`. The soft rejects read as wordle's do.
+ * colored guess is `neutral`. It is a guess that breaks the starter's colors,
+ * word or not, so it reads "doesn't fit" (Joel, 2026-10-10). The soft rejects
+ * read as wordle's do.
  */
 export function answerMessage(answer: GAnswer): AnswerMessage {
   switch (answer.answerType) {
@@ -21,11 +23,11 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
       return { outcome: 'won', text: `guessed ${answer.guess.toUpperCase()}` }
 
     case 'miss':
-      return { outcome: 'lost', text: 'Not it' }
+      return { outcome: 'lost', text: "Doesn't fit" }
     case 'miss_peer':
       return {
         outcome: 'lost',
-        text: `guessed ${answer.guess.toUpperCase()} — not it`,
+        text: `guessed ${answer.guess.toUpperCase()} — doesn't fit`,
       }
 
     case 'solved_peer':
@@ -73,15 +75,16 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
 
 /**
  * The word after a logged row's five squares, saying which kind of wrong it
- * was — "not it" for a miss, "not word" for a non-word (Joel, 2026-10-08) —
- * and nothing after the solve, whose green squares say it all.
+ * was — "doesn't fit" for a miss (Joel, 2026-10-10), "not word" for a
+ * non-word (Joel, 2026-10-08) — and nothing after the solve, whose green
+ * squares say it all.
  */
 export function eventToLabel(row: LoggedGuess): string {
   switch (row.verdict) {
     case 'correct':
       return ''
     case 'miss':
-      return 'not it'
+      return "doesn't fit"
     case 'not_a_word':
       return 'not word'
   }

@@ -144,6 +144,15 @@ allows](../src/wordleone/doc.md#what-the-word-list-allows):
 21. **Live generation, a hundred answers tried.** The search is milliseconds
     per answer; pregeneration would serve only curation by hand.
 
+Added 2026-10-10, amending 2:
+
+22. **A guess that breaks the starter's colors is a miss, word or not**,
+    checked before the dictionary: it could never be the answer. So "not in
+    word list" is left only for a guess that fits the colors, and every miss
+    breaks them. A miss reads "Doesn't fit" (a teammate's "guessed CRANE —
+    doesn't fit"; "doesn't fit" in the log), and the info column is 26rem,
+    letterboxed's, to hold it.
+
 ## The puzzle — what the evidence says
 
 The downloaded design note (`wordle-in-1-generator.md`) gives the method —
@@ -374,9 +383,9 @@ band-sensitive game uses, and the difficulty beside it.
 
 ## Open questions
 
-1. **The words of a miss and a reject** — settled (Joel, 2026-10-07): a miss
-   reads "Not it", a teammate's "guessed CRANE — not it"; the rejects keep
-   wordle's words.
+1. **The words of a miss and a reject** — settled (Joel, 2026-10-07; the
+   miss's words changed 2026-10-10, decision 22): a miss reads "Doesn't fit",
+   a teammate's "guessed CRANE — doesn't fit"; the rejects keep wordle's words.
 2. **Does the answer source become a knob**, as wordle's `answer_band` is?
    Settled (Joel, 2026-10-07): yes, and it is the only band knob — decisions
    18 and 19.

@@ -11,7 +11,7 @@
   gap: 0.15rem;
 }
 
-/* The kind of wrong after the squares — "not it", "not word" — inside the
+/* The kind of wrong after the squares — "doesn't fit", "not word" — inside the
  * squares' own cell, so the table's columns never move as the words change,
  * bold and in the ink of the row's outcome (the bar's family, on the page). */
 /* @@ */ .verdict {

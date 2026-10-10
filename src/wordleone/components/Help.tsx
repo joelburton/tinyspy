@@ -31,10 +31,11 @@ export function Help({ onClose, brand }: Props) {
       </p>
 
       <p>
-        A wrong guess is a <strong>miss</strong>: it tells you only that it was
-        wrong. Guesses are unlimited. A word that isn't in the dictionary, or is
-        already on the board, is refused and costs nothing. How obscure a word
-        may be is a setup choice.
+        A guess that doesn't fit the colors — a word or not — is a{' '}
+        <strong>miss</strong>: it tells you only that it was wrong. Guesses are
+        unlimited. One that fits but isn't in the dictionary, or a word already
+        on the board, is refused and costs nothing. How obscure a word may be is
+        a setup choice.
       </p>
 
       <p>

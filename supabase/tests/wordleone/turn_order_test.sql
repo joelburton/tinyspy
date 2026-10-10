@@ -66,8 +66,8 @@ select is(
   wordleone.submit_guess((select id from g), 'crane')->'data'->>'result',
   'duplicate', 'turns: a duplicate is soft-rejected');
 select is(
-  wordleone.submit_guess((select id from g), 'zzzzz')->'data'->>'result',
-  'notAWord', 'turns: so is a non-word');
+  wordleone.submit_guess((select id from g), 'vesre')->'data'->>'result',
+  'notAWord', 'turns: so is a non-word that fits the colors');
 reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from g)),

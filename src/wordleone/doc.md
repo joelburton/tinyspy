@@ -20,17 +20,22 @@ puzzle is lives in the generator alone, so the printable sheet
 (`gmake g-wordleone-sheet`) and the game run one set of filters.
 
 A guess comes back one of four ways. The starter or a word already guessed is
-a duplicate, and a word outside the legal band is not a word: both cost
-nothing and shake the typed row amber, as wordle's duplicate does (Joel,
-2026-10-08: both refusals the warning; wordle's non-word is red). A duplicate
-writes nothing; a non-word is logged, so the players
-can see what was tried, but counts no miss and keeps the turn. A legal wrong
-word is a miss: logged with no colors, counted, and shaken red. Every one of
-the three clears the typed row once its shake ends. The answer solves, and its
-all-green row lands under the starter. Guesses are unlimited, so the board is
-two rows — the starter and the row the guess is typed into — and every miss
-and non-word lives in the event log, drawn uncolored with the kind of wrong
-after it: "not it", "not word".
+a duplicate. A guess that breaks the starter's colors — the starter scored
+against it is not the starter's colors — could never be the answer, so it is a
+miss whether it is a word or not (Joel, 2026-10-10): logged with no colors,
+counted, and shaken red. One that fits the colors but is outside the legal
+band is not a word. The duplicate and the non-word cost nothing and shake the
+typed row amber, as wordle's duplicate does (Joel, 2026-10-08: both refusals
+the warning; wordle's non-word is red); a duplicate writes nothing, and a
+non-word is logged, so the players can see what was tried, but counts no miss
+and keeps the turn. Since the answer is the only legal word that fits, every
+miss is a guess that breaks the colors. Every one of the three clears the
+typed row once its shake ends. The answer solves, and its all-green row lands
+under the starter. Guesses are unlimited, so the board is two rows — the
+starter and the row the guess is typed into — and every miss and non-word
+lives in the event log, drawn uncolored with the kind of wrong after it:
+"doesn't fit", "not word". The info column is 26rem, wider than wordle's, so
+"doesn't fit" sits beside the who column.
 
 Once a game has ended, a short survey takes the keyboard's place — how hard
 it felt, what band the answer should be in beside the band it has, how long
@@ -58,8 +63,8 @@ miss, the starter, the two-row board, the setup, and the printout.
 | **answer band** | `answer_band`, the setup's one band, in wordle's meaning: 0 the NYT answer list, 1–6 any clean word at or below the band |
 | **legal band** | `legal_band`, on the game row, never chosen: two above the answer band, capped at 6, the NYT list counting as 2 (`_legal_band_for`, `poolBandFor`). The words you may guess, and the pool the answer is unique in — one band, both jobs |
 | **difficulty** | the tier the puzzle was built to, a set of shapes of the starter's colors (The puzzle, below); any takes whatever comes |
-| **miss** | a legal word that is not the answer. Logged with no colors and counted; tells you nothing else |
-| **soft reject** | a duplicate (the starter, or a word already guessed — anyone's in coop, your own in compete), which writes nothing, or a word outside the legal band, which is logged. Both cost nothing |
+| **miss** | a guess that breaks the starter's colors, a word or not — which, the answer being the only legal word that fits, is every wrong guess but a non-word that fits. Logged with no colors and counted; tells you nothing else |
+| **soft reject** | a duplicate (the starter, or a word already guessed — anyone's in coop, your own in compete), which writes nothing, or a guess that fits the colors but is outside the legal band, which is logged. Both cost nothing |
 
 ### Coop
 
@@ -274,8 +279,11 @@ word fits (PN525). Answers `{result: 'created', id}`.
 
 Answers `{result, n_misses, solved, game_ended}`, `result` one of `correct`,
 `miss`, `duplicate`, `notAWord`, with no outcome or message — the words are
-the frontend's. The answer is compared before the dictionary, so a word banded
-out from under a live game still solves it. A malformed guess (PN527) and a
+the frontend's. The fit to the starter's colors is checked before the
+dictionary (`common._wordle_colors(starter, guess)` against the stored
+colors), so only a guess that fits can be `notAWord`. The answer is compared
+before the dictionary, so a word banded out from under a live game still
+solves it. A malformed guess (PN527) and a
 guess after your own solve (PN528) are faults.
 
 ### The rest
@@ -300,7 +308,7 @@ an empty row cannot be submitted. Everything else is the server's.
 | answerType | said to | text | outcome | the typed word |
 |---|---|---|---|---|
 | `correct` / `correct_peer` | me / a coop teammate | *(none — the green row is the feedback)* / `guessed CRANE` | `won` | clears |
-| `miss` / `miss_peer` | me / a coop teammate | `Not it` / `guessed CRANE — not it` | `lost` | shakes, then clears |
+| `miss` / `miss_peer` | me / a coop teammate | `Doesn't fit` / `guessed CRANE — doesn't fit` | `lost` | shakes, then clears |
 | `solved_peer` | about a compete opponent | `solved it` | `won` | |
 | `duplicate` | me | `Already guessed` | `warning` | shakes, then clears |
 | `not_a_word` / `not_a_word_peer` | me / a coop teammate | `Not in word list` / `tried ZZZZZ — not a word` | `warning` | shakes, then clears |
@@ -343,7 +351,7 @@ What is wordleone's own:
 - **`#N` replays a turn as the starter and that word**: a miss as it looked
   before it was sent, uncolored and unringed; the solve ringed.
 - **The log draws a miss uncolored** (`.unjudged`), the look of a typed tile,
-  and says the kind of wrong after the squares — "not it", "not word" —
+  and says the kind of wrong after the squares — "doesn't fit", "not word" —
   nothing after the solve (`eventToLabel`).
 - **The setup** is the answer band — wordle's Answer source control, "0:
   Wordle" or a band — and the difficulty, named by tier alone, beside coop
@@ -361,7 +369,7 @@ the hidden column:
 | file | pins |
 |---|---|
 | `create_game_test` | the stored row; the column grant; the setup's faults; each puzzle refusal; a caller not among the players |
-| `gameplay_test` | the four answers, a miss logged uncolored and counted, the solve's ending and title, the game-over race, a banded-out answer still solving, the band gate, a deleted game |
+| `gameplay_test` | the four answers, a miss logged uncolored and counted, a non-word that breaks the colors a miss, the solve's ending and title, the game-over race, a banded-out answer still solving, the band gate (on fitting non-words), a deleted game |
 | `compete_test` | private boards, the starter a duplicate on every board, the ranking and its tie-break |
 | `rate_puzzle_test` | the survey: refused before the end and to a non-player; the puzzle, the answer's band, the generator's scores and the caller's play copied; a blank rating; a second save; the checks; the table unreadable to clients; the ratings outliving a deleted game |
 | `concede_test` · `stop_game_test` · `turn_order_test` | wordle's, with a miss handing the turn on |

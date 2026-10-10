@@ -215,7 +215,7 @@ describe('wordleone PlayArea — render smoke', () => {
     expect(squares).toMatch(/unjudged/)
     expect(squares).not.toMatch(/wordle(Green|Yellow|Gray)/)
     // The kind of wrong, after the squares in their cell, in the miss's red ink.
-    const verdict = screen.getByText('not it')
+    const verdict = screen.getByText("doesn't fit")
     expect(verdict.className).toMatch(/lost/)
     expect(verdict.closest('td')).toBe(screen.getByText('C').closest('td'))
   })
@@ -649,7 +649,7 @@ describe('wordleone PlayArea — peer narration (global header)', () => {
     const feedbackMsg = shown.mock.calls[0]![0]
     expect(feedbackMsg.kind).toBe('peer')
     expect(feedbackMsg.actor?.username).toBe('moth')
-    expect(feedbackMsg.text).toBe('guessed CRANE — not it')
+    expect(feedbackMsg.text).toBe("guessed CRANE — doesn't fit")
     expect(feedbackMsg.outcome).toBe('lost')
   })
 

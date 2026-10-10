@@ -15,9 +15,10 @@
  * keyboard fits, is in Board.module.css. Nothing mobile-specific left here. */
 
 /* The info column's width — game-specific (the shared scaffold has no default).
- * wordleone's right column (miss counter + guess list) fits a narrow column. A
- * rem, never a pixel lock; the shared `.infoCol` and the board's --avail-w math
- * both read it. */
+ * wordleone's is 26rem, letterboxed's, wider than wordle's 22rem: the log
+ * writes "doesn't fit" after a miss's squares, and the row must hold it beside
+ * the who column (Joel, 2026-10-10). A rem, never a pixel lock; the shared
+ * `.infoCol` and the board's --avail-w math both read it. */
 /* @@ */ .layout {
-/* @@ */   --info-col-width: 22rem;
+/* @@ */   --info-col-width: 26rem;
 }
