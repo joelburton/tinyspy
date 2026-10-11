@@ -267,6 +267,9 @@ export const ACTIONS = {
   // different rows saying different things.
   'act-suggest-clue': { label: 'Suggest a clue', icon: IconAI, tone: 'caution' },
   'act-print-board': { label: 'Print board (PDF)', icon: IconPrint },
+  // FlipWord's pause between rounds: everyone presses it, and the last press
+  // deals the next round. Its game names the round in the label.
+  'act-start-round': { label: 'Start round' },
 
   // ─── Crosswords' commands ──────────────────────────────────────────────
   'act-pencil': { label: 'Pencil', keys: [alt('KeyP', '⌥P')] },

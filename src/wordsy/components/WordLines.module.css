@@ -23,10 +23,10 @@
   color: var(--page-text-color);
 }
 
-/* Lowercase in the data; capitals drawn. */
+/* The word's tracking, which its letters inherit: the wide one, so each
+ * letter's weight and color reads on its own. */
 /* @@ */ .word {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--letter-spacing-wide);
 }
 
 /* @@ */ .score {

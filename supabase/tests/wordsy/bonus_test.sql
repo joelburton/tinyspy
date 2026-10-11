@@ -27,7 +27,7 @@ select plan(22);
 
 -- One round: `p_names[1]` (ada) submits first, each player a word worth
 -- `p_scores[i]`; the conceders concede; the clock runs out. Answers each
--- player's bonus in seat order, 'ada+0 bea+1'. The round is planted as round
+-- player's bonus in the reveal's order, 'ada+0 bea+1'. The round is planted as round
 -- `p_num` before anyone submits.
 create function pg_temp.bonus_round(
   p_names     text[],
@@ -53,6 +53,9 @@ begin
   end loop;
   perform pg_temp.ws_buzz(v_gid);
   perform set_config('role', 'postgres', true);
+  if (select ended_at from common.games where id = v_gid) is null then
+    perform pg_temp.ws_start_all(v_gid);
+  end if;
   select string_agg(p.username || '+' || e.bonus, ' ' order by e.id) into v_out
     from wordsy.events e join common.profiles p on p.user_id = e.user_id
    where e.game_id = v_gid and e.num = p_num;
@@ -95,9 +98,9 @@ select is(pg_temp.bonus_round(array['ada', 'bea', 'cade', 'dee', 'eda'], array[5
 select is(pg_temp.bonus_round(array['ada', 'bea', 'cade', 'dee', 'eda'], array[5, 6, 5, 5, 4]),
   'ada+2 bea+1 cade+0 dee+0 eda+0', 'five players: three of four, and a beater''s bonus beside it');
 select is(pg_temp.bonus_round(array['ada', 'abe-bot', 'bea', 'cade', 'dee', 'eda'], array[5, 6, 6, 6, 5, 4]),
-  'abe-bot+1 ada+0 bea+1 cade+1 dee+0 eda+0', 'six players: three of five needed, one short');
+  'ada+0 abe-bot+1 bea+1 cade+1 dee+0 eda+0', 'six players: three of five needed, one short');
 select is(pg_temp.bonus_round(array['ada', 'abe-bot', 'bea', 'cade', 'dee', 'eda'], array[5, 6, 6, 5, 5, 0]),
-  'abe-bot+1 ada+2 bea+1 cade+0 dee+0 eda+0', 'six players: three of five');
+  'ada+2 abe-bot+1 bea+1 cade+0 dee+0 eda+0', 'six players: three of five');
 
 -- ─── (4) A conceder is no opponent ───
 select is(pg_temp.bonus_round(array['ada', 'bea', 'cade', 'dee'], array[5, 4, 5, 6], 1, array['dee']),

@@ -251,7 +251,7 @@ When a folder holds two concerns, the filenames say which one you are in.
 The `G` says "game-specific": this is the game's own `GPlayer`, `GGameData`,
 `GEvent`, `GSetup`, as against the shell's `Member` or `GameDataRaw`. A
 reader of a game file can tell at a glance which side a name is on, and
-`GEvent` across seventeen folders is every game's version of one thing. It goes
+`GEvent` across eighteen folders is every game's version of one thing. It goes
 on every exported type, including the ones with no twin anywhere: without it a
 reader cannot tell `GTileResults` from a shared type without checking the
 import. Components keep their bare names (`PlayArea`, `BoardCol`): no shared

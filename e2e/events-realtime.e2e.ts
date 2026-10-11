@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test'
 import {
   asUser,
+  createClubWithMembers,
   createConnectionsGame,
   createGame,
   createLetterboxedGame,
@@ -15,7 +16,10 @@ import {
   createWordiplyGame,
   createWordleGame,
   createWordleoneGame,
+  createWordsyGame,
+  endWordsyRound,
   envelopeData,
+  submitWordsyWord,
   seedWaffleSwap,
   seedWordleGuesses,
   seedWordleoneMisses,
@@ -54,6 +58,11 @@ import { signIn } from './helpers/session'
 type Case = {
   /** The schema whose `events` table is under test. */
   game: string
+  /** A game that takes two or more: the second player's page is opened too,
+   *  since the game pauses until everyone is connected. Default: solo. */
+  twoPlayers?: boolean
+  /** How many rows the write lands. Default 1. */
+  nRows?: number
   /** Create the game, and hand back how to land one row in it from Node. */
   start: (
     club: E2EClub,
@@ -187,6 +196,23 @@ const CASES: Case[] = [
     },
   },
   {
+    game: 'wordsy',
+    twoPlayers: true,
+    // The reveal writes a row per player still playing: my word, and the
+    // rival's "no word".
+    nRows: 2,
+    start: async (club) => {
+      const game = await createWordsyGame(club)
+      return {
+        ...game,
+        write: async (m) => {
+          await submitWordsyWord(m, game.id, 'cab')
+          await endWordsyRound(m, game.id)
+        },
+      }
+    },
+  },
+  {
     game: 'wordiply',
     start: async (club) => {
       const game = await createWordiplyGame(club)
@@ -231,11 +257,14 @@ const CASES: Case[] = [
 ]
 
 test.describe('events subscriptions are live', () => {
-  for (const { game, start } of CASES) {
+  for (const { game, twoPlayers = false, nRows = 1, start } of CASES) {
     test(`${game}: a row written outside the browser reaches the open page`, async ({
       browser,
     }) => {
-      const club = await createSoloClub(`rt${game}`.slice(0, 12))
+      const club = twoPlayers
+        // Six characters reach the username; the two must differ inside them.
+        ? await createClubWithMembers([`rt${game.slice(0, 3)}a`, `rt${game.slice(0, 3)}b`])
+        : await createSoloClub(`rt${game}`.slice(0, 12))
       const [member] = club.members
       const { id, gametype, write } = await start(club)
 
@@ -243,6 +272,12 @@ test.describe('events subscriptions are live', () => {
       await signIn(ctx, member.session)
       const page = await ctx.newPage()
       await page.goto(`/g/${gametype}/${id}`)
+      // The rival's page, so nothing waits on them; it is never read.
+      const rivalCtx = twoPlayers ? await browser.newContext() : null
+      if (rivalCtx) {
+        await signIn(rivalCtx, club.members[1].session)
+        await (await rivalCtx.newPage()).goto(`/g/${gametype}/${id}`)
+      }
 
       // The log panel itself is the ready signal — it is what the assertion
       // reads, and every event-log game renders it.
@@ -255,9 +290,10 @@ test.describe('events subscriptions are live', () => {
 
       // Nothing in the browser asked for this row. If the subscription names the
       // wrong table, the handle never appears and the page sits there stale.
-      await expect(handles).toHaveCount(1, { timeout: 15000 })
+      await expect(handles).toHaveCount(nRows, { timeout: 15000 })
 
       await ctx.close()
+      await rivalCtx?.close()
     })
   }
 })

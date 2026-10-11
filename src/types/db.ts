@@ -1,4 +1,5 @@
 // cs-na
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
@@ -2913,26 +2914,26 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"round_style": string
+                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_rounds": number,"one_word": boolean,"round_style": string,"_is_one_word": boolean | null
                   }
                   Insert: {
-                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"round_style": string
+                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_rounds"?: number,"one_word"?: boolean,"round_style": string
                   }
                   Update: {
-                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"round_style"?: string
+                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"n_rounds"?: number,"one_word"?: boolean,"round_style"?: string
                   }
                   Relationships: [
                     
                   ]
                 },"players": {
                   Row: {
-                    "game_id": string,"user_id": string
+                    "game_id": string,"ready_for_num": number | null,"user_id": string
                   }
                   Insert: {
-                    "game_id": string,"user_id": string
+                    "game_id": string,"ready_for_num"?: number | null,"user_id": string
                   }
                   Update: {
-                    "game_id"?: string,"user_id"?: string
+                    "game_id"?: string,"ready_for_num"?: number | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -3008,6 +3009,9 @@ isOneToOne: false
             "_arm_timer":
 { Args: { "p_game_id": string }; Returns: undefined
                            },
+"_deal_next_round":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "_deal_round":
 { Args: { "p_first_user_id": string,"p_game_id": string,"p_no_flip_user_id": string,"p_num": number }; Returns: undefined
                            },
@@ -3026,8 +3030,17 @@ isOneToOne: false
 "_finish":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string }; Returns: undefined
                            },
+"_is_everyone_in":
+{ Args: { "p_game_id": string,"p_num": number }; Returns: boolean
+                           },
+"_is_everyone_ready":
+{ Args: { "p_game_id": string,"p_num": number }; Returns: boolean
+                           },
 "_is_legal":
 { Args: { "p_band": number,"p_word": string }; Returns: boolean
+                           },
+"_is_one_word":
+{ Args: { "g": Database["wordsy"]['Tables']["games"]['Row'] }; Returns: boolean
                            },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
@@ -3046,6 +3059,9 @@ isOneToOne: false
                            },
 "_make_json_tiles":
 { Args: { "p_tiles": (number)[] }; Returns: Json
+                           },
+"_n_best_rounds":
+{ Args: { "p_n_rounds": number }; Returns: number
                            },
 "_n_still_playing":
 { Args: { "p_game_id": string }; Returns: number
@@ -3086,6 +3102,9 @@ isOneToOne: false
 { Args: { "p_club_handle": string,"p_mode": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
                            },
 "replay_board":
+{ Args: { "p_game_id": string }; Returns: Json
+                           },
+"start_round":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "stop_game":

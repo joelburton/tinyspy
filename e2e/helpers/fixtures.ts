@@ -1511,3 +1511,104 @@ export async function createSetgameGame(
     })
   return { id: createdGameId(res, 'setgame.create_game'), gametype: `setgame_${mode}` }
 }
+
+// ─── wordsy ─────────────────────────────────────────────────────────────────
+
+/**
+ * The planted round-1 table every wordsy e2e game is dealt — supabase/tests/
+ * wordsy/setup.psql's, so a spec knows the cards and what a word scores:
+ *
+ *   slot   1    2    3    4    5    6    7    8
+ *   card   F45  B1   C5   D9   L17  C6   Q58  R33
+ *   worth  6    5    4    4    3    3    4    2
+ *
+ * Against it CAB and ELF score 9, BOLD 12, FABLE 14, COBRA 11, DRAGON 6 —
+ * real band-1 words with roots of their own, so nothing is planted in the word
+ * list.
+ */
+export const WORDSY_TABLE_LETTERS = 'FBCDLCQR'
+
+/** The deck's first eight numbers: round 1 deals deck[1] into slot 8 down to
+ *  deck[8] into slot 1, so this is the table reversed. */
+const WORDSY_DECK_PREFIX = [33, 58, 6, 17, 9, 5, 1, 45]
+
+/** One statement as the local superuser; the rows, trimmed. */
+function wordsyPsql(sql: string): string {
+  return execFileSync(
+    'psql',
+    ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-tAX', '-v', 'ON_ERROR_STOP=1', '-c', sql],
+    { encoding: 'utf8' },
+  ).trim()
+}
+
+/**
+ * Start a wordsy (FlipWord) game — compete only, two players or more — on the
+ * planted table (`WORDSY_TABLE_LETTERS`).
+ *
+ * The deck is replaced and round 1 re-dealt through the real `_deal_round`, as
+ * the pgTAP setup does: direct SQL, because a deal is a shuffle no RPC can be
+ * asked for, and a spec that reads the board cannot know a word's score in
+ * advance. The no-timer style keeps the First Wordsmith create_game drew.
+ */
+export async function createWordsyGame(
+  club: E2EClub,
+  roundStyle: 'timer' | 'no-timer' = 'timer',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const res = await asUser(club.members[0].session.access_token)
+    .schema('wordsy')
+    .rpc('create_game', {
+      p_club_handle: club.handle,
+      p_setup: { timer: { kind: 'none' }, legal_band: 4, round_style: roundStyle, n_rounds: 7, one_word: false },
+      p_player_user_ids: playerUserIds,
+      p_mode: 'compete',
+    })
+  const id = createdGameId(res, 'wordsy.create_game')
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error(`bad game id: ${id}`)
+  const prefix = `array[${WORDSY_DECK_PREFIX.join(',')}]::smallint[]`
+  wordsyPsql(`do $$
+    declare v_first uuid;
+    begin
+      select fastest_user_id into v_first from wordsy.rounds where game_id = '${id}' and num = 1;
+      delete from wordsy.rounds where game_id = '${id}';
+      update wordsy.games
+         set deck = ${prefix} || array(select n::smallint from generate_series(1, 60) n
+                                        where n <> all(${prefix}) order by n),
+             drawn = '{}'
+       where game_id = '${id}';
+      perform wordsy._deal_round('${id}', 1, null, v_first);
+      perform wordsy._rebuild_data_cols('${id}', true);
+    end $$;`)
+  return { id, gametype: 'wordsy_compete' }
+}
+
+/** Submit `word` for `member` through the real RPC; answers its `result`. */
+export async function submitWordsyWord(member: E2EMember, gameId: string, word: string): Promise<string> {
+  const res = await asUser(member.session.access_token)
+    .schema('wordsy')
+    .rpc('submit_word', { p_game_id: gameId, p_word: word })
+  return envelopeData<{ result: string }>(res, `wordsy.submit_word(${word})`).result
+}
+
+/**
+ * End the round in play now: the server's count is run to the round's 30
+ * (direct SQL — the clock only moves while a page ticks it, and a spec should
+ * not sit through 30 seconds), then `submit_timeout`, the RPC every page fires
+ * at zero.
+ */
+export async function endWordsyRound(member: E2EMember, gameId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  wordsyPsql(`update common.timers set ticks = 30 where game_id = '${gameId}'`)
+  const res = await asUser(member.session.access_token)
+    .schema('wordsy')
+    .rpc('submit_timeout', { p_game_id: gameId })
+  envelopeData(res, 'wordsy.submit_timeout')
+}
+
+/** `member` presses "Start round N" between rounds; the last press deals it. */
+export async function startWordsyRound(member: E2EMember, gameId: string): Promise<string> {
+  const res = await asUser(member.session.access_token)
+    .schema('wordsy')
+    .rpc('start_round', { p_game_id: gameId })
+  return envelopeData<{ result: string }>(res, 'wordsy.start_round').result
+}

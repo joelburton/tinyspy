@@ -9,15 +9,35 @@
 /* @@ */ .board {
 /* @@ */   --max-tile-size: 7rem;
 /* @@ */   --grid-gap: 0.8rem;
+  /* The board's own padding, which holds the frames clear of the cards; the
+   * width bound subtracts it with the gaps, or a phone's board runs off the
+   * screen and takes the entry and the keyboard with it. */
+/* @@ */   --board-pad: 0.6rem;
 /* @@ */   --tile-size: min(
     var(--max-tile-size),
-    calc((var(--avail-w) - 3 * var(--grid-gap)) / 4)
+    calc((var(--avail-w) - 3 * var(--grid-gap) - 2 * var(--board-pad)) / 4)
   );
   display: flex;
   gap: var(--grid-gap);
   justify-content: center;
-  padding: 0.6rem;
+  padding: var(--board-pad);
   border-radius: 0.8rem;
+}
+
+/* A rival's word has started the round's clock on me: the shared your-turn
+ * frame's shape and beat, in the caution color — a warning, where the yellow
+ * one (worn at a round's reveal) is news. */
+/* @@ */ .clockStartFlash {
+  animation: clock-start-flash var(--mark-yourTurn-flash-duration) ease-out;
+}
+
+/* @@ */ @keyframes clock-start-flash {
+  0% {
+    box-shadow: 0 0 0 5px var(--mark-caution-board-color);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
 }
 
 /* @@ */ .column {

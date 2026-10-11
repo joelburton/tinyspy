@@ -22,8 +22,9 @@ type HistorySnapshot = {
 export function makeHistorySnapshot(
   rounds: readonly GRound[],
   num: number,
+  nRounds: number,
 ): HistorySnapshot | null {
   const round = rounds.find((r) => r.num === num)
   if (round === undefined) return null
-  return { round, label: `Round ${num} of 7` }
+  return { round, label: `Round ${num} of ${nRounds}` }
 }

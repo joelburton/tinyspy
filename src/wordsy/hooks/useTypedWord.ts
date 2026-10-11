@@ -1,20 +1,22 @@
 // cs-unmet
 
 import { useState } from 'react'
+import type { GSentWord } from '../types'
 
 /**
  * The word being typed. Nothing reaches the server until ↵ (plans/wordsy.md,
  * decision 17): `submit` hands the word to `sendWord`, and empties the entry
- * only once the word stands — a refused word stays to be fixed. The last word
- * that stood is `recall`, which ↑ brings back.
+ * once the word stands, or once it is refused as no word at all — there is
+ * nothing in a non-word worth fixing. A word refused as already played stays,
+ * to be changed. The last word that stood is `recall`, which ↑ brings back.
  *
  * Lowercase, as the word list is; the entry box draws the capitals.
  */
 export function useTypedWord({
   sendWord,
 }: {
-  // Resolves to whether the word now stands (`useSubmitWord`).
-  sendWord: (word: string) => Promise<boolean>
+  // What became of the word (`useSubmitWord`).
+  sendWord: (word: string) => Promise<GSentWord>
 }): {
   word: string
   edit: (next: string) => void
@@ -28,10 +30,9 @@ export function useTypedWord({
   async function submit() {
     if (word === '') return
     const sent = word
-    if (await sendWord(sent)) {
-      setRecall(sent)
-      setWord('')
-    }
+    const result = await sendWord(sent)
+    if (result === 'stands') setRecall(sent)
+    if (result !== 'kept') setWord('')
   }
 
   return { word, edit: setWord, submit, recall }

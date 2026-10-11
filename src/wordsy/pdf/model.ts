@@ -27,7 +27,7 @@ export function buildPrintModel({ gd, date }: { gd: GGameData; date: string }): 
     date,
     summary: gd.ended
       ? `${finished.length} rounds played`
-      : `Round ${gd.round.num} of 7 · ${gd.me.total} pts`,
+      : `Round ${gd.round.num} of ${gd.nRounds} · ${gd.me.total} pts`,
     setupRows: gd.setupRows,
     mode: gd.mode,
     totals: gd.players

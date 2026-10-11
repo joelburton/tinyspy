@@ -2,6 +2,7 @@
 
 import { test, expect, type Page } from '@playwright/test'
 import {
+  createClubWithMembers,
   createSoloClub,
   createBoggleGame,
   createConnectionsGame,
@@ -10,7 +11,9 @@ import {
   createWordiplyGame,
   createWordleGame,
   createWordleoneGame,
+  createWordsyGame,
   createWordwheelGame,
+  type E2EClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 import { actionButton, actionRow } from './helpers/actions'
@@ -47,10 +50,12 @@ closeContextsAfterEach()
  * sitting open until the verdict assertion timed out (strands, 2026-08-07).
  * Auto-waiting `click()` — what every other e2e file here does — can't lose it.
  */
-async function stopGame(page: Page) {
+async function stopGame(page: Page, via: 'act-stop-game' | 'act-concede' = 'act-stop-game') {
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await actionRow(page, 'act-stop-game').click()
-  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
+  await actionRow(page, via).click()
+  await page.locator('[data-floating-panel]')
+    .getByRole('button', { name: via === 'act-concede' ? 'Stop for all' : 'Stop game' })
+    .click()
 }
 
 /** Restart from the menu (no confirm once ended — see useStandardGameActions). */
@@ -88,27 +93,43 @@ async function revealIfOffered(page: Page) {
  *  ("Ended: 0 words, 0 points", "Game ended", "Stopped"). */
 const VERDICT = /Ended:|Game ended|Stopped/
 
-const GAMES = [
+const GAMES: {
+  name: string
+  make: (club: E2EClub) => Promise<{ id: string; gametype: string }>
+  // A game that takes two or more: the second player's page is opened too,
+  // since the game pauses until everyone is connected. A race's menu reaches
+  // the Stop through Concede's dialog, which offers both.
+  twoPlayers?: boolean
+}[] = [
   { name: 'boggle', make: createBoggleGame },
   { name: 'spellingbee', make: createSpellingbeeGame },
   { name: 'strands', make: createStrandsGame },
   { name: 'wordiply', make: createWordiplyGame },
   { name: 'wordle', make: createWordleGame },
   { name: 'wordleone', make: createWordleoneGame },
+  { name: 'wordsy', make: (club) => createWordsyGame(club), twoPlayers: true },
   { name: 'wordwheel', make: createWordwheelGame },
-] as const
+]
 
 for (const g of GAMES) {
   test(`${g.name}: Restart leaves no verdict and no revealed answer`, async ({ browser }) => {
-    const club = await createSoloClub(`rs${g.name.slice(0, 4)}`)
+    const club = g.twoPlayers
+      // Six characters reach the username; the two must differ inside them.
+      ? await createClubWithMembers([`rs${g.name.slice(0, 3)}a`, `rs${g.name.slice(0, 3)}b`])
+      : await createSoloClub(`rs${g.name.slice(0, 4)}`)
     const game = await g.make(club)
+    if (g.twoPlayers) {
+      const rivalCtx = await browser.newContext()
+      await signIn(rivalCtx, club.members[1].session)
+      await (await rivalCtx.newPage()).goto(`/g/${game.gametype}/${game.id}`)
+    }
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible({ timeout: 25000 })
 
-    await stopGame(page)
+    await stopGame(page, g.twoPlayers ? 'act-concede' : 'act-stop-game')
     await expect(page.getByText(VERDICT).first()).toBeVisible({ timeout: 10000 })
     await revealIfOffered(page)
     await page.waitForTimeout(500)

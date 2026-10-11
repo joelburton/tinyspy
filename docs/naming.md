@@ -78,7 +78,7 @@ Every game has two names:
   descend from, so the source stays legible to a newcomer: `connections`,
   `spellingbee`, `bananagrams`, `codenamesduet`, `wordle`, `scrabble`, `waffle`,
   `stackdown`, `psychicnum`, `boggle`, `crosswords`, `wordwheel`, `wordiply`,
-  `strands`, `letterboxed`, `setgame`, `wordleone`.
+  `strands`, `letterboxed`, `setgame`, `wordleone`, `wordsy`.
 
   `setgame` is the one codename that is NOT simply the game's own name: `set`
   is a Postgres keyword, a TypeScript builtin, and on this file's own
@@ -102,7 +102,7 @@ Every game has two names:
 | `crosswords` | CrossPlay | | `wordwheel` | MooseWheel |
 | `wordiply` | WordWire | | `strands` | PaulPath |
 | `letterboxed` | SnakeBox | | `setgame` | HareTrigger |
-| `wordleone` | WordNerdier | | | |
+| `wordleone` | WordNerdier | | `wordsy` | FlipWord |
 
 The brand and codename coincide as a word only for `stackdown`/StackDown and
 `psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is

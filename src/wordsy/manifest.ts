@@ -17,7 +17,8 @@ import logoUrl from './logo.svg?url'
 /**
  * wordsy's manifest. "wordsy" is the codename for FlipWord, our Gil Hova's
  * Wordsy: eight consonant cards in four scoring columns, one word each per
- * round, a 30-second clock from the first word in, best five of seven rounds.
+ * round, a 30-second clock from the first word in, best five of seven rounds
+ * (or a short game's best two of three).
  *
  * Compete only for now, as `wordsy_compete` on the family `wordsy`, so a coop
  * sibling can land beside it without renaming stored rows (plans/wordsy.md,
@@ -30,7 +31,7 @@ class WordsyCompeteManifest extends Manifest {
   readonly mode = 'compete'
   // The brand keeps its display casing; the codename stays lowercase in code.
   readonly name = 'FlipWord'
-  readonly shortDescription = 'One word a round from eight letters — beat the 30-second clock'
+  readonly shortDescription = 'One word a round from eight letters'
   readonly logoUrl = logoUrl
   readonly help = lazy(() =>
     import('./components/Help').then((m) => ({ default: m.Help })),
@@ -39,13 +40,13 @@ class WordsyCompeteManifest extends Manifest {
   // its compete floor of 2 (docs/code-conventions.md → Per-game player counts).
   readonly numberOfPlayers: [number, number] = [2, 6]
   readonly draftsOffTurn = false
-  readonly scratchpad = 'perPlayerInCompete'
+  readonly scratchpad = 'none'
   readonly PlayArea = lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
   )
   readonly setupForm: Manifest['setupForm'] = {
     intro:
-      'Everyone writes one word at once from eight letters worth 5, 4, 3 and 2. The first word in starts a 30-second clock; best five of seven rounds, plus bonuses, wins.',
+      'Everyone writes one word at once from eight letters worth 5, 4, 3 and 2. The first word in starts a 30-second clock; best five of seven rounds (or two of three), plus bonuses, wins.',
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
@@ -77,7 +78,7 @@ class WordsyCompeteManifest extends Manifest {
     const me = summary.players.find((p) => p.id === myId)
     const myEndingLabel = me === undefined ? null : this.makeSummaryEndingLabel(summary, members, me)
     if (summary.ending === null && myEndingLabel === null) {
-      return statusLine(verdict('Playing'), `Round ${summary.nRoundsPlayed + 1} of 7`)
+      return statusLine(verdict('Playing'), `Round ${summary.nRoundsPlayed + 1} of ${summary.nRounds}`)
     }
 
     const winningTotal = summary.winnerTotal === null ? null : count(summary.winnerTotal, 'pt', 'pts')
@@ -123,5 +124,5 @@ class WordsyCompeteManifest extends Manifest {
   }
 }
 
-/** wordsy in compete: one word a round, the best total after seven wins. */
+/** wordsy in compete: one word a round, the best total after the last round wins. */
 export const wordsyCompeteManifest = new WordsyCompeteManifest()

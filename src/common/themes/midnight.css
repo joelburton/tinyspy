@@ -433,6 +433,8 @@
      rather than a light-mode habit. */
 /* @@ */   --mark-attention-board-color:  #ffd21a;
 /* @@ */   --mark-attention-tile-color:   var(--mark-attention-board-color);
+/* @@ */   --mark-caution-board-color:    var(--button-caution-base-color);
+/* @@ */   --mark-best-color:             #f2c230;
 
   /* The grid cursor lightens, because a mid brown on a dark board is
      as invisible as a pale one is on a light board. */
@@ -502,6 +504,9 @@
      to be two colors that are clearly not each other. */
 /* @@ */   --flex-color-1:  #4db6ac;
 /* @@ */   --flex-color-2:  #ce93d8;
+  /* Each one washed, 22% over the card — this theme's wash formula. */
+/* @@ */   --flex-color-1-wash:  color-mix(in oklab, var(--flex-color-1) 22%, var(--default-bg-color));
+/* @@ */   --flex-color-2-wash:  color-mix(in oklab, var(--flex-color-2) 22%, var(--default-bg-color));
 
   /* ══ TIMER ══════════════════════════════════════════════════════
      A stopped clock. The daylight red is too dark to read here, so this

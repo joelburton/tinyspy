@@ -2,7 +2,7 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-Seventeen games are live today (the parenthetical is each game's in-app brand):
+Eighteen games are live today (the parenthetical is each game's in-app brand):
 
 - **bananagrams** (MonkeyGrams) — Bananagrams-style: build your own crossword from a shared tile bank.
 - **boggle** (MothCubes) — Boggle-style: find words in a grid of lettered dice.
@@ -20,9 +20,10 @@ Seventeen games are live today (the parenthetical is each game's in-app brand):
 - **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
 - **wordle** (WordNerd) — Wordle-style guess-the-word.
 - **wordleone** (WordNerdier) — Wordle-in-1-style: one row is already colored, and the hidden word is the only one that fits it.
+- **wordsy** (FlipWord) — [Wordsy](https://boardgamegeek.com/boardgame/208480/wordsy): everyone writes one word a round from eight consonant cards worth 5, 4, 3 and 2; the first word in starts a 30-second clock.
 - **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the center.
 
-Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams is a single competitive race. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
+Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams and wordsy are competitive only. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
 Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — the route set is flat enough that a hand-rolled router covers it.
 
@@ -55,7 +56,7 @@ src/
   common/                         # the shell every game stands on (docs/common-folders.md)
   shared/                         # code a family of games shares, and only they
   guards/                         # repo-wide invariant tests
-  <game>/                         # one folder per game (seventeen)
+  <game>/                         # one folder per game (eighteen)
 
 Makefile                          # data + deploy targets (GNU Make 4+; `gmake help`)
 supabase/
@@ -172,6 +173,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-In production with real accounts, games and chat history, so schema changes migrate forward and preserve data (see [`CLAUDE.md`](CLAUDE.md)). Seventeen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordleone, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
+In production with real accounts, games and chat history, so schema changes migrate forward and preserve data (see [`CLAUDE.md`](CLAUDE.md)). Eighteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordleone, wordsy, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race, wordsy compete-only); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`todo.md`](todo.md) and each folder's own `todo.md`.

@@ -34,7 +34,9 @@ export function Help({ onClose, brand }: Props) {
         a <strong>30-second</strong> clock, and that player — the Fastest
         Wordsmith — can't change it. Everyone else may submit again until the
         clock runs out; your last word stands. Then every word is revealed and
-        scored.
+        scored, and the next round starts once everyone has pressed{' '}
+        <strong>Start round</strong>. With <strong>one word a round</strong>, everyone's first word
+        is final, and the round ends once everyone has one in.
       </p>
       <p>
         <strong>Bonuses:</strong> beat the Fastest Wordsmith for +1 (+2 in
@@ -49,7 +51,8 @@ export function Help({ onClose, brand }: Props) {
       </p>
       <p>
         After seven rounds, your best five rounds plus every bonus is your
-        total. Highest total wins; a tie is shared.
+        total — in a short game, three rounds and the best two. Highest total
+        wins; a tie is shared.
       </p>
     </GameHelpCompanion>
   )

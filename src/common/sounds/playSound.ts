@@ -4,16 +4,20 @@ import { getMyProfile } from '../session/myProfileStore'
 
 /** Every sound the app plays, by name, and its file under `public/audio/`. */
 const SOUND_FILES = {
-  // The turn became yours (`board-marks/useTurnStartFlash`).
+  // The turn became yours (`board-marks/useTurnStartFlash`); a FlipWord round
+  // was revealed.
   bell: '/audio/bell.mp3',
   // A win (`CelebrationBlockingModal`).
   tada: '/audio/tada.mp3',
+  // A rival's word has started a round's clock on me (FlipWord).
+  timer: '/audio/timer.mp3',
 } as const
 
 export type SoundName = keyof typeof SOUND_FILES
 
-/** Each sound's level. The bell comes often, so it sits under the jingle. */
-const VOLUME: Record<SoundName, number> = { bell: 0.6, tada: 0.8 }
+/** Each sound's level. The bell comes often, so it sits under the jingle; the
+ *  timer is a warning, level with the bell. */
+const VOLUME: Record<SoundName, number> = { bell: 0.6, tada: 0.8, timer: 0.6 }
 
 /** One element per sound, made on first use and reused, so a second ring does
  *  not fetch the file again. */

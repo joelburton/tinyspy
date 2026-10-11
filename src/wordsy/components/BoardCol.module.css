@@ -5,6 +5,18 @@
   gap: 1rem;
 }
 
+/* The on-screen keyboard: a phone's only way to type. A desktop has a real
+ * keyboard and the board column's room is the board's, so it is hidden there. */
+/* @@ */ .onscreenKeyboard {
+  display: none;
+}
+
+@media (--mobile) {
+/* @@ */   .onscreenKeyboard {
+    display: block;
+  }
+}
+
 /* Everything under the board, as wide as the board. */
 /* @@ */ .belowBoard {
   display: flex;

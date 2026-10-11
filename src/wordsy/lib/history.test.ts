@@ -12,12 +12,12 @@ describe('makeHistorySnapshot', () => {
   )
 
   it('is the round itself, named by its number', () => {
-    const snapshot = makeHistorySnapshot(gd.rounds, 2)
+    const snapshot = makeHistorySnapshot(gd.rounds, 2, gd.nRounds)
     expect(snapshot?.round).toBe(gd.rounds[1])
     expect(snapshot?.label).toBe('Round 2 of 7')
   })
 
   it('is null for a round that was never dealt', () => {
-    expect(makeHistorySnapshot(gd.rounds, 5)).toBeNull()
+    expect(makeHistorySnapshot(gd.rounds, 5, gd.nRounds)).toBeNull()
   })
 })

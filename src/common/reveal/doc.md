@@ -6,7 +6,7 @@ looks like.
 
 ## Intro to area
 
-A finished game still has one thing to say, and for eleven of the seventeen it is the
+A finished game still has one thing to say, and for eleven of the eighteen it is the
 answer itself — the word, the solved grid, the categories nobody got, where the
 theme words were hiding. Putting it on screen is not a question about
 permission: the server hands the solution over the moment the game has ended
@@ -52,7 +52,7 @@ filter already IS the control, mount none of this.
 ## Details
 
 ```
-<PlayArea>                              eleven of the seventeen games
+<PlayArea>                              eleven of the eighteen games
 └── useSolutionReveal({ impliedBy? })    local, per-player, unpersisted
      ├── impliedBy: gd.me.hasSolved          the seven where a board-solution IS the puzzle-solution
      └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
@@ -75,7 +75,7 @@ filter already IS the control, mount none of this.
 | letterboxed | the seeded pair | **no** — any covering chain wins | — | solution |
 | wordiply | the best possible word | **no** — you beat an opponent, not the best word | — | **best solution** |
 | boggle · spellingbee · wordwheel | the full word list | — | — | no control: the list's found/missed filter is it |
-| bananagrams · scrabble · setgame | none | — | — | no answer to show |
+| bananagrams · scrabble · setgame · wordsy | none | — | — | no answer to show |
 
 **One `describe()` serves all eleven**, `describeReveal({ noun, revealed,
 impliedBySolve?, isGameEnded })`, so the three states cannot drift: inert with

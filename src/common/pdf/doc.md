@@ -221,7 +221,7 @@ incidental. See [docs/games/crosswords.md](../../../docs/games/crosswords.md).
 
 ## Which games print
 
-All seventeen. The family is the shared shape; what a game shows inside it is
+All eighteen. The family is the shared shape; what a game shows inside it is
 that game's own, in its printer and its doc.
 
 | game | family |
@@ -242,6 +242,7 @@ that game's own, in its printer and its doc.
 | wordiply | event log, no board |
 | wordle | tracks |
 | wordleone | tracks, two rows each |
+| wordsy | event log, its totals and each round's table above |
 | wordwheel | word list |
 
 ## Characters

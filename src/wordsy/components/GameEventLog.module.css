@@ -5,7 +5,7 @@
   padding: 0.2rem 0;
 }
 
-/* Lowercase in the data; capitals drawn. */
+/* The word, in bold capitals. Lowercase in the data; capitals drawn. */
 /* @@ */ .word {
   text-transform: uppercase;
   letter-spacing: 0.03em;

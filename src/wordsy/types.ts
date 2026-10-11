@@ -39,6 +39,34 @@ export type GTile = {
   value: number
 }
 
+/** One player's row on a round's scoresheet (`lib/scoresheet.ts`). */
+export type GSheetRow = {
+  // The round it is from.
+  num: number
+  player: GPlayer
+  // '' for no word.
+  word: string
+  // The word's score against the round's table.
+  score: number
+  // The round's bonus, in its column: the Fastest's, or for beating them.
+  fastestBonus: number | null
+  beatBonus: number | null
+  // Everything the row adds to the total: the score, unless struck, and the
+  // bonus.
+  rowTotal: number
+  // The round's best total (`isStar`), on the round's sheet; one of the
+  // player's lowest scores, which the total drops, on the game's.
+  isStar: boolean
+  isStruck: boolean
+}
+
+/** One letter of a word, with the card it scores on against a round's table,
+ *  or null when it scores nothing (`lib/score.ts`). */
+export type GScoredLetter = {
+  letter: string
+  tile: GTile | null
+}
+
 /** One round, as the blob carries it; `gd` turns its links into players
  *  (`GRound`). */
 export type GRoundRaw = {
@@ -78,12 +106,15 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
   // Always null: compete only, so there is never a team.
   team: null
+  // The game's length, and how many rounds' word scores its totals count.
+  nRounds: GNRounds
+  nBestRounds: 5 | 2
   // The cards not yet dealt. The deck's order never leaves the server.
   nTilesInDeck: number
   // Every round dealt so far, the one in play last.
   rounds: GRoundRaw[]
-  // Every finished round's words, a row per player still playing, in seat
-  // order within a round.
+  // Every finished round's words, a row per player still playing; within a
+  // round the Fastest's first, then as the words came in, no word last.
   events: GEventRaw[]
   players: GPlayerRaw[]
 }
@@ -106,6 +137,8 @@ export type GFacts = {
   // That word can no longer change: the Fastest's in the timer style, any
   // word in no-timer.
   isWordFrozen: boolean
+  // Between rounds, they have pressed "Start round N".
+  isReadyForNextRound: boolean
 }
 
 /**
@@ -123,6 +156,13 @@ export type GAnswer =
   | { answerType: 'already_played'; earlier: string }
   | { answerType: 'first_in_peer' }
   | { answerType: 'no_word' }
+
+/**
+ * What became of a sent word, for the entry: it now `stands`; it was
+ * `refused` as no word at all, so nothing in it is worth fixing; or it is
+ * `kept` to fix — already played, or a not-ok.
+ */
+export type GSentWord = 'stands' | 'refused' | 'kept'
 
 /** One row of the log, as the blob carries it; `gd` turns `userId` into the
  *  player (`GEvent`). */
@@ -166,9 +206,11 @@ export type GPlayerRaw = PlayerRaw & GFacts
  *   ending: {reason, detail, by, winners}    # null while playing
  *   ended
  *   outcome                                  # null until the game ends
+ *   nRounds · nBestRounds                    # 7 · 5, or a short game's 3 · 2
  *   nTilesInDeck
  *   rounds: [round, …]                       # every round dealt, the one in play last
  *   round                                    # same object as the last of rounds
+ *   isBetweenRounds                          # round ended, the next not yet started
  *   events: [event, …]
  *   players: [player, …]                     # seat order
  *   playersById
@@ -185,7 +227,8 @@ export type GPlayerRaw = PlayerRaw & GFacts
  *
  * player:
  *   the common player
- *   total, nBonuses, roundScores, hasSubmitted, word, isWordFrozen
+ *   total, nBonuses, roundScores, hasSubmitted, word, isWordFrozen,
+ *   isReadyForNextRound
  *   own: {…the same}                         # this player's own: compete only, so equal
  *   endingLabel                              # how they came out; null while they play
  *
@@ -210,8 +253,12 @@ export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'rounds
   turns: { holder: GPlayer } | null
   ending: GameEnding<GPlayer> | null
   rounds: GRound[]
-  // The round in play — or, once the game has ended, the seventh.
+  // The round in play — or, between rounds and once the game has ended, the
+  // last one played.
   round: GRound
+  // The last round has ended and the next waits for everyone to press Start:
+  // the round's scoresheet takes the board's place.
+  isBetweenRounds: boolean
   events: GEvent[]
   // The players in seat order, and the same objects keyed by id.
   players: GPlayer[]
@@ -267,12 +314,17 @@ export type GActions = {
   actStopGame: Action
   // Print the game's log.
   actPrintBoard: Action
+  // Between rounds: I am ready for the next; the last press deals it.
+  actStartRound: Action
   // Leave for the club — the shell's own action, off `menu`.
   actBackToClub: Action
 }
 
 /** How a round ends: at its 30-second clock, or once everyone has submitted. */
 export type GRoundStyle = 'timer' | 'no-timer'
+
+/** A game's length: the rulebook's seven rounds, or a short game's three. */
+export type GNRounds = 7 | 3
 
 export type GSetupValues = {
   // Fixed at none, never shown: the round's clock is the game's own
@@ -281,6 +333,11 @@ export type GSetupValues = {
   // The may-enter band: a word at or below it is legal.
   legal_band: number
   round_style: GRoundStyle
+  n_rounds: GNRounds
+  // Every submit is final, and the round ends once everyone is in — the
+  // no-timer style's rule, in the timer style too, where the clock can still
+  // end it first. No-timer ignores it: it is always one word.
+  one_word: boolean
   // WHO IS PLAYING — a field like any other, and the only one that is not
   // part of the setup blob: `create_game` takes it as its own argument.
   player_user_ids: Set<string>
@@ -297,10 +354,12 @@ export type GSetup = SetupOf<GSetupValues>
  */
 export type GSummaryData = SummaryData & {
   team: null
-  // The rounds finished so far, 0–7.
+  // The rounds finished so far, 0–nRounds.
   nRoundsPlayed: number
   // The total every winner shares; null until the game ends with one.
   winnerTotal: number | null
+  nRounds: GNRounds
   legalBand: number
   roundStyle: GRoundStyle
+  oneWord: boolean
 }

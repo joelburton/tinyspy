@@ -7,6 +7,8 @@
 --   2. a conceder's submit, and a second concede, are races
 --   3. everyone conceding ends the game, a loss for all, the clock put away
 --   4. a concede into a game a friend deleted is the shared race
+--   5. between rounds, the last player yet to press Start conceding deals
+--      the next round
 -- A conceder at the bonuses and the ranking is bonus_test's and
 -- finish_test's; a concede that ends a no-timer round is no_timer_test's.
 -- ============================================================
@@ -15,7 +17,7 @@ begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(10);
+select plan(11);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -95,6 +97,21 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"race","dbcode":"PN485"}'::jsonb,
   'a concede into a deleted game is the shared race'
 );
+
+-- ─── (5) Between rounds ───
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+select set_config('t.w', pg_temp.ws_game(array['ada', 'bea', 'cade'])::text, true);
+select pg_temp.ws_submit(current_setting('t.w')::uuid, 'ada', pg_temp.ws_word(5));
+select pg_temp.ws_buzz(current_setting('t.w')::uuid);
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+select wordsy.start_round(current_setting('t.w')::uuid);
+select pg_temp.as_user(pg_temp.ws_uid('bea'));
+select wordsy.start_round(current_setting('t.w')::uuid);
+select pg_temp.as_user(pg_temp.ws_uid('cade'));
+select wordsy.concede(current_setting('t.w')::uuid);
+reset role;
+select is((select count(*)::int from wordsy.rounds where game_id = current_setting('t.w')::uuid), 2,
+  'the last player yet to press Start conceding deals the next round');
 
 select * from finish();
 rollback;

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { scoreWord } from './score'
+import { scoreLetters, scoreWord } from './score'
 import { ZTest_TABLE } from './gameData.fixture'
 
 /**
@@ -26,4 +26,38 @@ describe('scoreWord', () => {
       expect(scoreWord(word, ZTest_TABLE)).toBe(score)
     })
   }
+})
+
+/**
+ * Which letter took which card — the same rule, letter by letter. The table:
+ * F45 B1 C5 D9 L17 C6 Q58 R33, worth 6 5 4 4 3 3 4 2.
+ */
+describe('scoreLetters', () => {
+  /** Each letter's card id, or '-' for none. */
+  const cards = (word: string) => scoreLetters(word, ZTest_TABLE).map((l) => l.tile?.id ?? '-').join(' ')
+
+  it('a letter with no card scores on nothing', () => {
+    expect(cards('ghost')).toBe('- - - - -')
+  })
+
+  it('two Bs against one B card: the first B scores, the second does not', () => {
+    expect(cards('bob')).toBe('1 - -')
+  })
+
+  it('one C against two C cards takes the better; two Cs take both, the better first', () => {
+    expect(cards('cab')).toBe('5 - 1')
+    expect(cards('accept')).toBe('- 5 6 - - -')
+  })
+
+  it('a rare card is the letter\'s card', () => {
+    expect(scoreLetters('elf', ZTest_TABLE).map((l) => l.tile?.bonus ?? null)).toEqual([null, 0, 1])
+  })
+
+  it('scoreWord is the sum of the cards scoreLetters picks', () => {
+    for (const word of ['dr', 'elf', 'quell', 'bob', 'cab', 'accept', 'ghost', '']) {
+      const sum = scoreLetters(word, ZTest_TABLE)
+        .reduce((s, l) => s + (l.tile === null ? 0 : l.tile.value + l.tile.bonus), 0)
+      expect(scoreWord(word, ZTest_TABLE)).toBe(sum)
+    }
+  })
 })

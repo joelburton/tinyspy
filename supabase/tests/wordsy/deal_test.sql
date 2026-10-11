@@ -31,13 +31,17 @@ language sql as $$
   select tiles from wordsy.rounds where game_id = p_gid and num = p_num
 $$;
 
--- Play one round out: ada submits a word of vowels (worth 0), the clock runs out.
+-- Play one round out: ada submits a word of vowels (worth 0), the clock runs
+-- out, and unless the game is over both press Start.
 create function pg_temp.play_round(p_gid uuid, p_n int) returns void
 language plpgsql as $$
 begin
   perform pg_temp.ws_submit(p_gid, 'ada', pg_temp.ws_word(0, p_n));
   perform pg_temp.ws_buzz(p_gid);
   perform set_config('role', 'postgres', true);
+  if (select ended_at from common.games where id = p_gid) is null then
+    perform pg_temp.ws_start_all(p_gid);
+  end if;
 end;
 $$;
 

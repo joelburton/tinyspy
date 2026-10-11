@@ -191,7 +191,6 @@ describe('CSS custom-property tokens', () => {
     // surface written after the ramp existed and so is the first that could
     // simply use it.
     '--line-height-3',
-    '--letter-spacing-wide',
     '--border-width-frame',
   ]
 

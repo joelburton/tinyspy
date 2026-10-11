@@ -8,7 +8,8 @@
 --      at none, offers the six bands and the two styles, and the club page
 --      offers FlipWord in compete only and to two or more:
 --        the band (PN543), the style (PN544), coop (PN545), one player
---        (PN546), a whole-game timer (PN547)
+--        (PN546), a whole-game timer (PN547), n_rounds not 3 or 7 (PN554),
+--        one_word missing (PN555)
 --   3. the happy path: the envelope, the deck a shuffle of all 60, round 1
 --      dealt from it, the players, the title, the clock put away
 --   4. the deck is withheld from a client; what was dealt is not
@@ -19,7 +20,7 @@ begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(18);
+select plan(20);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -28,7 +29,8 @@ select plan(18);
 create function pg_temp.setup(p_band int default 4, p_style text default 'timer',
                               p_timer jsonb default '{"kind": "none"}') returns jsonb
 language sql immutable as $$
-  select jsonb_build_object('timer', p_timer, 'legal_band', p_band, 'round_style', p_style)
+  select jsonb_build_object('timer', p_timer, 'legal_band', p_band, 'round_style', p_style,
+                            'n_rounds', 7, 'one_word', false)
 $$;
 
 -- ─── (1) The inherited gates ───
@@ -89,6 +91,16 @@ select pg_temp.envelope_is(
   pg_temp.try(pg_temp.setup(p_timer => '{"kind": "countup"}')),
   '{"type":"not-ok","severity":"fault","dbcode":"PN547"}'::jsonb,
   'a whole-game timer is refused: the round timer is the game''s own'
+);
+select pg_temp.envelope_is(
+  pg_temp.try(pg_temp.setup() || '{"n_rounds": 5}'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN554"}'::jsonb,
+  'a game of other than seven or three rounds is refused'
+);
+select pg_temp.envelope_is(
+  pg_temp.try(pg_temp.setup() - 'one_word'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN555"}'::jsonb,
+  'a setup without one_word is refused'
 );
 
 -- ─── (3) The happy path ───

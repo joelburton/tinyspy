@@ -21,12 +21,20 @@
 --     its place in the deck and is dealt when it fits (`_deal_tile`).
 --   - A round has two ends. In the `timer` style the first submit starts a
 --     30-second clock and the round ends at zero (`submit_timeout`); in the
---     `no-timer` style it ends when everyone still playing has submitted.
+--     `no-timer` style, and with the setup's `one_word`, it ends when everyone
+--     still playing has submitted (`_is_one_word`) — with the timer, whichever
+--     comes first.
+--   - Between rounds the game waits: a round's end reveals its scoresheet,
+--     and the next is dealt once everyone still playing has pressed "Start
+--     round N" (`start_round`, `players.ready_for_num`).
 --   - The clock is the game's one `common.timers` row, armed by the first
 --     submit and put away at the round's end (`_arm_timer`, `_disarm_timer`);
 --     shell_data carries its kind to the header.
 --   - The last submit stands, except the round's first, which is frozen: that
---     player is the Fastest Wordsmith. In `no-timer` every submit is final.
+--     player is the Fastest Wordsmith. In `no-timer`, and with `one_word`,
+--     every submit is final.
+--   - A game is seven rounds, the best five counted, or a short game's three,
+--     the best two (`n_rounds`, `_n_best_rounds`).
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -289,7 +297,7 @@ begin
   update wordsy.games set drawn = v_drawn where game_id = p_game_id;
 
   update common.games
-     set title = format('Round %s of 7', p_num)
+     set title = format('Round %s of %s', p_num, g.n_rounds)
    where id = p_game_id;
 end;
 $$;
@@ -330,8 +338,20 @@ revoke execute on function wordsy._disarm_timer(uuid) from public;
 -- ============================================================
 -- The totals
 -- ============================================================
--- Each player's total so far — the best five word scores plus every bonus —
--- and how many bonuses they have, summed off the log.
+
+-- How many rounds' word scores count: the best five of seven, the rulebook's;
+-- the best two of a short game's three.
+create or replace function wordsy._n_best_rounds(p_n_rounds int)
+returns int
+language sql
+immutable
+as $$
+  select case when p_n_rounds = 3 then 2 else 5 end;
+$$;
+revoke execute on function wordsy._n_best_rounds(int) from public;
+
+-- Each player's total so far — the best word scores (`_n_best_rounds`) plus
+-- every bonus — and how many bonuses they have, summed off the log.
 create or replace function wordsy._player_totals(p_game_id uuid)
 returns table (user_id uuid, total int, n_bonuses int)
 language sql
@@ -342,15 +362,43 @@ as $$
                       from (select e.score from wordsy.events e
                              where e.game_id = p_game_id and e.user_id = p.user_id
                              order by e.score desc
-                             limit 5) best), 0)
+                             limit wordsy._n_best_rounds(g.n_rounds)) best), 0)
           + coalesce((select sum(e.bonus) from wordsy.events e
                        where e.game_id = p_game_id and e.user_id = p.user_id), 0))::int,
          (select count(*) from wordsy.events e
            where e.game_id = p_game_id and e.user_id = p.user_id and e.bonus > 0)::int
     from wordsy.players p
+    join wordsy.games g on g.game_id = p.game_id
    where p.game_id = p_game_id;
 $$;
 revoke execute on function wordsy._player_totals(uuid) from public;
+
+-- Every submit is final and a round ends once everyone still playing has
+-- submitted: always in the no-timer style, and in the timer style when the
+-- setup's `one_word` says so — where the clock can still end it first.
+create or replace function wordsy._is_one_word(g wordsy.games)
+returns boolean
+language sql
+immutable
+as $$
+  select g.round_style = 'no-timer' or g.one_word;
+$$;
+revoke execute on function wordsy._is_one_word(wordsy.games) from public;
+
+-- Everyone still playing has a word in for round `p_num`.
+create or replace function wordsy._is_everyone_in(p_game_id uuid, p_num int)
+returns boolean
+language sql
+stable
+as $$
+  select not exists (
+    select 1 from common.game_players gp
+     where gp.game_id = p_game_id and gp.player_ended_at is null
+       and not exists (select 1 from wordsy.round_words rw
+                        where rw.game_id = p_game_id and rw.num = p_num
+                          and rw.user_id = gp.user_id));
+$$;
+revoke execute on function wordsy._is_everyone_in(uuid, int) from public;
 
 -- The players still playing: not conceded, game not over.
 create or replace function wordsy._n_still_playing(p_game_id uuid)
@@ -364,7 +412,7 @@ $$;
 revoke execute on function wordsy._n_still_playing(uuid) from public;
 
 -- ============================================================
--- wordsy._finish — the seventh round's end is the game's
+-- wordsy._finish — the last round's end is the game's
 -- ============================================================
 -- Ranked by total among the players who did not concede and scored above
 -- zero, ties sharing the rank (docs/win-lose.md → co-winners). Ended by the
@@ -399,11 +447,12 @@ $$;
 revoke execute on function wordsy._finish(uuid, uuid) from public;
 
 -- ============================================================
--- wordsy._end_round — reveal, score, and deal the next
+-- wordsy._end_round — reveal and score
 -- ============================================================
 -- The one end every round reaches: `submit_timeout` in `timer`, the last
--- submit or a concede in `no-timer`. Each player still playing is scored on
--- their standing word, or on no word ('', 0). Every standing word was checked
+-- submit or a concede in `no-timer` or a `one_word` game. Each player still
+-- playing is scored on their standing word, or on no word ('', 0), and the
+-- rows are written in the order the words came in, the Fastest's first. Every standing word was checked
 -- at its submit and no earlier round changes after it ends, so nothing is
 -- re-checked here.
 --
@@ -414,10 +463,9 @@ revoke execute on function wordsy._finish(uuid, uuid) from public;
 -- (plans/wordsy.md, decision 10). A Fastest who has conceded gives nobody a
 -- bonus. In `no-timer` the First Wordsmith stands in for the Fastest.
 --
--- Then round 7 ends the game, and any other round deals the next: the
--- Fastest takes No Flip unless two or fewer are still playing (decision 19),
--- and in `no-timer` the next First Wordsmith is the player still playing with
--- the fewest bonuses, ties to the next seat after this round's.
+-- Then the last round ends the game. Any other round waits, its scoresheet
+-- on every page, until everyone still playing has pressed "Start round N"
+-- (`start_round`, which deals it with `_deal_next_round`).
 create or replace function wordsy._end_round(p_game_id uuid, p_ended_by_user_id uuid)
 returns void
 language plpgsql
@@ -429,10 +477,6 @@ declare
   r          wordsy.rounds%rowtype;
   v_beat     int;
   v_fastest  int;
-  v_n_seats  int;
-  v_cur_ord  int;
-  v_no_flip  uuid;
-  v_first    uuid;
 begin
   select * into g from wordsy.games where game_id = p_game_id;
   select * into r from wordsy.rounds
@@ -442,7 +486,7 @@ begin
   v_fastest := v_beat + 1;
 
   with scored as (
-    select cp.ord, cp.id as user_id,
+    select cp.ord, cp.id as user_id, rw.submitted_at,
            coalesce(rw.word, '') as word,
            wordsy._score_word(coalesce(rw.word, ''), r.tiles) as score
       from common._make_json_players(p_game_id) cp
@@ -466,17 +510,58 @@ begin
            else 0
          end
     from scored s
-   order by s.ord;
+   -- The reveal's order, which the log and the scoresheet keep: the Fastest
+   -- (or First Wordsmith) first, the word everyone is measured against, then
+   -- the rest as their standing words came in, then no word, in seat order.
+   order by s.user_id is distinct from r.fastest_user_id, s.submitted_at nulls last, s.ord;
 
   update wordsy.rounds set ended_at = now()
    where game_id = p_game_id and num = r.num;
 
   perform wordsy._disarm_timer(p_game_id);
 
-  if r.num = 7 then
+  if r.num = g.n_rounds then
     perform wordsy._finish(p_game_id, p_ended_by_user_id);
-    return;
   end if;
+end;
+$$;
+revoke execute on function wordsy._end_round(uuid, uuid) from public;
+
+-- Everyone still playing has pressed "Start round `p_num`".
+create or replace function wordsy._is_everyone_ready(p_game_id uuid, p_num int)
+returns boolean
+language sql
+stable
+as $$
+  select not exists (
+    select 1 from common.game_players gp
+      join wordsy.players p on p.game_id = gp.game_id and p.user_id = gp.user_id
+     where gp.game_id = p_game_id and gp.player_ended_at is null
+       and p.ready_for_num is distinct from p_num);
+$$;
+revoke execute on function wordsy._is_everyone_ready(uuid, int) from public;
+
+-- Deal the round after the last one ended. Its Fastest takes No Flip unless
+-- two or fewer are still playing (decision 19), and in `no-timer` the next
+-- First Wordsmith is the player still playing with the fewest bonuses, ties to
+-- the next seat after the last round's.
+create or replace function wordsy._deal_next_round(p_game_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordsy, common, public, extensions
+as $$
+declare
+  g          wordsy.games%rowtype;
+  r          wordsy.rounds%rowtype;
+  v_n_seats  int;
+  v_cur_ord  int;
+  v_no_flip  uuid;
+  v_first    uuid;
+begin
+  select * into g from wordsy.games where game_id = p_game_id;
+  select * into r from wordsy.rounds
+   where game_id = p_game_id order by num desc limit 1;
 
   if g.round_style = 'timer' then
     if wordsy._n_still_playing(p_game_id) > 2
@@ -500,7 +585,7 @@ begin
   perform wordsy._deal_round(p_game_id, r.num + 1, v_no_flip, v_first);
 end;
 $$;
-revoke execute on function wordsy._end_round(uuid, uuid) from public;
+revoke execute on function wordsy._deal_next_round(uuid) from public;
 
 -- ============================================================
 -- The page blobs — what the page shows, written by this game's builder
@@ -520,22 +605,26 @@ revoke execute on function wordsy._end_round(uuid, uuid) from public;
 --
 --   game_data, wordsy's part:
 --     team                                 null: compete only, so no team
+--     nRounds                              7, or a short game's 3
+--     nBestRounds                          how many rounds' words count: 5, or 2
 --     nTilesInDeck                         60 less the cards dealt
 --     rounds: [round, …]                   every round dealt, the one in play last
 --     events: [{id, userId, kind, num, word, score, bonus, tookTurn, at}, …]
---                                          every finished round's words, in seat
---                                          order per round; word '' for none
+--                                          every finished round's words; per round
+--                                          the Fastest's first, then as they came
+--                                          in, no word last; word '' for none
 --     players: [player, …]                 the common player, plus:
---       total                              best five + bonuses, so far
+--       total                              the best rounds + bonuses, so far
 --       nBonuses                           how many bonuses
---       roundScores: [int | null × 7]      score + bonus per finished round;
+--       roundScores: [int | null × nRounds] score + bonus per finished round;
 --                                          null for a round not played
 --       hasSubmitted                       this round
 --       word                               this round's standing word, or null
 --       isWordFrozen                       this round's word can no longer change
+--       isReadyForNextRound                between rounds, pressed "Start round N"
 --
 --   round:
---     num                                  1..7
+--     num                                  1..nRounds
 --     tiles: [{id, letter, bonus, slot, value}, …]   slot order; id the deck number as text
 --     fastest                              user id | null: the Fastest (or First) Wordsmith
 --     noFlipHolder                         user id | null
@@ -546,8 +635,10 @@ revoke execute on function wordsy._end_round(uuid, uuid) from public;
 --     team                                 null: compete only
 --     nRoundsPlayed
 --     winnerTotal                          the total the winners share; null until the end
+--     nRounds
 --     legalBand
 --     roundStyle
+--     oneWord
 
 -- A round's eight cards, in slot order.
 create or replace function wordsy._make_json_tiles(p_tiles smallint[])
@@ -614,7 +705,7 @@ language sql
 stable
 as $$
   with open_round as (
-    select r.num, r.fastest_user_id, g.round_style
+    select r.num, r.fastest_user_id, wordsy._is_one_word(g) as is_one_word
       from wordsy.rounds r
       join wordsy.games g on g.game_id = r.game_id
      where r.game_id = p_game_id and r.ended_at is null
@@ -628,14 +719,19 @@ as $$
                                          where e.game_id = p_game_id and e.user_id = cp.id
                                            and e.num = n)
                                        order by n)
-                                from generate_series(1, 7) n),
+                                from generate_series(1, (select n_rounds from wordsy.games
+                                                         where game_id = p_game_id)) n),
              'hasSubmitted', rw.word is not null,
              'word',         rw.word,
              'isWordFrozen', rw.word is not null
-                             and (o.round_style = 'no-timer' or o.fastest_user_id = cp.id))
+                             and (o.is_one_word or o.fastest_user_id = cp.id),
+             'isReadyForNextRound', coalesce(o.num is null
+                                    and wp.ready_for_num = (select max(num) + 1 from wordsy.rounds
+                                                             where game_id = p_game_id), false))
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join wordsy._player_totals(p_game_id) t on t.user_id = cp.id
+    join wordsy.players wp on wp.game_id = p_game_id and wp.user_id = cp.id
     left join open_round o on true
     left join wordsy.round_words rw
       on rw.game_id = p_game_id and rw.num = o.num and rw.user_id = cp.id;
@@ -650,6 +746,8 @@ stable
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
            'team',         null,
+           'nRounds',      g.n_rounds,
+           'nBestRounds',  wordsy._n_best_rounds(g.n_rounds),
            'nTilesInDeck', 60 - cardinality(g.drawn),
            'rounds',       wordsy._make_json_rounds(p_game_id),
            'events',       wordsy._make_json_events(p_game_id),
@@ -677,8 +775,10 @@ as $$
                         join common.game_players gp
                           on gp.game_id = p_game_id and gp.user_id = t.user_id
                        where gp.final_ranking = 1),
+    'nRounds',       g.n_rounds,
     'legalBand',     g.legal_band,
-    'roundStyle',    g.round_style)
+    'roundStyle',    g.round_style,
+    'oneWord',       g.one_word)
     from wordsy.games g
    where g.game_id = p_game_id;
 $$;
@@ -768,7 +868,9 @@ revoke execute on function wordsy._rebuild_data_cols_for_all() from public;
 -- ============================================================
 -- Setup shape: { "timer": {"kind": "none"},
 --                "legal_band": 1..6,
---                "round_style": 'timer' | 'no-timer' }.
+--                "round_style": 'timer' | 'no-timer',
+--                "n_rounds": 7 | 3,
+--                "one_word": true | false }.
 --
 -- The timer is fixed at none: the round's 30 seconds are the game's own clock,
 -- armed and put away each round, so there is no whole-game timer to choose.
@@ -791,6 +893,8 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_legal_band  int;
   s_round_style text;
+  s_n_rounds    int;
+  s_one_word    boolean;
   v_first       uuid;
 begin
   perform common._require_club_member(p_club_handle);
@@ -812,7 +916,7 @@ begin
   end if;
 
   -- ─── Validate the setup ──────────────────────────────────
-  -- No defaults: the setup form always sends both.
+  -- No defaults: the setup form always sends every key.
   s_legal_band := (p_setup->>'legal_band')::int;
   if s_legal_band is null or s_legal_band < 1 or s_legal_band > 6 then
     raise exception 'BUG: legal band of %', s_legal_band
@@ -825,6 +929,18 @@ begin
       using errcode = 'PN544', hint = 'fault', column = '_',
       detail = 'setup.round_style must be timer or no-timer';
   end if;
+  s_n_rounds := (p_setup->>'n_rounds')::int;
+  if s_n_rounds is null or s_n_rounds not in (3, 7) then
+    raise exception 'BUG: game of % rounds', s_n_rounds
+      using errcode = 'PN554', hint = 'fault', column = '_',
+      detail = 'setup.n_rounds must be 3 or 7';
+  end if;
+  if jsonb_typeof(p_setup->'one_word') is distinct from 'boolean' then
+    raise exception 'BUG: one_word of %', p_setup->'one_word'
+      using errcode = 'PN555', hint = 'fault', column = '_',
+      detail = 'setup.one_word must be true or false';
+  end if;
+  s_one_word := (p_setup->>'one_word')::boolean;
 
   perform common._require_valid_timer(p_setup->'timer');
   if p_setup->'timer'->>'kind' <> 'none' then
@@ -836,13 +952,14 @@ begin
   new_id := common._create_game(
     -- `_deal_round` writes the real title.
     p_club_handle, 'wordsy_' || p_mode, p_mode, p_player_user_ids,
-    'Round 1 of 7',
+    format('Round 1 of %s', s_n_rounds),
     p_setup,
     p_setup
   );
 
-  insert into wordsy.games (game_id, deck, legal_band, round_style)
-  select new_id, array_agg(n::smallint order by random()), s_legal_band, s_round_style
+  insert into wordsy.games (game_id, deck, legal_band, round_style, n_rounds, one_word)
+  select new_id, array_agg(n::smallint order by random()), s_legal_band, s_round_style,
+         s_n_rounds, s_one_word
     from generate_series(1, 60) n;
 
   insert into wordsy.players (game_id, user_id)
@@ -880,13 +997,14 @@ grant execute on function wordsy.create_game(text, jsonb, uuid[], text) to authe
 -- earlier word. The earlier standing word, if any, is left as it was.
 --
 -- The races, which the page gates first: the caller's word is frozen (they
--- are the round's Fastest, or any earlier submit in `no-timer`), and the
+-- are the round's Fastest, or any earlier submit in `no-timer` or a
+-- `one_word` game), and the
 -- caller holds No Flip while nobody has submitted and more than two are
 -- still playing.
 --
 -- A standing word in a `timer` round with no Fastest yet makes the caller the
--- Fastest and arms the clock. In `no-timer`, the submit that leaves everyone
--- still playing with a word ends the round.
+-- Fastest and arms the clock. In `no-timer` and a `one_word` game, the submit
+-- that leaves everyone still playing with a word ends the round.
 --
 -- The `ok` carries { result, earlier, timer_started, round_ended,
 -- game_ended }, `result` ∈ submitted | notAWord | alreadyPlayed. No outcome
@@ -937,8 +1055,14 @@ begin
   select * into r from wordsy.rounds where game_id = p_game_id and ended_at is null;
 
   -- ─── Races: the page disables the entry first ────────────
+  if r.num is null then
+    raise exception 'That round is over'
+      using errcode = 'PN557', hint = 'race', column = '_',
+      detail = 'no round is in play: the next waits for everyone to start it';
+  end if;
+
   if (g.round_style = 'timer' and r.fastest_user_id = caller_id)
-     or (g.round_style = 'no-timer' and exists (
+     or (wordsy._is_one_word(g) and exists (
            select 1 from wordsy.round_words
             where game_id = p_game_id and num = r.num and user_id = caller_id)) then
     raise exception 'Your word is in'
@@ -969,10 +1093,12 @@ begin
   end if;
 
   -- ─── The word stands ─────────────────────────────────────
-  insert into wordsy.round_words (game_id, num, user_id, word)
-  values (p_game_id, r.num, caller_id, norm)
+  -- The moment itself, not the transaction's start: the reveal is ordered by
+  -- it (`_end_round`).
+  insert into wordsy.round_words (game_id, num, user_id, word, submitted_at)
+  values (p_game_id, r.num, caller_id, norm, clock_timestamp())
   on conflict (game_id, num, user_id)
-  do update set word = excluded.word, submitted_at = now();
+  do update set word = excluded.word, submitted_at = excluded.submitted_at;
 
   if g.round_style = 'timer' and r.fastest_user_id is null then
     update wordsy.rounds
@@ -980,13 +1106,9 @@ begin
      where game_id = p_game_id and num = r.num;
     perform wordsy._arm_timer(p_game_id);
     out_timer_started := true;
-  elsif g.round_style = 'no-timer' and not exists (
-    select 1 from common.game_players gp
-     where gp.game_id = p_game_id and gp.player_ended_at is null
-       and not exists (select 1 from wordsy.round_words rw
-                        where rw.game_id = p_game_id and rw.num = r.num
-                          and rw.user_id = gp.user_id)
-  ) then
+  end if;
+  -- One word a round: the last player in ends it, the clock or no clock.
+  if wordsy._is_one_word(g) and wordsy._is_everyone_in(p_game_id, r.num) then
     perform wordsy._end_round(p_game_id, caller_id);
     out_round_ended := true;
   end if;
@@ -1072,6 +1194,74 @@ revoke execute on function wordsy.submit_timeout(uuid) from public;
 grant execute on function wordsy.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
+-- wordsy.start_round — "Start round N", between rounds
+-- ============================================================
+-- The caller is ready for the next round; the press that leaves everyone
+-- still playing ready deals it. Pressing twice is harmless. A round already
+-- in play is a race (PN556): the last press dealt it while this one was on
+-- its way.
+--
+-- The `ok` carries { result }, `result` ∈ ready | started.
+create or replace function wordsy.start_round(p_game_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = wordsy, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  v_next    int;
+  v_started boolean := false;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  perform 1 from wordsy.games where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('wordsy');
+  end if;
+
+  caller_id := common._require_game_player(p_game_id);
+
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    perform common._raise_game_over();
+  end if;
+
+  if (select player_ended_reason from common.game_players
+        where game_id = p_game_id and user_id = caller_id) = 'conceded' then
+    perform common._raise_already_conceded();
+  end if;
+
+  if exists (select 1 from wordsy.rounds where game_id = p_game_id and ended_at is null) then
+    raise exception 'That round has started'
+      using errcode = 'PN556', hint = 'race', column = '_',
+      detail = 'a round is in play';
+  end if;
+
+  v_next := (select max(num) + 1 from wordsy.rounds where game_id = p_game_id);
+  update wordsy.players set ready_for_num = v_next
+   where game_id = p_game_id and user_id = caller_id;
+
+  if wordsy._is_everyone_ready(p_game_id, v_next) then
+    perform wordsy._deal_next_round(p_game_id);
+    v_started := true;
+  end if;
+
+  perform wordsy._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+  return common._ok_envelope(jsonb_build_object(
+    'result', case when v_started then 'started' else 'ready' end));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
+$$;
+revoke execute on function wordsy.start_round(uuid) from public;
+grant execute on function wordsy.start_round(uuid) to authenticated;
+
+-- ============================================================
 -- wordsy.stop_game — the Stop
 -- ============================================================
 -- Both styles, with no result (docs/common-schema.md → Stop); the round clock
@@ -1114,7 +1304,9 @@ grant execute on function wordsy.stop_game(uuid) to authenticated;
 -- A conceder keeps their finished rounds; later rounds have no row for them,
 -- they are no opponent for the bonuses, and they are not ranked. Everyone
 -- conceding ends the game as a loss for all (`common._concede`). In
--- `no-timer`, a concede by the last player yet to submit ends the round.
+-- `no-timer` and a `one_word` game, a concede by the last player yet to
+-- submit ends the round; between rounds, a concede by the last player yet to
+-- press Start deals the next.
 create or replace function wordsy.concede(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1138,15 +1330,16 @@ begin
 
   if (select ended_at from common.games where id = p_game_id) is not null then
     perform wordsy._disarm_timer(p_game_id);
-  elsif g.round_style = 'no-timer' then
+  elsif not exists (select 1 from wordsy.rounds
+                     where game_id = p_game_id and ended_at is null) then
+    -- Between rounds: the last player yet to start the next one starts it.
+    v_num := (select max(num) + 1 from wordsy.rounds where game_id = p_game_id);
+    if wordsy._is_everyone_ready(p_game_id, v_num) then
+      perform wordsy._deal_next_round(p_game_id);
+    end if;
+  elsif wordsy._is_one_word(g) then
     select num into v_num from wordsy.rounds where game_id = p_game_id and ended_at is null;
-    if not exists (
-      select 1 from common.game_players gp
-       where gp.game_id = p_game_id and gp.player_ended_at is null
-         and not exists (select 1 from wordsy.round_words rw
-                          where rw.game_id = p_game_id and rw.num = v_num
-                            and rw.user_id = gp.user_id)
-    ) then
+    if wordsy._is_everyone_in(p_game_id, v_num) then
       perform wordsy._end_round(p_game_id, caller_id);
     end if;
   end if;
@@ -1194,6 +1387,7 @@ begin
   delete from wordsy.events where game_id = p_game_id;
   delete from wordsy.rounds where game_id = p_game_id;
   update wordsy.games set drawn = '{}' where game_id = p_game_id;
+  update wordsy.players set ready_for_num = null where game_id = p_game_id;
 
   perform common._reset_game(p_game_id);
   perform wordsy._disarm_timer(p_game_id);

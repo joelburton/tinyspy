@@ -1,17 +1,16 @@
 /* cs-unmet */
 
 /* One card. Square, sized by the board (`--tile-size`), the letter scaled to
- * the card; the kind's color is the card's whole face, as the deck prints it. */
+ * the card. A common card is the shared tile face as it comes; a rare card
+ * re-sets the face's tokens to the app's two flex colors, the +1 the first and
+ * the +2 the second. They mean nothing but "not the common card, and not each
+ * other", which is all a bonus card's color has to say. */
 /* @@ */ .tile {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: var(--tile-size);
   height: var(--tile-size);
   container-type: size;
   border-radius: 0.5rem;
-  color: var(--wordsy-tile-ink-color);
 }
 
 /* The letter: lowercase in the data, capitals drawn. */
@@ -32,15 +31,16 @@
   line-height: 1;
 }
 
-/* The three kinds, by `bonus` (`styles[`kind_${bonus}`]`). */
-/* @@ */ .kind_0 {
-  background: var(--wordsy-tile-common-color);
-}
-
+/* The rare kinds, by `bonus` (`styles[`kind_${bonus}`]`); `kind_0`, the
+ * common card, re-sets nothing. The flex color's wash fills the card and the
+ * color itself is its edge; the letter keeps the tile's ink, which reads on
+ * a wash as on any tile. */
 /* @@ */ .kind_1 {
-  background: var(--wordsy-tile-red-color);
+/* @@ */   --tile-slot-fill-color: var(--flex-color-1-wash);
+/* @@ */   --tile-slot-edge-color: var(--flex-color-1);
 }
 
 /* @@ */ .kind_2 {
-  background: var(--wordsy-tile-blue-color);
+/* @@ */   --tile-slot-fill-color: var(--flex-color-2-wash);
+/* @@ */   --tile-slot-edge-color: var(--flex-color-2);
 }

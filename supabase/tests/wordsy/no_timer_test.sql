@@ -66,14 +66,15 @@ select pg_temp.envelope_is(
 
 -- ─── (3) The First Wordsmith at the bonuses ───
 reset role;
-select is(pg_temp.bonuses(1), 'ada+1 bea+0 cade+0',
+select is(pg_temp.bonuses(1), 'bea+0 ada+1 cade+0',
   'bea, the First Wordsmith, stands in for the Fastest: ada beats her; tying cade alone is not enough');
 
 -- ─── (4) The next First Wordsmith ───
+select pg_temp.ws_start_all(pg_temp.g());
 select is(pg_temp.first(), 'cade',
   'round 2: bea and cade have the fewest bonuses; the tie goes to the next seat after bea');
 select pg_temp.ws_play_round(pg_temp.g(), array['ada', 'bea', 'cade'], array[6, 4, 5]);
-select is(pg_temp.bonuses(2), 'ada+1 bea+0 cade+0', 'round 2: cade at the bonuses, ada beating her');
+select is(pg_temp.bonuses(2), 'cade+0 ada+1 bea+0', 'round 2: cade at the bonuses, ada beating her');
 select is(pg_temp.first(), 'bea',
   'round 3: bea and cade tie again; the next seat after cade is ada, who has more, then bea');
 
@@ -93,7 +94,7 @@ select is(
   true,
   '… which ends the round'
 );
-select is(pg_temp.bonuses(3), 'ada+0 bea+2',
+select is(pg_temp.bonuses(3), 'bea+2 ada+0',
   '… scoring only the players still playing: bea, First, ties her one opponent left');
 
 -- ─── (6) Never a clock, never No Flip ───

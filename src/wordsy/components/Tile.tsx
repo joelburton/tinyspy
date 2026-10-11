@@ -6,10 +6,10 @@ import styles from './Tile.module.css'
 import type { GTile } from '../types'
 
 /**
- * One faceup card: its letter, in the color of its kind — common, red or blue,
- * as the deck prints them — and a rare card's bonus in the corner. Nobody acts
- * on a card (a word is typed), so it is the shared inert face, with no hover
- * and no press.
+ * One faceup card: its letter, and a rare card's bonus in the corner. A common
+ * card is the default tile; the +1 and the +2 wear the app's two flex colors
+ * (Tile.module.css). Nobody acts on a card (a word is typed), so it is the
+ * shared inert face, with no hover and no press.
  */
 export function Tile({ tile }: { tile: GTile }) {
   return (

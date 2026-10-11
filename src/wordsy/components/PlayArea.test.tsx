@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/useActionDispatcher'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { playSound } from '@/common/sounds/playSound'
 import { db } from '../db'
 import {
   ZTest_makeWordsyCtx,
@@ -28,6 +29,7 @@ import { PlayAreaLoader } from './PlayArea'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
+vi.mock('@/common/sounds/playSound', () => ({ playSound: vi.fn(() => () => {}), preloadSound: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
@@ -70,6 +72,7 @@ const THREE: ZTest_GameDataFacts['players'] = [
 beforeEach(() => {
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
+  vi.mocked(playSound).mockClear()
 })
 
 describe('wordsy PlayArea — the entry', () => {
@@ -98,23 +101,69 @@ describe('wordsy PlayArea — the entry', () => {
     expect(screen.queryByText('9')).toBeNull()
   })
 
-  it('a non-word is refused in its words, and the typed word kept to fix', async () => {
+  it('a non-word is refused in its words, and the entry emptied', async () => {
     rpc.mockResolvedValue(answer('notAWord'))
     render(<WithKeys {...ZTest_makeWordsyCtx()} />)
     await typeWord('cab')
     await enter()
     expect(await screen.findByText('Not a word at this dictionary')).toBeInTheDocument()
-    // The next key dismisses the pill, and the word is still there.
+    // The next key dismisses the pill, and the word is gone.
+    await press({ key: 'Shift', code: 'ShiftLeft' })
+    await waitFor(() => expect(screen.getByText('Type a word')).toBeInTheDocument())
+    expect(screen.queryByText('9')).toBeNull()
+  })
+
+  it('a new table takes the round\'s answer down', async () => {
+    rpc.mockResolvedValue(answer('submitted'))
+    const { rerender } = render(<WithKeys {...ZTest_makeWordsyCtx()} />)
+    await typeWord('cab')
+    await enter()
+    expect(await screen.findByText('Your word is in')).toBeInTheDocument()
+    // The same round, rebuilt: the answer stays.
+    rerender(<WithKeys {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 1, fastest: 'u1', isTimerRunning: true }],
+      players: [{ ...ZTest_TWO[0]!, word: 'cab', isWordFrozen: true }, ZTest_TWO[1]!],
+    })} />)
+    expect(screen.getByText('Your word is in')).toBeInTheDocument()
+    // Round 2 dealt: it goes.
+    rerender(<WithKeys {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 1, ended: true, fastest: 'u1' }, { num: 2 }],
+      events: [ZTest_word(1, 'u1', 1, 'cab', 9), ZTest_word(2, 'u2', 1, '', 0)],
+    })} />)
+    await waitFor(() => expect(screen.queryByText('Your word is in')).toBeNull())
+  })
+
+  it('a word already played names the earlier one, and stays to be changed', async () => {
+    rpc.mockResolvedValue(answer('alreadyPlayed', 'fish'))
+    render(<WithKeys {...ZTest_makeWordsyCtx()} />)
+    await typeWord('cab')
+    await enter()
+    expect(await screen.findByText('Already played: FISH')).toBeInTheDocument()
     await press({ key: 'Shift', code: 'ShiftLeft' })
     await waitFor(() => expect(screen.getByText('9')).toBeInTheDocument())
   })
+})
 
-  it('a word already played names the earlier one', async () => {
-    rpc.mockResolvedValue(answer('alreadyPlayed', 'fish'))
+describe('wordsy PlayArea — the on-screen keyboard', () => {
+  it('tapped caps type the word, and its Enter submits it', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(answer('submitted'))
     render(<WithKeys {...ZTest_makeWordsyCtx()} />)
-    await typeWord('fishes')
-    await enter()
-    expect(await screen.findByText('Already played: FISH')).toBeInTheDocument()
+    const keyboard = await screen.findByLabelText('Keyboard')
+    for (const ch of 'cab') await user.click(within(keyboard).getByRole('button', { name: ch }))
+    expect(screen.getByText('9')).toBeInTheDocument()
+    await user.click(within(keyboard).getByRole('button', { name: 'Enter' }))
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_word', { p_game_id: 'g1', p_word: 'cab' }))
+  })
+
+  it('its caps are gray once my word is frozen', async () => {
+    render(<WithKeys {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 1, fastest: 'u1', isTimerRunning: true }],
+      players: [{ ...ZTest_TWO[0]!, word: 'cab', isWordFrozen: true }, ZTest_TWO[1]!],
+    })} />)
+    const keyboard = await screen.findByLabelText('Keyboard')
+    expect(within(keyboard).getByRole('button', { name: 'c' })).toBeDisabled()
   })
 })
 
@@ -162,30 +211,81 @@ describe('wordsy PlayArea — the standing word', () => {
   })
 })
 
-describe('wordsy PlayArea — the clock starting on me', () => {
+describe('wordsy PlayArea — the round\'s marks', () => {
   const board = () => screen.getByTestId('board')
 
-  it('flashes the board when a rival\'s first word starts the clock, and not on mount', () => {
-    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx()} />)
-    expect(board().className).not.toMatch(/yourTurnFlash/)
-    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx({
-      rounds: [{ num: 1, fastest: 'u2', isTimerRunning: true }],
-      players: [ZTest_TWO[0]!, { ...ZTest_TWO[1]!, word: 'cab', isWordFrozen: true }],
-    })} />)
-    expect(board().className).toMatch(/yourTurnFlash/)
+  /** Round 1 with its clock started by `fastestId`, whose word is frozen. */
+  const clockStartedBy = (fastestId: string): ZTest_GameDataFacts => ({
+    rounds: [{ num: 1, fastest: fastestId, isTimerRunning: true }],
+    players: ZTest_TWO.map((p) => p.id === fastestId ? { ...p, word: 'cab', isWordFrozen: true } : p),
   })
 
-  it('never for the player whose word started it', () => {
+  /** Round 1 revealed, waiting for everyone to press Start. */
+  const REVEALED: ZTest_GameDataFacts = {
+    rounds: [{ num: 1, ended: true, fastest: 'u2' }],
+    events: [ZTest_word(1, 'u2', 1, 'cab', 9), ZTest_word(2, 'u1', 1, '', 0)],
+  }
+
+  /** …and round 2 dealt. */
+  const DEALT: ZTest_GameDataFacts = { ...REVEALED, rounds: [...REVEALED.rounds!, { num: 2 }] }
+
+  it('a rival\'s first word: the caution frame and the timer sound, not on mount', () => {
     const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx()} />)
-    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx({
-      rounds: [{ num: 1, fastest: 'u1', isTimerRunning: true }],
-      players: [{ ...ZTest_TWO[0]!, word: 'cab', isWordFrozen: true }, ZTest_TWO[1]!],
-    })} />)
+    expect(board().className).not.toMatch(/clockStartFlash/)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx(clockStartedBy('u2'))} />)
+    expect(board().className).toMatch(/clockStartFlash/)
     expect(board().className).not.toMatch(/yourTurnFlash/)
+    expect(playSound).toHaveBeenCalledWith('timer')
+  })
+
+  it('never for the player whose word started it — whose board dims instead', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx()} />)
+    expect(board().className).not.toMatch(/dimNotYourTurn/)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx(clockStartedBy('u1'))} />)
+    expect(board().className).not.toMatch(/clockStartFlash/)
+    expect(playSound).not.toHaveBeenCalledWith('timer')
+    expect(board().className).toMatch(/dimNotYourTurn/)
+  })
+
+  it('a word that can still change leaves the board undimmed', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      ...clockStartedBy('u2'),
+      players: [{ ...ZTest_TWO[0]!, word: 'elf' }, { ...ZTest_TWO[1]!, word: 'cab', isWordFrozen: true }],
+    })} />)
+    expect(board().className).not.toMatch(/dimNotYourTurn/)
+  })
+
+  it('the reveal\'s scoresheet rings no bell', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx(clockStartedBy('u1'))} />)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx(REVEALED)} />)
+    expect(playSound).not.toHaveBeenCalledWith('bell')
+  })
+
+  it('the next round\'s table: the yellow frame and the bell, for everyone', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx(REVEALED)} />)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx(DEALT)} />)
+    expect(board().className).toMatch(/yourTurnFlash/)
+    expect(playSound).toHaveBeenCalledWith('bell')
+  })
+
+  it('opening a game in a later round marks nothing', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(DEALT)} />)
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+    expect(playSound).not.toHaveBeenCalled()
   })
 })
 
 describe('wordsy PlayArea — the log', () => {
+  it('draws a word plain, in bold', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 1, ended: true, fastest: 'u1' }, { num: 2 }],
+      events: [ZTest_word(1, 'u1', 1, 'elf', 9), ZTest_word(2, 'u2', 1, '', 0)],
+    })} />)
+    const word = within(screen.getByRole('table')).getByText('elf')
+    expect(word.tagName).toBe('STRONG')
+    expect(word.children).toHaveLength(0)
+  })
+
   it('a row per word, "no word" for a player with none, and #N opens that round', async () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
@@ -231,5 +331,71 @@ describe('wordsy PlayArea — through the dispatcher', () => {
     const stops = screen.getAllByRole('button', { name: /Stop/ })
     await user.click(stops[stops.length - 1]!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { p_game_id: 'g1' }))
+  })
+})
+
+describe('wordsy PlayArea — the scoresheets', () => {
+  beforeEach(() => rpc.mockReset())
+
+  const BETWEEN: ZTest_GameDataFacts = {
+    rounds: [{ num: 1, ended: true, fastest: 'u1' }],
+    events: [ZTest_word(1, 'u1', 1, 'elf', 9, 2), ZTest_word(2, 'u2', 1, 'bob', 5)],
+  }
+
+  it('puts the round\'s scoresheet in the board\'s place between rounds', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    expect(screen.queryByTestId('board')).toBeNull()
+    const sheet = screen.getByTestId('round-scoresheet')
+    expect(within(sheet).getByText('9')).toBeInTheDocument()
+    expect(within(sheet).getByText('★')).toBeInTheDocument()
+    // ELF: 9, and the Fastest's 2, under =.
+    expect(within(sheet).getByText('11')).toBeInTheDocument()
+  })
+
+  it('Start round 2 calls start_round', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ready' }))
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    await user.click(screen.getByRole('button', { name: 'Start round 2' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('start_round', { p_game_id: 'g1' }))
+  })
+
+  it('reads Waiting for others, disabled, once I have pressed', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      ...BETWEEN,
+      players: [{ ...ZTest_TWO[0]!, isReadyForNextRound: true }, ZTest_TWO[1]!],
+    })} />)
+    expect(screen.getByRole('button', { name: 'Waiting for others' })).toBeDisabled()
+  })
+
+  it('a past round opened from the log shows its board over the scoresheet', async () => {
+    const user = userEvent.setup()
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    await user.click(screen.getAllByText('#1')[0]!)
+    expect(screen.getByTestId('board')).toBeInTheDocument()
+  })
+
+  it('a game ending in front of me shows the last round\'s sheet, then the game\'s on Show final scores', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ rounds: [{ num: 1, fastest: 'u1' }] })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      ...BETWEEN,
+      players: [{ ...ZTest_TWO[0]!, finalRanking: 1, total: 11 }, { ...ZTest_TWO[1]!, finalRanking: 2, total: 5 }],
+      ending: { reason: 'resource_exhausted', detail: 'rounds_played', by: null },
+    })} />)
+    expect(screen.getByTestId('round-scoresheet')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show final scores' }))
+    expect(screen.getByTestId('game-scoresheet')).toBeInTheDocument()
+  })
+
+  it('opening a game already over goes straight to the game\'s scoresheet', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      ...BETWEEN,
+      players: [{ ...ZTest_TWO[0]!, finalRanking: 1, total: 11 }, { ...ZTest_TWO[1]!, finalRanking: 2, total: 5 }],
+      ending: { reason: 'resource_exhausted', detail: 'rounds_played', by: null },
+    })} />)
+    expect(screen.queryByTestId('board')).toBeNull()
+    expect(screen.queryByTestId('round-scoresheet')).toBeNull()
+    expect(screen.getByTestId('game-scoresheet')).toBeInTheDocument()
   })
 })

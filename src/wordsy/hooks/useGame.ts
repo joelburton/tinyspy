@@ -30,6 +30,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       hasSubmitted: p.hasSubmitted,
       word: p.id === myId ? p.word : null,
       isWordFrozen: p.isWordFrozen,
+      isReadyForNextRound: p.isReadyForNextRound,
     }
     const tiedWithNames = raw.players
       .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
@@ -64,6 +65,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
     rounds,
     // Round 1 is dealt at create, so there is always a last round.
     round: rounds.at(-1)!,
+    isBetweenRounds: !raw.ended && rounds.at(-1)!.ended,
     events,
     players,
     playersById,

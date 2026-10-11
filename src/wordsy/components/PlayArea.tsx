@@ -5,21 +5,19 @@ import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useShowEndingFeedback } from '@/common/feedback/useShowEndingFeedback'
-import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { useGame } from '../hooks/useGame'
 import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
+import { useRoundMarks } from '../hooks/useRoundMarks'
 import { useShowPeerSubmits } from '../hooks/useShowPeerSubmits'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import type { GGameData } from '../types'
-
-import '../theme.css'
 
 /**
  * The manifest's component: builds `gd` from the blob the page was handed and
@@ -51,7 +49,8 @@ type PlayAreaProps =
  *
  * There are no turns. The round's clock is the page header's
  * (`common.timers`, armed by the round's first submit and put away at its
- * end), so the one moment this surface marks is that clock starting on me.
+ * end); what the board marks is a new round's table arriving and that clock
+ * starting.
  */
 function PlayArea({
   gd,
@@ -68,11 +67,9 @@ function PlayArea({
   // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
   const infoSheet = useInfoSheet()
 
-  // The bell and the frame, the moment a rival's first submit starts the
-  // round's 30 seconds on me — never for the player who submitted first
-  // (plans/wordsy.md, decision 18); see `useTurnStartFlash`.
-  const clockFlash = useTurnStartFlash(
-    gd.round.isTimerRunning && gd.me.stillPlaying && !gd.me.isWordFrozen)
+  // The two moments a round marks: its table arriving, for everyone, and a rival's
+  // first word starting the clock on me; see `useRoundMarks`.
+  const roundMarks = useRoundMarks(gd)
 
   // ─── The local slot ────────────────────────────────────
   // Messages about ME: a word's answer, a race, the ending.
@@ -114,7 +111,9 @@ function PlayArea({
         shownTiles={shownTiles}
         historyView={historyView}
         localFeedbackSlot={localFeedbackSlot}
-        clockJustStarted={clockFlash}
+        isNewTableFlashing={roundMarks.isNewTableFlashing}
+        isClockStartFlashing={roundMarks.isClockStartFlashing}
+        actStartRound={actions.actStartRound}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

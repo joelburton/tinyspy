@@ -1,0 +1,28 @@
+/* cs-unmet */
+
+/* A word, letter by letter, as it scored. Lowercase in the data; capitals
+ * drawn. Its tracking is set by the wrapper that draws it, and inherited. */
+/* @@ */ .scoredWord {
+  text-transform: uppercase;
+}
+
+/* A letter that scored nothing. */
+/* @@ */ .unscored {
+  color: var(--page-text-muted-color);
+}
+
+/* A letter that scored on a card. */
+/* @@ */ .scored {
+  font-weight: 700;
+  color: var(--page-text-color);
+}
+
+/* …on a rare card: the card's own color, as the board draws its edge
+ * (`styles[`bonus_${bonus}`]`). */
+/* @@ */ .bonus_1 {
+  color: var(--flex-color-1);
+}
+
+/* @@ */ .bonus_2 {
+  color: var(--flex-color-2);
+}

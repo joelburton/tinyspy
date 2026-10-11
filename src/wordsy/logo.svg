@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- wordsy (brand FlipWord) logo: a card flipping. The card in front is a
-     green common card with a white "W"; the one behind it, turned and caught
-     mid-flip, is a red rare card. Hand-authored; no external source.
+     common card — the app's warm tile, its letter in the tile ink; the one
+     behind it, turned and caught mid-flip, is a +1 rare card, the first flex
+     color's wash with the color itself as its edge, as the board draws it.
+     Hand-authored; no external source.
 
-     The fills are COPIES of theme.css's common and red card colors, because
-     an SVG file cannot read CSS custom properties. Keep them in step by hand:
-     green #2E7D32, red #C62828.
+     The fills are COPIES of the daylight theme's tile shade 3 (fill #F2E8CE,
+     edge #E1C88E), its tile ink (#1A1A1A), its first flex color (#00695C) and
+     that color's wash (#D1E0DC: 20% over white, in oklab), because an SVG
+     file cannot read CSS custom properties. Keep them in step by hand.
 
      The two cards fill the square between them, so the logo has no
      letterboxing in the app's square slots, and the letter is heavy because
@@ -16,12 +19,13 @@
    viewBox="0 0 2000 2000"
    version="1.1"
    xmlns="http://www.w3.org/2000/svg">
-  <!-- The card behind, turned partway: red, narrowed by the flip. -->
+  <!-- The card behind, turned partway: the +1's wash, edged in its color. -->
   <rect x="1020" y="140" width="820" height="1280" rx="140" ry="140"
-        fill="#C62828" transform="rotate(14 1430 780)"/>
-  <!-- The card in front: green, with its letter. -->
-  <rect x="160" y="560" width="1100" height="1300" rx="160" ry="160" fill="#2E7D32"/>
+        fill="#D1E0DC" stroke="#00695C" stroke-width="60" transform="rotate(14 1430 780)"/>
+  <!-- The card in front: the warm tile, with its letter. -->
+  <rect x="190" y="590" width="1040" height="1240" rx="150" ry="150"
+        fill="#F2E8CE" stroke="#E1C88E" stroke-width="60"/>
   <text x="710" y="1530" text-anchor="middle"
         font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="1000"
-        fill="#FFFFFF">W</text>
+        fill="#1A1A1A">W</text>
 </svg>

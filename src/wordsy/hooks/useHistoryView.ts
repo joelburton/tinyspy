@@ -12,7 +12,7 @@ import type { GGameData, GHistoryView } from '../types'
  */
 export function useHistoryView(gd: GGameData): GHistoryView {
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
-  const snapshot = historyId === null ? null : makeHistorySnapshot(gd.rounds, historyId)
+  const snapshot = historyId === null ? null : makeHistorySnapshot(gd.rounds, historyId, gd.nRounds)
 
   return {
     isViewing: snapshot !== null,

@@ -71,6 +71,7 @@ import { letterboxedGallery } from './games/letterboxed'
 import { setgameGallery } from './games/setgame'
 import { wordleGallery } from './games/wordle'
 import { wordleoneGallery } from './games/wordleone'
+import { wordsyGallery } from './games/wordsy'
 
 const ALL: GameGallery[] = [
   bananagramsGallery,
@@ -89,6 +90,7 @@ const ALL: GameGallery[] = [
   wordiplyGallery,
   wordleGallery,
   wordleoneGallery,
+  wordsyGallery,
   wordwheelGallery,
 ]
 

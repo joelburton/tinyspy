@@ -1,5 +1,7 @@
 // cs-unmet
 
+import type { GScoredLetter } from '../types'
+import { ScoredWord } from './ScoredWord'
 import styles from './WordLines.module.css'
 
 /**
@@ -10,32 +12,34 @@ import styles from './WordLines.module.css'
  * word is in: …" once it can no longer change). Holding No Flip before anyone
  * has submitted takes the second line, since it is why ↵ does nothing.
  *
- * Both lines keep their height empty, so the column never moves as they come
- * and go.
+ * Each word is drawn by how it scores on the table (`ScoredWord`), in the wide
+ * tracking. Both lines keep their height empty, so the column never moves as
+ * they come and go.
  */
 export function WordLines({
   typed,
   standing,
   holdsNoFlip,
 }: {
-  // The word in the entry and its score, or null when nothing is typed.
-  typed: { word: string; score: number } | null
-  // My word for the round and its score, or null when none stands.
-  standing: { word: string; score: number; isFrozen: boolean } | null
+  // The word in the entry, letter by letter as it scores, and its score; null
+  // when nothing is typed.
+  typed: { letters: GScoredLetter[]; score: number } | null
+  // My word for the round, the same way; null when none stands.
+  standing: { letters: GScoredLetter[]; score: number; isFrozen: boolean } | null
   // I may not start the round's clock: nobody has submitted yet.
   holdsNoFlip: boolean
 }) {
   return (
     <div className={styles.wordLines}>
       <p className={styles.typedLine}>
-        {typed !== null && <WordAndScore word={typed.word} score={typed.score}/>}
+        {typed !== null && <WordAndScore letters={typed.letters} score={typed.score}/>}
       </p>
       <p className={styles.standingLine}>
         {holdsNoFlip && 'You hold No Flip — wait for someone else to submit'}
         {!holdsNoFlip && standing !== null && (
           <>
             {standing.isFrozen ? 'Your word is in: ' : 'Your word: '}
-            <WordAndScore word={standing.word} score={standing.score}/>
+            <WordAndScore letters={standing.letters} score={standing.score}/>
           </>
         )}
       </p>
@@ -43,11 +47,11 @@ export function WordLines({
   )
 }
 
-/** "DRAGON · 12": the word in capitals, its score after a dot. */
-function WordAndScore({ word, score }: { word: string; score: number }) {
+/** "DRAGON · 12": the word as it scores, its score after a dot. */
+function WordAndScore({ letters, score }: { letters: GScoredLetter[]; score: number }) {
   return (
     <>
-      <span className={styles.word}>{word}</span>
+      <span className={styles.word}><ScoredWord letters={letters}/></span>
       {' · '}
       <strong className={styles.score}>{score}</strong>
     </>

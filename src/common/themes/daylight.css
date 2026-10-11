@@ -688,6 +688,16 @@
 /* @@ */   --mark-attention-board-color:  #ffd21a;
 /* @@ */   --mark-attention-tile-color:   var(--mark-attention-board-color);
 
+  /* CAUTION — "something has started that you must answer": the board
+     frame FlipWord flashes when a rival's word starts the round's clock
+     on you. The caution action's color, aliased: one orange for "be
+     warned", whether it is on a button or around a board. */
+/* @@ */   --mark-caution-board-color:  var(--button-caution-base-color);
+
+  /* BEST — the gold star FlipWord's round scoresheet gives the round's best
+     total. A deep gold, so a small glyph still reads on a white page. */
+/* @@ */   --mark-best-color:  #c99400;
+
   /* The keyboard / crossword ENTRY cursor ring on a tile grid
      (scrabble, bananagrams, future grid games). A slightly-orange
      brown — deliberately NOT red or blue, since scrabble's premium
@@ -824,8 +834,9 @@
      true. A name like `coop` would claim teal IS the color of
      collaboration — "making something arbitrary into a 'considered'
      thing" — when all the pair has to be is two colors that are clearly
-     not each other. Badges are the only readers today: Co-op takes 1
-     and Compete takes 2 on the club page, Solo takes 1 on the homepage.
+     not each other. Badges were the first readers: Co-op takes 1 and
+     Compete takes 2 on the club page, Solo takes 1 on the homepage.
+     FlipWord's rare cards are the other: the +1 takes 1, the +2 takes 2.
 
      Deliberately OUTSIDE the outcome vocabulary, which is the one real
      constraint on them: a badge says what KIND of thing this is, so it
@@ -835,6 +846,11 @@
      surface. */
 /* @@ */   --flex-color-1:  #00695c;  /* teal 800 */
 /* @@ */   --flex-color-2:  #6a1b9a;  /* purple 800 */
+  /* Each one washed: the color 20% over the card, in oklab — the formula the
+     noted outcome's wash takes. A fill under body ink, with the full color
+     as its edge. */
+/* @@ */   --flex-color-1-wash:  color-mix(in oklab, var(--flex-color-1) 20%, var(--default-bg-color));
+/* @@ */   --flex-color-2-wash:  color-mix(in oklab, var(--flex-color-2) 20%, var(--default-bg-color));
 
   /* ══ TIMER ══════════════════════════════════════════════════════
      The game clock in the header when it is NOT running: paused, or the

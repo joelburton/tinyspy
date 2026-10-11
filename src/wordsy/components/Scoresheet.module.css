@@ -1,0 +1,99 @@
+/* cs-unmet */
+
+/* A scoresheet in the board's place, framed as the info column's log box is,
+ * and only as wide as its rows. The game's scrolls inside its frame, so a
+ * long one still fits the column. */
+/* @@ */ .sheet {
+  width: fit-content;
+  max-width: var(--avail-w);
+  border: var(--border-width-line-thick) solid var(--page-divider-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.8rem;
+}
+
+/* @@ */ .gameSheet {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* @@ */ .table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+/* @@ */ .table th,
+.table td {
+  padding: 0.3rem 0.4rem;
+  border-bottom: var(--border-width-line) solid var(--page-divider-color);
+  text-align: left;
+}
+
+/* The first column starts at the frame's padding, flush with a game table's
+ * player name above it. */
+/* @@ */ .table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+
+/* @@ */ .table th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The numbers line up on the right. */
+/* @@ */ .table .num {
+  text-align: right;
+}
+
+/* The two bonus columns and the star's: narrow, each number centered under
+ * its head. */
+/* @@ */ .table .bonus {
+  width: 2.5rem;
+  text-align: center;
+}
+
+/* @@ */ .table .star {
+  width: 2rem;
+  text-align: center;
+  color: var(--mark-best-color);
+  font-size: 1.2em;
+}
+
+/* @@ */ .word {
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-label);
+}
+
+/* A player who played no word that round. */
+/* @@ */ .noWord {
+  color: var(--page-text-muted-color);
+  font-style: italic;
+}
+
+/* A word whose score the total drops: one of the player's lowest. */
+/* @@ */ .struck {
+  text-decoration: line-through;
+  color: var(--outcomes-lost-ink-color);
+}
+
+/* The grand total, under each player's Total column. */
+/* @@ */ .grandTotal td {
+  border-bottom: none;
+  font-weight: 700;
+}
+
+/* The player a game table belongs to, over it. */
+/* @@ */ .player {
+  margin: 0 0 0.2rem;
+  font-weight: 600;
+}
+
+/* "Start round N", under the round's sheet. */
+/* @@ */ .startRound {
+  display: flex;
+  justify-content: center;
+}

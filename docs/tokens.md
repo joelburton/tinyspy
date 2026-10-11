@@ -83,7 +83,7 @@ Every color has a **name**, and every name says which **bucket** it belongs to.
 | `chrome-*` | app furniture that isn't a button or a field: fault, cursor, caret, link, floating control |
 | `toast-*`, `view-*`, `mark-*` | a toast's stripe; what you are looking at (history, share preview); what a surface wears temporarily to say something about itself |
 | `member-*` | player identity, one per profile color. Related to nothing else — a green player is not the winning green. Exempt from theming |
-| `flex-color-*` | two flexible colors that mean nothing, for a one-off need (the mode badges) so it doesn't mint a new color |
+| `flex-color-*` | two flexible colors that mean nothing, for a one-off need (the mode badges, FlipWord's rare cards) so it doesn't mint a new color |
 | `page-*`, `field-*` | the page's surfaces and text; the things you type into |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the rank ladder. The ramp has no semantic meaning; its numbers are its meaning |
 | `wordle-*` | the letter-judgment palette, named for colors on purpose ("wordle green" is what people say). Exempt from theming |

@@ -12,7 +12,8 @@
 --      no log, every player's facts at zero, the summary, the clock put away
 --   2. Mid-round: the timer running, the Fastest named, and every seat's
 --      standing word in the blob — the frozen one marked
---   3. After the reveal: the log's rows, the totals, the next round dealt
+--   3. After the reveal: the log's rows, the totals, the wait for everyone
+--      to press Start, and the next round dealt
 --   4. The ending: the summary's numbers
 -- ============================================================
 
@@ -21,7 +22,7 @@ set search_path = wordsy, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(18);
+select plan(23);
 
 select pg_temp.as_user(pg_temp.ws_uid('ada'));
 select set_config('t.g', pg_temp.ws_game(array['ada', 'bea'])::text, true);
@@ -39,7 +40,8 @@ $$;
 create function pg_temp.facts(p_name text) returns jsonb language sql as $$
   select jsonb_build_object(
     'total', p -> 'total', 'nBonuses', p -> 'nBonuses', 'roundScores', p -> 'roundScores',
-    'hasSubmitted', p -> 'hasSubmitted', 'word', p -> 'word', 'isWordFrozen', p -> 'isWordFrozen')
+    'hasSubmitted', p -> 'hasSubmitted', 'word', p -> 'word', 'isWordFrozen', p -> 'isWordFrozen',
+    'isReadyForNextRound', p -> 'isReadyForNextRound')
     from pg_temp.player(p_name) p
 $$;
 
@@ -73,21 +75,24 @@ select is(
   '… its eight cards in slot order, each with its letter, bonus, slot and value'
 );
 select is(
-  jsonb_build_array(pg_temp.gd() -> 'nTilesInDeck', pg_temp.gd() -> 'events'),
-  '[52, []]'::jsonb,
-  'fifty-two cards left and an empty log'
+  jsonb_build_array(pg_temp.gd() -> 'nRounds', pg_temp.gd() -> 'nBestRounds',
+                    pg_temp.gd() -> 'nTilesInDeck', pg_temp.gd() -> 'events'),
+  '[7, 5, 52, []]'::jsonb,
+  'seven rounds, the best five counted, fifty-two cards left and an empty log'
 );
 select is(
   pg_temp.facts('ada'),
   '{"total": 0, "nBonuses": 0, "roundScores": [null, null, null, null, null, null, null],
-    "hasSubmitted": false, "word": null, "isWordFrozen": false}'::jsonb,
+    "hasSubmitted": false, "word": null, "isWordFrozen": false,
+    "isReadyForNextRound": false}'::jsonb,
   'a player''s facts at the start'
 );
 select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ending'
                        - 'ended' - 'outcome' - 'players'
      from common.games where id = pg_temp.g()),
-  '{"team": null, "nRoundsPlayed": 0, "winnerTotal": null, "legalBand": 4, "roundStyle": "timer"}'::jsonb,
+  '{"team": null, "nRoundsPlayed": 0, "winnerTotal": null, "nRounds": 7, "legalBand": 4,
+    "roundStyle": "timer", "oneWord": false}'::jsonb,
   'summary_data''s own part'
 );
 
@@ -103,12 +108,14 @@ select is(
 );
 select is(
   pg_temp.facts('ada') - 'roundScores',
-  '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ab", "isWordFrozen": true}'::jsonb,
+  '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ab", "isWordFrozen": true,
+    "isReadyForNextRound": false}'::jsonb,
   'the Fastest''s word, frozen'
 );
 select is(
   pg_temp.facts('bea') - 'roundScores',
-  '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ad", "isWordFrozen": false}'::jsonb,
+  '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ad", "isWordFrozen": false,
+    "isReadyForNextRound": false}'::jsonb,
   'a rival''s standing word is in the blob too: useGame drops it'
 );
 select is(
@@ -133,15 +140,37 @@ select is(
 select is(
   pg_temp.facts('ada'),
   '{"total": 7, "nBonuses": 1, "roundScores": [7, null, null, null, null, null, null],
-    "hasSubmitted": false, "word": null, "isWordFrozen": false}'::jsonb,
-  'ada''s total, and nothing standing in the new round'
+    "hasSubmitted": false, "word": null, "isWordFrozen": false,
+    "isReadyForNextRound": false}'::jsonb,
+  'ada''s total, nothing standing, and not yet ready'
 );
+select is(
+  (select jsonb_agg(jsonb_build_array(r -> 'num', r -> 'ended'))
+     from jsonb_array_elements(pg_temp.gd() -> 'rounds') r),
+  '[[1, true]]'::jsonb,
+  'round 1 ended, and round 2 waits'
+);
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+select is(wordsy.start_round(pg_temp.g()) -> 'data' ->> 'result', 'ready', 'ada presses Start: ready');
+reset role;
+select is(
+  jsonb_build_array(pg_temp.player('ada') -> 'isReadyForNextRound',
+                    pg_temp.player('bea') -> 'isReadyForNextRound'),
+  '[true, false]'::jsonb,
+  '… and the page says who has pressed'
+);
+select pg_temp.as_user(pg_temp.ws_uid('bea'));
+select is(wordsy.start_round(pg_temp.g()) -> 'data' ->> 'result', 'started',
+  'the last press deals the next round');
+reset role;
 select is(
   (select jsonb_agg(jsonb_build_array(r -> 'num', r -> 'ended'))
      from jsonb_array_elements(pg_temp.gd() -> 'rounds') r),
   '[[1, true], [2, false]]'::jsonb,
   'round 1 ended, round 2 in play last'
 );
+select is(pg_temp.player('ada') -> 'isReadyForNextRound', 'false'::jsonb,
+  'nobody reads as ready once the round is in play');
 select is(pg_temp.gd() -> 'nTilesInDeck', '48'::jsonb, 'four more cards drawn');
 select is(
   (select shell_data -> 'timer' from common.games where id = pg_temp.g()),

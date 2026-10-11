@@ -15,7 +15,7 @@ import styles from './GameEventLog.module.css'
 
 /**
  * The reveal log: every finished round's words, a row per player — the round,
- * the word, its score and its bonus. A row's number is its ROUND, so every
+ * the word in bold, its score and its bonus. A row's number is its ROUND, so every
  * row of a round wears the same `#N`, and clicking it opens that round's
  * table on the board. A player with no word that round reads "no word" in
  * the warning bar.
@@ -60,7 +60,7 @@ export function GameEventLog({
               ? <span className={styles.noWord}>{answerMessage({ answerType: 'no_word' }).text}</span>
               : (
                 <>
-                  <span className={styles.word}>{event.word}</span>
+                  <strong className={styles.word}>{event.word}</strong>
                   {' '}
                   <strong className={styles.score}>{event.score}</strong>
                   {event.bonus > 0 && <span className={styles.bonus}> +{event.bonus}</span>}

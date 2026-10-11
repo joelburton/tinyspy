@@ -43,6 +43,7 @@ export type ZTest_PlayerFacts = {
   // This round's standing word, or null.
   word?: string | null
   isWordFrozen?: boolean
+  isReadyForNextRound?: boolean
 }
 
 /** One round's facts; the table is `ZTest_TABLE` unless said. */
@@ -94,7 +95,7 @@ export function ZTest_word(
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
-    setup = { timer: { kind: 'none' }, legal_band: 4, round_style: 'timer' },
+    setup = { timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', n_rounds: 7, one_word: false },
     rounds = [{ num: 1 }],
     events = [],
     players: playerFacts = ZTest_TWO,
@@ -123,10 +124,11 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       waitingForTurn: false,
       total: p.total ?? 0,
       nBonuses: p.nBonuses ?? 0,
-      roundScores: p.roundScores ?? [null, null, null, null, null, null, null],
+      roundScores: p.roundScores ?? Array<null>(setup.n_rounds).fill(null),
       hasSubmitted: word !== null,
       word,
       isWordFrozen: p.isWordFrozen ?? false,
+      isReadyForNextRound: p.isReadyForNextRound ?? false,
     }
   })
 
@@ -138,13 +140,15 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     mode: 'compete',
     coop: false,
     compete: true,
-    title: `Round ${rounds.at(-1)!.num} of 7`,
+    title: `Round ${rounds.at(-1)!.num} of ${setup.n_rounds}`,
     setup,
     turns: null,
     ending,
     ended,
     outcome,
     team: null,
+    nRounds: setup.n_rounds,
+    nBestRounds: setup.n_rounds === 3 ? 2 : 5,
     nTilesInDeck: 52 - 4 * (rounds.length - 1),
     rounds: rounds.map((r) => ({
       tiles: ZTest_TABLE,

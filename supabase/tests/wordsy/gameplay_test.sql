@@ -12,19 +12,22 @@
 --   4. a malformed word is a fault
 --   5. the round does not end early: not on submits, not on a short clock
 --   6. at 30 the round ends: the clock put away, a reveal row per player in
---      seat order, a player with no word scored '' 0
---   7. round 2: the Fastest holds No Flip, refused until someone else submits
---   8. an earlier round's root is already played, naming the earlier word
---   9. everyone submitting does not end a timer round either
---  10. a timeout with no clock running is a race
---  11. a submit after the game has ended is the game-over race
+--      the order the words came in, a player with no word scored '' 0 and last
+--   7. between rounds: no round 2 until everyone presses Start; a submit is a
+--      race; a second press is harmless; the last press deals it; a press
+--      once it is in play is a race
+--   8. round 2: the Fastest holds No Flip, refused until someone else submits
+--   9. an earlier round's root is already played, naming the earlier word
+--  10. everyone submitting does not end a timer round either
+--  11. a timeout with no clock running is a race
+--  12. a submit after the game has ended is the game-over race
 -- ============================================================
 
 begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(29);
+select plan(36);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -141,15 +144,48 @@ select is(
      from wordsy.events e join common.profiles p on p.user_id = e.user_id
     where e.game_id = pg_temp.g() and e.num = 1),
   array['ada ab 5+0 true', 'bea af 6+1 true', 'cade - 0+0 true'],
-  'the reveal: a row per player in seat order, bea beating the Fastest, cade''s none'
+  'the reveal: a row per player as the words came in, bea beating the Fastest, cade''s none'
+);
+
+-- ─── (7) Between rounds ───
+select is((select count(*)::int from wordsy.rounds where game_id = pg_temp.g()), 1,
+  'the next round waits for everyone to press Start');
+select pg_temp.envelope_is(
+  pg_temp.ws_submit(pg_temp.g(), 'bea', 'eeeeee'),
+  '{"type":"not-ok","severity":"race","dbcode":"PN557"}'::jsonb,
+  'a submit between rounds is a race'
+);
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+select wordsy.start_round(pg_temp.g());
+select pg_temp.envelope_is(
+  wordsy.start_round(pg_temp.g()),
+  '{"type":"ok","data":{"result":"ready"}}'::jsonb,
+  'pressing Start twice is harmless'
+);
+select pg_temp.as_user(pg_temp.ws_uid('bea'));
+select pg_temp.envelope_is(
+  wordsy.start_round(pg_temp.g()),
+  '{"type":"ok","data":{"result":"ready"}}'::jsonb,
+  'a press with someone still to press only marks ready'
+);
+select pg_temp.as_user(pg_temp.ws_uid('cade'));
+select pg_temp.envelope_is(
+  wordsy.start_round(pg_temp.g()),
+  '{"type":"ok","data":{"result":"started"}}'::jsonb,
+  'the last press deals it'
 );
 select is(
   (select title from common.games where id = pg_temp.g()),
   'Round 2 of 7',
-  'the next round is dealt'
+  '… round 2'
+);
+select pg_temp.envelope_is(
+  wordsy.start_round(pg_temp.g()),
+  '{"type":"not-ok","severity":"race","dbcode":"PN556"}'::jsonb,
+  'a press once the round is in play is a race'
 );
 
--- ─── (7) No Flip ───
+-- ─── (8) No Flip ───
 select is((pg_temp.ws_round(pg_temp.g())).no_flip_user_id, pg_temp.ws_uid('ada'),
   'round 2: the last round''s Fastest holds No Flip');
 select pg_temp.envelope_is(
@@ -165,7 +201,7 @@ select pg_temp.envelope_is(
   '… but may submit once someone else has'
 );
 
--- ─── (8) Already played ───
+-- ─── (9) Already played ───
 select pg_temp.ws_submit(pg_temp.g(), 'cade', 'eeee');
 select pg_temp.ws_plant_word('abs', 1, 'ab');
 select pg_temp.as_user(pg_temp.ws_uid('cade'));
@@ -176,12 +212,20 @@ select pg_temp.envelope_is(
 );
 select is(pg_temp.word_of('cade'), 'eeee', '… and the standing word stays');
 
--- ─── (9) Everyone in, still open ───
+-- ─── (10) Everyone in, still open ───
 select is((pg_temp.ws_round(pg_temp.g())).ended_at, null,
   'everyone having submitted does not end a timer round');
 
--- ─── (10) No clock ───
+-- ─── (11) No clock ───
 select pg_temp.ws_buzz(pg_temp.g());
+reset role;
+select is(
+  (select array_agg(p.username order by e.id)
+     from wordsy.events e join common.profiles p on p.user_id = e.user_id
+    where e.game_id = pg_temp.g() and e.num = 2),
+  array['bea', 'ada', 'cade'],
+  'round 2''s reveal is in the order the words came in, not seat order'
+);
 select pg_temp.as_user(pg_temp.ws_uid('bea'));
 select pg_temp.envelope_is(
   wordsy.submit_timeout(pg_temp.g()),
@@ -189,7 +233,7 @@ select pg_temp.envelope_is(
   'a timeout once the round is over is a race'
 );
 
--- ─── (11) Game over ───
+-- ─── (12) Game over ───
 select wordsy.stop_game(pg_temp.g());
 select pg_temp.envelope_is(
   pg_temp.ws_submit(pg_temp.g(), 'bea', 'eeeee'),

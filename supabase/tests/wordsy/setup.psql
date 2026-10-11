@@ -106,8 +106,11 @@ end;
 $$;
 
 -- A game of these personas on the planted table, created by ada (who must be
--- among them), in the `timer` style unless said otherwise.
-create function pg_temp.ws_game(p_names text[], p_style text default 'timer') returns uuid
+-- among them), in the `timer` style, seven rounds, words that can change,
+-- unless said otherwise.
+create function pg_temp.ws_game(p_names text[], p_style text default 'timer',
+                                p_n_rounds int default 7, p_one_word boolean default false)
+returns uuid
 language plpgsql as $$
 declare
   v_club text := pg_temp.ws_club(p_names);
@@ -118,7 +121,8 @@ begin
   v_env := wordsy.create_game(
     v_club,
     jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
-                       'legal_band', 4, 'round_style', p_style),
+                       'legal_band', 4, 'round_style', p_style,
+                       'n_rounds', p_n_rounds, 'one_word', p_one_word),
     array(select pg_temp.ws_uid(n) from unnest(p_names) n),
     'compete');
   if v_env ->> 'type' <> 'ok' then
@@ -188,9 +192,27 @@ begin
 end;
 $$;
 
+-- Everyone still playing presses "Start round N", so the next round is
+-- dealt. Leaves the role as postgres.
+create function pg_temp.ws_start_all(p_gid uuid) returns void
+language plpgsql as $$
+declare v_uid uuid;
+begin
+  perform set_config('role', 'postgres', true);
+  for v_uid in select user_id from common.game_players
+                where game_id = p_gid and player_ended_at is null
+                order by user_id loop
+    perform pg_temp.as_user(v_uid);
+    perform wordsy.start_round(p_gid);
+    perform set_config('role', 'postgres', true);
+  end loop;
+end;
+$$;
+
 -- Play the round in play on the planted table: each of `p_names` in turn
 -- submits a word worth its `p_scores` (null: no submit), then in the `timer`
--- style the clock runs out. Answers the round's number.
+-- style the clock runs out, and unless the game is over everyone presses
+-- Start. Answers the round's number.
 create function pg_temp.ws_play_round(p_gid uuid, p_names text[], p_scores int[]) returns int
 language plpgsql as $$
 declare
@@ -210,6 +232,9 @@ begin
     perform pg_temp.ws_buzz(p_gid);
   end if;
   perform set_config('role', 'postgres', true);
+  if (select ended_at from common.games where id = p_gid) is null then
+    perform pg_temp.ws_start_all(p_gid);
+  end if;
   return v_num;
 end;
 $$;

@@ -1,8 +1,8 @@
 # sounds
 
 Every sound the app plays, and the one way to play it. The bell when a turn
-becomes yours, and the win jingle, both obey the player's "Enable sounds"
-setting.
+becomes yours, the win jingle and FlipWord's timer all obey the player's
+"Enable sounds" setting.
 
 ## Intro to area
 
@@ -14,9 +14,11 @@ new sound cannot forget it. The second is a rule for callers: a sound always
 accompanies something visible — the yellow turn frame, the confetti — because
 a browser may refuse to play it, and a player may have it off.
 
-There are two sounds. The **bell** rings when the turn becomes yours, in every
-game where the turn passes between players. The **jingle** plays when a win is
-celebrated.
+There are three sounds. The **bell** rings when the turn becomes yours, in every
+game where the turn passes between players, and at each FlipWord round's
+reveal. The **jingle** plays when a win is celebrated. The **timer** plays
+when a rival's word starts a FlipWord round's 30-second clock on you, beside
+the caution frame.
 
 ## Details
 

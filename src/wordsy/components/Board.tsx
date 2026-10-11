@@ -21,7 +21,9 @@ export function Board({
   tiles,
   isViewingHistory,
   endingOutcome,
-  clockJustStarted,
+  isDimmed,
+  isNewTableFlashing,
+  isClockStartFlashing,
 }: {
   // The round's eight cards, in slot order: the live round's, or a past
   // round's — PlayArea picks.
@@ -30,8 +32,12 @@ export function Board({
   isViewingHistory: boolean
   // How I came out, for the ended board's frame; null while I still play.
   endingOutcome: EndOutcome | null
-  // True for a beat as a rival's first submit starts the round's clock.
-  clockJustStarted: boolean
+  // Nothing is left for me to enter on this table.
+  isDimmed: boolean
+  // True for a beat as a new round's table arrives: the yellow frame.
+  isNewTableFlashing: boolean
+  // True for a beat as a rival's first word starts the clock: the caution frame.
+  isClockStartFlashing: boolean
 }) {
   const tileBySlot = new Map(tiles.map((t) => [t.slot, t]))
 
@@ -41,7 +47,9 @@ export function Board({
       className={cls(
         styles.board,
         isViewingHistory && history.historyFrame,
-        clockJustStarted && shared.yourTurnFlash,
+        isDimmed && shared.dimNotYourTurn,
+        isNewTableFlashing && shared.yourTurnFlash,
+        isClockStartFlashing && styles.clockStartFlash,
         makeEndingFrameClasses(endingOutcome, isViewingHistory),
       )}
     >
