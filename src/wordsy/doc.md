@@ -122,8 +122,8 @@ the page blobs.
 | blob | wordsy's part |
 |---|---|
 | `static_game_data` | the common part alone: a round's table changes every round |
-| `game_data` | `team` (null), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events`, and each player's `total`, `nBonuses`, `roundScores`, `hasSubmitted`, `word`, `isWordFrozen`, `isBlockedByNoFlip` (the No Flip gate `submit_word` refuses on, written for the page), `isReadyForNextRound` |
-| `summary_data` | `team` (null), `nRoundsPlayed`, `winnerTotal`, `nRounds`, `legalBand`, `roundStyle`, `oneWord` |
+| `game_data` | `team` (coop: the team's `total`, `nBonuses`, `roundScores`, and the card's `band`, `nPenalties`, `title`; null in compete), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events` (each with `beatClock` and `band`, the coop word's against the card, null in compete), and each player's `total`, `nBonuses`, `roundScores` (the team's in coop), `hasSubmitted`, `word`, `isWordFrozen`, `isBlockedByNoFlip` (the No Flip gate `submit_word` refuses on, written for the page), `isReadyForNextRound` |
+| `summary_data` | `team` (coop: `total`, `band`, `nPenalties`, `title`; null in compete), `nRoundsPlayed`, `winnerTotal`, `nRounds`, `legalBand`, `roundStyle`, `oneWord` |
 
 `shell_data`'s `timer` is read off `common.timers`, so the header follows the
 round's clock.
@@ -132,12 +132,14 @@ round's clock.
 
 ### `wordsy.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
-Compete only (PN545), two or more (PN546); `legal_band` 1–6 (PN543),
-`round_style` (PN544), `timer_seconds` 1–120 (PN558), `n_rounds` 7 or 3
-(PN554) and `one_word` (PN555) required; the setup's `timer` fixed at none
-(PN547).
-Shuffles the deck inline and deals round 1, naming a random First Wordsmith in
-no-timer.
+Compete needs two or more (PN546); coop takes one to six. `legal_band` 1–6
+(PN543), `round_style` (PN544), `timer_seconds` 1–120 (PN558), `n_rounds` 7
+or 3 (PN554) and `one_word` (PN555) required; the setup's `timer` fixed at
+none (PN547). Coop fixes `round_style` at timer, `n_rounds` at 7 and
+`one_word` at true (PN559), and under `coop_style = 'turns'` seats the common
+rotation from `first_turn_user_id`, which must be a player (PN560) and is
+dropped from the saved default. Shuffles the deck inline and deals round 1,
+naming a random First Wordsmith in no-timer and arming the clock in coop.
 
 ### `wordsy.submit_word(p_game_id, p_word)`
 
@@ -148,7 +150,9 @@ caller may no longer change (PN549) and No Flip (PN550) are races the page
 gates first, as is a submit between rounds (PN557); a malformed word is a
 fault (PN548). The round's first standing
 word in the timer style names the Fastest and arms the clock; in no-timer and
-with one word, the last player's submit ends the round.
+with one word, the last player's submit ends the round. In coop the word is
+the team's and final, and its submit ends the round; under turns only the
+turn holder may send it (`common._require_turn`, PN243).
 
 ### `wordsy.start_round(p_game_id)`
 
@@ -159,18 +163,25 @@ the round is in play is a race (PN556).
 
 ### `wordsy.submit_timeout(p_game_id)`
 
-Ends the round, once the server's count has reached the round's 30 (PN552
-otherwise, a race); a round with no clock running is PN551, the race every
-page but the first meets.
+Ends the round, once the server's count has reached the round's seconds
+(PN552 otherwise, a race); a round with no clock running is PN551, the race
+every page but the first meets. In coop it ends nothing: the clock is put
+away and the answer is `expired`; the word, whenever it comes, earns no bonus.
 
 ### The rest
 
-`concede` (in no-timer and with one word, a concede by the last player yet
-to submit ends the round; between rounds, one by the last player yet to press
-Start deals the next), `stop_game` and `replay_board` (Restart: the same deck from round 1)
-each put the clock away. `_end_round` is the one end every round reaches: it
-scores, marks the bonuses, writes the reveal, and finishes the game after the
-last round.
+`concede` (compete only, as every concede is; in no-timer and with one word,
+a concede by the last player yet to submit ends the round; between rounds,
+one by the last player yet to press Start deals the next), `stop_game` and
+`replay_board` (Restart: the same deck from round 1; in coop the card back to
+band 1 with no penalties) each put the clock away. `_end_round` is the one
+end every round reaches: it scores, marks the bonuses, writes the reveal, and
+finishes the game after the last round. In coop its reveal is
+`_reveal_coop_round`, the team's word against the card: a word that beat the
+clock and scored 15 or more earns the higher bonus on band 1 and the lower on
+2 or 3; then under 20 moves the band down, or at 3 takes a penalty and goes
+to 2, while 20 or more with a bonus moves it up. `_finish` in coop wins the
+team at 90 or more (`_title_for`) and loses it under.
 
 ## FE submissions
 

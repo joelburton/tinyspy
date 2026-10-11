@@ -652,7 +652,9 @@ and one change to the clock that reaches compete too.
   word is final at its submit (decision 23) and the submit ends the round.
   **The clock running out does not end the round** (Joel, 2026-10-10: "round
   continues") — the card says take as long as you need — so `submit_timeout`
-  in coop only disarms the clock (the
+  in coop only disarms the clock and answers `expired` (step 15 teaches
+  `useSubmitTimeoutOnExpiry` that word; today it reports any `ok` but
+  `ended` as unhandled) (the
   header reads 0:00 and stops); the word's `submitted_at` against
   `timer_started_at` plus the seconds says whether it beat the clock.
 - **Scoring, the coop branch of `_end_round`:** the word's score as in
@@ -667,14 +669,21 @@ and one change to the clock that reaches compete too.
   was scored on); both null in compete.
 - **The end, after round 7:** total = the best five scores + every bonus −
   2 × penalties. 90 or more wins, with the title (90 Wordprentice, 100
-  Wordsmith, 110 Wordspert, 120 Wordmaster) as the ending's detail; under 90
-  loses. The reason pair `resource_exhausted / rounds_played` as compete's.
-  The common coop stop and concede apply as in every coop game.
-- **The page blobs:** `game_data` gains `band`, `nPenalties`, each event's
-  `beatClock` and `band`, and each round's `timerSeconds`; `summary_data`
-  gains `title` (null until the end, and in compete); the compete keys that
-  have no coop meaning (`fastest`, `noFlipHolder`, `isBlockedByNoFlip`) read
-  null or false.
+  Wordsmith, 110 Wordspert, 120 Wordmaster); under 90 loses. The reason pair
+  is compete's, `resource_exhausted / rounds_played` — a title is a result,
+  not the act that ended the game, so it is the blob's `team.title`, not the
+  ending's detail (step 13). Stop applies as in every coop game; concede is
+  compete's (docs/common-schema.md → Concede), and `wordsy.concede` refuses
+  it in coop.
+- **The page blobs:** the `team` group, null in compete (setgame's shape):
+  `total`, `nBonuses`, `roundScores` as a player's, the team's; `band`;
+  `nPenalties`; `title`, null until the game has ended with 90 or more. Each
+  player's `total`, `nBonuses` and `roundScores` are the team's too, as a
+  setgame player's counts are the side's. Each event gains `beatClock` and
+  `band`. `summary_data` carries `team` with `total`, `band`, `nPenalties`
+  and `title`. The compete keys that have no coop meaning (`fastest`,
+  `noFlipHolder`, `isBlockedByNoFlip`) read null or false. The clock's
+  seconds are the setup's, which the page already has.
 - **The board column, coop:** under the entry, beside the typed word's lines,
   the solo card as Joel drew it: three squares, green 1, amber 2, red 3, a
   dark border on the current band, and a penalty mark (−2) per penalty beside

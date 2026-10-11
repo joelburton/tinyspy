@@ -37,6 +37,14 @@
 --     every submit is final.
 --   - A game is seven rounds, the best five counted, or a short game's three,
 --     the best two (`n_rounds`, `_n_best_rounds`).
+--   - Coop (`wordsy_coop`, one to six players) plays the back of the No Flip
+--     card (plans/wordsy.md → Solo and coop): the clock is armed at the deal,
+--     the team writes ONE word a round — anyone's, or the turn holder's under
+--     `coop_style = 'turns'` — and that submit ends the round. The clock running
+--     out only puts the clock away. The card (`games.band`, `n_penalties`) moves
+--     at each reveal (`_reveal_coop_round`); the end names a title or a loss
+--     (`_finish`, `_title_for`). There is no Fastest, No Flip or First
+--     Wordsmith in coop, and no concede.
 --
 -- How this file relates to the migrations, and why it is full of drops:
 -- docs/supabase.md → Schema vs code.
@@ -251,8 +259,9 @@ revoke execute on function wordsy._deal_tile(smallint[], smallint[], smallint[])
 -- Deal round `p_num`: round 1 fills slots 8 down to 1, the rulebook's right
 -- to left; a later round moves the last round's slots 1–4 into 5–8 and deals
 -- slots 4 down to 1. Writes the round's row, the drawn numbers and the
--- game's title. `p_no_flip_user_id` holds No Flip this round;
--- `p_first_user_id` is the First Wordsmith in `no-timer`, null otherwise.
+-- game's title; in coop, arms the clock too. `p_no_flip_user_id` holds No
+-- Flip this round; `p_first_user_id` is the First Wordsmith in `no-timer`;
+-- both null otherwise, and always in coop.
 create or replace function wordsy._deal_round(
   p_game_id         uuid,
   p_num             int,
@@ -271,6 +280,7 @@ declare
   v_prev  smallint[];
   v_tile  smallint;
   v_slot  int;
+  v_coop  boolean;
 begin
   select * into g from wordsy.games where game_id = p_game_id;
   v_drawn := g.drawn;
@@ -293,8 +303,15 @@ begin
     v_drawn := v_drawn || v_tile;
   end loop;
 
-  insert into wordsy.rounds (game_id, num, tiles, fastest_user_id, no_flip_user_id)
-  values (p_game_id, p_num, v_tiles, p_first_user_id, p_no_flip_user_id);
+  -- In coop the clock runs from the deal: the card's "flip the timer at the
+  -- start of the round".
+  v_coop := wordsy._is_coop(p_game_id);
+  insert into wordsy.rounds (game_id, num, tiles, fastest_user_id, no_flip_user_id, timer_started_at)
+  values (p_game_id, p_num, v_tiles, p_first_user_id, p_no_flip_user_id,
+          case when v_coop then now() end);
+  if v_coop then
+    perform wordsy._arm_timer(p_game_id);
+  end if;
 
   update wordsy.games set drawn = v_drawn where game_id = p_game_id;
 
@@ -355,28 +372,64 @@ as $$
 $$;
 revoke execute on function wordsy._n_best_rounds(int) from public;
 
+-- The game is coop: the team plays the solo card.
+create or replace function wordsy._is_coop(p_game_id uuid)
+returns boolean
+language sql
+stable
+as $$
+  select mode = 'coop' from common.games where id = p_game_id;
+$$;
+revoke execute on function wordsy._is_coop(uuid) from public;
+
 -- Each player's total so far — the best word scores (`_n_best_rounds`) plus
--- every bonus — and how many bonuses they have, summed off the log.
+-- every bonus — and how many bonuses they have, summed off the log. In coop
+-- the log is the team's, so every player carries the team's numbers, and the
+-- penalties come off: −2 each (plans/wordsy.md, decision 21).
 create or replace function wordsy._player_totals(p_game_id uuid)
 returns table (user_id uuid, total int, n_bonuses int)
 language sql
 stable
 as $$
+  with side as (
+    select wordsy._is_coop(p_game_id) as is_team
+  )
   select p.user_id,
          (coalesce((select sum(best.score)
                       from (select e.score from wordsy.events e
-                             where e.game_id = p_game_id and e.user_id = p.user_id
+                             where e.game_id = p_game_id
+                               and (s.is_team or e.user_id = p.user_id)
                              order by e.score desc
                              limit wordsy._n_best_rounds(g.n_rounds)) best), 0)
           + coalesce((select sum(e.bonus) from wordsy.events e
-                       where e.game_id = p_game_id and e.user_id = p.user_id), 0))::int,
+                       where e.game_id = p_game_id
+                         and (s.is_team or e.user_id = p.user_id)), 0)
+          - 2 * coalesce(g.n_penalties, 0))::int,
          (select count(*) from wordsy.events e
-           where e.game_id = p_game_id and e.user_id = p.user_id and e.bonus > 0)::int
+           where e.game_id = p_game_id
+             and (s.is_team or e.user_id = p.user_id) and e.bonus > 0)::int
     from wordsy.players p
     join wordsy.games g on g.game_id = p.game_id
+    cross join side s
    where p.game_id = p_game_id;
 $$;
 revoke execute on function wordsy._player_totals(uuid) from public;
+
+-- The solo card's title for a final total: 90 Wordprentice, 100 Wordsmith,
+-- 110 Wordspert, 120 Wordmaster; null under 90, which is a loss (decision 22).
+create or replace function wordsy._title_for(p_total int)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_total >= 120 then 'Wordmaster'
+    when p_total >= 110 then 'Wordspert'
+    when p_total >= 100 then 'Wordsmith'
+    when p_total >= 90  then 'Wordprentice'
+  end;
+$$;
+revoke execute on function wordsy._title_for(int) from public;
 
 -- Every submit is final and a round ends once everyone still playing has
 -- submitted: always in the no-timer style, and in the timer style when the
@@ -419,9 +472,11 @@ revoke execute on function wordsy._n_still_playing(uuid) from public;
 -- ============================================================
 -- wordsy._finish — the last round's end is the game's
 -- ============================================================
--- Ranked by total among the players who did not concede and scored above
--- zero, ties sharing the rank (docs/win-lose.md → co-winners). Ended by the
--- last player to submit, or by nobody when the clock ran out.
+-- Compete: ranked by total among the players who did not concede and scored
+-- above zero, ties sharing the rank (docs/win-lose.md → co-winners). Ended by
+-- the last player to submit, or by nobody when the clock ran out. Coop: the
+-- team wins together at 90 or more — the card's first title — and loses
+-- together under it (`_title_for`; the blobs' `team.title` says which).
 create or replace function wordsy._finish(p_game_id uuid, p_ended_by_user_id uuid)
 returns void
 language plpgsql
@@ -431,16 +486,25 @@ as $$
 declare
   v_rankings jsonb;
 begin
-  select coalesce(jsonb_object_agg(ranked.user_id::text, ranked.ranking), '{}'::jsonb)
-    into v_rankings
-    from (
-      select t.user_id, rank() over (order by t.total desc) as ranking
-        from wordsy._player_totals(p_game_id) t
-        join common.game_players gp
-          on gp.game_id = p_game_id and gp.user_id = t.user_id
-       where gp.player_ended_reason is distinct from 'conceded'
-         and t.total > 0
-    ) ranked;
+  if wordsy._is_coop(p_game_id) then
+    select case when wordsy._title_for(max(t.total)) is not null
+                then (select jsonb_object_agg(gp.user_id::text, 1)
+                        from common.game_players gp where gp.game_id = p_game_id)
+                else '{}'::jsonb end
+      into v_rankings
+      from wordsy._player_totals(p_game_id) t;
+  else
+    select coalesce(jsonb_object_agg(ranked.user_id::text, ranked.ranking), '{}'::jsonb)
+      into v_rankings
+      from (
+        select t.user_id, rank() over (order by t.total desc) as ranking
+          from wordsy._player_totals(p_game_id) t
+          join common.game_players gp
+            on gp.game_id = p_game_id and gp.user_id = t.user_id
+         where gp.player_ended_reason is distinct from 'conceded'
+           and t.total > 0
+      ) ranked;
+  end if;
 
   perform common._end_game(
     p_game_id, 'resource_exhausted', 'rounds_played', p_ended_by_user_id,
@@ -468,6 +532,9 @@ revoke execute on function wordsy._finish(uuid, uuid) from public;
 -- (plans/wordsy.md, decision 10). A Fastest who has conceded gives nobody a
 -- bonus. In `no-timer` the First Wordsmith stands in for the Fastest.
 --
+-- In coop the reveal is the team's one word against the card
+-- (`_reveal_coop_round`), and the turn passes to the next writer.
+--
 -- Then the last round ends the game. Any other round waits, its scoresheet
 -- on every page, until everyone still playing has pressed "Start round N"
 -- (`start_round`, which deals it with `_deal_next_round`).
@@ -480,16 +547,21 @@ as $$
 declare
   g          wordsy.games%rowtype;
   r          wordsy.rounds%rowtype;
+  v_coop     boolean;
   v_beat     int;
   v_fastest  int;
 begin
   select * into g from wordsy.games where game_id = p_game_id;
   select * into r from wordsy.rounds
    where game_id = p_game_id and ended_at is null;
+  v_coop := wordsy._is_coop(p_game_id);
 
   v_beat    := case when r.num <= 3 then 1 when r.num <= 6 then 2 else 3 end;
   v_fastest := v_beat + 1;
 
+  if v_coop then
+    perform wordsy._reveal_coop_round(g, r, v_beat, v_fastest);
+  else
   with scored as (
     select cp.ord, cp.id as user_id, rw.submitted_at,
            coalesce(rw.word, '') as word,
@@ -519,6 +591,7 @@ begin
    -- (or First Wordsmith) first, the word everyone is measured against, then
    -- the rest as their standing words came in, then no word, in seat order.
    order by s.user_id is distinct from r.fastest_user_id, s.submitted_at nulls last, s.ord;
+  end if;
 
   update wordsy.rounds set ended_at = now()
    where game_id = p_game_id and num = r.num;
@@ -527,10 +600,75 @@ begin
 
   if r.num = g.n_rounds then
     perform wordsy._finish(p_game_id, p_ended_by_user_id);
+  elsif v_coop then
+    -- The writer's go is done; inert in a free-for-all game.
+    perform common._advance_turn(p_game_id);
   end if;
 end;
 $$;
 revoke execute on function wordsy._end_round(uuid, uuid) from public;
+
+-- ============================================================
+-- wordsy._reveal_coop_round — the team's word against the solo card
+-- ============================================================
+-- The card, as Joel transcribed it (plans/wordsy.md → Solo). The
+-- word scores as any word. It beat the clock when its submit came within
+-- `timer_seconds` of the deal, by the server's clock. A word that beat the
+-- clock and scored 15 or more earns the round's bonus: with the timer on band
+-- 1 the higher column's value (`p_higher`, 2 / 3 / 4), on 2 or 3 the lower's
+-- (`p_lower`, 1 / 2 / 3). Then the timer moves: under 20 moves it down a band,
+-- or on band 3 marks a penalty and sets it to 2; 20 or more with a bonus moves
+-- it up, never above 1; 20 or more without a bonus leaves it. The reveal row
+-- keeps whether the word beat the clock and the band it was scored on, for
+-- the scoresheets.
+create or replace function wordsy._reveal_coop_round(
+  g        wordsy.games,
+  r        wordsy.rounds,
+  p_lower  int,
+  p_higher int
+)
+returns void
+language plpgsql
+security definer
+set search_path = wordsy, common, public, extensions
+as $$
+declare
+  w            wordsy.round_words%rowtype;
+  v_score      int;
+  v_beat_clock boolean;
+  v_bonus      int := 0;
+  v_band       smallint := g.band;
+  v_penalties  int := g.n_penalties;
+begin
+  select * into w from wordsy.round_words where game_id = g.game_id and num = r.num;
+
+  v_score := wordsy._score_word(w.word, r.tiles);
+  v_beat_clock := w.submitted_at <= r.timer_started_at + make_interval(secs => g.timer_seconds);
+  if v_beat_clock and v_score >= 15 then
+    v_bonus := case when g.band = 1 then p_higher else p_lower end;
+  end if;
+
+  insert into wordsy.events (game_id, user_id, kind, took_turn, num, word, score, bonus,
+                             beat_clock, band)
+  values (g.game_id, w.user_id, 'word', true, r.num, w.word, v_score, v_bonus,
+          v_beat_clock, g.band);
+
+  if v_score < 20 then
+    if g.band = 3 then
+      v_penalties := v_penalties + 1;
+      v_band := 2;
+    else
+      v_band := g.band + 1;
+    end if;
+  elsif v_bonus > 0 then
+    v_band := greatest(1, g.band - 1);
+  end if;
+
+  update wordsy.games set band = v_band, n_penalties = v_penalties
+   where game_id = g.game_id;
+end;
+$$;
+revoke execute on function wordsy._reveal_coop_round(wordsy.games, wordsy.rounds, int, int) from public;
 
 -- Everyone still playing has pressed "Start round `p_num`".
 create or replace function wordsy._is_everyone_ready(p_game_id uuid, p_num int)
@@ -549,7 +687,7 @@ revoke execute on function wordsy._is_everyone_ready(uuid, int) from public;
 -- Deal the round after the last one ended. Its Fastest takes No Flip unless
 -- two or fewer are still playing (decision 19), and in `no-timer` the next
 -- First Wordsmith is the player still playing with the fewest bonuses, ties to
--- the next seat after the last round's.
+-- the next seat after the last round's. Coop has neither.
 create or replace function wordsy._deal_next_round(p_game_id uuid)
 returns void
 language plpgsql
@@ -568,7 +706,9 @@ begin
   select * into r from wordsy.rounds
    where game_id = p_game_id order by num desc limit 1;
 
-  if g.round_style = 'timer' then
+  if wordsy._is_coop(p_game_id) then
+    null;
+  elsif g.round_style = 'timer' then
     if wordsy._n_still_playing(p_game_id) > 2
        and exists (select 1 from common.game_players
                     where game_id = p_game_id and user_id = r.fastest_user_id
@@ -609,18 +749,21 @@ revoke execute on function wordsy._deal_next_round(uuid) from public;
 -- `static_game_data` is the common part alone: the table changes every round.
 --
 --   game_data, wordsy's part:
---     team                                 null: compete only, so no team
+--     team                                 coop: the team's facts (below); null in compete
 --     nRounds                              7, or a short game's 3
 --     nBestRounds                          how many rounds' words count: 5, or 2
 --     nTilesInDeck                         60 less the cards dealt
 --     rounds: [round, …]                   every round dealt, the one in play last
---     events: [{id, userId, kind, num, word, score, bonus, tookTurn, at}, …]
+--     events: [{id, userId, kind, num, word, score, bonus, beatClock, band, tookTurn, at}, …]
 --                                          every finished round's words; per round
 --                                          the Fastest's first, then as they came
---                                          in, no word last; word '' for none
+--                                          in, no word last; word '' for none.
+--                                          beatClock and band are the coop
+--                                          word's against the card; null in compete
 --     players: [player, …]                 the common player, plus:
---       total                              the best rounds + bonuses, so far
---       nBonuses                           how many bonuses
+--       total                              the best rounds + bonuses, so far; the
+--                                          team's in coop, less the penalties
+--       nBonuses                           how many bonuses (the team's in coop)
 --       roundScores: [int | null × nRounds] score + bonus per finished round;
 --                                          null for a round not played
 --       hasSubmitted                       this round
@@ -638,8 +781,16 @@ revoke execute on function wordsy._deal_next_round(uuid) from public;
 --     isTimerRunning                       timer style, the clock started, the round open
 --     ended
 --
+--   team (coop only; `_make_json_team`):
+--     total, nBonuses, roundScores         as a player's, the team's
+--     band                                 1..3: where the solo card's timer sits
+--     nPenalties                           penalties taken, −2 each at the end
+--     title                                Wordprentice | Wordsmith | Wordspert |
+--                                          Wordmaster once the game has ended with
+--                                          90 or more; null before, and on a loss
+--
 --   summary_data, wordsy's part:
---     team                                 null: compete only
+--     team                                 coop: {total, band, nPenalties, title}; null in compete
 --     nRoundsPlayed
 --     winnerTotal                          the total the winners share; null until the end
 --     nRounds
@@ -697,12 +848,42 @@ as $$
            'word',     e.word,
            'score',    e.score,
            'bonus',    e.bonus,
+           'beatClock', e.beat_clock,
+           'band',     e.band,
            'tookTurn', e.took_turn,
            'at',       e.created_at) order by e.id), '[]'::jsonb)
     from wordsy.events e
    where e.game_id = p_game_id;
 $$;
 revoke execute on function wordsy._make_json_events(uuid) from public;
+
+-- The team's facts, in coop: the numbers every player carries, and the solo
+-- card. Null in compete, where there is no team.
+create or replace function wordsy._make_json_team(p_game_id uuid)
+returns jsonb
+language sql
+stable
+as $$
+  select case when wordsy._is_coop(p_game_id) then jsonb_build_object(
+           'total',       t.total,
+           'nBonuses',    t.n_bonuses,
+           'roundScores', (select jsonb_agg(
+                                    (select e.score + e.bonus from wordsy.events e
+                                      where e.game_id = p_game_id and e.num = n)
+                                    order by n)
+                             from generate_series(1, g.n_rounds) n),
+           'band',        g.band,
+           'nPenalties',  g.n_penalties,
+           'title',       case when cg.ended_at is not null
+                               then wordsy._title_for(t.total) end)
+         end
+    from wordsy.games g
+    join common.games cg on cg.id = g.game_id
+    cross join lateral (select max(total) as total, max(n_bonuses) as n_bonuses
+                          from wordsy._player_totals(p_game_id)) t
+   where g.game_id = p_game_id;
+$$;
+revoke execute on function wordsy._make_json_team(uuid) from public;
 
 -- Every player as wordsy's game_data shows them: the common player, with their
 -- totals and this round's word.
@@ -759,7 +940,7 @@ language sql
 stable
 as $$
   select common._make_json_game_data(p_game_id) || jsonb_build_object(
-           'team',         null,
+           'team',         wordsy._make_json_team(p_game_id),
            'nRounds',      g.n_rounds,
            'nBestRounds',  wordsy._n_best_rounds(g.n_rounds),
            'nTilesInDeck', 60 - cardinality(g.drawn),
@@ -781,7 +962,7 @@ language sql
 stable
 as $$
   select common._make_json_summary_data(p_game_id, p_status_changed_at) || jsonb_build_object(
-    'team',          null,
+    'team',          wordsy._make_json_team(p_game_id) - 'nBonuses' - 'roundScores',
     'nRoundsPlayed', (select count(*)::int from wordsy.rounds r
                        where r.game_id = p_game_id and r.ended_at is not null),
     'winnerTotal',   (select max(t.total)
@@ -886,15 +1067,25 @@ revoke execute on function wordsy._rebuild_data_cols_for_all() from public;
 --                "round_style": 'timer' | 'no-timer',
 --                "timer_seconds": 1..120,
 --                "n_rounds": 7 | 3,
---                "one_word": true | false }.
+--                "one_word": true | false,
+--                coop only: "coop_style": 'free-for-all' | 'turns',
+--                           "first_turn_user_id" under 'turns' }.
 --
 -- The timer is fixed at none: the round's clock is the game's own, armed for
 -- `timer_seconds` and put away each round, so there is no whole-game timer to
 -- choose. The seconds are required under both styles, stored and unread in
 -- `no-timer`.
--- Compete only until a coop sibling exists. The deck is shuffled inline and
--- round 1 dealt before anyone sees the table; in `no-timer` its First
--- Wordsmith is drawn at random.
+--
+-- Compete needs two players; coop takes one to six, and its game is the
+-- card's, so the form fixes `round_style` at timer, `n_rounds` at 7 and
+-- `one_word` at true (PN559 if not), and under 'turns' seats the common
+-- rotation from `first_turn_user_id` (PN560 if that is not a player). The
+-- saved default drops `first_turn_user_id`: a style is a club's preference, a
+-- person is not (docs/common-schema.md → Turn-order).
+--
+-- The deck is shuffled inline and round 1 dealt before anyone sees the table;
+-- in `no-timer` its First Wordsmith is drawn at random; in coop its clock is
+-- armed.
 create or replace function wordsy.create_game(
   p_club_handle     text,
   p_setup           jsonb,
@@ -914,19 +1105,17 @@ declare
   s_timer_seconds int;
   s_n_rounds      int;
   s_one_word      boolean;
+  v_coop          boolean;
   v_first         uuid;
+  v_first_turn    uuid;
 begin
   perform common._require_club_member(p_club_handle);
-  -- Must agree with numberOfPlayers in the game's manifest ([2, 6]).
+  -- Must agree with numberOfPlayers in the game's manifests ([2, 6] and [1, 6]).
   perform common._require_player_count_max(p_player_user_ids, 6);
 
   perform common._require_valid_mode(p_mode);
-  if p_mode <> 'compete' then
-    raise exception 'BUG: FlipWord in coop'
-      using errcode = 'PN545', hint = 'fault', column = '_',
-      detail = 'wordsy is compete only';
-  end if;
-  if coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
+  v_coop := p_mode = 'coop';
+  if not v_coop and coalesce(array_length(p_player_user_ids, 1), 0) < 2 then
     -- The club page and the players picker refuse one, so this is the
     -- server-side catch.
     raise exception 'BUG: race with fewer than two players'
@@ -966,6 +1155,11 @@ begin
       detail = 'setup.one_word must be true or false';
   end if;
   s_one_word := (p_setup->>'one_word')::boolean;
+  if v_coop and (s_round_style <> 'timer' or s_n_rounds <> 7 or not s_one_word) then
+    raise exception 'BUG: coop setup off the card'
+      using errcode = 'PN559', hint = 'fault', column = '_',
+      detail = 'coop fixes round_style at timer, n_rounds at 7 and one_word at true';
+  end if;
 
   perform common._require_valid_timer(p_setup->'timer');
   if p_setup->'timer'->>'kind' <> 'none' then
@@ -979,12 +1173,24 @@ begin
     p_club_handle, 'wordsy_' || p_mode, p_mode, p_player_user_ids,
     format('Round 1 of %s', s_n_rounds),
     p_setup,
-    p_setup
+    p_setup - 'first_turn_user_id'
   );
 
-  insert into wordsy.games (game_id, deck, legal_band, round_style, timer_seconds, n_rounds, one_word)
+  if v_coop and p_setup->>'coop_style' = 'turns' then
+    v_first_turn := (p_setup->>'first_turn_user_id')::uuid;
+    if v_first_turn is null or not (v_first_turn = any(p_player_user_ids)) then
+      raise exception 'BUG: first player who is not in the game'
+        using errcode = 'PN560', hint = 'fault', column = '_',
+        detail = 'setup.first_turn_user_id must be one of the players';
+    end if;
+    perform common._assign_turn_order(new_id, v_first_turn);
+  end if;
+
+  insert into wordsy.games (game_id, deck, legal_band, round_style, timer_seconds, n_rounds, one_word,
+                            band, n_penalties)
   select new_id, array_agg(n::smallint order by random()), s_legal_band, s_round_style,
-         s_timer_seconds, s_n_rounds, s_one_word
+         s_timer_seconds, s_n_rounds, s_one_word,
+         case when v_coop then 1 end, case when v_coop then 0 end
     from generate_series(1, 60) n;
 
   insert into wordsy.players (game_id, user_id)
@@ -1031,6 +1237,10 @@ grant execute on function wordsy.create_game(text, jsonb, uuid[], text) to authe
 -- Fastest and arms the clock. In `no-timer` and a `one_word` game, the submit
 -- that leaves everyone still playing with a word ends the round.
 --
+-- In coop the word is the team's and final, and its submit ends the round;
+-- under `coop_style = 'turns'` only the turn holder may send it
+-- (`common._require_turn`, a race).
+--
 -- The `ok` carries { result, earlier, timer_started, round_ended,
 -- game_ended }, `result` ∈ submitted | notAWord | alreadyPlayed. No outcome
 -- and no message: what each is worth, and its words, is the frontend's
@@ -1059,6 +1269,7 @@ begin
   end if;
 
   caller_id := common._require_game_player(p_game_id);
+  perform common._require_turn(p_game_id, caller_id);
 
   if (select ended_at from common.games where id = p_game_id) is not null then
     perform common._raise_game_over();
@@ -1125,17 +1336,23 @@ begin
   on conflict (game_id, num, user_id)
   do update set word = excluded.word, submitted_at = excluded.submitted_at;
 
-  if g.round_style = 'timer' and r.fastest_user_id is null then
-    update wordsy.rounds
-       set fastest_user_id = caller_id, timer_started_at = now()
-     where game_id = p_game_id and num = r.num;
-    perform wordsy._arm_timer(p_game_id);
-    out_timer_started := true;
-  end if;
-  -- One word a round: the last player in ends it, the clock or no clock.
-  if wordsy._is_one_word(g) and wordsy._is_everyone_in(p_game_id, r.num) then
+  if wordsy._is_coop(p_game_id) then
+    -- The team's one word: in, and the round is over.
     perform wordsy._end_round(p_game_id, caller_id);
     out_round_ended := true;
+  else
+    if g.round_style = 'timer' and r.fastest_user_id is null then
+      update wordsy.rounds
+         set fastest_user_id = caller_id, timer_started_at = now()
+       where game_id = p_game_id and num = r.num;
+      perform wordsy._arm_timer(p_game_id);
+      out_timer_started := true;
+    end if;
+    -- One word a round: the last player in ends it, the clock or no clock.
+    if wordsy._is_one_word(g) and wordsy._is_everyone_in(p_game_id, r.num) then
+      perform wordsy._end_round(p_game_id, caller_id);
+      out_round_ended := true;
+    end if;
   end if;
 
   perform wordsy._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
@@ -1166,6 +1383,11 @@ grant execute on function wordsy.submit_word(uuid, text) to authenticated;
 -- find no clock running and answer a race. The server's own count must have
 -- reached the round's seconds, so a client still holding last round's zero
 -- cannot end a round that has just begun.
+--
+-- In coop the clock running out ends nothing: the card says take as long as
+-- you need, and a late word simply earns no bonus. The first call puts the
+-- clock away so the header stops at 0:00 and answers `expired`; the rest find
+-- it put away and answer the same race.
 create or replace function wordsy.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1188,7 +1410,8 @@ begin
   end if;
 
   select * into r from wordsy.rounds where game_id = p_game_id and ended_at is null;
-  if r.timer_started_at is null then
+  if r.timer_started_at is null
+     or (select kind from common.timers where game_id = p_game_id) = 'none' then
     raise exception 'That round is already over'
       using errcode = 'PN551', hint = 'race', column = '_',
       detail = 'no round clock is running';
@@ -1199,6 +1422,12 @@ begin
     raise exception 'The clock is still running'
       using errcode = 'PN552', hint = 'race', column = '_',
       detail = 'common.timers.ticks is short of the round''s seconds';
+  end if;
+
+  if wordsy._is_coop(p_game_id) then
+    perform wordsy._disarm_timer(p_game_id);
+    perform wordsy._rebuild_data_cols(p_game_id, p_update_status_changed_at => false);
+    return common._ok_envelope(jsonb_build_object('result', 'expired'));
   end if;
 
   perform wordsy._end_round(p_game_id, null);
@@ -1326,9 +1555,10 @@ grant execute on function wordsy.stop_game(uuid) to authenticated;
 -- ============================================================
 -- wordsy.concede — a player drops out
 -- ============================================================
--- A conceder keeps their finished rounds; later rounds have no row for them,
--- they are no opponent for the bonuses, and they are not ranked. Everyone
--- conceding ends the game as a loss for all (`common._concede`). In
+-- Compete only, as every concede is (docs/common-schema.md → Concede); coop
+-- stops. A conceder keeps their finished rounds; later rounds have no row for
+-- them, they are no opponent for the bonuses, and they are not ranked.
+-- Everyone conceding ends the game as a loss for all (`common._concede`). In
 -- `no-timer` and a `one_word` game, a concede by the last player yet to
 -- submit ends the round; between rounds, a concede by the last player yet to
 -- press Start deals the next.
@@ -1390,7 +1620,9 @@ grant execute on function wordsy.concede(uuid) to authenticated;
 -- The "Restart" game-menu item. The deck is kept and `drawn` emptied, so the
 -- deal replays the same seven tables; the rounds, their words and the log go,
 -- and the clock is put away. In `no-timer` the First Wordsmith is drawn
--- again. Any player may call it, mid-game or after the end.
+-- again; in coop the card goes back to band 1 with no penalties, the turn to
+-- seat 0 (`common._reset_game`), and the deal arms the clock. Any player may
+-- call it, mid-game or after the end.
 create or replace function wordsy.replay_board(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -1411,7 +1643,11 @@ begin
 
   delete from wordsy.events where game_id = p_game_id;
   delete from wordsy.rounds where game_id = p_game_id;
-  update wordsy.games set drawn = '{}' where game_id = p_game_id;
+  update wordsy.games
+     set drawn = '{}',
+         band = case when band is not null then 1 end,
+         n_penalties = case when n_penalties is not null then 0 end
+   where game_id = p_game_id;
   update wordsy.players set ready_for_num = null where game_id = p_game_id;
 
   perform common._reset_game(p_game_id);

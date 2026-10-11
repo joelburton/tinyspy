@@ -132,10 +132,10 @@ select is(
      from jsonb_array_elements(pg_temp.gd() -> 'events') e),
   jsonb_build_array(
     jsonb_build_object('userId', pg_temp.ws_uid('ada'), 'kind', 'word', 'num', 1, 'word', 'ab',
-                       'score', 5, 'bonus', 2, 'tookTurn', true),
+                       'score', 5, 'bonus', 2, 'beatClock', null, 'band', null, 'tookTurn', true),
     jsonb_build_object('userId', pg_temp.ws_uid('bea'), 'kind', 'word', 'num', 1, 'word', 'ad',
-                       'score', 4, 'bonus', 0, 'tookTurn', true)),
-  'the log: each word, its score and its bonus'
+                       'score', 4, 'bonus', 0, 'beatClock', null, 'band', null, 'tookTurn', true)),
+  'the log: each word, its score and its bonus; the coop keys null in compete'
 );
 select is(
   pg_temp.facts('ada'),

@@ -5,11 +5,13 @@
 -- ============================================================
 --   1. the gates it inherits: signed out, the caller not among the players
 --   2. its own refusals, every one a FAULT — the setup form fixes the timer
---      at none, offers the six bands, the two styles and 1–120 seconds, and
---      the club page offers FlipWord in compete only and to two or more:
---        the band (PN543), the style (PN544), coop (PN545), one player
+--      at none, offers the six bands, the two styles and 1–120 seconds, the
+--      club page offers compete to two or more, and the coop form sends the
+--      card's fixed keys:
+--        the band (PN543), the style (PN544), one player in compete
 --        (PN546), a whole-game timer (PN547), n_rounds not 3 or 7 (PN554),
---        one_word missing (PN555), the seconds outside 1–120 (PN558)
+--        one_word missing (PN555), the seconds outside 1–120 (PN558), a coop
+--        setup off the card (PN559)
 --   3. the happy path: the envelope, the deck a shuffle of all 60, round 1
 --      dealt from it, the players, the title, the clock put away
 --   4. the deck is withheld from a client; what was dealt is not
@@ -81,7 +83,7 @@ select pg_temp.envelope_is(
 );
 select pg_temp.envelope_is(
   pg_temp.try(pg_temp.setup(), 'coop'),
-  '{"type":"not-ok","severity":"fault","dbcode":"PN545"}'::jsonb,
+  '{"type":"not-ok","severity":"fault","dbcode":"PN559"}'::jsonb,
   'coop is refused: FlipWord is compete only'
 );
 select pg_temp.envelope_is(
