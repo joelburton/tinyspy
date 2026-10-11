@@ -86,14 +86,21 @@ takes as long as they need; the First Wordsmith stands in for the Fastest
 when scoring. Each round the player with the fewest bonuses becomes the next
 First Wordsmith, ties to the closest clockwise.
 
-**Solo** is on the back of the No Flip card, which no source reproduces. The
-2016 preview describes the version it was built from: the timer starts on the
-middle spot of a three-spot track; a round of 15 or more while you paused the
-timer earns a bonus, the better one if the timer sits on the top spot; a
-round under 20 moves the timer down, and falling off the track costs a
-penalty and resets it; a round of 20 or more while paused moves it to the
-top. Win at 100, 110 or 120. The designer confirmed on BGG that the solo
-timer gets its full time each round.
+**Solo** is on the back of the No Flip card, which no source online
+reproduces; Joel transcribed the 2025 card on 2026-10-10. The card has three
+bands, a green 1 at the top, an amber 2, a red 3; the timer starts on 1. Each
+round, flip the timer at the start and take as long as you need, noting
+whether you finished before it ran out. Score the word normally. A word that
+beat the timer and scored 15 or more earns a bonus: the higher bonus column
+with the timer on 1, the lower on 2 or 3. Then move the timer: under 20 moves
+it down, or on 3 marks a penalty and moves it to 2; 20 or more without a
+bonus leaves it; 20 or more with a bonus moves it up, never above 1. After
+seven rounds, the total names a title: 90 Wordprentice, 100 Wordsmith, 110
+Wordspert, 120 Wordmaster. The card does not say what a penalty is worth or
+whether the two lowest rounds are dropped; the 2016 preview, describing the
+version the card was built from, says −2, and [decision 20](#solo-and-coop)
+drops them. The designer confirmed on BGG that the solo timer gets its full
+time each round.
 
 ## What the app does with that
 
@@ -565,25 +572,139 @@ with scores.
 |---|---|---|
 | players | 2–6 | compete only |
 | `legal_band` | 1–6, default 4 | `DictBandField`, any word length (decision 8) |
-| `round_style` | `timer` (default) · `no-timer` | a `RadioRow`; the summary reads "Round: 30-second timer" / "Round: no timer" |
+| `round_style` | `timer` (default) · `no-timer` | a `RadioRow`; the summary reads "Round: 30-second timer" / "Round: no timer"; compete only once coop lands (decision 24) |
+| `timer_seconds` | 1–120, default 30 | a `NumberField`, decision 26; the summary's "N-second timer" |
 | `timer` | fixed `{kind: 'none'}` | never shown; `NOT_A_ROW` |
 
 The summary line shows the band in the `dict "…"` slot every band-sensitive
 game uses, and the round style beside it.
 
-## Later
+## Solo and coop
 
-- **Solo-coop**: the solo card's chase of 100, 110 or 120 with the pause
-  mechanic, played by one person. Needs the 2025 card's actual text, or the
-  2016 version above if the card never surfaces.
-- **Team-coop**: the same chase, any player may enter the word.
+Decided 2026-10-10, Joel's answers to the six questions a solo mode raised,
+and one change to the clock that reaches compete too.
+
+### Decided — Joel's answers, 2026-10-10
+
+20. **The best five of seven count in solo too**, bonuses kept, penalties
+    taken. The card says only "add up your score", but it expects 20 a word
+    from a good player, and all seven would be 140, far above its highest
+    title. Judgment: "I strongly assume you drop lowest-two (while still
+    keeping bonus, as always)."
+21. **A penalty is −2** at the end, the 2016 preview's value.
+22. **Under 90 is a loss.** The titles start at 90.
+23. **The first word is final.** No replacing it while the clock runs.
+24. **Solo and coop set up two things: the dictionary and the clock's
+    seconds.** Seven rounds, the timer, one word a round are the card's and
+    fixed.
+25. **One coop manifest covers solo and the team**, 1–6 players, and the team
+    writes **free-for-all or turn-by-turn**: "both free-for-all and
+    turn-by-turn."
+26. **The clock's seconds are a number the creator types, 1–120, default
+    30**, in every mode: "replace the 30-sec timer with a enter-a-num-seconds
+    timer (defaults to 30, but could change to 15, etc). this shouldn't be a
+    drop-down; they can enter any number 1-120. solo/coop requires a number,
+    compete can still pick the no-timer."
+
+### The clock's seconds — compete and coop alike
+
+- **Setup gains `timer_seconds int`, 1–120, default 30.** Compete keeps
+  `round_style` (`timer` · `no-timer`); the seconds apply under `timer`. Coop
+  has the clock always, so its `round_style` is fixed at `timer` and never
+  shown (`NOT_A_ROW_IN`).
+- **The form:** the Round section's `RadioRow` reads "Timer" and "No timer",
+  and a `NumberField` for the seconds sits beside it (`chars: 3`, min 1, max
+  120), disabled under no-timer; coop shows the number alone. The validator
+  refuses a non-integer or one outside 1–120 ("1 to 120 seconds");
+  `create_game` re-checks. The setup rows read "Round: 45-second timer".
+- **`_arm_timer` writes the game's seconds**, not 30. The header's clock
+  already reads the shell's `timer.seconds`, so nothing in the shell changes.
+- **Every copy that says 30 reads the setup instead:** the first-in header
+  line ("submitted — 45 seconds"; `first_in_peer` gains `seconds`), the
+  manifest's intro and the help ("a clock of the seconds you chose, 30 by
+  default"), the setup form's and `types.ts`'s comments, `setup.ts`'s labels
+  and default.
+- **One migration**, the column with its default and check, the setups and
+  the clubs' saved defaults gaining `"timer_seconds": 30`, as
+  `20261011000000_wordsy_setup_options.sql` did for its two keys.
+- **The card follows**: its "30-second clock" becomes the clock the creator
+  sets.
+
+### The game, in the app's terms — coop
+
+- **`wordsy_coop`** on the family `wordsy`, `mode = 'coop'`, 1–6 players; the
+  gametype row `('wordsy_coop', 1, 'FlipWord')` and the clubs backfill on
+  everywhere, the solo clubs included. `create_game` drops its "FlipWord in
+  coop" raise and takes the common coop setup keys.
+- **Setup:** `legal_band`, `timer_seconds`, and the common coop pacing —
+  `coop_style` (`free-for-all` · `turns`) with `first_turn_user_id`, through
+  `SetupCoopStyleSection`, which self-gates. Fixed and never shown:
+  `round_style: 'timer'`, `n_rounds: 7`, `one_word: true`, `timer: {kind:
+  'none'}`.
+- **The card's state is on the game row:** `band smallint` (1–3, starts at
+  1) and `n_penalties int`. Both null in compete.
+- **A round:** the deal arms the clock for the setup's seconds. The team
+  writes one word. Free-for-all: anyone's submit is the team's word.
+  Turn-by-turn: only `current_turn_user_id` may submit (a `PA` raise for
+  anyone else, "bea is writing this round"), and `common._advance_turn` runs
+  at the round's end, so the writer rotates by round; the turn bell and
+  frame mark the writer's turn arriving, as every game with turns does. The
+  word is final at its submit (decision 23) and the submit ends the round.
+  **The clock running out does not end the round** (Joel, 2026-10-10: "round
+  continues") — the card says take as long as you need — so `submit_timeout`
+  in coop only disarms the clock (the
+  header reads 0:00 and stops); the word's `submitted_at` against
+  `timer_started_at` plus the seconds says whether it beat the clock.
+- **Scoring, the coop branch of `_end_round`:** the word's score as in
+  compete. A word that beat the clock and scored 15 or more earns the
+  round's bonus: on band 1 the higher column's value (2 / 3 / 4 for rounds
+  1–3 / 4–6 / 7), on 2 or 3 the lower's (1 / 2 / 3). Then the band: under 20
+  moves it down, or on 3 adds a penalty and sets it to 2; 20 or more with a
+  bonus moves it up, never above 1; 20 or more without leaves it. No
+  Fastest, No Flip, First Wordsmith or opponent count in coop. The events row
+  is the team's one word, `user_id` the writer, with two new columns the
+  sheets read: `beat_clock boolean` and `band smallint` (the band the round
+  was scored on); both null in compete.
+- **The end, after round 7:** total = the best five scores + every bonus −
+  2 × penalties. 90 or more wins, with the title (90 Wordprentice, 100
+  Wordsmith, 110 Wordspert, 120 Wordmaster) as the ending's detail; under 90
+  loses. The reason pair `resource_exhausted / rounds_played` as compete's.
+  The common coop stop and concede apply as in every coop game.
+- **The page blobs:** `game_data` gains `band`, `nPenalties`, each event's
+  `beatClock` and `band`, and each round's `timerSeconds`; `summary_data`
+  gains `title` (null until the end, and in compete); the compete keys that
+  have no coop meaning (`fastest`, `noFlipHolder`, `isBlockedByNoFlip`) read
+  null or false.
+- **The board column, coop:** under the entry, beside the typed word's lines,
+  the solo card as Joel drew it: three squares, green 1, amber 2, red 3, a
+  dark border on the current band, and a penalty mark (−2) per penalty beside
+  it. The clock in the header as compete's. In turn-by-turn the entry is the
+  writer's alone; the others see the state line "bea is writing" and the
+  card.
+- **The info column, coop:** the state line "Round 3 of 7 · 42 pts · 1
+  penalty"; the strip in coop's shape (one total); the log a row per round.
+- **The scoresheets, coop:** the round's sheet is one row — the word, its
+  score, a mark for beating the clock, the bonus, the band it leaves the
+  timer on. The game's sheet a row per round the same way, struck rows as
+  compete's, and under the total the penalties and the title. The bonus
+  columns' glyph headings are compete's; coop has one bonus column headed by
+  the hourglass with a check.
+- **The ending message:** "Wordsmith · 104 pts", or "Lost · 82 pts — 90 for
+  Wordprentice". The summary: "Playing · Round 3 of 7", then the title and
+  total, or "Lost · 82 pts".
+- **Help** gains a coop paragraph and the card's thresholds; the Setup
+  options list says which options each mode has.
+
+### Later
+
 - **Scoring a non-word as 0** as a setup option, the rulebook's way.
 
 ## Steps
 
 Each step ends at a stop: the work sits in the working tree for Joel to read,
 and the next step waits for his go. Step 1 is common and ships on its own;
-the rest are the game, in dependency order.
+the rest are the game, in dependency order. Steps 11–16 are
+[Solo and coop](#solo-and-coop); step 10 closes the plan after them.
 
 ### Step 0 — the rulings
 
@@ -718,8 +839,93 @@ ENV=prod`. A backup first. Then one game on prod with a friend.
 
 ### Step 10 — close the plan
 
-What this plan knows that the game's `doc.md` doesn't moves there; the
-plan and its `CLAUDE.md` row go.
+After step 16. What this plan knows that the game's `doc.md` doesn't moves
+there; the plan and its `CLAUDE.md` row go.
+
+### Step 11 — the clock's seconds (compete, deployable alone)
+
+[The clock's seconds](#the-clocks-seconds--compete-and-coop-alike), whole:
+the migration, `_arm_timer`, the setup's validation in `create_game`, the
+form's number field, the setup rows, the first-in line, the copy that said
+30, the card. pgTAP: `create_game_test` refuses 0 and 121 and takes 15;
+`gameplay_test` arms the clock for the setup's seconds. vitest: `setup.test`
+the validator's bounds, `SetupForm.test` the field disabled under no-timer,
+`PlayArea.test` the header line's seconds.
+
+**Done when:** tsc, lint, vitest wordsy + guards, pgTAP green; the setupRows
+guard knows the key; the wordsy e2e specs pass on Joel's go. Deploy: the
+migration, then the functions and FE; no blob key changes.
+
+### Step 12 — the coop shape: one migration
+
+The gametype row and the clubs backfill on everywhere; `wordsy.games` gains
+`band` and `n_penalties`, `wordsy.events` gains `beat_clock` and `band`, all
+null in compete; `wordsy.games.one_word` and `round_style` unchanged, the
+coop's fixed values written by `create_game`.
+
+**Done when:** it applies locally and `select * from common.clubs_gametypes
+where gametype = 'wordsy_coop'` has a row for every club, on in the solo
+ones.
+
+### Step 13 — the coop behavior: `wordsy.sql`
+
+`create_game` in coop: the fixed keys, the pacing keys through the common
+coop setup, `_assign_turn_order` under `turns`. The deal arms the clock. A
+submit in coop: the writer's gate under `turns`, the word final, the round
+ended. `submit_timeout` in coop disarms only. `_end_round`'s coop branch:
+the bonus, the band, the penalty, the events row with its two columns,
+`_advance_turn`. `_finish` in coop: the total with penalties, the title, won
+or lost. The blobs' new keys; `_rebuild_data_cols_for_all` already takes
+every `wordsy_` sibling. The header's docstring says the two modes.
+
+**Done when:** `gmake db-sql ENV=local` applies and step 14 is green.
+
+### Step 14 — pgTAP, coop
+
+| file | pins |
+|---|---|
+| `coop_test.sql` | create at 1 and at 6 players, the fixed keys, a pacing fault; the deal arms the clock for the seconds; free-for-all: anyone's submit ends the round; turns: the writer's gate, the rotation after each round, a concede skipping the seat |
+| `solo_card_test.sql` | the card walked: 15 before the clock on band 1 earns the higher bonus, on 2 the lower; 14 earns nothing; a late word earns nothing; under 20 moves down; on 3, a penalty and 2; 20 with a bonus moves up; on 1 stays; 20 without stays; the clock's expiry not ending the round |
+| `coop_finish_test.sql` | best five + bonuses − 2 × penalties; each title at its threshold and one below; 89 loses; the summary's `title` |
+| `game_data_test.sql` | a coop game's blob with the new keys, a compete game's nulls |
+
+The common rosters (`clubs_gametypes_test`, `function_grants_test`, the
+rest) name `wordsy_coop`.
+
+**Done when:** `gmake test-db` is green, every new test verified by a planted
+bug.
+
+### Step 15 — the coop frontend
+
+The `WordsyCoopManifest` beside compete's, 1–6, its intro, summary and card
+copy; `SetupForm` by mode (the dictionary and seconds in both; the Round
+section's radio, Length and One word in compete only; `SetupCoopStyleSection`
+in coop); the fixed keys in `NOT_A_ROW_IN`. `types.ts` and `useGame`: the
+band, the penalties, the title, the writer, each event's two facts. The board
+column's solo card (`SoloCard`, its own file and uppercase module) with the
+penalty marks; the turn bell and frame on the writer's turn; the state line
+and ending message; the sheets' coop shape; the printout's totals line. Help
+and the Setup options list. Tests: `useGame.test` the coop facts,
+`PlayArea.test` the card's border on the band and a penalty mark, the writer's
+entry alone in turns, the ending message and sheet; `manifest.test`'s coop
+summaries; `SetupForm.test` by mode.
+
+**Done when:** tsc, lint, vitest wordsy + guards green, and a solo game and a
+two-player turn-by-turn game played headless on the local stack through
+seven rounds, the card checked by hand.
+
+### Step 16 — the lists, e2e, docs, prod
+
+The gametype rosters step 6 touched take `wordsy_coop`. e2e, on Joel's go:
+`wordsy-coop` (solo: a word before the clock earns the bonus and the card's
+border moves; the title at the end) and the gallery's coop cells. Docs: the
+game's `doc.md` (rules, schema, RPCs, Frontend, Tests), the card in
+`plans/game-cards.md`, `docs/features.md`'s dimensions (coop, 1–6, turns).
+Prod as step 9: a backup, the migration, the functions and FE, then every
+schema's `_rebuild_data_cols_for_all()`, since `game_data` and
+`summary_data` gain keys.
+
+**Done when:** the guards are green and one solo game on prod.
 
 ## Reference
 
@@ -731,5 +937,8 @@ plan and its `CLAUDE.md` row go.
   [spelling](https://boardgamegeek.com/thread/1989520),
   [solo timer](https://boardgamegeek.com/thread/2449422).
 - [What's Eric Playing preview, 2016](https://whatsericplaying.com/2016/10/30/wordsy/)
-  (the solo rules and the per-player-count thresholds of the 2017 edition).
+  (the 2017 edition's solo rules and per-player-count thresholds; the
+  penalty's −2).
+- The 2025 No Flip card's solo side, Joel's transcription of 2026-10-10,
+  carried whole in [The rules → Solo](#the-rules-as-the-rulebook-has-them).
 - [BoardGameGeek](https://boardgamegeek.com/boardgame/208480/wordsy).
