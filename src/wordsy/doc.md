@@ -111,11 +111,11 @@ the page blobs.
 
 | table | holds |
 |---|---|
-| `wordsy.games` | `deck` (withheld), `drawn`, `legal_band`, `round_style`, `n_rounds` (7 or 3), `one_word` — the last two from `20261011000000_wordsy_setup_options.sql` — and `timer_seconds` (1–120, the round clock's length; `20261011000002_wordsy_timer_seconds.sql`) |
+| `wordsy.games` | `deck` (withheld), `drawn`, `legal_band`, `round_style`, `n_rounds` (7 or 3), `one_word` — the last two from `20261011000000_wordsy_setup_options.sql` — `timer_seconds` (1–120, the round clock's length; `20261011000002_wordsy_timer_seconds.sql`), and the coop's card, `band` (1–3) and `n_penalties`, null in compete (`20261011000003_wordsy_coop.sql`) |
 | `wordsy.players` | one row per player; the totals are summed off the log. `ready_for_num`, the round they last pressed Start for (`20261011000001_wordsy_round_ready.sql`) |
 | `wordsy.rounds` | one row per round dealt: `tiles` in slot order, `fastest_user_id` (the Fastest, or no-timer's First Wordsmith), `no_flip_user_id`, `timer_started_at`, `ended_at` |
 | `wordsy.round_words` | each player's standing word for the round in play. No grant |
-| `wordsy.events` | the reveal: a row per player still playing per finished round, `num`, `word` (`''` for none), `score`, `bonus` |
+| `wordsy.events` | the reveal: a row per player still playing per finished round, `num`, `word` (`''` for none), `score`, `bonus`; in coop, the team's one word a round with `beat_clock` and the `band` it was scored on, both null in compete |
 
 **The page blobs**, written by `wordsy._rebuild_data_cols`:
 

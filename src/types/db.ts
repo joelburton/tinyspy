@@ -2895,13 +2895,13 @@ isOneToOne: false
           Tables: {
             "events": {
                   Row: {
-                    "bonus": number,"created_at": string,"game_id": string,"id": number,"kind": string,"num": number,"score": number,"took_turn": boolean,"user_id": string,"word": string
+                    "band": number | null,"beat_clock": boolean | null,"bonus": number,"created_at": string,"game_id": string,"id": number,"kind": string,"num": number,"score": number,"took_turn": boolean,"user_id": string,"word": string
                   }
                   Insert: {
-                    "bonus": number,"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"num": number,"score": number,"took_turn"?: boolean,"user_id": string,"word": string
+                    "band"?: number | null,"beat_clock"?: boolean | null,"bonus": number,"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"num": number,"score": number,"took_turn"?: boolean,"user_id": string,"word": string
                   }
                   Update: {
-                    "bonus"?: number,"created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"num"?: number,"score"?: number,"took_turn"?: boolean,"user_id"?: string,"word"?: string
+                    "band"?: number | null,"beat_clock"?: boolean | null,"bonus"?: number,"created_at"?: string,"game_id"?: string,"id"?: never,"kind"?: string,"num"?: number,"score"?: number,"took_turn"?: boolean,"user_id"?: string,"word"?: string
                   }
                   Relationships: [
                     {
@@ -2914,13 +2914,13 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_rounds": number,"one_word": boolean,"round_style": string,"timer_seconds": number,"_is_one_word": boolean | null
+                    "band": number | null,"deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_penalties": number | null,"n_rounds": number,"one_word": boolean,"round_style": string,"timer_seconds": number,"_is_one_word": boolean | null
                   }
                   Insert: {
-                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_rounds"?: number,"one_word"?: boolean,"round_style": string,"timer_seconds"?: number
+                    "band"?: number | null,"deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_penalties"?: number | null,"n_rounds"?: number,"one_word"?: boolean,"round_style": string,"timer_seconds"?: number
                   }
                   Update: {
-                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"n_rounds"?: number,"one_word"?: boolean,"round_style"?: string,"timer_seconds"?: number
+                    "band"?: number | null,"deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"n_penalties"?: number | null,"n_rounds"?: number,"one_word"?: boolean,"round_style"?: string,"timer_seconds"?: number
                   }
                   Relationships: [
                     
