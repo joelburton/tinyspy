@@ -2,7 +2,9 @@
 
 import { DotActor } from '@/common/members/ActorMention'
 import { makeRoundSheet } from '../lib/scoresheet'
-import { SheetBeatHeading, SheetBonus, SheetFastestHeading, SheetWord } from './SheetCells'
+import {
+  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetFastestHeading, SheetWord,
+} from './SheetCells'
 import type { GGameData, GRound } from '../types'
 import styles from './scoresheet.module.css'
 
@@ -11,7 +13,9 @@ import styles from './scoresheet.module.css'
  * starts: a row per player, in the reveal's order. Who, the word, its score,
  * the bonus for beating the Fastest, the Fastest's own bonus (each column
  * headed by its rule in glyphs), the round's total under =, and a gold star
- * on the best total.
+ * on the best total. In coop the one row is the team's word: who wrote it,
+ * the word, its score, whether it beat the clock, the band it was scored on,
+ * its bonus, and the total.
  */
 export function RoundScoresheet({
   gd,
@@ -20,6 +24,7 @@ export function RoundScoresheet({
   gd: GGameData
   round: GRound
 }) {
+  const isCoop = gd.team !== null
   return (
     <div data-testid="round-scoresheet" className={styles.sheet}>
       <table className={styles.table}>
@@ -28,10 +33,11 @@ export function RoundScoresheet({
             <th/>
             <th/>
             <th/>
-            <SheetBeatHeading/>
-            <SheetFastestHeading/>
+            {isCoop ? <SheetClockHeading/> : <SheetBeatHeading/>}
+            {isCoop ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
+            <th className={styles.bonus}>+</th>
             <th className={styles.num}>=</th>
-            <th className={styles.star}/>
+            {!isCoop && <th className={styles.star}/>}
           </tr>
         </thead>
         <tbody>
@@ -40,10 +46,21 @@ export function RoundScoresheet({
               <td><DotActor actor={row.player}/></td>
               <td><SheetWord row={row}/></td>
               <td className={styles.num}>{row.score}</td>
-              <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
-              <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+              {isCoop ? (
+                <>
+                  <td className={styles.bonus}><SheetBeatClock beatClock={row.beatClock!}/></td>
+                  <td className={styles.bonus}><SheetBand band={row.band!}/></td>
+                  <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+                </>
+              ) : (
+                <>
+                  <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
+                  <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+                  <td className={styles.bonus}/>
+                </>
+              )}
               <td className={styles.num}>{row.rowTotal}</td>
-              <td className={styles.star}>{row.isStar && '★'}</td>
+              {!isCoop && <td className={styles.star}>{row.isStar && '★'}</td>}
             </tr>
           ))}
         </tbody>

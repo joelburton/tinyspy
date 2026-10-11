@@ -3,7 +3,9 @@
 import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import { makeGameSheets } from '../lib/scoresheet'
-import { SheetBeatHeading, SheetBonus, SheetFastestHeading, SheetWord } from './SheetCells'
+import {
+  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetFastestHeading, SheetWord,
+} from './SheetCells'
 import type { GGameData } from '../types'
 import styles from './scoresheet.module.css'
 
@@ -13,24 +15,33 @@ import styles from './scoresheet.module.css'
  * number first, and the total under them. Its headings are the round sheet's:
  * only the bonus columns and = are named, since a word and its score need no
  * label. Each player's lowest word scores, which the total drops, are struck.
- * Scrolls inside its frame.
+ * As tall as its tables; a longer one than the column scrolls inside its frame.
+ *
+ * In coop the one table is the team's, headed by the card's title or "The
+ * team": a row per round with its writer, whether the word beat the clock and
+ * the band it was scored on; under the rows, the penalties' cost, then the
+ * total.
  */
 export function GameScoresheet({ gd }: { gd: GGameData }) {
+  const team = gd.team
   return (
     <div data-testid="game-scoresheet" className={cls(styles.sheet, styles.gameSheet)}>
       {makeGameSheets(gd).map(({ player, rows, total }) => (
-        <section key={player.id}>
+        <section key={player?.id ?? 'team'}>
           {/* The table's owner: named on a phone too, where a row's dot alone
               is enough. */}
-          <p className={styles.player}><DotActor actor={player} show="both"/></p>
+          <p className={styles.player}>
+            {player !== null ? <DotActor actor={player} show="both"/> : (team!.title ?? 'The team')}
+          </p>
           <table className={styles.table}>
             <thead>
               <tr>
                 <th/>
                 <th/>
                 <th/>
-                <SheetBeatHeading/>
-                <SheetFastestHeading/>
+                {team !== null ? <SheetClockHeading/> : <SheetBeatHeading/>}
+                {team !== null ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
+                <th className={styles.bonus}>+</th>
                 <th className={styles.num}>=</th>
               </tr>
             </thead>
@@ -38,15 +49,38 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
               {rows.map((row) => (
                 <tr key={row.num}>
                   <td>{row.num}</td>
-                  <td className={cls(row.isStruck && styles.struck)}><SheetWord row={row}/></td>
+                  <td className={cls(row.isStruck && styles.struck)}>
+                    {team !== null && <DotActor actor={row.player}/>}
+                    {team !== null && ' '}
+                    <SheetWord row={row}/>
+                  </td>
                   <td className={cls(styles.num, row.isStruck && styles.struck)}>{row.score}</td>
-                  <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
-                  <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+                  {team !== null ? (
+                    <>
+                      <td className={styles.bonus}><SheetBeatClock beatClock={row.beatClock!}/></td>
+                      <td className={styles.bonus}><SheetBand band={row.band!}/></td>
+                      <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+                    </>
+                  ) : (
+                    <>
+                      <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
+                      <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
+                      <td className={styles.bonus}/>
+                    </>
+                  )}
                   <td className={styles.num}>{row.rowTotal}</td>
                 </tr>
               ))}
+              {team !== null && team.nPenalties > 0 && (
+                <tr className={styles.penaltiesRow}>
+                  <td colSpan={6}>
+                    {team.nPenalties === 1 ? '1 penalty' : `${team.nPenalties} penalties`}
+                  </td>
+                  <td className={styles.num}>−{2 * team.nPenalties}</td>
+                </tr>
+              )}
               <tr className={styles.grandTotal}>
-                <td colSpan={5}/>
+                <td colSpan={6}/>
                 <td className={styles.num}>{total}</td>
               </tr>
             </tbody>

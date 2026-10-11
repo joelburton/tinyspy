@@ -22,12 +22,16 @@ export const TIMER_SECONDS_MAX = 120
 /**
  * The Round row's words, for the form's section summary and the setup rows
  * alike: "30-second timer", "45-second timer, one word", "No timer". While
- * the seconds box holds no number, just "Timer".
+ * the seconds box holds no number, just "Timer". Coop is always one word, so
+ * there the row does not say it.
  */
-export function describeRound(setup: Pick<GSetup, 'round_style' | 'timer_seconds' | 'one_word'>): string {
+export function describeRound(
+  setup: Pick<GSetup, 'round_style' | 'timer_seconds' | 'one_word'>,
+  mode: 'coop' | 'compete',
+): string {
   if (setup.round_style === 'no-timer') return 'No timer'
   const clock = Number.isInteger(setup.timer_seconds) ? `${setup.timer_seconds}-second timer` : 'Timer'
-  return clock + (setup.one_word ? ', one word' : '')
+  return clock + (mode === 'compete' && setup.one_word ? ', one word' : '')
 }
 
 /** The two lengths, as the form offers them and the rows name them. */
@@ -59,9 +63,9 @@ export function wordsySetupError(setup: GSetup): FormErrors {
 }
 
 /**
- * The initial setup: band 4 (doc.md → Setup says why it is a step above the
- * roster's usual), the rulebook's 30-second round, seven rounds, a word that
- * can change.
+ * Compete's initial setup: band 4 (doc.md → Setup says why it is a step above
+ * the roster's usual), the rulebook's 30-second round, seven rounds, a word
+ * that can change.
  */
 export const DEFAULT_WORDSY_SETUP: GSetup = {
   timer: { kind: 'none' },
@@ -70,4 +74,19 @@ export const DEFAULT_WORDSY_SETUP: GSetup = {
   timer_seconds: 30,
   n_rounds: 7,
   one_word: false,
+}
+
+/**
+ * Coop's initial setup: the same band and clock, and the card's fixed game —
+ * the timer, seven rounds, the first word final — with free-for-all writing;
+ * the Co-op section offers turns, and seeds `first_turn_user_id` itself.
+ */
+export const DEFAULT_WORDSY_SETUP_COOP: GSetup = {
+  timer: { kind: 'none' },
+  legal_band: 4,
+  round_style: 'timer',
+  timer_seconds: 30,
+  n_rounds: 7,
+  one_word: true,
+  coop_style: 'free-for-all',
 }

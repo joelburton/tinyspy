@@ -7,7 +7,7 @@ import {
   type ZTest_PlayAreaFacts,
 } from '@/common/game-page/playAreaLoaderProps.fixture'
 import type { GameDataRaw, PlayerRaw } from '@/common/game-page/gameData'
-import type { GEventRaw, GGameDataRaw, GPlayerRaw, GRoundRaw, GSetup, GTile } from '../types'
+import type { GBand, GEventRaw, GGameDataRaw, GPlayerRaw, GRoundRaw, GSetup, GTeam, GTile } from '../types'
 
 /**
  * The planted table supabase/tests/wordsy/setup.psql deals, so the frontend's
@@ -45,16 +45,23 @@ export type ZTest_PlayerFacts = {
   isWordFrozen?: boolean
   isBlockedByNoFlip?: boolean
   isReadyForNextRound?: boolean
+  // Under turns: the move is someone else's.
+  waitingForTurn?: boolean
 }
 
 /** One round's facts; the table is `ZTest_TABLE` unless said. */
 export type ZTest_RoundFacts = Partial<Omit<GRoundRaw, 'num'>> & { num: number }
 
 /** The facts a test sets up about a game. Everything else is a two-player
- *  timer game in round 1 on the planted table, viewed by `u1`. */
+ *  compete timer game in round 1 on the planted table, viewed by `u1`; a coop
+ *  game carries the team on band 1 with no penalties unless `team` says. */
 export type ZTest_GameDataFacts = {
   id?: string
+  mode?: 'coop' | 'compete'
   setup?: GSetup
+  team?: Partial<GTeam>
+  // The turn holder under turns; null for free-for-all.
+  turns?: { holder: string } | null
   rounds?: ZTest_RoundFacts[]
   events?: GEventRaw[]
   players?: ZTest_PlayerFacts[]
@@ -73,7 +80,7 @@ export const ZTest_CONCEDED: Pick<ZTest_PlayerFacts, 'ending' | 'outcome'> = {
   outcome: 'lost',
 }
 
-/** A log row: `userId`'s word in round `num`. */
+/** A log row: `userId`'s word in round `num`; the coop card facts when given. */
 export function ZTest_word(
   id: number,
   userId: string,
@@ -81,9 +88,11 @@ export function ZTest_word(
   word: string,
   score: number,
   bonus = 0,
+  card: { beatClock: boolean; band: GBand } | null = null,
 ): GEventRaw {
   return {
-    id, userId, kind: 'word', num, word, score, bonus, tookTurn: true,
+    id, userId, kind: 'word', num, word, score, bonus,
+    beatClock: card?.beatClock ?? null, band: card?.band ?? null, tookTurn: true,
     at: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
   }
 }
@@ -96,9 +105,17 @@ export function ZTest_word(
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
-    setup = {
-      timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 7, one_word: false,
-    },
+    mode = 'compete',
+    setup = mode === 'coop'
+      ? {
+        timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 7, one_word: true,
+        coop_style: 'free-for-all',
+      }
+      : {
+        timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 7, one_word: false,
+      },
+    team: teamFacts = {},
+    turns = null,
     rounds = [{ num: 1 }],
     events = [],
     players: playerFacts = ZTest_TWO,
@@ -106,10 +123,17 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     outcome = null,
   } = facts
   const ended = ending !== null
+  const team: GTeam | null = mode === 'coop'
+    ? {
+      total: 0, nBonuses: 0, roundScores: Array<null>(setup.n_rounds).fill(null),
+      band: 1, nPenalties: 0, title: null, ...teamFacts,
+    }
+    : null
 
   const players = playerFacts.map(function makePlayer(p): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const word = p.word ?? null
+    const waitingForTurn = stillPlaying && (p.waitingForTurn ?? (turns !== null && turns.holder !== p.id))
     return {
       id: p.id,
       username: p.username,
@@ -123,11 +147,12 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       conceded: p.ending?.reason === 'conceded',
       solved: false,
       stillPlaying,
-      onTurn: stillPlaying,
-      waitingForTurn: false,
-      total: p.total ?? 0,
-      nBonuses: p.nBonuses ?? 0,
-      roundScores: p.roundScores ?? Array<null>(setup.n_rounds).fill(null),
+      onTurn: stillPlaying && !waitingForTurn,
+      waitingForTurn,
+      // A coop player carries the team's numbers.
+      total: team?.total ?? p.total ?? 0,
+      nBonuses: team?.nBonuses ?? p.nBonuses ?? 0,
+      roundScores: team?.roundScores ?? p.roundScores ?? Array<null>(setup.n_rounds).fill(null),
       hasSubmitted: word !== null,
       word,
       isWordFrozen: p.isWordFrozen ?? false,
@@ -138,19 +163,19 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
 
   return {
     id,
-    gametype: 'wordsy_compete',
+    gametype: `wordsy_${mode}`,
     brand: 'FlipWord',
     club: { handle: 'testclub' },
-    mode: 'compete',
-    coop: false,
-    compete: true,
+    mode,
+    coop: mode === 'coop',
+    compete: mode === 'compete',
     title: `Round ${rounds.at(-1)!.num} of ${setup.n_rounds}`,
     setup,
-    turns: null,
+    turns,
     ending,
     ended,
     outcome,
-    team: null,
+    team,
     nRounds: setup.n_rounds,
     nBestRounds: setup.n_rounds === 3 ? 2 : 5,
     nTilesInDeck: 52 - 4 * (rounds.length - 1),
@@ -158,7 +183,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       tiles: ZTest_TABLE,
       fastest: null,
       noFlipHolder: null,
-      isTimerRunning: false,
+      // In coop the clock runs from the deal.
+      isTimerRunning: mode === 'coop' && !(r.ended ?? false),
       ended: false,
       ...r,
     })),

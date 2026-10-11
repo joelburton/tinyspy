@@ -1,6 +1,7 @@
 // cs-unmet
 
-import type { GScoredLetter, GScoredWord } from '../types'
+import { waitingForText } from '@/common/info-sheet/turnText'
+import type { GPlayer, GScoredLetter, GScoredWord } from '../types'
 import { ScoredWord } from './ScoredWord'
 import styles from './WordLines.module.css'
 
@@ -9,7 +10,8 @@ import styles from './WordLines.module.css'
  * ("DRAGON · 12"; doc.md → Frontend says why the page does the sum), and the
  * word standing for the round ("Your word: DRAGON · 12", "Your word is in: …"
  * once it can no longer change). While No Flip bars me from submitting, the
- * second line says so instead, since it is why ↵ does nothing.
+ * second line says so instead, since it is why ↵ does nothing; while the word
+ * is another writer's turn, it says whose.
  *
  * Each word is drawn by how it scores on the table (`ScoredWord`), in the wide
  * tracking. Both lines keep their height empty, so the column never moves as
@@ -19,6 +21,7 @@ export function WordLines({
   typed,
   standing,
   isBlockedByNoFlip,
+  waitingFor,
 }: {
   // The word in the entry as it scores; null when nothing is typed.
   typed: GScoredWord | null
@@ -26,6 +29,9 @@ export function WordLines({
   standing: (GScoredWord & { isFrozen: boolean }) | null
   // I may not submit yet: I hold No Flip and nobody has started the clock.
   isBlockedByNoFlip: boolean
+  // Under turns, the writer whose word the round waits for; null when the
+  // move is mine or the game has no turns.
+  waitingFor: GPlayer | null
 }) {
   return (
     <div className={styles.wordLines}>
@@ -33,8 +39,9 @@ export function WordLines({
         {typed !== null && <WordAndScore letters={typed.letters} score={typed.score}/>}
       </p>
       <p className={styles.standingLine}>
+        {waitingFor !== null && waitingForText(waitingFor)}
         {isBlockedByNoFlip && 'You hold No Flip — wait for someone else to submit'}
-        {!isBlockedByNoFlip && standing !== null && (
+        {waitingFor === null && !isBlockedByNoFlip && standing !== null && (
           <>
             {standing.isFrozen ? 'Your word is in: ' : 'Your word: '}
             <WordAndScore letters={standing.letters} score={standing.score}/>

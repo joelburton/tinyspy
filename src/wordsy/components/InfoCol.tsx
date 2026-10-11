@@ -5,6 +5,7 @@ import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
+import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import type { GActions, GGameData, GHistoryView, GPlayer } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
@@ -12,10 +13,14 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 
 /**
  * wordsy's info column, in the canonical order (docs/playarea.md →
- * Info-column readouts): state → opponents → action row → setup disclosure →
- * event log. Every command arrives as an action this column places, and the
- * log opens a past round through `historyView`; PlayArea owns the
- * coordination.
+ * Info-column readouts): state → opponents (compete) → turn line (coop, under
+ * turns) → action row → setup disclosure → event log. Every command arrives
+ * as an action this column places, and the log opens a past round through
+ * `historyView`; PlayArea owns the coordination.
+ *
+ * Coop shows no strip: every player carries the team's total, so a row per
+ * player would say one number six times, and the writer of each word is the
+ * log's to tell.
  */
 export function InfoCol({
   gd,
@@ -51,12 +56,21 @@ export function InfoCol({
           <StateLine gd={gd}/>
         </p>
 
-        <OpponentStrip
-          players={gd.players}
-          myId={gd.me.id}
-          metricLabel="Total"
-          metricFor={getTotalAndResult}
-        />
+        {gd.compete && (
+          <OpponentStrip
+            players={gd.players}
+            myId={gd.me.id}
+            metricLabel="Total"
+            metricFor={getTotalAndResult}
+          />
+        )}
+        {gd.turns !== null && (
+          <TurnStatusLine
+            turnHolder={gd.turns.holder}
+            isMyTurn={gd.me.onTurn}
+            isGameEnded={gd.ended}
+          />
+        )}
 
         {/* One row, one order, every action listed once (docs/playarea.md).
             Each action answers whether it shows. ICON-ONLY; the menu is the
@@ -83,6 +97,7 @@ export function InfoCol({
         events={gd.events}
         players={gd.players}
         myId={gd.me.id}
+        mode={gd.mode}
         isGameEnded={gd.ended}
         historyView={historyView}
       />

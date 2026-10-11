@@ -1,5 +1,6 @@
 // cs-unmet
 
+import { cls } from '@/common/utils/cls'
 import type { Member } from '@/common/members/member'
 import {
   EventLog,
@@ -24,6 +25,7 @@ export function GameEventLog({
   events,
   players,
   myId,
+  mode,
   isGameEnded,
   historyView,
 }: {
@@ -31,13 +33,14 @@ export function GameEventLog({
   events: GEvent[]
   players: Member[]
   myId: string
+  mode: 'coop' | 'compete'
   isGameEnded: boolean
   historyView: GHistoryView
 }) {
   const eventLogPicker = useEventLogPlayerPicker<GEvent>({
     players,
     myId,
-    mode: 'compete',
+    mode,
     isGameEnded,
     // Every player plays the same table each round, so "All" is the round as
     // it was revealed, and a player's own rows are the extra.
@@ -55,7 +58,9 @@ export function GameEventLog({
             isOpenInHistory={historyView.viewedNum === event.num}
             onShowHistory={() => historyView.show(event.num, event.num)}
           />
-          <td className={styles.wordCell}>
+          {/* The main column: the row's slack lands here, so the number and
+              the actor sit snug at their edges. */}
+          <td className={cls(gameEventLog.main, styles.wordCell)}>
             {event.word === ''
               ? <span className={styles.noWord}>{answerMessage({ answerType: 'no_word' }).text}</span>
               : (

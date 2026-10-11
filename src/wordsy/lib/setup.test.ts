@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_WORDSY_SETUP, wordsySetupError } from './setup'
+import { DEFAULT_WORDSY_SETUP, DEFAULT_WORDSY_SETUP_COOP, wordsySetupError } from './setup'
 import { makeSetupRows } from './setupRows'
 import type { GSetup } from '../types'
 
@@ -52,5 +52,17 @@ describe('makeSetupRows', () => {
 
   it('names the clock\'s seconds in the Round row', () => {
     expect(rows({ timer_seconds: 45 }).round_style).toBe('45-second timer')
+  })
+
+  it('in coop: the pacing row for a team, the Length kept, and no "one word", which coop always is', () => {
+    const team = [{ id: 'u1', username: 'me', color: 'red' }, { id: 'u2', username: 'bea', color: 'blue' }]
+    const coopRows = Object.fromEntries(
+      makeSetupRows({ ...DEFAULT_WORDSY_SETUP_COOP, coop_style: 'turns', first_turn_user_id: 'u2' }, 'coop', team)
+        .map((r) => [r.key, r.value]))
+    expect(coopRows).toMatchObject({
+      coop_style: 'turn by turn', n_rounds: '7 rounds, best 5', round_style: '30-second timer',
+    })
+    expect(makeSetupRows(DEFAULT_WORDSY_SETUP_COOP, 'coop', team.slice(0, 1)).map((r) => r.key))
+      .not.toContain('coop_style')
   })
 })

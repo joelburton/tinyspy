@@ -15,13 +15,13 @@ import type { GEvent, GFacts, GGameData, GGameDataRaw, GPlayer, GRound } from '.
  * open, since one blob serves every seat, and this is where a rival's is
  * dropped — the rulebook's words are written face down until the clock runs
  * out (plans/seat-view.md → The security line is `useGame`). Whether a rival
- * has submitted stays: the strip shows who is in.
+ * has submitted stays: the strip shows who is in. In coop a word ends the
+ * round as it lands, so no standing word is ever another's to drop.
  */
 export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
-  // `team` (always null: compete only) goes onto the players; `gd` has none.
-  const { team, turns, ending, ...rest } = raw
+  const { turns, ending, ...rest } = raw
 
-  const gameFacts = { ended: raw.ended, reason: ending?.reason ?? null }
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null, team: raw.team }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const own: GFacts = {
       total: p.total,
@@ -33,12 +33,17 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       isBlockedByNoFlip: p.isBlockedByNoFlip,
       isReadyForNextRound: p.isReadyForNextRound,
     }
+    // The side's facts: a racer's side is themselves; a coop player's numbers
+    // are the team's, and the rest stay their own.
+    const side: GFacts = raw.team === null
+      ? own
+      : { ...own, total: raw.team.total, nBonuses: raw.team.nBonuses, roundScores: raw.team.roundScores }
     const tiedWithNames = raw.players
       .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)
       .map((o) => o.username)
-    // Spread on, the side's facts — a racer's side is themselves — and under
-    // `own`, their own (docs/common-schema.md → A player's facts).
-    return { ...p, ...(team ?? own), own, endingLabel: makeEndingLabel(p, gameFacts, tiedWithNames) }
+    // Spread on, the side's, and under `own`, their own (docs/common-schema.md
+    // → A player's facts).
+    return { ...p, ...side, own, endingLabel: makeEndingLabel(p, gameFacts, tiedWithNames) }
   })
   const playersById = Object.fromEntries(players.map((p) => [p.id, p]))
 

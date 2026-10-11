@@ -3,8 +3,8 @@
 /* The two scoresheets' look — `RoundScoresheet`, `GameScoresheet` and the
  * cells they share (`SheetCells`) — so a lowercase, shared sheet. A scoresheet
  * sits in the board's place, framed as the info column's log box is, and only
- * as wide as its rows. The game's scrolls inside its frame, so a long one
- * still fits the column. */
+ * as wide as its rows and as tall as they are. The game's scrolls inside its
+ * frame, so a long one still fits the column. */
 /* @@ */ .sheet {
   width: fit-content;
   max-width: var(--avail-w);
@@ -13,8 +13,11 @@
   padding: 0.6rem 0.8rem;
 }
 
+/* The game's sheet is as tall as its tables and no taller; only when the
+ * column is shorter than they are does it shrink and scroll (`min-height: 0`
+ * lets a flex child go below its content's height). */
 /* @@ */ .gameSheet {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;
@@ -87,6 +90,11 @@
 /* A word whose score the total drops: one of the player's lowest. */
 /* @@ */ .struck {
   text-decoration: line-through;
+  color: var(--outcomes-lost-ink-color);
+}
+
+/* Coop's penalties, their cost under the = column, in the lost ink. */
+/* @@ */ .penaltiesRow td {
   color: var(--outcomes-lost-ink-color);
 }
 

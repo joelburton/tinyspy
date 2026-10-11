@@ -48,8 +48,9 @@ export function useSubmitTimeoutOnExpiry({
       } else if (res.type === 'not-ok') {
         // It reaches no player, so it must be findable in the log.
         console.error(`[db] submitTimeout failed: ${res.message} (${res.dbcode})`)
-      } else if (res.type === 'ok' && res.data?.result === 'ended') {
-        // The end arrives by subscription, here as everywhere.
+      } else if (res.type === 'ok' && (res.data?.result === 'ended' || res.data?.result === 'expired')) {
+        // The end — or the clock put away with the game going on — arrives by
+        // subscription, here as everywhere.
       } else {
         reportUnhandled('submit_timeout', res)
       }

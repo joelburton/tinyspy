@@ -1,0 +1,23 @@
+/* cs-unmet */
+
+/* The solo card: three band squares in a row, the penalty marks after a gap. */
+/* @@ */ .card {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0;
+}
+
+/* @@ */ .penalties {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+}
+
+/* A penalty: −2 at the end, in the lost ink so it reads as the cost it is. */
+/* @@ */ .penalty {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--outcomes-lost-ink-color);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,17 +1,42 @@
 // cs-unmet
 
-import { IconFastest, IconOpponents, IconPlayer } from '@/common/icons/icons'
+import { IconFastest, IconOpponents, IconPlayer, IconWordOk } from '@/common/icons/icons'
 import { answerMessage } from '../lib/answer'
-import type { GSheetRow } from '../types'
+import type { GBand, GSheetRow } from '../types'
+import { BandSquare } from './BandSquare'
 import styles from './scoresheet.module.css'
 
 /*
- * The cells the two scoresheets build a row from, and the two bonus columns'
- * headings — one vocabulary, reached for together, so they share a file
- * (docs/code-conventions.md → Component names).
+ * The cells the two scoresheets build a row from, and the bonus columns'
+ * headings — compete's two, and coop's clock and band — one vocabulary,
+ * reached for together, so they share a file (docs/code-conventions.md →
+ * Component names).
  */
 
 const GLYPH_SIZE = 14
+
+/** Coop's clock column's heading: hourglass and check, "the word beat the
+ *  clock". */
+export function SheetClockHeading() {
+  return (
+    <th className={styles.bonus}>
+      <span className={styles.heading}>
+        <IconFastest size={GLYPH_SIZE}/><IconWordOk size={GLYPH_SIZE}/>
+      </span>
+    </th>
+  )
+}
+
+/** Coop's clock cell: a check for a word in before the clock ran out, else a
+ *  dash. */
+export function SheetBeatClock({ beatClock }: { beatClock: boolean }) {
+  return beatClock ? <IconWordOk size={GLYPH_SIZE} data-testid="beat-clock"/> : <>–</>
+}
+
+/** Coop's band cell: the band the word was scored on, as the card draws it. */
+export function SheetBand({ band }: { band: GBand }) {
+  return <BandSquare band={band}/>
+}
 
 /** The beat-the-Fastest column's heading, its rule in glyphs: player >
  *  hourglass, "you scored above the Fastest". */

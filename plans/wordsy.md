@@ -698,9 +698,11 @@ and one change to the clock that reaches compete too.
   compete's, and under the total the penalties and the title. The bonus
   columns' glyph headings are compete's; coop has one bonus column headed by
   the hourglass with a check.
-- **The ending message:** "Wordsmith · 104 pts", or "Lost · 82 pts — 90 for
-  Wordprentice". The summary: "Playing · Round 3 of 7", then the title and
-  total, or "Lost · 82 pts".
+- **The ending message:** the common label's word, then the title — "Won
+  (Wordsmith)" (Joel, 2026-10-11: "should just be Won (Wordsmith)"), the
+  total being the sheet's — or "Lost (82 pts · 90 for Wordprentice)". The
+  summary: "Playing · Round 3 of 7", then "Won (Wordsmith) · 107 pts", or
+  "Lost (82 pts · 90 for Wordprentice)".
 - **Help** gains a coop paragraph and the card's thresholds; the Setup
   options list says which options each mode has.
 

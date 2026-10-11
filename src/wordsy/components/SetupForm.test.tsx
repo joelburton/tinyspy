@@ -3,7 +3,8 @@
 /**
  * wordsy's setup form: the players, the dictionary band, the length, how a
  * round ends with the clock's seconds, and one word a round — and no Timer
- * section, since the round's clock is the game's own.
+ * section, since the round's clock is the game's own. Coop offers the
+ * dictionary, the seconds and the co-op pacing, and nothing the card fixes.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SetupForm } from './SetupForm'
 import { fieldNames } from '@/common/setup-form/fieldNames'
 import { errorUnder } from '@/common/fields/errorUnder'
-import { DEFAULT_WORDSY_SETUP } from '../lib/setup'
+import { DEFAULT_WORDSY_SETUP, DEFAULT_WORDSY_SETUP_COOP } from '../lib/setup'
 import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
@@ -20,18 +21,18 @@ const MEMBERS = [
   { id: 'moth', username: 'moth', color: 'blue' },
 ] as Member[]
 
-function draw({ errors = {} as FormErrors, values = {} } = {}) {
+function draw({ errors = {} as FormErrors, values = {}, mode = 'compete' as 'coop' | 'compete' } = {}) {
   const set = vi.fn()
   const view = render(
     <SetupForm
-      mode="compete"
+      mode={mode}
       brand="FlipWord"
       clubHandle="moths"
       members={MEMBERS}
       myId="self"
-      numberOfPlayers={[2, 6]}
+      numberOfPlayers={mode === 'coop' ? [1, 6] : [2, 6]}
       values={{
-        ...DEFAULT_WORDSY_SETUP,
+        ...(mode === 'coop' ? DEFAULT_WORDSY_SETUP_COOP : DEFAULT_WORDSY_SETUP),
         ...values,
         player_user_ids: new Set(MEMBERS.map((m) => m.id)),
       }}
@@ -116,6 +117,26 @@ describe('wordsy setup — how a round ends', () => {
     const { set } = draw()
     await user.click(screen.getByRole('radio', { name: 'No timer' }))
     expect(set).toHaveBeenCalledWith('round_style', 'no-timer')
+  })
+})
+
+describe('wordsy setup — coop', () => {
+  it('offers the co-op pacing, the dictionary and the seconds, and nothing the card fixes', () => {
+    expect(fieldNames(draw({ mode: 'coop' }).container))
+      .toEqual(['player_user_ids', 'coop_style', 'legal_band', 'timer_seconds'])
+  })
+
+  it('reads the clock back without "one word", which coop always is', () => {
+    draw({ mode: 'coop' })
+    expect(screen.getByText('Round: 30-second timer')).toBeInTheDocument()
+    expect(screen.getByText('Co-op: free-for-all')).toBeInTheDocument()
+  })
+
+  it('writes the pacing the RPC seats the turns from', async () => {
+    const user = userEvent.setup()
+    const { set } = draw({ mode: 'coop' })
+    await user.click(screen.getByRole('radio', { name: 'turns' }))
+    expect(set).toHaveBeenCalledWith('coop_style', 'turns')
   })
 })
 

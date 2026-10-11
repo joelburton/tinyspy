@@ -5,16 +5,11 @@
   gap: 1rem;
 }
 
-/* The on-screen keyboard: a phone's only way to type. A desktop has a real
- * keyboard and the board column's room is the board's, so it is hidden there. */
+/* The on-screen keyboard, at every width as the other word games show it:
+ * a phone's only way to type, and a desktop's way to tap a letter. `display:
+ * contents` so this naming wrapper generates no box. */
 /* @@ */ .onscreenKeyboard {
-  display: none;
-}
-
-@media (--mobile) {
-/* @@ */   .onscreenKeyboard {
-    display: block;
-  }
+  display: contents;
 }
 
 /* Everything under the board, as wide as the board. */
@@ -23,6 +18,16 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0.4rem;
+}
+
+/* Under the entry: the two word lines, and in coop the solo card beside them.
+ * The lines keep their width (`WordLines` centers in it), so the card sits to
+ * their right without moving them as they fill. */
+/* @@ */ .underEntry {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.2rem;
 }
 
 /* The one button under a round's scoresheet: "Start round N", or "Show final

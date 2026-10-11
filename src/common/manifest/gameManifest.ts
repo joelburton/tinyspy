@@ -32,7 +32,9 @@ export type CreatedGame = { result: 'created'; id: string }
  * already in the ending columns of `common.games`, which every surface reads
  * anyway.
  */
-export type GameStopResult = { result: 'ended' }
+// `expired`: the countdown ran out and the game put its clock away without
+// ending anything — wordsy's coop round, where a late word still counts.
+export type GameStopResult = { result: 'ended' | 'expired' }
 
 /**
  * Does a player count fall inside a gametype's supported range?

@@ -84,7 +84,7 @@ describe('makeGameSheets', () => {
   const sheets = makeGameSheets(gd)
 
   it('puts the winner\'s table first', () => {
-    expect(sheets.map((s) => s.player.username)).toEqual(['bea', 'me'])
+    expect(sheets.map((s) => s.player!.username)).toEqual(['bea', 'me'])
   })
 
   it('strikes the lowest word score, which then adds only its bonus', () => {
@@ -98,5 +98,32 @@ describe('makeGameSheets', () => {
 
   it('strikes the later round of a tie for the lowest', () => {
     expect(sheets[0]!.rows.map((r) => r.isStruck)).toEqual([false, true, false])
+  })
+})
+
+describe('the coop sheets', () => {
+  // The team's two rounds: me 23 before the clock on band 1 for the higher
+  // bonus; bea 19 late, nothing, the card moved to 2.
+  const gd = makeGameData(ZTest_makeGameDataRaw({
+    mode: 'coop',
+    team: { total: 44, nBonuses: 1, roundScores: [25, 19, null, null, null, null, null], band: 2 },
+    rounds: [{ num: 1, ended: true }, { num: 2, ended: true }],
+    events: [
+      ZTest_word(1, 'u1', 1, 'fbcdq', 23, 2, { beatClock: true, band: 1 }),
+      ZTest_word(2, 'u2', 2, 'fbcd', 19, 0, { beatClock: false, band: 1 }),
+    ],
+  }), 'u1')
+
+  it('a round\'s sheet is the team\'s one row, its bonus in the Fastest\'s column, with the card facts and no star', () => {
+    const [row] = makeRoundSheet(gd, gd.rounds[0]!)
+    expect(row).toMatchObject({ fastestBonus: 2, beatBonus: null, beatClock: true, band: 1, isStar: false })
+  })
+
+  it('the game\'s sheet is one table, the team\'s, with the server\'s total', () => {
+    const sheets = makeGameSheets(gd)
+    expect(sheets).toHaveLength(1)
+    expect(sheets[0]!.player).toBeNull()
+    expect(sheets[0]!.total).toBe(44)
+    expect(sheets[0]!.rows.map((r) => [r.player.username, r.beatClock])).toEqual([['me', true], ['bea', false]])
   })
 })

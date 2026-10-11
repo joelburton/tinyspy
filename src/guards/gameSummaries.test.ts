@@ -350,11 +350,18 @@ const CASES: Record<string, Family | GameEndingFamily> = {
       [{ outcome: 'neutral', reason: 'stopped' }, { team: null, nTableSetsFound: 17, nTilesInDeck: 30, perfectClear: null, nWinnerSets: null }, 'Stop'],
     ],
   },
-  // wordsy._make_json_summary_data: compete only, so `team` is always null; the rounds
-  // finished, and the total every winner shares once seven rounds end it. A tie is shared, so
-  // co-winners are an ordinary result; a player who scored nothing is not ranked.
+  // wordsy._make_json_summary_data: `team` is coop's — the team's total, the solo card's band
+  // and penalties, and the title once the game has ended with 90 or more — and null in compete;
+  // the rounds finished, and the total every winner shares once seven rounds end it. A tie is
+  // shared, so co-winners are an ordinary result; a player who scored nothing is not ranked. The
+  // one `live` blob serves both modes, so it carries coop's team.
   wordsy: {
-    live: { team: null, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' },
+    live: { team: { total: 48, band: 1, nPenalties: 0, title: null }, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' },
+    coop: [
+      [{ outcome: 'won', reason: 'resource_exhausted', detail: 'rounds_played', winners: ['u-alice', 'u-bob'] }, { team: { total: 107, band: 1, nPenalties: 1, title: 'Wordsmith' }, nRoundsPlayed: 7, winnerTotal: 107, legalBand: 4, roundStyle: 'timer' }, 'a title'],
+      [{ outcome: 'lost', reason: 'resource_exhausted', detail: 'rounds_played' }, { team: { total: 82, band: 2, nPenalties: 2, title: null }, nRoundsPlayed: 7, winnerTotal: null, legalBand: 4, roundStyle: 'timer' }, 'under 90'],
+      [{ outcome: 'neutral', reason: 'stopped' }, { team: { total: 48, band: 1, nPenalties: 0, title: null }, nRoundsPlayed: 3, winnerTotal: null, legalBand: 4, roundStyle: 'timer' }, 'Stop'],
+    ],
     compete: [
       [{ outcome: 'won', reason: 'resource_exhausted', detail: 'rounds_played', winners: ['u-alice'] }, { team: null, nRoundsPlayed: 7, winnerTotal: 46, legalBand: 4, roundStyle: 'timer' }, 'highest total'],
       [{ outcome: 'won', reason: 'resource_exhausted', detail: 'rounds_played', winners: ['u-alice', 'u-bob'] }, { team: null, nRoundsPlayed: 7, winnerTotal: 39, legalBand: 4, roundStyle: 'timer' }, 'tied — co-winners'],

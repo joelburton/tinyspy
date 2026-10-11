@@ -433,6 +433,67 @@ describe('wordsy PlayArea — through the dispatcher', () => {
   })
 })
 
+describe('wordsy PlayArea — coop', () => {
+  beforeEach(() => rpc.mockReset())
+
+  it('shows the solo card beside the entry, the dark border on the band and a mark per penalty', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ mode: 'coop', team: { band: 2, nPenalties: 1 } })} />)
+    const card = screen.getByTestId('solo-card')
+    expect(within(card).getByTestId('band-2').className).toMatch(/current/)
+    expect(within(card).getByTestId('band-1').className).not.toMatch(/current/)
+    expect(within(card).getAllByText('−2')).toHaveLength(1)
+    // No strip: every player would show the team's one total.
+    expect(screen.queryByText('Total')).toBeNull()
+  })
+
+  it('counts the penalties in the state line', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ mode: 'coop', team: { total: 40, nPenalties: 2 } })} />)
+    // The count sits in its own <strong>, so the line's own text is matched.
+    expect(screen.getAllByText(/penalties/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/penalty\b/)).toBeNull()
+  })
+
+  it('under turns the entry is the writer\'s alone, and the line says whose', async () => {
+    render(<WithKeys {...ZTest_makeWordsyCtx({ mode: 'coop', turns: { holder: 'u2' } })} />)
+    expect(screen.getAllByText(/Waiting for/).length).toBeGreaterThan(0)
+    expect(screen.getByTestId('board').className).toMatch(/dimNotYourTurn/)
+    await typeWord('elf')
+    await enter()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('the writer types, and ↵ sends the team\'s word', async () => {
+    rpc.mockResolvedValue(okEnvelope({
+      result: 'submitted', earlier: null, timer_started: false, round_ended: true, game_ended: false,
+    }))
+    render(<WithKeys {...ZTest_makeWordsyCtx({ mode: 'coop', turns: { holder: 'u1' } })} />)
+    expect(screen.getAllByText('Your turn').length).toBeGreaterThan(0)
+    await typeWord('elf')
+    await enter()
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_word', { p_game_id: 'g1', p_word: 'elf' }))
+  })
+
+  it('the ending names the title and the total, and the game\'s sheet the penalties', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      mode: 'coop',
+      team: { total: 107, nBonuses: 4, band: 1, nPenalties: 1, title: 'Wordsmith' },
+      rounds: [{ num: 7, ended: true }],
+      events: [ZTest_word(1, 'u1', 7, 'fbcdq', 23, 4, { beatClock: true, band: 1 })],
+      players: [
+        { ...ZTest_TWO[0]!, finalRanking: 1, outcome: 'won' }, { ...ZTest_TWO[1]!, finalRanking: 1, outcome: 'won' },
+      ],
+      ending: { reason: 'resource_exhausted', detail: 'rounds_played', by: 'u1' },
+      outcome: 'won',
+    })} />)
+    expect(screen.getByText('Won (Wordsmith)')).toBeInTheDocument()
+    const sheet = screen.getByTestId('game-scoresheet')
+    expect(within(sheet).getByText('Wordsmith')).toBeInTheDocument()
+    expect(within(sheet).getByText('1 penalty')).toBeInTheDocument()
+    expect(within(sheet).getByText('−2')).toBeInTheDocument()
+    expect(within(sheet).getByTestId('beat-clock')).toBeInTheDocument()
+  })
+})
+
 describe('wordsy PlayArea — the scoresheets', () => {
   beforeEach(() => rpc.mockReset())
 
@@ -470,6 +531,32 @@ describe('wordsy PlayArea — the scoresheets', () => {
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
     await user.click(screen.getByRole('button', { name: 'Start round 2' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('start_round', { p_game_id: 'g1' }))
+  })
+
+  it('the sheet\'s button has focus as the sheet appears, so ↵ presses it', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue(okEnvelope({ result: 'ready' }))
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    expect(screen.getByRole('button', { name: 'Start round 2' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('start_round', { p_game_id: 'g1' }))
+  })
+
+  it('… and "Show final scores" the same, when the game ends in front of me', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ rounds: [{ num: 7, fastest: 'u1' }] })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 7, ended: true, fastest: 'u1' }],
+      events: [ZTest_word(1, 'u1', 7, 'elf', 9, 2), ZTest_word(2, 'u2', 7, 'bob', 5)],
+      players: [
+        { ...ZTest_TWO[0]!, finalRanking: 1, outcome: 'won' }, { ...ZTest_TWO[1]!, finalRanking: 2, outcome: 'near' },
+      ],
+      ending: { reason: 'resource_exhausted', detail: 'rounds_played', by: null },
+      outcome: 'won',
+    })} />)
+    expect(screen.getByRole('button', { name: 'Show final scores' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByTestId('game-scoresheet')).toBeInTheDocument()
   })
 
   it('reads Waiting for others, disabled, once I have pressed', () => {

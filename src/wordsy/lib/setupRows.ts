@@ -2,7 +2,7 @@
 
 import type { Member } from '@/common/members/member'
 import { dictBandValue } from '@/common/setup-form/dictBand'
-import { makeRosterRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import { describeRound, N_ROUNDS_OPTIONS } from './setup'
 import type { GSetup } from '../types'
@@ -10,24 +10,27 @@ import type { GSetup } from '../types'
 /**
  * wordsy's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order and words mirror
- * `components/SetupForm.tsx`. No Timer row: the setup's `timer` is fixed at
- * none, and the round's clock is the Round row (`describeRound`), which names
- * its seconds and says "one word" when the timer style has it on (no-timer is
- * always one word, so it says nothing).
+ * `components/SetupForm.tsx`, with the coop pacing rows after the roster. No
+ * Timer row: the setup's `timer` is fixed at none, and the round's clock is
+ * the Round row (`describeRound`), which names its seconds and says "one
+ * word" when compete's timer style has it on (no-timer and coop are always
+ * one word, so it says nothing). The Length row stays in coop, where the form
+ * hides the choice: seven rounds is still the game's length.
  */
 export function makeSetupRows(
   setup: GSetup,
-  _mode: 'coop' | 'compete',
+  mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   return [
     makeRosterRow(players),
+    ...makeCoopRows(setup, mode, players),
     { key: 'legal_band', label: 'Dictionary', value: dictBandValue(setup.legal_band) },
     {
       key: 'n_rounds',
       label: 'Length',
       value: N_ROUNDS_OPTIONS.find((o) => o.value === setup.n_rounds)!.label,
     },
-    { key: 'round_style', label: 'Round', value: describeRound(setup) },
+    { key: 'round_style', label: 'Round', value: describeRound(setup, mode) },
   ]
 }

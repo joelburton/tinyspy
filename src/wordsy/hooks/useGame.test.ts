@@ -51,4 +51,22 @@ describe('makeGameData', () => {
     expect(gd.me.own.total).toBe(24)
     expect(gd.me.nBonuses).toBe(2)
   })
+
+  it('in coop every player carries the team\'s numbers, and `gd` keeps the card', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({
+      mode: 'coop',
+      team: { total: 48, nBonuses: 2, band: 2, nPenalties: 1 },
+    }), 'u1')
+    expect(gd.me.total).toBe(48)
+    expect(gd.playersById.u2!.total).toBe(48)
+    expect(gd.me.nBonuses).toBe(2)
+    expect(gd.team).toMatchObject({ band: 2, nPenalties: 1, title: null })
+  })
+
+  it('under turns the holder is a player, and the others wait', () => {
+    const gd = makeGameData(ZTest_makeGameDataRaw({ mode: 'coop', turns: { holder: 'u2' } }), 'u1')
+    expect(gd.turns!.holder).toBe(gd.playersById.u2)
+    expect(gd.me.waitingForTurn).toBe(true)
+    expect(gd.playersById.u2!.onTurn).toBe(true)
+  })
 })

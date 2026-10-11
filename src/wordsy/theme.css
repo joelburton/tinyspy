@@ -1,0 +1,17 @@
+/* cs-unmet */
+
+/* wordsy's own color tokens, loaded with this game's chunk (imported from
+ * components/PlayArea.tsx). The cards are the shared tile system and the two
+ * flex colors (components/Tile.module.css); what is here is the solo card's
+ * three bands, a ladder of the game's own: green 1 at the top, amber 2, red 3
+ * (plans/wordsy.md → Solo). COPIES of the outcome bases, not aliases — a band
+ * is where the card's timer sits, not a verdict on a move, so it must not move
+ * if the outcome families ever do (docs/tokens.md → Alias when it's a
+ * dependency, copy when it's a coincidence). */
+/* @@ */ :root {
+/* @@ */   --wordsy-band-1-color: #66bb6a;  /* green 400, the won base's hex */
+/* @@ */   --wordsy-band-2-color: #e59622;  /* the warning base's orange */
+/* @@ */   --wordsy-band-3-color: #ef5350;  /* red 400, the lost base's hex */
+  /* The band's number, on its fill: white reads on all three. */
+/* @@ */   --wordsy-band-ink-color: #ffffff;
+}

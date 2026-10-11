@@ -1,5 +1,6 @@
 // cs-unmet
 
+import { useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import { useTabRing } from '@/common/keyboard/useTabRing'
@@ -18,6 +19,8 @@ import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './PlayArea.module.css'
 import type { GGameData } from '../types'
+
+import '../theme.css'
 
 /**
  * The manifest's component: builds `gd` from the blob the page was handed and
@@ -47,10 +50,11 @@ type PlayAreaProps =
  * the readouts and the action row, and this component decides what each is
  * handed — the table to show above all: a past round's, or the live one.
  *
- * There are no turns. The round's clock is the page header's
- * (`common.timers`, armed by the round's first submit and put away at its
- * end); what the board marks is a new round's table arriving and that clock
- * starting.
+ * The round's clock is the page header's (`common.timers`, armed by the
+ * round's first submit — in coop, by the deal — and put away at its end); what
+ * the board marks is a new round's table arriving and that clock starting
+ * (`useRoundMarks`). Compete has no turns; a coop game writing turn by turn
+ * takes the common rotation, whose arrival is the new table's mark.
  */
 function PlayArea({
   gd,
@@ -59,9 +63,13 @@ function PlayArea({
   globalFeedbackSlot,
 }: PlayAreaProps) {
   // ─── Page hooks ────────────────────────────────────────
-  // A word is typed at the window, so Tab has nowhere to go here, and an
-  // empty ring keeps it from walking out to the browser.
-  useTabRing([])
+  // A word is typed at the window, so Tab has nowhere to go while the table is
+  // up. The one stop is the button under a scoresheet — "Start round N", "Show
+  // final scores" — which the board column focuses as the sheet appears, so ↵
+  // presses it; a ring over its box keeps Tab from walking out to the browser
+  // the rest of the time.
+  const underSheetRef = useRef<HTMLDivElement | null>(null)
+  useTabRing({ within: underSheetRef })
 
   // On a phone the board fills the screen and the info column moves into an
   // off-canvas <InfoSheet> (docs/mobile.md → The info-sheet recipe).
@@ -110,6 +118,7 @@ function PlayArea({
         gd={gd}
         shownTiles={shownTiles}
         historyView={historyView}
+        underSheetRef={underSheetRef}
         localFeedbackSlot={localFeedbackSlot}
         isNewTableFlashing={roundMarks.isNewTableFlashing}
         isClockStartFlashing={roundMarks.isClockStartFlashing}

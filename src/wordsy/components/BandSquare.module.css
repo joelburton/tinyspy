@@ -1,0 +1,26 @@
+/* cs-unmet */
+
+/* A band of the solo card: a small square in the band's color, its number in
+ * white. The current band wears a dark border (`.current`). */
+/* @@ */ .band {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--wordsy-band-ink-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* @@ */ .band_1 { background: var(--wordsy-band-1-color); }
+/* @@ */ .band_2 { background: var(--wordsy-band-2-color); }
+/* @@ */ .band_3 { background: var(--wordsy-band-3-color); }
+
+/* Where the timer sits: Joel's "dark border around the current color". */
+/* @@ */ .current {
+  outline: 3px solid var(--page-text-color);
+  outline-offset: 1px;
+}

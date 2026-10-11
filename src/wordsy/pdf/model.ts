@@ -11,7 +11,8 @@ import type { GGameData } from '../types'
  * finished round's table, every word with its score, and the totals.
  */
 export type WordsyPrintModel = PrintHeader & {
-  // Every player's total so far, highest first; a winner marked.
+  // Every player's total so far, highest first, a winner marked; in coop the
+  // team's one line, named by its title once it has one.
   totals: { name: string; total: number; won: boolean }[]
   // Each finished round's table: "F+1 B C D L C Q+2 R", in slot order.
   tables: { num: number; cards: string }[]
@@ -30,9 +31,11 @@ export function buildPrintModel({ gd, date }: { gd: GGameData; date: string }): 
       : `Round ${gd.round.num} of ${gd.nRounds} · ${gd.me.total} pts`,
     setupRows: gd.setupRows,
     mode: gd.mode,
-    totals: gd.players
-      .map((p) => ({ name: p.username, total: p.own.total, won: p.finalRanking === 1 }))
-      .sort((a, b) => b.total - a.total),
+    totals: gd.team !== null
+      ? [{ name: gd.team.title ?? 'The team', total: gd.team.total, won: gd.outcome === 'won' }]
+      : gd.players
+        .map((p) => ({ name: p.username, total: p.own.total, won: p.finalRanking === 1 }))
+        .sort((a, b) => b.total - a.total),
     tables: finished.map((r) => ({
       num: r.num,
       cards: r.tiles

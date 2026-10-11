@@ -33,7 +33,7 @@ import {
   letterboxedCompeteManifest,
 } from './letterboxed/manifest'
 import { setgameCoopManifest, setgameCompeteManifest } from './setgame/manifest'
-import { wordsyCompeteManifest } from './wordsy/manifest'
+import { wordsyCoopManifest, wordsyCompeteManifest } from './wordsy/manifest'
 
 /**
  * THE REGISTRY — which games this monorepo includes. Nothing else in the
@@ -93,6 +93,7 @@ export const gametypes: Manifest[] = [
   letterboxedCompeteManifest,
   setgameCoopManifest,
   setgameCompeteManifest,
+  wordsyCoopManifest,
   wordsyCompeteManifest,
 ]
 

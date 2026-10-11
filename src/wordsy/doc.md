@@ -239,7 +239,8 @@ the log.
   with "Show final scores"; a game opened already over goes straight to the
   game's: a table per player, the winner's first, a row per round, each
   player's dropped words and their scores struck in red (a tie strikes the
-  later round), the server's total under them; it scrolls inside its frame,
+  later round), the server's total under them; only as tall as its tables,
+  it scrolls inside its frame when they are taller than the column,
   and stays.
 - **The printout** is the totals, each finished round's table, and the log.
 - **Setup** defaults to band 4, a step above the roster's usual: Wordsy

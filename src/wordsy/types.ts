@@ -20,7 +20,7 @@ import type { EndingLabel } from '@/common/ending/endingLabel'
 import type { FactsApart, GameDataRaw, GameEnding, PlayerRaw } from '@/common/game-page/gameData'
 import type { SummaryData } from '@/common/manifest/summaryData'
 import type { TimerMode } from '@/common/manifest/types'
-import type { SetupOf, SetupRow } from '@/common/setup-form/types'
+import type { CoopTurnSetup, SetupOf, SetupRow } from '@/common/setup-form/types'
 
 /**
  * One faceup card. A card is its deck number, 1–60, written as text; the
@@ -49,9 +49,13 @@ export type GSheetRow = {
   // The word's score against the round's table.
   score: number
   // The round's bonus, in its column: for beating the Fastest, or the
-  // Fastest's own.
+  // Fastest's own. In coop the one bonus is the Fastest's column's.
   beatBonus: number | null
   fastestBonus: number | null
+  // The coop word against the card: whether it beat the clock, and the band
+  // it was scored on. Null in compete.
+  beatClock: boolean | null
+  band: GBand | null
   // Everything the row adds to the total: the score, unless struck, and the
   // bonus.
   rowTotal: number
@@ -60,6 +64,15 @@ export type GSheetRow = {
   // One of the player's lowest word scores, which the total drops; only on
   // the game's sheet.
   isStruck: boolean
+}
+
+/** One table of the game's scoresheet (`lib/scoresheet.ts`): whose it is — a
+ *  player's in compete, the team's in coop (`player` null) — its rows, and
+ *  the server's total. */
+export type GGameSheet = {
+  player: GPlayer | null
+  rows: GSheetRow[]
+  total: number
 }
 
 /** One letter of a word, with the card it scores on against a round's table,
@@ -84,14 +97,35 @@ export type GRoundRaw = {
   // The round's eight cards, in slot order. Fixed once dealt.
   tiles: GTile[]
   // The Fastest Wordsmith — the round's first submit in the timer style — or
-  // the First Wordsmith named at the deal in no-timer; null until there is one.
+  // the First Wordsmith named at the deal in no-timer; null until there is
+  // one, and always in coop.
   fastest: string | null
   // The player who may not start this round's clock: last round's Fastest,
-  // while more than two still play.
+  // while more than two still play. Always null in coop.
   noFlipHolder: string | null
-  // The round's clock is counting down.
+  // The round's clock is counting down: from the first word in, or in coop
+  // from the deal.
   isTimerRunning: boolean
   ended: boolean
+}
+
+/** A band of the solo card: green 1 at the top, amber 2, red 3. */
+export type GBand = 1 | 2 | 3
+
+/** The card's titles, in order: 90, 100, 110 and 120 points. */
+export type GTitle = 'Wordprentice' | 'Wordsmith' | 'Wordspert' | 'Wordmaster'
+
+/**
+ * The team's facts in coop (supabase/sql/wordsy.sql → The page blobs → team):
+ * the numbers every player carries, and the solo card. Null in compete.
+ */
+export type GTeam = Pick<GFacts, 'total' | 'nBonuses' | 'roundScores'> & {
+  // Where the card's timer sits.
+  band: GBand
+  // Penalties taken, −2 each at the end.
+  nPenalties: number
+  // Once the game has ended with 90 or more; null before, and on a loss.
+  title: GTitle | null
 }
 
 /** One round, as `gd` holds it. */
@@ -113,8 +147,8 @@ export type GRound = Omit<GRoundRaw, 'fastest' | 'noFlipHolder'> & {
  */
 export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   setup: GSetup
-  // Always null: compete only, so there is never a team.
-  team: null
+  // The team's facts and the solo card in coop; null in compete.
+  team: GTeam | null
   // The game's length, and how many rounds' word scores its totals count.
   nRounds: GNRounds
   nBestRounds: 5 | 2
@@ -129,12 +163,13 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
 }
 
 /**
- * wordsy's facts (docs/common-schema.md → A player's facts), each the
- * player's own: compete only, so the side's and the own are the same.
+ * wordsy's facts (docs/common-schema.md → A player's facts). In compete each
+ * is the player's own; in coop the first three are the team's, carried by
+ * every player, and the rest are each player's.
  */
 export type GFacts = {
   // The best `nBestRounds` word scores plus every bonus, over the rounds
-  // finished so far.
+  // finished so far; in coop, less 2 a penalty.
   total: number
   // How many rounds earned a bonus — the First Wordsmith rule's count.
   nBonuses: number
@@ -195,6 +230,10 @@ export type GEventRaw = {
   score: number
   // What the round's bonuses gave: 0–4.
   bonus: number
+  // The coop word against the card: it beat the clock, and the band it was
+  // scored on. Null in compete.
+  beatClock: boolean | null
+  band: GBand | null
   tookTurn: boolean
   at: string
 }
@@ -212,13 +251,15 @@ export type GPlayerRaw = PlayerRaw & GFacts
  *   gametype
  *   brand
  *   club: {handle}
- *   mode                                     # always compete
+ *   mode
  *   coop
  *   compete
  *   title                                    # "Round 3 of 7"
  *   setup
  *   setupRows
- *   turns                                    # always null: no turn order
+ *   turns: {holder}                          # null but in a coop game writing turn by turn
+ *   team: {total, nBonuses, roundScores, band, nPenalties, title}
+ *                                            # coop: the solo card and the team's numbers; null in compete
  *   ending: {reason, detail, by, winners}    # null while playing
  *   ended
  *   outcome                                  # null until the game ends
@@ -244,15 +285,15 @@ export type GPlayerRaw = PlayerRaw & GFacts
  * player:
  *   the common player
  *   total, nBonuses, roundScores, hasSubmitted, word, isWordFrozen,
- *   isBlockedByNoFlip, isReadyForNextRound
- *   own: {…the same}                         # this player's own: compete only, so equal
+ *   isBlockedByNoFlip, isReadyForNextRound    # the side's: the team's first three in coop
+ *   own: {…the same}                         # this player's own
  *   endingLabel                              # how they came out; null while they play
  *
  * tile:                                      # GTile
  *   id, letter, bonus, slot, value
  *
  * event:
- *   id, by, kind, num, word, score, bonus, tookTurn, at
+ *   id, by, kind, num, word, score, bonus, beatClock, band, tookTurn, at
  */
 
 /**
@@ -262,7 +303,7 @@ export type GPlayerRaw = PlayerRaw & GFacts
  * and the setup rows built. Read-only: `useGame` builds it and nothing else
  * writes it.
  */
-export type GGameData = Omit<GGameDataRaw, 'team' | 'turns' | 'ending' | 'rounds' | 'events' | 'players'> & {
+export type GGameData = Omit<GGameDataRaw, 'turns' | 'ending' | 'rounds' | 'events' | 'players'> & {
   // The setup's choices as rows, built ONCE for both readers — the info column
   // and the printout (common/setup-form/doc.md → Setup rows).
   setupRows: SetupRow[]
@@ -355,12 +396,14 @@ export type GRoundStyle = 'timer' | 'no-timer'
 /** A game's length: the rulebook's seven rounds, or a short game's three. */
 export type GNRounds = 7 | 3
 
-export type GSetupValues = {
+export type GSetupValues = CoopTurnSetup & {
   // Fixed at none, never shown: the round's clock is the game's own
   // (common.timers re-armed each round), so there is no whole-game timer.
   timer: TimerMode
   // The may-enter band: a word at or below it is legal.
   legal_band: number
+  // Coop fixes it at timer, with `n_rounds` at 7 and `one_word` at true: the
+  // card's game.
   round_style: GRoundStyle
   // How long the round's clock runs once the first word is in, 1–120; 30 is
   // the rulebook's. Stored and unread in no-timer.
@@ -385,7 +428,8 @@ export type GSetup = SetupOf<GSetupValues>
  * Every key is always present, null when it has no value.
  */
 export type GSummaryData = SummaryData & {
-  team: null
+  // Coop: the team's total and the card; null in compete.
+  team: Pick<GTeam, 'total' | 'band' | 'nPenalties' | 'title'> | null
   // The rounds finished so far, 0–nRounds.
   nRoundsPlayed: number
   // The total every winner shares; null until the game ends with one.
