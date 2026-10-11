@@ -20,13 +20,20 @@
 -- Words score against it by the letters they share; the vowels are never
 -- cards, so a word of vowels scores 0 at every table. `ws_word(score)` is a
 -- word worth exactly that much against the table: vowel padding plus R (2),
--- L (3), D (4), B (5), F (6), combined above 6.
+-- L (3), D (4), B (5), F (6), combined above 6 — up to 11 for the compete
+-- bonuses, and the card's 14, 15, 19, 20 and 23 for coop.
 --
 -- Helpers:
 --   pg_temp.ws_uid(name)                 — a persona's id
 --   pg_temp.ws_club(names)               — a club of those personas (abe-bot
 --                                          joined by hand, since no RPC seats a bot)
 --   pg_temp.ws_game(names, style)        — a game on the planted table, ada creating
+--   pg_temp.ws_coop_game(names, style, first) — a coop game on the planted table; one
+--                                          name plays in their solo club
+--   pg_temp.ws_coop_round(gid, name, score, late) — the team's word for the round in
+--                                          play, late by the server's clock if asked;
+--                                          everyone presses Start; answers the reveal row
+--   pg_temp.ws_card(gid)                 — "band N · penalties M"
 --   pg_temp.ws_plant(gid, deck_prefix)   — the deck begins with these, the rest
 --                                          ascending; round 1 re-dealt
 --   pg_temp.ws_plant_word(word, band, root) — a word in common.words
@@ -155,7 +162,92 @@ language sql immutable as $$
     when 0 then '' when 2 then 'r' when 3 then 'l' when 4 then 'd'
     when 5 then 'b' when 6 then 'f' when 7 then 'br' when 8 then 'bl'
     when 9 then 'bd' when 10 then 'df' when 11 then 'bf'
+    when 14 then 'fbl' when 15 then 'fbq' when 19 then 'fbcd'
+    when 20 then 'ccfdl' when 23 then 'fbcdq'
   end;
+$$;
+
+-- A coop game of these personas on the planted table, created by ada (who
+-- must be among them): one name plays in that persona's solo club, more in a
+-- club of their own. `p_style` is the pacing, free-for-all or turns; `p_first`
+-- the first writer under turns.
+create function pg_temp.ws_coop_game(p_names text[], p_style text default 'free-for-all',
+                                     p_first text default null)
+returns uuid
+language plpgsql as $$
+declare
+  v_club text;
+  v_env  jsonb;
+  v_gid  uuid;
+begin
+  if cardinality(p_names) = 1 then
+    v_club := '=' || p_names[1];
+  else
+    v_club := pg_temp.ws_club(p_names);
+  end if;
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  v_env := wordsy.create_game(
+    v_club,
+    jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
+                       'legal_band', 4, 'round_style', 'timer', 'timer_seconds', 30,
+                       'n_rounds', 7, 'one_word', true, 'coop_style', p_style)
+      || case when p_first is null then '{}'::jsonb
+              else jsonb_build_object('first_turn_user_id', pg_temp.ws_uid(p_first)) end,
+    array(select pg_temp.ws_uid(n) from unnest(p_names) n),
+    'coop');
+  if v_env ->> 'type' <> 'ok' then
+    raise exception 'ws_coop_game: create_game refused: %', v_env;
+  end if;
+  v_gid := (v_env -> 'data' ->> 'id')::uuid;
+  perform pg_temp.ws_plant(v_gid, pg_temp.ws_reversed(pg_temp.ws_table()));
+  perform pg_temp.as_user(pg_temp.ws_uid('ada'));
+  return v_gid;
+end;
+$$;
+
+-- The team's word for the coop round in play: `p_name` submits a word worth
+-- `p_score` on the planted table — after the clock has run out by the
+-- server's time when `p_late` — then everyone presses Start unless the game
+-- is over. Answers the round's reveal row. Leaves the role as postgres.
+create function pg_temp.ws_coop_round(p_gid uuid, p_name text, p_score int, p_late boolean default false)
+returns wordsy.events
+language plpgsql as $$
+declare
+  v_num int;
+  v_env jsonb;
+  e     wordsy.events;
+begin
+  perform pg_temp.ws_plant_table(p_gid);
+  v_num := (pg_temp.ws_round(p_gid)).num;
+  if p_late then
+    perform set_config('role', 'postgres', true);
+    update wordsy.rounds set timer_started_at = now() - interval '1 hour'
+     where game_id = p_gid and num = v_num;
+  end if;
+  v_env := pg_temp.ws_submit(p_gid, p_name, pg_temp.ws_word(p_score, 1, v_num));
+  if v_env ->> 'type' <> 'ok' or v_env -> 'data' ->> 'result' <> 'submitted' then
+    raise exception 'ws_coop_round: submit refused: %', v_env;
+  end if;
+  perform set_config('role', 'postgres', true);
+  select * into e from wordsy.events where game_id = p_gid and num = v_num;
+  if (select ended_at from common.games where id = p_gid) is null then
+    perform pg_temp.ws_start_all(p_gid);
+  end if;
+  return e;
+end;
+$$;
+
+-- The solo card as the game row holds it, read past RLS.
+create function pg_temp.ws_card(p_gid uuid) returns text
+language plpgsql as $$
+declare prev text := current_user; v text;
+begin
+  perform set_config('role', 'postgres', true);
+  select format('band %s · penalties %s', band, n_penalties) into v
+    from wordsy.games where game_id = p_gid;
+  perform set_config('role', prev, true);
+  return v;
+end;
 $$;
 
 -- Plant `p_word` at band 1 and submit it as `p_name`. Answers the envelope.

@@ -266,7 +266,10 @@ exactly that against it.
 | `no_timer_test` · `finish_test` | the no-timer round; the ending, totals, ties, conceders |
 | `options_test` | a short game's three rounds and best two; one word with the timer: final submits, the last in ends it, the clock still can, a concede |
 | `concede_test` · `stop_game_test` · `replay_test` | the standard three |
-| `game_data_test` · `rebuild_data_cols_test` | the blobs whole; the rebuild |
+| `coop_test` | the coop game around the card: create for one and six, the faults, free-for-all, turns and the writer's gate, the clock's expiry ending nothing, no Fastest or concede, Restart |
+| `solo_card_test` | the card walked: each bonus column, the moves down, the penalty at 3, up with a bonus, never above 1, a late word; the total and title |
+| `coop_finish_test` | the titles at their thresholds, a solo loss under 90, a team's win |
+| `game_data_test` · `rebuild_data_cols_test` | the blobs whole, a coop game's team group among them; the rebuild |
 
 Vitest, beside the code: `lib/score.test`, `lib/scoresheet.test`, `lib/answer.test`,
 `lib/endingLabel.test`, `lib/history.test`, `lib/setup.test`,

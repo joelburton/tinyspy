@@ -15,6 +15,8 @@
 --   3. After the reveal: the log's rows, the totals, the wait for everyone
 --      to press Start, and the next round dealt
 --   4. The ending: the summary's numbers
+--   5. A coop game: the team group fresh and after a reveal, the reveal
+--      row's card facts, every player carrying the team's total, the summary
 -- ============================================================
 
 begin;
@@ -22,7 +24,7 @@ set search_path = wordsy, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(23);
+select plan(28);
 
 select pg_temp.as_user(pg_temp.ws_uid('ada'));
 select set_config('t.g', pg_temp.ws_game(array['ada', 'bea'])::text, true);
@@ -188,6 +190,44 @@ select is(
   'the summary at the end: seven rounds, the winner''s total'
 );
 select is(pg_temp.winner_ids(pg_temp.gd()), jsonb_build_array(pg_temp.ws_uid('ada')), 'ada won');
+
+-- ─── (5) A coop game ───
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+select set_config('t.c', pg_temp.ws_coop_game(array['ada', 'bea'])::text, true);
+create function pg_temp.cgd() returns jsonb language sql as
+  $$ select game_data from common.games where id = current_setting('t.c')::uuid $$;
+reset role;
+select is(
+  pg_temp.cgd() -> 'team',
+  '{"total": 0, "nBonuses": 0, "roundScores": [null, null, null, null, null, null, null],
+    "band": 1, "nPenalties": 0, "title": null}'::jsonb,
+  'a coop game''s team at the start: nothing scored, the card on band 1'
+);
+select pg_temp.ws_coop_round(current_setting('t.c')::uuid, 'ada', 23);
+reset role;
+select is(
+  (select e - 'id' - 'at' - 'userId' from jsonb_array_elements(pg_temp.cgd() -> 'events') e),
+  '{"kind": "word", "num": 1, "word": "aefbcdq", "score": 23, "bonus": 2, "beatClock": true,
+    "band": 1, "tookTurn": true}'::jsonb,
+  'the reveal row says the word beat the clock and the band it was scored on'
+);
+select is(
+  pg_temp.cgd() -> 'team',
+  '{"total": 25, "nBonuses": 1, "roundScores": [25, null, null, null, null, null, null],
+    "band": 1, "nPenalties": 0, "title": null}'::jsonb,
+  'the team after the reveal: the word and its bonus; no title before the end'
+);
+select is(
+  (select jsonb_agg(p -> 'total' order by o)
+     from jsonb_array_elements(pg_temp.cgd() -> 'players') with ordinality as x(p, o)),
+  '[25, 25]'::jsonb,
+  'every player carries the team''s total'
+);
+select is(
+  (select summary_data -> 'team' from common.games where id = current_setting('t.c')::uuid),
+  '{"total": 25, "band": 1, "nPenalties": 0, "title": null}'::jsonb,
+  'the summary''s team'
+);
 
 select * from finish();
 rollback;

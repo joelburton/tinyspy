@@ -893,7 +893,7 @@ every `wordsy_` sibling. The header's docstring says the two modes.
 
 | file | pins |
 |---|---|
-| `coop_test.sql` | create at 1 and at 6 players, the fixed keys, a pacing fault; the deal arms the clock for the seconds; free-for-all: anyone's submit ends the round; turns: the writer's gate, the rotation after each round, a concede skipping the seat |
+| `coop_test.sql` | create at 1 and at 6 players, the fixed keys, a pacing fault; the deal arms the clock for the seconds; free-for-all: anyone's submit ends the round; turns: the writer's gate, the rotation after each round; concede refused (coop stops); Restart puts the card back |
 | `solo_card_test.sql` | the card walked: 15 before the clock on band 1 earns the higher bonus, on 2 the lower; 14 earns nothing; a late word earns nothing; under 20 moves down; on 3, a penalty and 2; 20 with a bonus moves up; on 1 stays; 20 without stays; the clock's expiry not ending the round |
 | `coop_finish_test.sql` | best five + bonuses − 2 × penalties; each title at its threshold and one below; 89 loses; the summary's `title` |
 | `game_data_test.sql` | a coop game's blob with the new keys, a compete game's nulls |
