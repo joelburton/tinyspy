@@ -1,15 +1,13 @@
 // cs-blessed-board-marks
 
-import { useEffect, useState } from 'react'
-import { playSound, preloadSound } from '../sounds/playSound'
-import { YOUR_TURN_FLASH_MS } from './feedbackTiming'
+import { useMarkBeat } from './useMarkBeat'
 import { useTurnArrival } from './useTurnArrival'
 
 /**
  * Mark the moment the turn becomes MINE, two ways at once: the bell rings, and
  * the returned flag is true for a beat, driving the shared `.yourTurnFlash`
  * frame (common/game-page/playArea.module.css). One hook, so the frame and the
- * sound can never mark different moments.
+ * sound can never mark different moments (`useMarkBeat`).
  *
  * The moment is `useTurnArrival`'s — never on mount, rising edge only. Losing
  * the turn is announced by the board dimming, a state rather than an event, but
@@ -28,26 +26,6 @@ import { useTurnArrival } from './useTurnArrival'
  * Why the turn arriving needs a mark of its own: common/board-marks/doc.md.
  */
 export function useTurnStartFlash(myTurn: boolean | null): boolean {
-  const arrivals = useTurnArrival(myTurn)
-
-  // The arrival whose beat has run out. The frame is up while it is my turn and
-  // the latest arrival is newer than that.
-  const [spent, setSpent] = useState(0)
-
-  useEffect(function preloadBell() {
-    preloadSound('bell')
-  }, [])
-
-  useEffect(function ringOnArrival() {
-    if (arrivals === 0) return
-    playSound('bell')
-  }, [arrivals])
-
-  useEffect(function takeFrameOffAfterBeat() {
-    if (arrivals === 0) return
-    const timer = setTimeout(() => setSpent(arrivals), YOUR_TURN_FLASH_MS)
-    return () => clearTimeout(timer)
-  }, [arrivals])
-
-  return myTurn === true && arrivals > spent
+  const isBeating = useMarkBeat(useTurnArrival(myTurn), 'bell')
+  return myTurn === true && isBeating
 }

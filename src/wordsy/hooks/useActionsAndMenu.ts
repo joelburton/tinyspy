@@ -19,8 +19,8 @@ import type { GActions, GGameData } from '../types'
  * Bind every wordsy command the info column places and publish the game's
  * menu from them. Hands back the `actions`, for the action row. The order is
  * the row's and the menu's: Concede · Stop | Restart · New game, the menu
- * adding Print. Start round is the board column's, under a round's
- * scoresheet.
+ * adding Print. The two buttons under a scoresheet are the board column's
+ * (`useBoardColActions`).
  *
  * An action is what the button, the menu row and the key all read, and its
  * `pending` grays every surface of one for the length of its run, which is
@@ -82,33 +82,6 @@ export function useActionsAndMenu({
     run: createNewGame,
   })
 
-  // Between rounds: I am ready for the next, and the last press deals it.
-  // After mine it waits on the others, grayed, until the next round arrives.
-  async function startRound() {
-    const res = await runRpc<{ result: 'ready' | 'started' }>(
-      db.rpc('start_round', { p_game_id: gd.id }),
-    )
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && (res.data.result === 'ready' || res.data.result === 'started')) {
-      return
-    } else {
-      reportUnhandled('start_round', res)
-      return
-    }
-  }
-
-  const actStartRound = useBindAction('act-start-round', {
-    ended: gd.ended,
-    describe: () => {
-      if (!gd.isBetweenRounds || !gd.me.stillPlaying) return 'hidden'
-      if (gd.me.isReadyForNextRound) return { state: 'disabled', label: 'Waiting for others' }
-      return { state: 'active', label: `Start round ${gd.round.num + 1}` }
-    },
-    run: startRound,
-  })
-
   // Print builds its model from the live state at CLICK time
   // (common/pdf/doc.md).
   const actPrintBoard = useBindAction('act-print-board', {
@@ -142,7 +115,6 @@ export function useActionsAndMenu({
       actConcede,
       actStopGame,
       actPrintBoard,
-      actStartRound,
       actBackToClub: menu.actBackToClub,
     },
   }

@@ -24,3 +24,10 @@
   align-items: stretch;
   gap: 0.4rem;
 }
+
+/* The one button under a round's scoresheet: "Start round N", or "Show final
+ * scores". */
+/* @@ */ .underSheet {
+  display: flex;
+  justify-content: center;
+}

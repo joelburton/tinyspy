@@ -21,8 +21,7 @@ import logoUrl from './logo.svg?url'
  * (or a short game's best two of three).
  *
  * Compete only for now, as `wordsy_compete` on the family `wordsy`, so a coop
- * sibling can land beside it without renaming stored rows (plans/wordsy.md,
- * decision 13).
+ * sibling can land beside it without renaming stored rows.
  */
 class WordsyCompeteManifest extends Manifest {
   readonly gametype = 'wordsy_compete'

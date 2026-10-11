@@ -14,11 +14,12 @@ except the round's first, which starts the clock and is frozen — its player is
 the Fastest Wordsmith. The server holds every standing word until the clock
 runs out, then reveals them all at once into the event log, scored, with the
 bonuses marked — each round's rows the Fastest's first, then in the order the
-words came in, no word last; the round's scoresheet keeps that order. The round's scoresheet then takes the board's place, and the
-next round is dealt once everyone still playing has pressed "Start round N"
-(`start_round`; the button reads "Waiting for others" after mine), arriving
-with the yellow attention frame and the bell. When the
-game ends, the whole game's scoresheet takes the board's place for good. The `no-timer` style, a setup
+words came in, no word last; the round's scoresheet keeps that order. The
+round's scoresheet then takes the board's place, and the next round is dealt
+once everyone still playing has pressed "Start round N" (`start_round`; the
+button reads "Waiting for others" after mine), arriving with the yellow
+attention frame and the bell. When the game ends, the whole game's scoresheet
+takes the board's place for good. The `no-timer` style, a setup
 choice, has no clock: a First Wordsmith is named at the deal, every submit is
 final, and the round ends when everyone still playing has submitted. **One
 word a round**, a setup choice for the timer style, borrows those last two
@@ -121,7 +122,7 @@ the page blobs.
 | blob | wordsy's part |
 |---|---|
 | `static_game_data` | the common part alone: a round's table changes every round |
-| `game_data` | `team` (null), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events`, and each player's `total`, `nBonuses`, `roundScores`, `hasSubmitted`, `word`, `isWordFrozen`, `isReadyForNextRound` |
+| `game_data` | `team` (null), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events`, and each player's `total`, `nBonuses`, `roundScores`, `hasSubmitted`, `word`, `isWordFrozen`, `isBlockedByNoFlip` (the No Flip gate `submit_word` refuses on, written for the page), `isReadyForNextRound` |
 | `summary_data` | `team` (null), `nRoundsPlayed`, `winnerTotal`, `nRounds`, `legalBand`, `roundStyle`, `oneWord` |
 
 `shell_data`'s `timer` is read off `common.timers`, so the header follows the
@@ -196,11 +197,17 @@ the log.
   card is the default tile; the +1 and the +2 wear the app's two flex colors,
   their bonus printed.
 - **The entry is `<WordEntryArea>`**; under it the typed word's score, worked
-  out live by `lib/score.ts` (the server's `_score_word` decides; a test pins
-  them to the same examples), and the standing word, "Your word" or "Your
-  word is in" once frozen — each word drawn as it scores (`ScoredWord`), in
-  the wide tracking. Holding No Flip before anyone has submitted takes that
-  line, and ↵ does nothing.
+  out live by `lib/score.ts` — the table is public and the sum is the
+  rulebook's own, so the page does it as the player would on paper (the
+  server's `_score_word` decides; a test pins them to the same examples) —
+  and the standing word, "Your word" or "Your word is in" once frozen, each
+  word drawn as it scores (`ScoredWord`), in the wide tracking. While No Flip
+  bars me (`isBlockedByNoFlip`) that line says so, and ↵ does nothing.
+- **The board column shows one of four surfaces** (`useBoardColView`): the
+  table, a finished round's sheet, the last round's sheet, or the game's. The
+  button under a sheet is its command (`useBoardColActions`): "Start round N",
+  or "Show final scores"; both are button-only, since each is the one thing
+  the surface offers at that moment, drawn where the board was.
 - **A phone types on `GuessKeyboard`**, wearing the entry's own ↵ and ⌫; a
   desktop hides it.
 - **The strip** reads each total, "in" after it while that player's word
@@ -208,17 +215,23 @@ the log.
 - **`#N` is the row's round**, and opens that round's table on the board.
 - **A logged word is plain, in bold.** Only the lines under the entry draw a
   word by how it scored (`ScoredWord`).
-- **The scoresheets** (`Scoresheet.tsx` over `lib/scoresheet.ts`) take the
-  board's place, framed. A round's: who, the word, its score, the Fastest's bonus under ⏳, the bonus
-  for beating them under >⏳ ("+2"; a dash for none), the round's total (score and bonus)
-  under =, and a gold ★ for the best total; "Start round N" under it. A past round opened from the log shows its
-  board over it. When the game ends in front of me the last round's sheet
-  comes first, with "Show final scores"; a game opened already over goes
-  straight to the game's: a table per player, the winner's first, a row per
-  round, each player's dropped words and their scores struck in red (a tie
-  strikes the later round), the server's total under them; it scrolls inside
-  its frame, and stays.
+- **The scoresheets** (`RoundScoresheet`, `GameScoresheet` and the cells they
+  share in `SheetCells`, over `lib/scoresheet.ts`) take the board's place,
+  framed. A round's: who, the word, its score, the Fastest's bonus under ⏳,
+  the bonus for beating them under >⏳ ("+2"; a dash for none), the round's
+  total (score and bonus) under =, and a gold ★ for the best total; "Start
+  round N" under it. A past round opened from the log shows its board over
+  it. When the game ends in front of me the last round's sheet comes first,
+  with "Show final scores"; a game opened already over goes straight to the
+  game's: a table per player, the winner's first, a row per round, each
+  player's dropped words and their scores struck in red (a tie strikes the
+  later round), the server's total under them; it scrolls inside its frame,
+  and stays.
 - **The printout** is the totals, each finished round's table, and the log.
+- **Setup** defaults to band 4, a step above the roster's usual: Wordsy
+  rewards long, rare words (the rulebook's examples are QUIBBLES,
+  BACCALAUREATES and LIQUEFACTION), and a band-5 word refused in a band-4 game
+  costs only the retype.
 
 ## Tests
 
@@ -241,10 +254,11 @@ exactly that against it.
 
 Vitest, beside the code: `lib/score.test`, `lib/scoresheet.test`, `lib/answer.test`,
 `lib/endingLabel.test`, `lib/history.test`, `lib/setup.test`,
-`hooks/useGame.test` (the seat rule), `components/SetupForm.test`, and
+`hooks/useGame.test` (the seat rule), `pdf/model.test`, `manifest.test` (the
+club card's words), `components/SetupForm.test`, and
 `components/PlayArea.test` (the entry, the standing word, No Flip, the round's
-marks and sounds and the dim, the on-screen keyboard, the log, the
-scoresheets and Start round, Concede and Stop).
+marks and sounds and the dim, the header's line, the on-screen keyboard, the
+strip, the log, the scoresheets and Start round, Concede and Stop).
 
 Playwright, in `e2e/`: `wordsy-round` (two clients: the clock on both, the
 caution frame on the other and the dim on the submitter, a replaced word, the

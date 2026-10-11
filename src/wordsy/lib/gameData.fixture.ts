@@ -43,6 +43,7 @@ export type ZTest_PlayerFacts = {
   // This round's standing word, or null.
   word?: string | null
   isWordFrozen?: boolean
+  isBlockedByNoFlip?: boolean
   isReadyForNextRound?: boolean
 }
 
@@ -128,6 +129,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       hasSubmitted: word !== null,
       word,
       isWordFrozen: p.isWordFrozen ?? false,
+      isBlockedByNoFlip: p.isBlockedByNoFlip ?? false,
       isReadyForNextRound: p.isReadyForNextRound ?? false,
     }
   })

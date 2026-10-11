@@ -4,8 +4,9 @@ import type { GEvent, GGameData, GPlayer, GRound, GSheetRow } from '../types'
 
 /**
  * The rows of a round's scoresheet: every word of round `round`, in the
- * reveal's order: the Fastest's first, then as the words came in. A star for each row with the round's best total — the
- * word's score and the round's bonus — when anyone scored at all.
+ * reveal's order — the Fastest's first, then as the words came in. A star on
+ * each row with the round's best total (the word's score and the round's
+ * bonus), when anyone scored at all.
  */
 export function makeRoundSheet(gd: GGameData, round: GRound): GSheetRow[] {
   const rows = gd.events.filter((e) => e.num === round.num).map((e) => makeRow(e, round))

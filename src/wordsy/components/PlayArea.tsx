@@ -12,7 +12,7 @@ import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useRoundMarks } from '../hooks/useRoundMarks'
-import { useShowPeerSubmits } from '../hooks/useShowPeerSubmits'
+import { useShowClockStarts } from '../hooks/useShowClockStarts'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -84,8 +84,8 @@ function PlayArea({
   })
 
   // ─── Narration ─────────────────────────────────────────
-  // A rival's first submit of a round, in the header slot.
-  useShowPeerSubmits(gd, globalFeedbackSlot)
+  // A rival's word starting the round's clock, in the header slot.
+  useShowClockStarts(gd, globalFeedbackSlot)
 
   // ─── The turn-history view ─────────────────────────────
   // Which past round, if any, is open on the board.
@@ -113,7 +113,6 @@ function PlayArea({
         localFeedbackSlot={localFeedbackSlot}
         isNewTableFlashing={roundMarks.isNewTableFlashing}
         isClockStartFlashing={roundMarks.isClockStartFlashing}
-        actStartRound={actions.actStartRound}
       />
 
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}

@@ -39,7 +39,7 @@ export type GTile = {
   value: number
 }
 
-/** One player's row on a round's scoresheet (`lib/scoresheet.ts`). */
+/** One player's row on a scoresheet (`lib/scoresheet.ts`). */
 export type GSheetRow = {
   // The round it is from.
   num: number
@@ -54,9 +54,10 @@ export type GSheetRow = {
   // Everything the row adds to the total: the score, unless struck, and the
   // bonus.
   rowTotal: number
-  // The round's best total (`isStar`), on the round's sheet; one of the
-  // player's lowest scores, which the total drops, on the game's.
+  // The round's best total, on a round's sheet; never set on the game's.
   isStar: boolean
+  // One of the player's lowest word scores, which the total drops; only on
+  // the game's sheet.
   isStruck: boolean
 }
 
@@ -67,10 +68,17 @@ export type GScoredLetter = {
   tile: GTile | null
 }
 
+/** A word against a round's table: each letter with its card, and the sum
+ *  (`lib/score.ts`). What the lines under the entry draw. */
+export type GScoredWord = {
+  letters: GScoredLetter[]
+  score: number
+}
+
 /** One round, as the blob carries it; `gd` turns its links into players
  *  (`GRound`). */
 export type GRoundRaw = {
-  // 1–7.
+  // 1–nRounds.
   num: number
   // The round's eight cards, in slot order. Fixed once dealt.
   tiles: GTile[]
@@ -124,19 +132,26 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
  * player's own: compete only, so the side's and the own are the same.
  */
 export type GFacts = {
-  // The best five word scores plus every bonus, over the rounds finished so far.
+  // The best `nBestRounds` word scores plus every bonus, over the rounds
+  // finished so far.
   total: number
   // How many rounds earned a bonus — the First Wordsmith rule's count.
   nBonuses: number
-  // Score plus bonus per round, 1–7; null for a round not finished or not played.
+  // Score plus bonus per round, one slot per round of the game; null for a
+  // round not finished or not played.
   roundScores: (number | null)[]
   // A word stands for the round in play.
   hasSubmitted: boolean
-  // That word, or null: always mine; a rival's is null until the round ends.
+  // That word, while a round is open and it is mine; null otherwise. The blob
+  // carries every seat's and `useGame` drops a rival's; the reveal is the log.
   word: string | null
   // That word can no longer change: the Fastest's in the timer style, any
-  // word in no-timer.
+  // word in no-timer or with one word a round.
   isWordFrozen: boolean
+  // The rulebook's No Flip bars them from submitting right now: they hold it,
+  // nobody has submitted yet, and more than two still play — the gate
+  // `submit_word` refuses on.
+  isBlockedByNoFlip: boolean
   // Between rounds, they have pressed "Start round N".
   isReadyForNextRound: boolean
 }
@@ -228,7 +243,7 @@ export type GPlayerRaw = PlayerRaw & GFacts
  * player:
  *   the common player
  *   total, nBonuses, roundScores, hasSubmitted, word, isWordFrozen,
- *   isReadyForNextRound
+ *   isBlockedByNoFlip, isReadyForNextRound
  *   own: {…the same}                         # this player's own: compete only, so equal
  *   endingLabel                              # how they came out; null while they play
  *
@@ -314,11 +329,24 @@ export type GActions = {
   actStopGame: Action
   // Print the game's log.
   actPrintBoard: Action
-  // Between rounds: I am ready for the next; the last press deals it.
-  actStartRound: Action
   // Leave for the club — the shell's own action, off `menu`.
   actBackToClub: Action
 }
+
+/** The board column's commands, under a scoresheet (`useBoardColActions`). */
+export type GBoardColActions = {
+  // Between rounds: I am ready for the next; the last press deals it.
+  actStartRound: Action
+  // The game ended in front of me: from the last round's sheet to the game's.
+  actShowFinalScores: Action
+}
+
+/**
+ * What the board column shows in the board's place (`useBoardColView`):
+ * the table, a finished round's sheet with "Start round N" under it, the last
+ * round's sheet with "Show final scores" under it, or the game's sheet.
+ */
+export type GBoardColView = 'board' | 'roundSheet' | 'lastRoundSheet' | 'gameSheet'
 
 /** How a round ends: at its 30-second clock, or once everyone has submitted. */
 export type GRoundStyle = 'timer' | 'no-timer'

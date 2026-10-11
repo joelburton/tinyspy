@@ -1,8 +1,10 @@
 /* cs-unmet */
 
-/* A scoresheet in the board's place, framed as the info column's log box is,
- * and only as wide as its rows. The game's scrolls inside its frame, so a
- * long one still fits the column. */
+/* The two scoresheets' look — `RoundScoresheet`, `GameScoresheet` and the
+ * cells they share (`SheetCells`) — so a lowercase, shared sheet. A scoresheet
+ * sits in the board's place, framed as the info column's log box is, and only
+ * as wide as its rows. The game's scrolls inside its frame, so a long one
+ * still fits the column. */
 /* @@ */ .sheet {
   width: fit-content;
   max-width: var(--avail-w);
@@ -90,10 +92,4 @@
 /* @@ */ .player {
   margin: 0 0 0.2rem;
   font-weight: 600;
-}
-
-/* "Start round N", under the round's sheet. */
-/* @@ */ .startRound {
-  display: flex;
-  justify-content: center;
 }

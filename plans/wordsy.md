@@ -516,7 +516,7 @@ with scores.
 - **`PlayArea`**: `useGame`, `useGetEndingMessage` (from `lib/endingLabel.ts`:
   "Won", "Won (tied with bea)", "2nd", "Conceded"), `useTimerStartFlash` —
   the shared `useTurnStartFlash` called with `gd.round.isTimerRunning &&
-  !gd.me.isWordFrozen` (decision 18), `useShowPeerSubmits` (the header's
+  !gd.me.isWordFrozen` (decision 18), `useShowClockStarts` (the header's
   narration, "● bea submitted — 30 seconds", keyed on `round.fastest`),
   `useHistoryView`, `useActionsAndMenu` (Concede · Stop | Back to club; the
   menu adds Print and Restart).

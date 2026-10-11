@@ -70,8 +70,9 @@ something unmarked is made.
 |---|---|---|
 | `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the attention flash on pieces a move changed |
 | `useMark` | every game that marks something of its own, most more than once | a refused word's answer, a teammate's word announced then answered, a head-shake, an ambiguous letter, an arrival, a placement outline |
-| `useTurnStartFlash` (over `useTurnArrival`) | codenamesduet, waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives, and the bell |
-| `useTurnArrival` | `useTurnStartFlash` | the turn becoming mine, as a count |
+| `useTurnStartFlash` (over `useTurnArrival` and `useMarkBeat`) | codenamesduet, waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives, and the bell |
+| `useTurnArrival` | `useTurnStartFlash`, wordsy's `useRoundMarks` | the turn becoming mine, as a count — or any rising edge a game counts |
+| `useMarkBeat` | `useTurnStartFlash`, wordsy's `useRoundMarks` | a frame's beat and a sound from one count's rise, so the two mark one moment |
 
 setgame is on `useChangeCause` underneath as well, keyed on the last claim's id.
 A claim substitutes tiles in place, so its found set is held on screen in a won

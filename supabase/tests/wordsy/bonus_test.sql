@@ -13,14 +13,15 @@
 --   3. "enough opponents" is min(3, opponents), at 2, 3, 4, 5 and 6 players,
 --      each count one short and exactly there (plans/wordsy.md, decision 10)
 --   4. a player who conceded is not an opponent
---   5. No Flip leaves once two players are still playing (decision 19)
+--   5. No Flip leaves once two players are still playing (decision 19), and
+--      the page is told who it blocks (`isBlockedByNoFlip`)
 -- ============================================================
 
 begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(22);
+select plan(25);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -126,10 +127,29 @@ select is(
   'a two-player game never has it'
 );
 
+-- The blob says who No Flip blocks, exactly while `submit_word` would refuse
+-- them: the holder, until someone else submits or a concede leaves two.
+create function pg_temp.blocked(p_name text) returns boolean language sql as $$
+  select (p ->> 'isBlockedByNoFlip')::boolean
+    from common.games g, jsonb_array_elements(g.game_data -> 'players') p
+   where g.id = current_setting('t.last')::uuid and p ->> 'username' = p_name
+$$;
+select pg_temp.bonus_round(array['ada', 'bea', 'cade'], array[5, 4, 3]);
+select is(
+  array[pg_temp.blocked('ada'), pg_temp.blocked('bea')],
+  array[true, false],
+  'round 2: the page says the holder is blocked, and nobody else'
+);
+select pg_temp.ws_submit(current_setting('t.last')::uuid, 'bea', 'ee');
+reset role;
+select is(pg_temp.blocked('ada'), false, '… until someone else submits');
+
 -- The holder may start the clock once a concede leaves two still playing.
 select pg_temp.bonus_round(array['ada', 'bea', 'cade'], array[5, 4, 3]);
 select pg_temp.as_user(pg_temp.ws_uid('cade'));
 select wordsy.concede(current_setting('t.last')::uuid);
+reset role;
+select is(pg_temp.blocked('ada'), false, 'two still playing: the page says the holder is free');
 select is(
   pg_temp.ws_submit(current_setting('t.last')::uuid, 'ada', 'eee') -> 'data' ->> 'result',
   'submitted',

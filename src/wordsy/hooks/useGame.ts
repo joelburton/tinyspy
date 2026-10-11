@@ -30,6 +30,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
       hasSubmitted: p.hasSubmitted,
       word: p.id === myId ? p.word : null,
       isWordFrozen: p.isWordFrozen,
+      isBlockedByNoFlip: p.isBlockedByNoFlip,
       isReadyForNextRound: p.isReadyForNextRound,
     }
     const tiedWithNames = raw.players

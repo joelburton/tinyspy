@@ -40,9 +40,9 @@ export function wordsySetupError(setup: GSetup): FormErrors {
 }
 
 /**
- * The initial setup: band 4 — Wordsy rewards long, rare words, so the default
- * sits a step above the roster's usual (plans/wordsy.md, decision 8) — and
- * the rulebook's 30-second round, seven rounds, a word that can change.
+ * The initial setup: band 4 (doc.md → Setup says why it is a step above the
+ * roster's usual), the rulebook's 30-second round, seven rounds, a word that
+ * can change.
  */
 export const DEFAULT_WORDSY_SETUP: GSetup = {
   timer: { kind: 'none' },

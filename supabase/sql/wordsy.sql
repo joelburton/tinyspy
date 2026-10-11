@@ -8,6 +8,7 @@
 --   create_game     shuffles the deck and deals round 1
 --   submit_word     a player's word for the round in play
 --   submit_timeout  ends the round when its 30 seconds run out
+--   start_round     "Start round N": the last press deals the next round
 --   concede         a player drops out
 --   stop_game       stops the game for everyone, with no result
 --   replay_board    the same deck, dealt again from round 1
@@ -102,8 +103,8 @@ create policy events_select on wordsy.events
 -- ============================================================
 -- The cards — a deck number's letter, bonus and slot value
 -- ============================================================
--- The frontend's `lib/tiles.ts` writes the same mapping; a test pins the two on
--- all 60.
+-- The frontend never maps a number itself: `_make_json_tiles` writes each
+-- card's letter and bonus into the blob, and tiles_test pins all 60 here.
 
 -- The letter on card `p_id`: B C D G L M N P R S T four each, then F H K V W
 -- Y two each, then J Q X Z.
@@ -621,6 +622,8 @@ revoke execute on function wordsy._deal_next_round(uuid) from public;
 --       hasSubmitted                       this round
 --       word                               this round's standing word, or null
 --       isWordFrozen                       this round's word can no longer change
+--       isBlockedByNoFlip                  may not submit yet: holds No Flip, nobody
+--                                          has submitted, more than two still play
 --       isReadyForNextRound                between rounds, pressed "Start round N"
 --
 --   round:
@@ -705,7 +708,11 @@ language sql
 stable
 as $$
   with open_round as (
-    select r.num, r.fastest_user_id, wordsy._is_one_word(g) as is_one_word
+    select r.num, r.fastest_user_id, r.no_flip_user_id,
+           wordsy._is_one_word(g) as is_one_word,
+           -- The gate `submit_word` raises PN550 on, written for the page.
+           g.round_style = 'timer' and r.fastest_user_id is null
+             and wordsy._n_still_playing(p_game_id) > 2 as is_no_flip_live
       from wordsy.rounds r
       join wordsy.games g on g.game_id = r.game_id
      where r.game_id = p_game_id and r.ended_at is null
@@ -725,9 +732,12 @@ as $$
              'word',         rw.word,
              'isWordFrozen', rw.word is not null
                              and (o.is_one_word or o.fastest_user_id = cp.id),
-             'isReadyForNextRound', coalesce(o.num is null
-                                    and wp.ready_for_num = (select max(num) + 1 from wordsy.rounds
-                                                             where game_id = p_game_id), false))
+             'isBlockedByNoFlip', o.num is not null and o.is_no_flip_live
+                                  and o.no_flip_user_id = cp.id,
+             'isReadyForNextRound', o.num is null
+                                    and wp.ready_for_num is not distinct from
+                                        (select max(num) + 1 from wordsy.rounds
+                                          where game_id = p_game_id))
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
     join wordsy._player_totals(p_game_id) t on t.user_id = cp.id
@@ -852,7 +862,8 @@ declare
   v_game_id uuid;
 begin
   for v_game_id in
-    select id from common.games where gametype = 'wordsy_compete'
+    -- Every sibling on this schema, so a coop one lands in the rebuild too.
+    select id from common.games where gametype like 'wordsy\_%'
   loop
     perform wordsy._write_static_game_data(v_game_id);
     perform wordsy._rebuild_data_cols(v_game_id, p_update_status_changed_at => false);
@@ -1148,7 +1159,7 @@ security definer
 set search_path = wordsy, common, public, extensions
 as $$
 declare
-  t wordsy.rounds%rowtype;
+  r wordsy.rounds%rowtype;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   perform 1 from wordsy.games where game_id = p_game_id for update;
@@ -1162,8 +1173,8 @@ begin
     perform common._raise_game_over();
   end if;
 
-  select * into t from wordsy.rounds where game_id = p_game_id and ended_at is null;
-  if t.timer_started_at is null then
+  select * into r from wordsy.rounds where game_id = p_game_id and ended_at is null;
+  if r.timer_started_at is null then
     raise exception 'That round is already over'
       using errcode = 'PN551', hint = 'race', column = '_',
       detail = 'no round clock is running';

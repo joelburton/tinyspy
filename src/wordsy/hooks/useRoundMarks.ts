@@ -1,15 +1,14 @@
 // cs-unmet
 
-import { useEffect, useState } from 'react'
-import { YOUR_TURN_FLASH_MS } from '@/common/board-marks/feedbackTiming'
+import { useState } from 'react'
+import { useMarkBeat } from '@/common/board-marks/useMarkBeat'
 import { useTurnArrival } from '@/common/board-marks/useTurnArrival'
-import { playSound, preloadSound, type SoundName } from '@/common/sounds/playSound'
 import type { GGameData } from '../types'
 
 /**
  * The two moments a FlipWord round marks, each a frame around the board for a
- * beat and a sound on the same edge — never on mount, since opening a game is
- * not either moment:
+ * beat and a sound on the same edge (`useMarkBeat`) — never on mount, since
+ * opening a game is not either moment:
  *
  *   isNewTableFlashing   the next round's table is dealt, once everyone has
  *                        pressed Start. Everyone, in the yellow attention
@@ -38,34 +37,7 @@ export function useRoundMarks(gd: GGameData): {
     gd.round.isTimerRunning && gd.me.stillPlaying && !gd.me.isWordFrozen)
 
   return {
-    isNewTableFlashing: useBeat(newTables, 'bell'),
-    isClockStartFlashing: useBeat(clockStarts, 'timer'),
+    isNewTableFlashing: useMarkBeat(newTables, 'bell'),
+    isClockStartFlashing: useMarkBeat(clockStarts, 'timer'),
   }
-}
-
-/**
- * One mark's beat: `sound` plays each time `count` goes up, and the result is
- * true until the beat has run. The sound's file is fetched on mount, so the
- * first one is not late.
- */
-function useBeat(count: number, sound: SoundName): boolean {
-  // The count whose beat has run out.
-  const [spent, setSpent] = useState(0)
-
-  useEffect(function preload() {
-    preloadSound(sound)
-  }, [sound])
-
-  useEffect(function playOnArrival() {
-    if (count === 0) return
-    playSound(sound)
-  }, [count, sound])
-
-  useEffect(function takeFrameOffAfterBeat() {
-    if (count === 0) return
-    const timer = setTimeout(() => setSpent(count), YOUR_TURN_FLASH_MS)
-    return () => clearTimeout(timer)
-  }, [count])
-
-  return count > spent
 }

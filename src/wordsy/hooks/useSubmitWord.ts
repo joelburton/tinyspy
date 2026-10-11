@@ -72,6 +72,8 @@ export function useSubmitWord({
       p_word: word,
     }))
     setInFlight(false)
+    // Every arm names its envelope type: the call-site shape guard
+    // (src/guards/callSiteShape.test.ts) refuses a `!== 'ok'` catch-all.
     if (res.type === 'not-ok') {
       show(FeedbackMessage.notOk(res))
       return 'kept'

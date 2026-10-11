@@ -41,7 +41,7 @@ create function pg_temp.facts(p_name text) returns jsonb language sql as $$
   select jsonb_build_object(
     'total', p -> 'total', 'nBonuses', p -> 'nBonuses', 'roundScores', p -> 'roundScores',
     'hasSubmitted', p -> 'hasSubmitted', 'word', p -> 'word', 'isWordFrozen', p -> 'isWordFrozen',
-    'isReadyForNextRound', p -> 'isReadyForNextRound')
+    'isBlockedByNoFlip', p -> 'isBlockedByNoFlip', 'isReadyForNextRound', p -> 'isReadyForNextRound')
     from pg_temp.player(p_name) p
 $$;
 
@@ -83,7 +83,7 @@ select is(
 select is(
   pg_temp.facts('ada'),
   '{"total": 0, "nBonuses": 0, "roundScores": [null, null, null, null, null, null, null],
-    "hasSubmitted": false, "word": null, "isWordFrozen": false,
+    "hasSubmitted": false, "word": null, "isWordFrozen": false, "isBlockedByNoFlip": false,
     "isReadyForNextRound": false}'::jsonb,
   'a player''s facts at the start'
 );
@@ -109,13 +109,13 @@ select is(
 select is(
   pg_temp.facts('ada') - 'roundScores',
   '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ab", "isWordFrozen": true,
-    "isReadyForNextRound": false}'::jsonb,
+    "isBlockedByNoFlip": false, "isReadyForNextRound": false}'::jsonb,
   'the Fastest''s word, frozen'
 );
 select is(
   pg_temp.facts('bea') - 'roundScores',
   '{"total": 0, "nBonuses": 0, "hasSubmitted": true, "word": "ad", "isWordFrozen": false,
-    "isReadyForNextRound": false}'::jsonb,
+    "isBlockedByNoFlip": false, "isReadyForNextRound": false}'::jsonb,
   'a rival''s standing word is in the blob too: useGame drops it'
 );
 select is(
@@ -140,7 +140,7 @@ select is(
 select is(
   pg_temp.facts('ada'),
   '{"total": 7, "nBonuses": 1, "roundScores": [7, null, null, null, null, null, null],
-    "hasSubmitted": false, "word": null, "isWordFrozen": false,
+    "hasSubmitted": false, "word": null, "isWordFrozen": false, "isBlockedByNoFlip": false,
     "isReadyForNextRound": false}'::jsonb,
   'ada''s total, nothing standing, and not yet ready'
 );

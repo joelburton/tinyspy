@@ -9,8 +9,13 @@ import { Tile } from './Tile'
 import styles from './Board.module.css'
 import type { GTile } from '../types'
 
-/** The four columns, by the slots under each: 5, 4, 3, 2. */
-const COLUMNS = [[1, 2], [3, 4], [5, 6], [7, 8]] as const
+/** The four columns, each worth its value and holding two slots. */
+const COLUMNS = [
+  { value: 5, slots: [1, 2] },
+  { value: 4, slots: [3, 4] },
+  { value: 3, slots: [5, 6] },
+  { value: 2, slots: [7, 8] },
+] as const
 
 /**
  * The table: four columns worth 5, 4, 3 and 2, each a plaque with its value
@@ -53,12 +58,10 @@ export function Board({
         makeEndingFrameClasses(endingOutcome, isViewingHistory),
       )}
     >
-      {COLUMNS.map((slots) => (
-        <div key={slots[0]} className={styles.column}>
-          {/* Every card in a column is worth its value; the first card's says
-              which. */}
-          <div className={styles.plaque}>{tileBySlot.get(slots[0])!.value}</div>
-          {slots.map((slot) => (
+      {COLUMNS.map((column) => (
+        <div key={column.value} className={styles.column}>
+          <div className={styles.plaque}>{column.value}</div>
+          {column.slots.map((slot) => (
             <Tile key={slot} tile={tileBySlot.get(slot)!}/>
           ))}
         </div>

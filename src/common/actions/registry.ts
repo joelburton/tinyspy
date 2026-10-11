@@ -270,6 +270,9 @@ export const ACTIONS = {
   // FlipWord's pause between rounds: everyone presses it, and the last press
   // deals the next round. Its game names the round in the label.
   'act-start-round': { label: 'Start round' },
+  // FlipWord's step from the last round's scoresheet to the game's, for the
+  // player who watched the game end.
+  'act-show-final-scores': { label: 'Show final scores' },
 
   // ─── Crosswords' commands ──────────────────────────────────────────────
   'act-pencil': { label: 'Pencil', keys: [alt('KeyP', '⌥P')] },

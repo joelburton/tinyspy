@@ -1,6 +1,6 @@
 // cs-unmet
 
-import type { GScoredLetter, GTile } from '../types'
+import type { GScoredLetter, GScoredWord, GTile } from '../types'
 
 /**
  * Each letter of `word` with the card it scores on, or null — the rule, letter
@@ -30,10 +30,21 @@ export function scoreLetters(word: string, tiles: readonly GTile[]): GScoredLett
   })
 }
 
-/** What `word` scores against a round's table: the worth of every card its
- *  letters score on (`scoreLetters`). */
+/** The worth of every card the letters score on, added up. */
+export function sumScore(letters: readonly GScoredLetter[]): number {
+  return letters.reduce((sum, l) => sum + (l.tile === null ? 0 : worth(l.tile)), 0)
+}
+
+/** `word` against a round's table, letter by letter and summed, worked out
+ *  once: the shape the lines under the entry draw. */
+export function makeScoredWord(word: string, tiles: readonly GTile[]): GScoredWord {
+  const letters = scoreLetters(word, tiles)
+  return { letters, score: sumScore(letters) }
+}
+
+/** What `word` scores against a round's table. */
 export function scoreWord(word: string, tiles: readonly GTile[]): number {
-  return scoreLetters(word, tiles).reduce((sum, l) => sum + (l.tile === null ? 0 : worth(l.tile)), 0)
+  return sumScore(scoreLetters(word, tiles))
 }
 
 /** A card's worth: its column's value plus its bonus. */

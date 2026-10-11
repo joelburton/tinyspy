@@ -37,7 +37,7 @@ export function InfoCol({
   /** A player's cell in the strip: their total; "in" after it while their
    *  word stands for the round in play; once they are out of play, how they
    *  came out: "46 (won)", "31 (2nd)", "12 (conceded)". */
-  function getTotalAndStatus(player: GPlayer) {
+  function getTotalAndResult(player: GPlayer) {
     if (player.endingLabel !== null) {
       return `${player.total} (${player.endingLabel.word.toLowerCase()})`
     }
@@ -55,7 +55,7 @@ export function InfoCol({
           players={gd.players}
           myId={gd.me.id}
           metricLabel="Total"
-          metricFor={getTotalAndStatus}
+          metricFor={getTotalAndResult}
         />
 
         {/* One row, one order, every action listed once (docs/playarea.md).
