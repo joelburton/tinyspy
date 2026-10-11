@@ -172,6 +172,18 @@ describe('wordsy PlayArea — the on-screen keyboard', () => {
       expect(rpc).toHaveBeenCalledWith('submit_word', { p_game_id: 'g1', p_word: 'cab' }))
   })
 
+  it('the entry takes eighteen letters, typed or tapped, and no more', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...ZTest_makeWordsyCtx()} />)
+    // Nineteen typed: the keys stop at eighteen.
+    await typeWord('baccalaureatesbacca')
+    expect(screen.getByTestId('entry-value')).toHaveTextContent(/^baccalaureatesbacc$/i)
+    // A tapped cap goes through the same bound.
+    const keyboard = await screen.findByLabelText('Keyboard')
+    await user.click(within(keyboard).getByRole('button', { name: 'l' }))
+    expect(screen.getByTestId('entry-value')).toHaveTextContent(/^baccalaureatesbacc$/i)
+  })
+
   it('its caps are gray once my word is frozen', async () => {
     render(<WithKeys {...ZTest_makeWordsyCtx({
       rounds: [{ num: 1, fastest: 'u1', isTimerRunning: true }],

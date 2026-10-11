@@ -52,6 +52,9 @@ type Props = {
   onAnyKey?: () => void
   // What may be entered (default lowercase A–Z). boggle passes upper.
   charFor?: (key: string) => string | null
+  // The longest value the capture takes; `useCaptureKeys`'s own default when
+  // absent. A game whose words run long (wordsy's 18) says so here.
+  maxLength?: number
   // Last submitted value, restored by ArrowUp (see `./useArrowHistory`).
   recall?: string
   // False where a submitted word doesn't come back at all (letterboxed: it
@@ -98,6 +101,7 @@ export function WordEntryArea({
   submitDisabled = false,
   onAnyKey,
   charFor,
+  maxLength,
   recall,
   hasHistory = true,
   className,
@@ -113,7 +117,7 @@ export function WordEntryArea({
   // hook rather than being applied here, so the key and the button read the one
   // answer instead of each working it out.
   const { actDeleteLast, actSubmit } = useCaptureKeys({
-    pendingText: value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor,
+    pendingText: value, onChange, onSubmit, disabled, busy, submitDisabled, onAnyKey, charFor, maxLength,
   })
   useArrowHistory({ recall, onChange, disabled, busy, hasHistory })
   const top = useWatchAndGetTopFeedbackMsg(localFeedbackSlot)

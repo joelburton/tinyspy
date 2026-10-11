@@ -12,7 +12,7 @@ import { GuessKeyboard } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { useBoardColActions } from '../hooks/useBoardColActions'
 import { useBoardColView } from '../hooks/useBoardColView'
 import { useSubmitWord } from '../hooks/useSubmitWord'
-import { useTypedWord } from '../hooks/useTypedWord'
+import { MAX_WORD_LENGTH, useTypedWord } from '../hooks/useTypedWord'
 import { makeScoredWord } from '../lib/score'
 import { Board } from './Board'
 import { GameScoresheet } from './GameScoresheet'
@@ -155,6 +155,7 @@ export function BoardCol({
               disabled={!isEntryOpen}
               busy={submission.inFlight}
               submitDisabled={gd.me.isBlockedByNoFlip}
+              maxLength={MAX_WORD_LENGTH}
               onAnyKey={localFeedbackSlot.dismiss}
               recall={entry.recall}
             />

@@ -252,7 +252,9 @@ the log.
 - **The board is four columns**, a value plaque over two cards each. A common
   card is the default tile; the +1 and the +2 wear the app's two flex colors,
   their bonus printed.
-- **The entry is `<WordEntryArea>`**; under it the typed word's score, worked
+- **The entry is `<WordEntryArea>`**, taking up to 18 letters (`MAX_WORD_LENGTH`
+  in `useTypedWord`; the shared capture's own cap is 16, short of the
+  rulebook's BACCALAUREATES); under it the typed word's score, worked
   out live by `lib/score.ts` — the table is public and the sum is the
   rulebook's own, so the page does it as the player would on paper (the
   server's `_score_word` decides; a test pins them to the same examples) —
