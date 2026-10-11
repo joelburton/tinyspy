@@ -37,9 +37,10 @@ Games (code = brand):
 
 ## Modes offered
 
-- **Coop + compete pair:** PN FB WK MC RA SD SS WN CP MW WW PP SB HT W1
+- **Coop + compete pair:** PN FB WK MC RA SD SS WN CP MW WW PP SB HT W1 FW
+  (FW's coop is the rulebook's solo card, for one or a team)
 - **Coop only (no compete):** TS
-- **Compete only (no coop):** MG FW
+- **Compete only (no coop):** MG
 
 ## Player counts
 
@@ -70,7 +71,7 @@ compete-only and plays fine alone as a race against the clock.
 | setgame | HT | `[1, 6]` | `[2, 6]` | 6 |
 | wordleone | W1 | `[1, 6]` | `[2, 6]` | 6 |
 | bananagrams | MG | — | `[1, 6]` | 6 |
-| wordsy | FW | — | `[2, 6]` | 6 |
+| wordsy | FW | `[1, 6]` | `[2, 6]` | 6 |
 | boggle | MC | `[1, 8]` | `[2, 8]` | 8 |
 | crosswords | CP | `[1, 8]` | `[2, 8]` | 8 |
 | scrabble | RA | `[1, 4]` | `[1, 4]` (AI) | 4 |
@@ -215,7 +216,7 @@ table and reaches the FE only through `players_state`'s per-mode mask.)
 ## Win / score metric shape
 
 - **Points accumulation (high score wins; FB/MW via a rank ladder):** RA MC FB
-  MW FW (the best five of seven rounds, plus bonuses) HT (sets claimed; in coop the same count is the team's, and the WIN is
+  MW FW (the best five of seven rounds, plus bonuses; in coop the team's, less 2 a penalty, climbing the solo card's title ladder at 90, 100, 110 and 120) HT (sets claimed; in coop the same count is the team's, and the WIN is
   reaching the natural end rather than passing a score)
 - **Binary solve (you finished the puzzle, or didn't):** TS WK SS WN CP W1
 - **Count to a target:** PN (find the 3 secrets) SD (clear 6 words) PP (find
@@ -306,7 +307,7 @@ is what you're looking for).
 - **`useCaptureKeys` directly (bare-keys grab, no focused input):** FB MC WN MW
   WW W1
 - **`GuessKeyboard` (`shared/onscreen-keyboard`; the on-screen QWERTY):** WN WW
-  W1 FW (a phone only, under its entry box)
+  W1 FW (under its entry box)
 
 (PN + SB get their capture via `WordEntryArea`; WN/WW/W1 letters land on the board,
 not a box. SB deliberately skips `useFoundWordSubmit` — a chain append isn't a
@@ -485,4 +486,5 @@ primary axis). Every game but MG has the phone layout.
 - **W1:** fewest misses to solve, earliest solve breaking a tie (race
   continues)
 - **FW:** the highest total after seven rounds — the best five plus every
-  bonus — and a tie is shared (not a race)
+  bonus — and a tie is shared (not a race); in coop the team wins together at
+  90 or more, with the card's title, and loses together under

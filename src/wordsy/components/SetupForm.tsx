@@ -103,7 +103,7 @@ export function SetupForm({
         )}
         <NumberField
           help={mode === 'coop'
-            ? 'The clock starts with each round; a word in before it runs out can earn a bonus.'
+            ? 'A word entered before it runs out can earn a bonus.'
             : 'The clock starts at the first word in.'}
           name="timer_seconds"
           error={errors.timer_seconds}
@@ -117,7 +117,7 @@ export function SetupForm({
         />
         {mode === 'compete' && (
           <CheckboxField
-            help="Your first word is your word for the round, and the round ends as soon as everyone has one in."
+            help="Option: you cannot change your word for the round."
             name="one_word"
             error={errors.one_word}
             value={isNoTimer || s.one_word}

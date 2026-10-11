@@ -83,11 +83,15 @@ export async function galleryClub(brand: string, members: number): Promise<E2ECl
   const res = await asUser(seats[0].session.access_token)
     .schema('common')
     .rpc('create_club', { club_name: name, member_usernames: seats.map((s) => s.username) })
-  if (!res.error) return { handle: res.data as string, members: seats }
+  if (res.error) throw new Error(`create_club(${name}): ${res.error.message}`)
+  // The RPC answers an envelope (docs/envelopes.md): the handle under `data`,
+  // or a refusal with its code.
+  const env = res.data as { type: 'ok' | 'not-ok'; data: { handle: string } | null; dbcode: string | null; message: string | null }
+  if (env.type === 'ok') return { handle: env.data!.handle, members: seats }
 
-  // 23505 = the club already exists from an earlier run, which is the point of
+  // PN009 = the club already exists from an earlier run, which is the point of
   // a stable name. Reuse it rather than inventing "Gallery SnakeBox 2".
-  if (res.error.code !== '23505') throw new Error(`create_club(${name}): ${res.error.message}`)
+  if (env.dbcode !== 'PN009') throw new Error(`create_club(${name}): ${env.message} [${env.dbcode}]`)
   const handle = execFileSync(
     'psql',
     [LOCAL_DB, '-X', '-tA', '-c', `select handle from common.clubs where name = '${name}';`],

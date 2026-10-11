@@ -11,7 +11,7 @@
 --      or beating enough opponents +2 / +3 / +4, for rounds 1–3 / 4–6 / 7
 --   2. beating is strict: a tie with the Fastest earns nothing
 --   3. "enough opponents" is min(3, opponents), at 2, 3, 4, 5 and 6 players,
---      each count one short and exactly there (plans/wordsy.md, decision 10)
+--      each count one short and exactly there (src/wordsy/doc.md → Rulings)
 --   4. a player who conceded is not an opponent
 --   5. No Flip leaves once two players are still playing (decision 19), and
 --      the page is told who it blocks (`isBlockedByNoFlip`)

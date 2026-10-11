@@ -136,7 +136,7 @@ area is audited. The rows below name only what's distinctive about each:
 | [src/spellingbee/doc.md](src/spellingbee/doc.md) | **FreeBee**: required + bonus words, the rank ladder, the board built in an edge function |
 | [src/wordle/doc.md](src/wordle/doc.md) | **WordNerd**: hidden-target colors, mode-aware per-guess RLS |
 | [src/wordleone/doc.md](src/wordleone/doc.md) | **WordNerdier**: Wordle in 1 — the puzzle built in an edge function, a miss that tells nothing; wordle's frontend copied |
-| [src/wordsy/doc.md](src/wordsy/doc.md) | **FlipWord**: Gil Hova's Wordsy — no turns, one word a round; the header's clock re-armed each round; the skip-not-discard deal |
+| [src/wordsy/doc.md](src/wordsy/doc.md) | **FlipWord**: Gil Hova's Wordsy — no turns, one word a round; the header's clock re-armed each round; the skip-not-discard deal; coop plays the rulebook's solo card for a title |
 | [docs/games/bananagrams.md](docs/games/bananagrams.md) | **MonkeyGrams**: FE-owned board, server-owned tiles; desktop-only |
 | [docs/games/waffle.md](docs/games/waffle.md) | **SyrupSwap**: hidden-solution colors, boards built on demand |
 | [docs/games/stackdown.md](docs/games/stackdown.md) | **StackDown**: the no-trap board invariant, the pre-generated library |
@@ -175,7 +175,6 @@ feedback) is read when app-audit opens a game's area.
 | [plans/seat-view.md](plans/seat-view.md) | **Decided, being built.** No spectating; `auth`; `gd.me` is my player; every seat fact on the player type; the page is builder-written blobs on `common.games`. Pauses the game passes until the three converted games carry it |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 | [plans/wordleone.md](plans/wordleone.md) | **Being built**, on the `wordleone` branch: **WordNerdier**, Wordle in 1 — one pre-colored starter row, the only legal word that fits; built in wordle's shape, the puzzle generated in an edge function |
-| [plans/wordsy.md](plans/wordsy.md) | **Being built**, on the `wordsy` branch: **FlipWord**, Gil Hova's Wordsy — eight consonant cards in four scoring columns, one word each per round, a clock from the first lock-in, best five of seven rounds; compete first, solo and coop next |
 
 ## Audience — friends, not strangers
 

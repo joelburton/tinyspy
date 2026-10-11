@@ -4,7 +4,8 @@
 -- Test: the solo card, walked — wordsy._reveal_coop_round
 -- ============================================================
 -- One player, ada, on the planted table (setup.psql → ws_coop_round), one
--- word a round, the card as Joel transcribed it (plans/wordsy.md → Solo):
+-- word a round, the card as Joel transcribed it (src/wordsy/doc.md → The solo
+-- card (coop)):
 --   1. 15 before the clock on band 1 earns the higher bonus; under 20 moves
 --      the timer down
 --   2. 15 on band 2 earns the lower bonus; down again, to 3

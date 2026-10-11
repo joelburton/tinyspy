@@ -4,8 +4,8 @@
 -- wordsy — the coop sibling: solo and the team, on the solo card
 -- ============================================================
 --
--- `wordsy_coop` plays the back of the rulebook's No Flip card (plans/wordsy.md
--- → Solo and coop): one word a round for the whole table, a clock from the
+-- `wordsy_coop` plays the back of the rulebook's No Flip card (src/wordsy/doc.md
+-- → The solo card (coop)): one word a round for the whole table, a clock from the
 -- deal, and a three-band card the timer moves along — a word of 15 or more
 -- that beat the clock earns a bonus, a round under 20 moves the band down,
 -- off the bottom is a penalty. One to six players; the team writes

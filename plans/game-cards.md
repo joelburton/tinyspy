@@ -764,36 +764,47 @@ Eight faceup consonant cards in four columns worth 5, 4, 3 and 2; everyone
 writes one word a round at once, and the first word in starts the clock (30
 seconds unless set otherwise, 1–120). Seven rounds, or a short game's three; a
 word can change until the clock, or with one word a round the first is final.
-Compete only.
+Coop is the rulebook's solo card, for one or a team: one word a round, the
+clock from the deal, a three-band card the timer walks, a title at the end.
 
 - **goal**
-  - `game-goal` — `goal-intrinsic`: the highest total
+  - `game-goal`
+    - compete: `goal-intrinsic`: the highest total
+    - coop: `goal-intrinsic`: 90 or more after seven rounds, for a title
   - `goal-chosen` — none
-  - `goal-progress` — total so far
+  - `goal-progress` — total so far; coop also the card's band and penalties
   - `score-formula`
     - a word: each faceup card it uses at its column's value, each card once; +1 red, +2 blue
-    - bonuses by round: beat the Fastest +1/+2/+3; the Fastest tying or beating enough opponents +2/+3/+4
-    - at the end: the best five rounds + every bonus (a short game: the best two)
+    - compete bonuses by round: beat the Fastest +1/+2/+3; the Fastest tying or beating enough opponents +2/+3/+4
+    - coop bonus: a word before the clock worth 15+, the higher column's value on band 1, the lower on 2 or 3; under 20 moves the timer down (a penalty off the bottom), 20+ with a bonus moves it up
+    - at the end: the best five rounds + every bonus (a short game: the best two); coop less 2 a penalty
 - **solving**
   - `solved` — n/a: nothing to complete
   - `perfect-play` — n/a
   - `author-solution` — none: nothing is hidden
 - **winning and losing**
   - `ranked-by`
-    1. the highest total
-    2. `co-winners`
-  - `loses-by` — `loses-by-none`
+    - compete:
+      1. the highest total
+      2. `co-winners`
+    - coop: the team together, at 90 or more
+  - `loses-by`
+    - compete: `loses-by-none`
+    - coop: under 90 after seven rounds (see below)
   - `announce-when` — `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: total
 - **ending**
   - `exhaustible-resource` — the rounds: seven, or a short game's three
   - `ends-when` — `ends-when-resource-exhausted`
-  - `timeout-result` — n/a: no whole-game timer; the round's clock ends a round
+  - `timeout-result` — n/a: no whole-game timer; the round's clock ends a compete round, and in coop ends nothing
 - **hints** — none
 
 **Mismatches** — none.
 
-**Surprises and ruling ideas** — none.
+**Surprises and ruling ideas** — coop loses by a total under a bar after a
+fixed number of rounds, which no `loses-by-*` term names: not a fatal move, a
+budget or a timeout. A score bar at the natural end is a loss shape the
+vocabulary could use a word for.
 
 ## Gaps in the terms
 

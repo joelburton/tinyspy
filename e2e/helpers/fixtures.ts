@@ -1542,7 +1542,7 @@ function wordsyPsql(sql: string): string {
 }
 
 /**
- * Start a wordsy (FlipWord) game — compete only, two players or more — on the
+ * Start a wordsy (FlipWord) compete game — two players or more — on the
  * planted table (`WORDSY_TABLE_LETTERS`).
  *
  * The deck is replaced and round 1 re-dealt through the real `_deal_round`, as
@@ -1566,6 +1566,71 @@ export async function createWordsyGame(
       p_mode: 'compete',
     })
   const id = createdGameId(res, 'wordsy.create_game')
+  plantWordsyDeck(id)
+  return { id, gametype: 'wordsy_compete' }
+}
+
+/**
+ * Start a wordsy coop game — the solo card, for one player in their solo club
+ * or a team — on the planted table. `coopStyle` 'turns' seats the rotation
+ * from `firstUserId` (the creator unless said). The card's keys are fixed, as
+ * the form sends them.
+ */
+export async function createWordsyCoopGame(
+  club: E2EClub,
+  coopStyle: 'free-for-all' | 'turns' = 'free-for-all',
+  firstUserId: string = club.members[0].userId,
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const res = await asUser(club.members[0].session.access_token)
+    .schema('wordsy')
+    .rpc('create_game', {
+      p_club_handle: club.handle,
+      p_setup: {
+        timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 7, one_word: true,
+        coop_style: coopStyle,
+        ...(coopStyle === 'turns' ? { first_turn_user_id: firstUserId } : {}),
+      },
+      p_player_user_ids: playerUserIds,
+      p_mode: 'coop',
+    })
+  const id = createdGameId(res, 'wordsy.create_game')
+  plantWordsyDeck(id)
+  return { id, gametype: 'wordsy_coop' }
+}
+
+/**
+ * A word in `common.words` at band 1, as the pgTAP setup plants one: a spec
+ * that must score exactly so against the planted table — a 23 for the card's
+ * higher bonus — spells the letters it needs, which no dictionary word does
+ * seven times over with seven roots. Direct SQL, because the word list takes
+ * no writes from a client.
+ */
+export function plantWordsyWord(word: string): void {
+  if (!/^[a-z]{1,45}$/.test(word)) throw new Error(`bad word: ${word}`)
+  wordsyPsql(`insert into common.words (word, band, len, american, british, canadian, australian,
+                                        slang, slur, crude, wordle, root_word)
+              values ('${word}', 1, ${word.length}, true, true, true, true, false, 0, 0, false, null)
+              on conflict (word) do update set band = 1, root_word = null`)
+}
+
+/**
+ * The letters of the round in play, in slot order — the table every page shows.
+ * A word of all eight scores the whole table, 28 or more, so a spec that needs
+ * a round's word to clear the solo card's 20 spells it from this, whatever the
+ * deal dealt after round 1's planted table.
+ */
+export function wordsyTableLetters(gameId: string): string {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  return wordsyPsql(`select string_agg(wordsy._tile_letter(u.t), '' order by u.o)
+                       from wordsy.rounds r, unnest(r.tiles) with ordinality u(t, o)
+                      where r.game_id = '${gameId}' and r.ended_at is null`)
+}
+
+/** Replace a fresh game's deck with the planted one and re-deal round 1
+ *  through the real `_deal_round`, keeping any First Wordsmith; in coop the
+ *  deal arms the clock again. */
+function plantWordsyDeck(id: string): void {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error(`bad game id: ${id}`)
   const prefix = `array[${WORDSY_DECK_PREFIX.join(',')}]::smallint[]`
   wordsyPsql(`do $$
@@ -1581,7 +1646,6 @@ export async function createWordsyGame(
       perform wordsy._deal_round('${id}', 1, null, v_first);
       perform wordsy._rebuild_data_cols('${id}', true);
     end $$;`)
-  return { id, gametype: 'wordsy_compete' }
 }
 
 /** Submit `word` for `member` through the real RPC; answers its `result`. */

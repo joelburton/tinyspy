@@ -5,8 +5,8 @@
 -- ============================================================
 --
 -- `timer_seconds` is how long the round's clock runs once the first word is
--- in, 1–120; 30 is the rulebook's. The creator types it (plans/wordsy.md,
--- decision 26). Under the `no-timer` style it is stored and unread.
+-- in, 1–120; 30 is the rulebook's. The creator types it (src/wordsy/doc.md →
+-- Setup). Under the `no-timer` style it is stored and unread.
 --
 -- Every existing game ran the rulebook's 30, so the default is its value, and
 -- its setup — which the setup rows read back — and a club's saved default gain

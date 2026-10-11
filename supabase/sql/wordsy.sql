@@ -13,7 +13,7 @@
 --   stop_game       stops the game for everyone, with no result
 --   replay_board    the same deck, dealt again from round 1
 --
--- What is particular to wordsy (plans/wordsy.md has the rest):
+-- What is particular to wordsy (src/wordsy/doc.md has the rest):
 --   - A card is its deck number, 1–60, and the number says its letter and
 --     its bonus (`_tile_letter`, `_tile_bonus`): 1–44 the common letters,
 --     45–56 the red +1s, 57–60 the blue +2s. The deck is one frozen shuffle,
@@ -38,7 +38,7 @@
 --   - A game is seven rounds, the best five counted, or a short game's three,
 --     the best two (`n_rounds`, `_n_best_rounds`).
 --   - Coop (`wordsy_coop`, one to six players) plays the back of the No Flip
---     card (plans/wordsy.md → Solo and coop): the clock is armed at the deal,
+--     card (src/wordsy/doc.md → The solo card (coop)): the clock is armed at the deal,
 --     the team writes ONE word a round — anyone's, or the turn holder's under
 --     `coop_style = 'turns'` — and that submit ends the round. The clock running
 --     out only puts the clock away. The card (`games.band`, `n_penalties`) moves
@@ -385,7 +385,7 @@ revoke execute on function wordsy._is_coop(uuid) from public;
 -- Each player's total so far — the best word scores (`_n_best_rounds`) plus
 -- every bonus — and how many bonuses they have, summed off the log. In coop
 -- the log is the team's, so every player carries the team's numbers, and the
--- penalties come off: −2 each (plans/wordsy.md, decision 21).
+-- penalties come off: −2 each (src/wordsy/doc.md → The solo card (coop)).
 create or replace function wordsy._player_totals(p_game_id uuid)
 returns table (user_id uuid, total int, n_bonuses int)
 language sql
@@ -529,7 +529,7 @@ revoke execute on function wordsy._finish(uuid, uuid) from public;
 -- 1–3 / 4–6 / 7. A player whose score is strictly above the Fastest's gets
 -- beat. The Fastest gets fastest when the opponents at or below their score
 -- reach min(3, opponents), the opponents being the others still playing
--- (plans/wordsy.md, decision 10). A Fastest who has conceded gives nobody a
+-- (src/wordsy/doc.md → Rulings). A Fastest who has conceded gives nobody a
 -- bonus. In `no-timer` the First Wordsmith stands in for the Fastest.
 --
 -- In coop the reveal is the team's one word against the card
@@ -611,7 +611,7 @@ revoke execute on function wordsy._end_round(uuid, uuid) from public;
 -- ============================================================
 -- wordsy._reveal_coop_round — the team's word against the solo card
 -- ============================================================
--- The card, as Joel transcribed it (plans/wordsy.md → Solo). The
+-- The card, as Joel transcribed it (src/wordsy/doc.md → The solo card (coop)). The
 -- word scores as any word. It beat the clock when its submit came within
 -- `timer_seconds` of the deal, by the server's clock. A word that beat the
 -- clock and scored 15 or more earns the round's bonus: with the timer on band

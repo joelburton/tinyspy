@@ -4,7 +4,8 @@ Gil Hova's Wordsy, branded FlipWord: eight consonant cards in four columns
 worth 5, 4, 3 and 2, and everyone writes one word a round at once. The first
 word in starts the clock, 30 seconds unless the creator typed another; seven
 rounds, the best five plus the bonuses, highest total wins — or a short game,
-three rounds and the best two.
+three rounds and the best two. In coop, one player or a team plays the
+rulebook's solo card instead: one word a round against the clock, for a title.
 
 ## Intro to area
 
@@ -48,8 +49,15 @@ are answers only the server can give, and come back in the pill. A non-word
 empties the entry, since nothing in it is worth fixing; an already-played
 word stays, to be changed.
 
-Compete only, as `wordsy_compete` on the family `wordsy`, so a coop sibling
-can land beside it.
+Two manifests on the family `wordsy`. `wordsy_compete` is the game above.
+`wordsy_coop`, for one to six, is the back of the rulebook's No Flip card
+([The solo card](#the-solo-card-coop)): the clock runs from the deal, the
+team writes one word a round — anyone's, or the turn holder's when the setup
+says turns — and that word ends the round; a word in before the clock worth
+15 or more earns a bonus, and the timer walks a three-band card; after seven
+rounds the total earns a title or the team loses. No Fastest, no No Flip, no
+concede: a coop game stops. The clock running out ends nothing there — the
+card says take as long as you need — so a late word simply earns no bonus.
 
 ## Game rules
 
@@ -63,6 +71,9 @@ can land beside it.
 | **Fastest Wordsmith** | the timer style's first submit of a round; their word is frozen |
 | **First Wordsmith** | no-timer's stand-in for the Fastest, named at the deal |
 | **No Flip** | held by last round's Fastest: they may not submit first while more than two still play |
+| **the solo card** | coop's card (the back of No Flip): three bands the timer sits on — green 1, amber 2, red 3 — and the penalties taken |
+| **writer** | in coop, whoever enters the round's word: anyone, or the turn holder under turns |
+| **title** | what a coop total earns after seven rounds: 90 Wordprentice, 100 Wordsmith, 110 Wordspert, 120 Wordmaster |
 
 ### Scoring
 
@@ -80,16 +91,49 @@ opponents is +2 / +3 / +4, where enough is `min(3, opponents)` and an opponent
 is another player still playing — the 2025 rulebook's counts. A Fastest who has
 conceded gives nobody a bonus.
 
+### The solo card (coop)
+
+The back of the 2025 No Flip card, which no source online reproduces; Joel
+transcribed it on 2026-10-10, and this is the one copy:
+
+> **Setup.** Use the solo side of the No Flip card (three bands: a green 1 at
+> the top, an amber 2, a red 3). Place the sand timer on 1.
+> **Play.** Flip the timer at the start of each round. Take as long as you
+> need to write. Check whether you finished writing before the timer ends.
+> **Scoring.** Score your word normally. You get a bonus if you beat the timer
+> *and* score 15+. Mark the higher bonus column if the timer is on 1, the lower
+> if it is on 2 or 3. After scoring, move the timer: 0–19 points, move it
+> down — if it is on 3, instead mark a penalty and move it to 2; 20+ and no
+> bonus, don't move it; 20+ and a bonus, move it up — it can't go above 1.
+> **Game end.** After 7 rounds, add up your score: 90 Wordprentice, 100
+> Wordsmith, 110 Wordspert, 120 Wordmaster.
+
+What the app makes of it. The clock runs from the deal, for the setup's
+seconds, and a word **beat the clock** when its submit came within them, by
+the server's time. The bonus columns are compete's: the higher is the
+Fastest's, 2 / 3 / 4 by rounds 1–3 / 4–6 / 7; the lower the beat-the-Fastest
+column's, 1 / 2 / 3. The card does not say what a penalty is worth nor whether
+the two lowest rounds are dropped. Joel ruled (2026-10-10) that the best five
+count, bonuses kept and penalties taken — the card expects 20 a word from a
+good player, and all seven would be 140, past its highest title — that a
+penalty is −2, the 2016 preview's value for the card this one was built from,
+that under 90 is a loss, and that the first word is final. Seven rounds, the
+timer and one word a round are the card's and fixed; the setup chooses the
+dictionary, the clock's seconds and, for a team, free-for-all or turns ("both
+free-for-all and turn-by-turn").
+
 ### How a game ends
 
 | the ending | reason / detail | ranked |
 |---|---|---|
-| the last round played | `resource_exhausted` / `rounds_played` | by total — the best word scores (five of seven, two of three; `_n_best_rounds`) plus every bonus — with `rank()`, among non-conceders who scored above zero; a tie shares the place |
-| everyone conceded | `conceded` / `conceded` | nobody |
+| the last round played, compete | `resource_exhausted` / `rounds_played` | by total — the best word scores (five of seven, two of three; `_n_best_rounds`) plus every bonus — with `rank()`, among non-conceders who scored above zero; a tie shares the place |
+| the last round played, coop | `resource_exhausted` / `rounds_played` | the whole team first at 90 or more; nobody under, a loss. The title is the blob's `team.title`, not the ending's detail: a title is a result, not the act that ended the game |
+| everyone conceded | `conceded` / `conceded` | nobody; compete only |
 | somebody stopped it | `stopped` / `stopped` | nobody |
 
 The last round is ended by nobody when the clock ends it, by the last player
-to submit when everyone is in (no-timer, one word). There is no whole-game timer.
+to submit when everyone is in (no-timer, one word), by the writer in coop.
+There is no whole-game timer.
 
 ## The deal
 
@@ -220,10 +264,24 @@ the log.
   button under a sheet is its command (`useBoardColActions`): "Start round N",
   or "Show final scores"; both are button-only, since each is the one thing
   the surface offers at that moment, drawn where the board was.
-- **A phone types on `GuessKeyboard`**, wearing the entry's own ↵ and ⌫; a
-  desktop hides it.
-- **The strip** reads each total, "in" after it while that player's word
-  stands, and how they came out once they are out.
+- **The on-screen keyboard** (`GuessKeyboard`) shows at every width, as the
+  other word games show it, wearing the entry's own ↵ and ⌫.
+- **The strip**, compete's, reads each total, "in" after it while that
+  player's word stands, and how they came out once they are out. Coop shows
+  none: every player carries the team's total. Under turns the common
+  `TurnStatusLine` says whose word it is.
+- **The solo card** (`SoloCard`, three `BandSquare`s in the game's own
+  `--wordsy-band-*` colors — copies of the outcome bases, not aliases, since
+  a band is where the timer sits and not a verdict) sits beside the word
+  lines under the entry in coop: the dark border on the band the timer is on,
+  a −2 mark a penalty. The state line counts the penalties. Under turns the
+  entry is the writer's alone: the others' boards dim and the second word
+  line says whose turn it is; the new table's bell and frame ring for the
+  writer alone, since the table arriving IS their turn arriving
+  (`useRoundMarks`), and the clock-start mark is compete's, the coop clock
+  running from the deal.
+- **The button under a sheet takes focus** as the sheet appears, so ↵ presses
+  it; the box under the sheet is the surface's Tab ring (PlayArea).
 - **`#N` is the row's round**, and opens that round's table on the board.
 - **A logged word is plain, in bold.** Only the lines under the entry draw a
   word by how it scored (`ScoredWord`).
@@ -241,14 +299,73 @@ the log.
   player's dropped words and their scores struck in red (a tie strikes the
   later round), the server's total under them; only as tall as its tables,
   it scrolls inside its frame when they are taller than the column,
-  and stays.
-- **The printout** is the totals, each finished round's table, and the log.
+  and stays. In coop the sheets take the team's shape: one row a round with
+  its writer, the word, its score, a check for beating the clock (headed by
+  the hourglass and a check), the band it was scored on, its bonus, and the
+  total; the game's one table is headed by the title, or "The team", with the
+  penalties' cost under the rows. The ending reads "Won (Wordsmith)" or
+  "Lost (82 pts · 90 for Wordprentice)" (`lib/endingLabel.ts`).
+- **The printout** is the totals — the team's one line in coop, named by its
+  title — each finished round's table, and the log.
 - **Setup** defaults to band 4, a step above the roster's usual: Wordsy
   rewards long, rare words (the rulebook's examples are QUIBBLES,
   BACCALAUREATES and LIQUEFACTION), and a band-5 word refused in a band-4 game
   costs only the retype. The round clock's seconds are typed, 1–120, 30 to
-  start (a number box, not a list: plans/wordsy.md, decision 26); the Round
-  row and the form's summary name them (`describeRound`).
+  start — a number box, not a list ("this shouldn't be a drop-down; they can
+  enter any number 1-120"; Joel, 2026-10-10) — and compete alone may choose
+  no timer; the Round row and the form's summary name them (`describeRound`).
+
+## Rulings
+
+The choices the code cannot explain by itself, in Joel's words where they
+were his (2026-10-08 and 2026-10-10):
+
+- **A non-word is refused, not scored 0**: "otherwise, it feels to
+  penalizing if they enter a band-5 word when playing a band-4 game." The
+  rulebook scores it 0; a setup option for that is in `todo.md`.
+- **Only a submitted word counts, and the last submit stands**: "we should
+  make them press submit; just typing and not submitting isn't like our
+  other games." No draft reaches the server; a player who never pressed ↵
+  has no word that round, and the log says "no word".
+- **The round follows the rulebook**: "follow rulebook" — only the first
+  submit is bound, every later one may be replaced until zero, and a timer
+  round never ends early.
+- **Four players: the 2025 book**, all three opponents, since it is the
+  edition in print; the 2017 rules asked two of three. The one formula
+  `min(3, opponents)` gives the 2025 book at every count, and the two-player
+  case — tie or beat your one opponent — comes from the 2017 rules via BGG,
+  the 2025 book being silent.
+- **The bell rings for everyone but the first submitter**: "everyone but
+  the person who submitted the first word."
+- **No Flip leaves the game when two are still playing**, not when the
+  roster is two: the rulebook's reason — two players would only hand the
+  flip back and forth — applies to the two left.
+- **The round clock is the common clock, re-armed each round**: "we can use
+  our time mechanism for that instead of whole-game timer" — the first game
+  to use the header's clock for anything but a whole game.
+- **The typed word's score shows live**: "live".
+- **The title is the round**, "Round 3 of 7", rewritten as each round is
+  dealt.
+- **The default band is 4**, a step above the roster's usual (Setup, above).
+- **The solo card's open questions** are ruled in its section above; the
+  coop win reads "Won (Wordsmith)" — "should just be Won (Wordsmith)".
+
+## Sources
+
+- [Allplay rulebook PDF](https://assets.allplay.com/board-games-wordsy-rulebook-link.pdf)
+  (2025 edition; the player board on page 2 carries the bonus table) and
+  [RulesPal's transcription](https://rulespal.com/wordsy/rulebook).
+- [BGG Rules forum: "Bonuses at 2 players"](https://boardgamegeek.com/thread/3556885),
+  [same word in the same round](https://boardgamegeek.com/thread/2912845),
+  [spelling](https://boardgamegeek.com/thread/1989520),
+  [solo timer](https://boardgamegeek.com/thread/2449422) (the designer: the
+  solo timer gets its full time each round).
+- [What's Eric Playing preview, 2016](https://whatsericplaying.com/2016/10/30/wordsy/)
+  (the 2017 edition's solo rules and per-player-count thresholds; the
+  penalty's −2).
+- The 2025 No Flip card's solo side, Joel's transcription of 2026-10-10,
+  under [The solo card](#the-solo-card-coop).
+- [BoardGameGeek](https://boardgamegeek.com/boardgame/208480/wordsy).
 
 ## Tests
 
@@ -272,17 +389,24 @@ exactly that against it.
 | `coop_finish_test` | the titles at their thresholds, a solo loss under 90, a team's win |
 | `game_data_test` · `rebuild_data_cols_test` | the blobs whole, a coop game's team group among them; the rebuild |
 
-Vitest, beside the code: `lib/score.test`, `lib/scoresheet.test`, `lib/answer.test`,
-`lib/endingLabel.test`, `lib/history.test`, `lib/setup.test`,
-`hooks/useGame.test` (the seat rule), `pdf/model.test`, `manifest.test` (the
-club card's words), `components/SetupForm.test`, and
+Vitest, beside the code: `lib/score.test`, `lib/scoresheet.test` (the coop
+sheets among them), `lib/answer.test`, `lib/endingLabel.test` (the title and
+the loss), `lib/history.test`, `lib/setup.test` (the rows by mode),
+`hooks/useGame.test` (the seat rule; the team's numbers on every coop player),
+`pdf/model.test`, `manifest.test` (the club card's words in both modes),
+`components/SetupForm.test` (the form by mode), and
 `components/PlayArea.test` (the entry, the standing word, No Flip, the round's
 marks and sounds and the dim, the header's line, the on-screen keyboard, the
-strip, the log, the scoresheets and Start round, Concede and Stop).
+strip, the log, the scoresheets and Start round with its focus, Concede and
+Stop; in coop the solo card, the penalties, the writer's entry under turns,
+the ending and the sheet). `src/guards/gameSummaries.test.ts` runs both
+summaries over their states.
 
 Playwright, in `e2e/`: `wordsy-round` (two clients: the clock on both, the
 caution frame on the other and the dim on the submitter, a replaced word, the
-reveal's scoresheet on both, Start round), `wordsy-history`,
-`wordsy-print`, `wordsy-mobile` (the board and keyboard fit, a word typed on
-it), the gallery entry, and the wordsy cases in `events-realtime` and
+reveal's scoresheet on both, Start round), `wordsy-coop` (solo: the clock
+from the deal, the card's border moving with a word before the clock, ↵ on the
+focused Start, seven rounds to a title), `wordsy-history`, `wordsy-print`,
+`wordsy-mobile` (the board and keyboard fit, a word typed on it), the gallery
+entry in both modes, and the wordsy cases in `events-realtime` and
 `restart-resets`.

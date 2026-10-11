@@ -8,7 +8,7 @@
 -- player writes one word at once; only the faceup letters score. The first
 -- submit of a round starts a 30-second clock, and when it runs out every word
 -- is revealed and scored. Seven rounds, best five plus the bonuses.
--- plans/wordsy.md is the design.
+-- src/wordsy/doc.md is the design.
 --
 -- Shape only; the functions, policies and grants are supabase/sql/'s
 -- (docs/supabase.md → Schema vs code).
@@ -19,7 +19,7 @@ create schema if not exists wordsy;
 -- wordsy.games — one row per game
 -- ============================================================
 -- A card is its deck number, 1–60, and the number says its letter and kind
--- (plans/wordsy.md → The game, in the app's terms). `deck` is the frozen
+-- (src/wordsy/doc.md → The deal). `deck` is the frozen
 -- shuffle of all 60, withheld by the column grant in supabase/sql/: nothing
 -- shows which cards come next. `drawn` is the numbers dealt so far, in order;
 -- a deal takes the first number in `deck` not yet in `drawn` that the rules
@@ -129,7 +129,7 @@ alter table wordsy.events enable row level security;
 -- ============================================================
 -- Register the gametype
 -- ============================================================
--- Compete only (plans/wordsy.md, decision 1); `_compete` so a coop sibling
+-- Compete first (Joel, 2026-10-08); `_compete` so a coop sibling
 -- lands beside it without renaming stored rows (decision 13).
 insert into common.gametypes (gametype, min_players, brand) values
   ('wordsy_compete', 2, 'FlipWord')
