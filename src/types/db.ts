@@ -2914,13 +2914,13 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_rounds": number,"one_word": boolean,"round_style": string,"_is_one_word": boolean | null
+                    "deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_rounds": number,"one_word": boolean,"round_style": string,"timer_seconds": number,"_is_one_word": boolean | null
                   }
                   Insert: {
-                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_rounds"?: number,"one_word"?: boolean,"round_style": string
+                    "deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_rounds"?: number,"one_word"?: boolean,"round_style": string,"timer_seconds"?: number
                   }
                   Update: {
-                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"n_rounds"?: number,"one_word"?: boolean,"round_style"?: string
+                    "deck"?: (number)[],"drawn"?: (number)[],"game_id"?: string,"legal_band"?: number,"n_rounds"?: number,"one_word"?: boolean,"round_style"?: string,"timer_seconds"?: number
                   }
                   Relationships: [
                     

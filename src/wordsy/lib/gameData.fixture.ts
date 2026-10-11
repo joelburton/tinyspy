@@ -96,7 +96,9 @@ export function ZTest_word(
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
   const {
     id = 'g1',
-    setup = { timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', n_rounds: 7, one_word: false },
+    setup = {
+      timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 7, one_word: false,
+    },
     rounds = [{ num: 1 }],
     events = [],
     players: playerFacts = ZTest_TWO,

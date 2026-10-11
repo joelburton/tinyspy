@@ -7,7 +7,7 @@
 --
 --   create_game     shuffles the deck and deals round 1
 --   submit_word     a player's word for the round in play
---   submit_timeout  ends the round when its 30 seconds run out
+--   submit_timeout  ends the round when its clock runs out
 --   start_round     "Start round N": the last press deals the next round
 --   concede         a player drops out
 --   stop_game       stops the game for everyone, with no result
@@ -20,8 +20,9 @@
 --     and `drawn` the numbers dealt so far.
 --   - A card the rules of two refuse is SKIPPED, not discarded: it waits in
 --     its place in the deck and is dealt when it fits (`_deal_tile`).
---   - A round has two ends. In the `timer` style the first submit starts a
---     30-second clock and the round ends at zero (`submit_timeout`); in the
+--   - A round has two ends. In the `timer` style the first submit starts the
+--     clock — the setup's `timer_seconds`, 30 unless the creator typed
+--     another — and the round ends at zero (`submit_timeout`); in the
 --     `no-timer` style, and with the setup's `one_word`, it ends when everyone
 --     still playing has submitted (`_is_one_word`) — with the timer, whichever
 --     comes first.
@@ -307,10 +308,11 @@ revoke execute on function wordsy._deal_round(uuid, int, uuid, uuid) from public
 -- ============================================================
 -- The round clock — the game's one common.timers row
 -- ============================================================
--- Armed by the round's first submit, put away at its end. Both zero the count,
--- so the next clock starts from its full 30 and a page mounting between rounds
--- seeds 0. The builder's next call carries the kind to the header through
--- shell_data (docs/common-schema.md → The game clock).
+-- Armed by the round's first submit for the game's `timer_seconds`, put away
+-- at its end. Both zero the count, so the next clock starts from its full
+-- length and a page mounting between rounds seeds 0. The builder's next call
+-- carries the kind and the seconds to the header through shell_data
+-- (docs/common-schema.md → The game clock).
 
 create or replace function wordsy._arm_timer(p_game_id uuid)
 returns void
@@ -318,9 +320,11 @@ language sql
 security definer
 set search_path = wordsy, common, public, extensions
 as $$
-  update common.timers
-     set kind = 'countdown', countdown_seconds_at_setup = 30, ticks = 0, last_tick = now()
-   where game_id = p_game_id;
+  update common.timers t
+     set kind = 'countdown', countdown_seconds_at_setup = g.timer_seconds,
+         ticks = 0, last_tick = now()
+    from wordsy.games g
+   where t.game_id = p_game_id and g.game_id = p_game_id;
 $$;
 revoke execute on function wordsy._arm_timer(uuid) from public;
 
@@ -880,11 +884,14 @@ revoke execute on function wordsy._rebuild_data_cols_for_all() from public;
 -- Setup shape: { "timer": {"kind": "none"},
 --                "legal_band": 1..6,
 --                "round_style": 'timer' | 'no-timer',
+--                "timer_seconds": 1..120,
 --                "n_rounds": 7 | 3,
 --                "one_word": true | false }.
 --
--- The timer is fixed at none: the round's 30 seconds are the game's own clock,
--- armed and put away each round, so there is no whole-game timer to choose.
+-- The timer is fixed at none: the round's clock is the game's own, armed for
+-- `timer_seconds` and put away each round, so there is no whole-game timer to
+-- choose. The seconds are required under both styles, stored and unread in
+-- `no-timer`.
 -- Compete only until a coop sibling exists. The deck is shuffled inline and
 -- round 1 dealt before anyone sees the table; in `no-timer` its First
 -- Wordsmith is drawn at random.
@@ -902,11 +909,12 @@ as $$
 declare
   new_id        uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
-  s_legal_band  int;
-  s_round_style text;
-  s_n_rounds    int;
-  s_one_word    boolean;
-  v_first       uuid;
+  s_legal_band    int;
+  s_round_style   text;
+  s_timer_seconds int;
+  s_n_rounds      int;
+  s_one_word      boolean;
+  v_first         uuid;
 begin
   perform common._require_club_member(p_club_handle);
   -- Must agree with numberOfPlayers in the game's manifest ([2, 6]).
@@ -940,6 +948,12 @@ begin
       using errcode = 'PN544', hint = 'fault', column = '_',
       detail = 'setup.round_style must be timer or no-timer';
   end if;
+  s_timer_seconds := (p_setup->>'timer_seconds')::int;
+  if s_timer_seconds is null or s_timer_seconds < 1 or s_timer_seconds > 120 then
+    raise exception 'BUG: round clock of % seconds', s_timer_seconds
+      using errcode = 'PN558', hint = 'fault', column = '_',
+      detail = 'setup.timer_seconds must be 1..120';
+  end if;
   s_n_rounds := (p_setup->>'n_rounds')::int;
   if s_n_rounds is null or s_n_rounds not in (3, 7) then
     raise exception 'BUG: game of % rounds', s_n_rounds
@@ -968,9 +982,9 @@ begin
     p_setup
   );
 
-  insert into wordsy.games (game_id, deck, legal_band, round_style, n_rounds, one_word)
+  insert into wordsy.games (game_id, deck, legal_band, round_style, timer_seconds, n_rounds, one_word)
   select new_id, array_agg(n::smallint order by random()), s_legal_band, s_round_style,
-         s_n_rounds, s_one_word
+         s_timer_seconds, s_n_rounds, s_one_word
     from generate_series(1, 60) n;
 
   insert into wordsy.players (game_id, user_id)
@@ -1150,8 +1164,8 @@ grant execute on function wordsy.submit_word(uuid, text) to authenticated;
 -- Fired by every connected client when the round's countdown reaches zero;
 -- the first ends the round (`_end_round`, nobody as who ended it), the rest
 -- find no clock running and answer a race. The server's own count must have
--- reached the 30 seconds, so a client still holding last round's zero cannot
--- end a round that has just begun.
+-- reached the round's seconds, so a client still holding last round's zero
+-- cannot end a round that has just begun.
 create or replace function wordsy.submit_timeout(p_game_id uuid)
 returns jsonb
 language plpgsql

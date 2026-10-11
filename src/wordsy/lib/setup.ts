@@ -9,11 +9,26 @@ import type { GNRounds, GRoundStyle, GSetup } from '../types'
  * shape is `GSetupValues` / `GSetup`.
  */
 
-/** The two round styles, as the form offers them and the rows name them. */
+/** The two round styles, as the form offers them. */
 export const ROUND_STYLE_OPTIONS: { value: GRoundStyle; label: string }[] = [
-  { value: 'timer', label: '30-second timer' },
+  { value: 'timer', label: 'Timer' },
   { value: 'no-timer', label: 'No timer' },
 ]
+
+/** The round clock's bounds, in seconds; `create_game` holds the same (PN558). */
+export const TIMER_SECONDS_MIN = 1
+export const TIMER_SECONDS_MAX = 120
+
+/**
+ * The Round row's words, for the form's section summary and the setup rows
+ * alike: "30-second timer", "45-second timer, one word", "No timer". While
+ * the seconds box holds no number, just "Timer".
+ */
+export function describeRound(setup: Pick<GSetup, 'round_style' | 'timer_seconds' | 'one_word'>): string {
+  if (setup.round_style === 'no-timer') return 'No timer'
+  const clock = Number.isInteger(setup.timer_seconds) ? `${setup.timer_seconds}-second timer` : 'Timer'
+  return clock + (setup.one_word ? ', one word' : '')
+}
 
 /** The two lengths, as the form offers them and the rows name them. */
 export const N_ROUNDS_OPTIONS: { value: GNRounds; label: string }[] = [
@@ -33,6 +48,10 @@ export function wordsySetupError(setup: GSetup): FormErrors {
   if (setup.round_style !== 'timer' && setup.round_style !== 'no-timer') {
     return { round_style: 'Pick how a round ends.' }
   }
+  if (!Number.isInteger(setup.timer_seconds)
+      || setup.timer_seconds < TIMER_SECONDS_MIN || setup.timer_seconds > TIMER_SECONDS_MAX) {
+    return { timer_seconds: `Pick ${TIMER_SECONDS_MIN} to ${TIMER_SECONDS_MAX} seconds.` }
+  }
   if (setup.n_rounds !== 7 && setup.n_rounds !== 3) {
     return { n_rounds: 'Pick a length.' }
   }
@@ -48,6 +67,7 @@ export const DEFAULT_WORDSY_SETUP: GSetup = {
   timer: { kind: 'none' },
   legal_band: 4,
   round_style: 'timer',
+  timer_seconds: 30,
   n_rounds: 7,
   one_word: false,
 }

@@ -121,7 +121,7 @@ begin
   v_env := wordsy.create_game(
     v_club,
     jsonb_build_object('timer', jsonb_build_object('kind', 'none'),
-                       'legal_band', 4, 'round_style', p_style,
+                       'legal_band', 4, 'round_style', p_style, 'timer_seconds', 30,
                        'n_rounds', p_n_rounds, 'one_word', p_one_word),
     array(select pg_temp.ws_uid(n) from unnest(p_names) n),
     'compete');
@@ -168,12 +168,13 @@ begin
 end;
 $$;
 
--- Run the round's clock to its 30 and fire submit_timeout as ada.
+-- Run the round's clock to the game's seconds and fire submit_timeout as ada.
 create function pg_temp.ws_buzz(p_gid uuid) returns jsonb
 language plpgsql as $$
 begin
   perform set_config('role', 'postgres', true);
-  update common.timers set ticks = 30 where game_id = p_gid;
+  update common.timers t set ticks = g.timer_seconds
+    from wordsy.games g where t.game_id = p_gid and g.game_id = p_gid;
   perform pg_temp.as_user(pg_temp.ws_uid('ada'));
   return wordsy.submit_timeout(p_gid);
 end;

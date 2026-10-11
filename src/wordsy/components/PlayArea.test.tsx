@@ -9,6 +9,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { playSound } from '@/common/sounds/playSound'
 import { db } from '../db'
+import { DEFAULT_WORDSY_SETUP } from '../lib/setup'
 import {
   ZTest_CONCEDED,
   ZTest_makeWordsyCtx,
@@ -318,6 +319,18 @@ describe('wordsy PlayArea — the header\'s line', () => {
     expect(feedbackMsg.kind).toBe('peer')
     expect(feedbackMsg.actor?.username).toBe('bea')
     expect(feedbackMsg.text).toBe('submitted — 30 seconds')
+  })
+
+  it('names the setup\'s seconds', () => {
+    const setup = { ...DEFAULT_WORDSY_SETUP, timer_seconds: 45 }
+    const { ctx, shown } = narrated({ setup })
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      setup,
+      rounds: [{ num: 1, fastest: 'u2', isTimerRunning: true }],
+      players: [ZTest_TWO[0]!, { ...ZTest_TWO[1]!, word: 'cab', isWordFrozen: true }],
+    }, { globalFeedbackSlot: ctx.globalFeedbackSlot })} />)
+    expect(shown.mock.calls[0]![0].text).toBe('submitted — 45 seconds')
   })
 
   it('my own first word is not narrated', () => {

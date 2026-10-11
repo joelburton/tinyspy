@@ -90,7 +90,8 @@ const NOT_A_ROW: Record<string, string> = {
 const NOT_A_ROW_IN: Record<string, Record<string, string>> = {
   wordsy: {
     timer: 'fixed at none; FlipWord has no whole-game timer, and its round clock is the Round row',
-    one_word: 'said in the Round row ("30-second timer, one word"), as the form says it in its Round section',
+    timer_seconds: 'said in the Round row ("45-second timer"), as the form says it in its Round section',
+    one_word: 'said in the Round row ("45-second timer, one word"), as the form says it in its Round section',
   },
 }
 

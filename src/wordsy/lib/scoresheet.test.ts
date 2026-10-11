@@ -62,7 +62,9 @@ describe('makeGameSheets', () => {
   // A short game, best two of three. bea won. My rounds: DR 6, B 5, ELF 9 +1:
   // the B is struck, 6 + 9 + 1 = 16.
   const gd = makeGameData(ZTest_makeGameDataRaw({
-    setup: { timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', n_rounds: 3, one_word: false },
+    setup: {
+      timer: { kind: 'none' }, legal_band: 4, round_style: 'timer', timer_seconds: 30, n_rounds: 3, one_word: false,
+    },
     rounds: [
       { num: 1, ended: true, fastest: 'u2' },
       { num: 2, ended: true, fastest: 'u2' },

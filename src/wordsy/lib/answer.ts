@@ -18,7 +18,7 @@ import type { GAnswer, GEvent } from '../types'
  *     rule of this game, and the player may not have seen the earlier word:
  *     `warning`, naming it.
  *   - a rival's first submit starts the clock on everyone: `warning`, since
- *     what it says is "hurry".
+ *     what it says is "hurry" — and how many seconds, the setup's.
  *   - a player with no word when the round ended scored nothing for it:
  *     `warning`, as an unspent go is in every game.
  */
@@ -31,7 +31,7 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
     case 'already_played':
       return { outcome: 'warning', text: `Already played: ${answer.earlier.toUpperCase()}` }
     case 'first_in_peer':
-      return { outcome: 'warning', text: 'submitted — 30 seconds' }
+      return { outcome: 'warning', text: `submitted — ${answer.seconds} seconds` }
     case 'no_word':
       return { outcome: 'warning', text: 'no word' }
   }

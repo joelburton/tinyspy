@@ -8,10 +8,10 @@ import type { GGameData } from '../types'
 
 /**
  * A rival's word starting the round's clock, in the header slot: "● bea
- * submitted — 30 seconds". It is the flip of the rulebook's timer, the one
- * thing another player does that changes what I must do, so it is said once
- * per round as the round's Fastest appears; a rival's later submits are not
- * news. Mine is not narrated: I pressed ↵.
+ * submitted — 30 seconds", the setup's seconds. It is the flip of the
+ * rulebook's timer, the one thing another player does that changes what I
+ * must do, so it is said once per round as the round's Fastest appears; a
+ * rival's later submits are not news. Mine is not narrated: I pressed ↵.
  *
  * The timer style only: in no-timer the First Wordsmith is named at the deal,
  * and nothing anyone submits starts a clock.
@@ -23,7 +23,9 @@ export function useShowClockStarts(gd: GGameData, globalFeedbackSlot: FeedbackSl
     keyOf: (r) => String(r.num),
     messageFor: (r) => {
       if (r.fastest === gd.me) return null
-      const { outcome, text } = answerMessage({ answerType: 'first_in_peer' })
+      const { outcome, text } = answerMessage({
+        answerType: 'first_in_peer', seconds: gd.setup.timer_seconds,
+      })
       return FeedbackMessage.peer(r.fastest!, outcome, text)
     },
     globalFeedbackSlot,

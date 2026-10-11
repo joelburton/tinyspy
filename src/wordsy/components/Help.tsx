@@ -34,7 +34,8 @@ export function Help({ onClose, brand }: Props) {
       </p>
       <p>
         <strong>A round.</strong> Type a word and press <strong>Enter</strong>.
-        The first word in starts a <strong>30-second</strong> clock; its player
+        The first word in starts the clock (<strong>30 seconds</strong>, unless
+        Setup says otherwise); its player
         is the <strong>Fastest Wordsmith</strong> and cannot change it. Everyone
         else may keep submitting until the clock runs out, and their last word
         stands. Then every word is revealed and scored on a scoresheet, and the
@@ -68,7 +69,7 @@ export function Help({ onClose, brand }: Props) {
           rulebook's game), or three rounds, the best two.
         </li>
         <li>
-          <strong>Round</strong> — the 30-second timer, or no timer: everyone
+          <strong>Round</strong> — a timer of 1 to 120 seconds, or no timer: everyone
           takes as long as they need, a <strong>First Wordsmith</strong> named
           at the deal stands in for the Fastest, and the round ends once
           everyone has submitted.

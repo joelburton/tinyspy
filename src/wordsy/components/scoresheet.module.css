@@ -90,7 +90,7 @@
   color: var(--outcomes-lost-ink-color);
 }
 
-/* The grand total, under each player's Total column. */
+/* The grand total, under each player's = column. */
 /* @@ */ .grandTotal td {
   border-bottom: none;
   font-weight: 700;

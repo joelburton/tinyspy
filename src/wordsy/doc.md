@@ -2,9 +2,9 @@
 
 Gil Hova's Wordsy, branded FlipWord: eight consonant cards in four columns
 worth 5, 4, 3 and 2, and everyone writes one word a round at once. The first
-word in starts a 30-second clock; seven rounds, the best five plus the
-bonuses, highest total wins — or a short game, three rounds and the best
-two.
+word in starts the clock, 30 seconds unless the creator typed another; seven
+rounds, the best five plus the bonuses, highest total wins — or a short game,
+three rounds and the best two.
 
 ## Intro to area
 
@@ -29,7 +29,7 @@ server's `isWordFrozen`, so it never asks which rule made a word final.
 
 The clock is the page header's, the shared game clock in `common.timers`, and
 this is the one game that changes it mid-game: the round's first submit arms
-it as a 30-second countdown and the round's end puts it away
+it as a countdown of the setup's `timer_seconds` and the round's end puts it away
 (docs/common-schema.md → The game clock). Every page fires `submit_timeout` at
 zero, as for any countdown, and here that ends the round, not the game.
 
@@ -111,7 +111,7 @@ the page blobs.
 
 | table | holds |
 |---|---|
-| `wordsy.games` | `deck` (withheld), `drawn`, `legal_band`, `round_style`, `n_rounds` (7 or 3), `one_word` — the last two from `20261011000000_wordsy_setup_options.sql` |
+| `wordsy.games` | `deck` (withheld), `drawn`, `legal_band`, `round_style`, `n_rounds` (7 or 3), `one_word` — the last two from `20261011000000_wordsy_setup_options.sql` — and `timer_seconds` (1–120, the round clock's length; `20261011000002_wordsy_timer_seconds.sql`) |
 | `wordsy.players` | one row per player; the totals are summed off the log. `ready_for_num`, the round they last pressed Start for (`20261011000001_wordsy_round_ready.sql`) |
 | `wordsy.rounds` | one row per round dealt: `tiles` in slot order, `fastest_user_id` (the Fastest, or no-timer's First Wordsmith), `no_flip_user_id`, `timer_started_at`, `ended_at` |
 | `wordsy.round_words` | each player's standing word for the round in play. No grant |
@@ -133,8 +133,9 @@ round's clock.
 ### `wordsy.create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)`
 
 Compete only (PN545), two or more (PN546); `legal_band` 1–6 (PN543),
-`round_style` (PN544), `n_rounds` 7 or 3 (PN554) and `one_word` (PN555)
-required; the setup's `timer` fixed at none (PN547).
+`round_style` (PN544), `timer_seconds` 1–120 (PN558), `n_rounds` 7 or 3
+(PN554) and `one_word` (PN555) required; the setup's `timer` fixed at none
+(PN547).
 Shuffles the deck inline and deals round 1, naming a random First Wordsmith in
 no-timer.
 
@@ -178,7 +179,7 @@ last round.
 | `submitted` | me | `Your word is in` | `neutral` | clears |
 | `not_a_word` | me | `Not a word at this dictionary` | `lost` | clears |
 | `already_played` | me | `Already played: FISH` | `warning` | stays |
-| `first_in_peer` | everyone but the Fastest | `submitted — 30 seconds` | `warning` | |
+| `first_in_peer` | everyone but the Fastest | `submitted — 30 seconds` (the setup's seconds) | `warning` | |
 | `no_word` | the log | `no word` | `warning` | |
 
 A log row that earned a bonus wears the won bar; any other word, neutral.
@@ -233,7 +234,9 @@ the log.
 - **Setup** defaults to band 4, a step above the roster's usual: Wordsy
   rewards long, rare words (the rulebook's examples are QUIBBLES,
   BACCALAUREATES and LIQUEFACTION), and a band-5 word refused in a band-4 game
-  costs only the retype.
+  costs only the retype. The round clock's seconds are typed, 1–120, 30 to
+  start (a number box, not a list: plans/wordsy.md, decision 26); the Round
+  row and the form's summary name them (`describeRound`).
 
 ## Tests
 

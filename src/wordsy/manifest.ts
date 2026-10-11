@@ -17,8 +17,8 @@ import logoUrl from './logo.svg?url'
 /**
  * wordsy's manifest. "wordsy" is the codename for FlipWord, our Gil Hova's
  * Wordsy: eight consonant cards in four scoring columns, one word each per
- * round, a 30-second clock from the first word in, best five of seven rounds
- * (or a short game's best two of three).
+ * round, a clock from the first word in (30 seconds unless the setup says
+ * otherwise), best five of seven rounds (or a short game's best two of three).
  *
  * Compete only for now, as `wordsy_compete` on the family `wordsy`, so a coop
  * sibling can land beside it without renaming stored rows.
@@ -45,7 +45,7 @@ class WordsyCompeteManifest extends Manifest {
   )
   readonly setupForm: Manifest['setupForm'] = {
     intro:
-      'Everyone writes one word at once from eight letters worth 5, 4, 3 and 2. The first word in starts a 30-second clock; best five of seven rounds (or two of three), plus bonuses, wins.',
+      'Everyone writes one word at once from eight letters worth 5, 4, 3 and 2. The first word in starts the clock; best five of seven rounds (or two of three), plus bonuses, wins.',
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),

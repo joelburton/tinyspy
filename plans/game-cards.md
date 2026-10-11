@@ -761,9 +761,10 @@ deck deals out onto the table as sets are claimed.
 ### wordsy
 
 Eight faceup consonant cards in four columns worth 5, 4, 3 and 2; everyone
-writes one word a round at once, and the first word in starts a 30-second
-clock. Seven rounds, or a short game's three; a word can change until the
-clock, or with one word a round the first is final. Compete only.
+writes one word a round at once, and the first word in starts the clock (30
+seconds unless set otherwise, 1–120). Seven rounds, or a short game's three; a
+word can change until the clock, or with one word a round the first is final.
+Compete only.
 
 - **goal**
   - `game-goal` — `goal-intrinsic`: the highest total

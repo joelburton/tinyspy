@@ -429,8 +429,9 @@ bold glyph.)
 ## Timer
 
 Optional at setup for every game but FW, which has no whole-game timer: its
-round's 30 seconds run in the header's clock, armed by the first word in and
-put away at the round's end, and their timeout ends the round. On timeout, a compete game resolves a winner
+round's clock (1–120 seconds, set at setup, 30 to start) runs in the header,
+armed by the first word in and put away at the round's end, and its timeout
+ends the round. On timeout, a compete game resolves a winner
 from current standing in MC (only with no target score; with one, a timeout is
 a loss), RA, WW, SB (most letters covered → fewest words → co-winners), HT
 (most sets, ties intact), and SS WN PP W1 (from whoever had already solved:

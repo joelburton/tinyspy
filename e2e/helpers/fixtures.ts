@@ -1559,7 +1559,9 @@ export async function createWordsyGame(
     .schema('wordsy')
     .rpc('create_game', {
       p_club_handle: club.handle,
-      p_setup: { timer: { kind: 'none' }, legal_band: 4, round_style: roundStyle, n_rounds: 7, one_word: false },
+      p_setup: {
+        timer: { kind: 'none' }, legal_band: 4, round_style: roundStyle, timer_seconds: 30, n_rounds: 7, one_word: false,
+      },
       p_player_user_ids: playerUserIds,
       p_mode: 'compete',
     })

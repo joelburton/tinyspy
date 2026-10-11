@@ -5,32 +5,34 @@
 -- ============================================================
 --   1. the gates it inherits: signed out, the caller not among the players
 --   2. its own refusals, every one a FAULT — the setup form fixes the timer
---      at none, offers the six bands and the two styles, and the club page
---      offers FlipWord in compete only and to two or more:
+--      at none, offers the six bands, the two styles and 1–120 seconds, and
+--      the club page offers FlipWord in compete only and to two or more:
 --        the band (PN543), the style (PN544), coop (PN545), one player
 --        (PN546), a whole-game timer (PN547), n_rounds not 3 or 7 (PN554),
---        one_word missing (PN555)
+--        one_word missing (PN555), the seconds outside 1–120 (PN558)
 --   3. the happy path: the envelope, the deck a shuffle of all 60, round 1
 --      dealt from it, the players, the title, the clock put away
 --   4. the deck is withheld from a client; what was dealt is not
 --   5. the First Wordsmith: named at the deal in `no-timer`, nobody in `timer`
+--   6. the clock's seconds: a 15-second game arms a 15-second clock
 -- ============================================================
 
 begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(20);
+select plan(25);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
 create function pg_temp.setup(p_band int default 4, p_style text default 'timer',
-                              p_timer jsonb default '{"kind": "none"}') returns jsonb
+                              p_timer jsonb default '{"kind": "none"}',
+                              p_seconds int default 30) returns jsonb
 language sql immutable as $$
   select jsonb_build_object('timer', p_timer, 'legal_band', p_band, 'round_style', p_style,
-                            'n_rounds', 7, 'one_word', false)
+                            'timer_seconds', p_seconds, 'n_rounds', 7, 'one_word', false)
 $$;
 
 -- ─── (1) The inherited gates ───
@@ -101,6 +103,16 @@ select pg_temp.envelope_is(
   pg_temp.try(pg_temp.setup() - 'one_word'),
   '{"type":"not-ok","severity":"fault","dbcode":"PN555"}'::jsonb,
   'a setup without one_word is refused'
+);
+select pg_temp.envelope_is(
+  pg_temp.try(pg_temp.setup(p_seconds => 0)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN558"}'::jsonb,
+  'a clock of no seconds is refused'
+);
+select pg_temp.envelope_is(
+  pg_temp.try(pg_temp.setup(p_seconds => 121)),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN558"}'::jsonb,
+  'a clock over 120 seconds is refused'
 );
 
 -- ─── (3) The happy path ───
@@ -173,6 +185,30 @@ select ok(
     where game_id = (select (env -> 'data' ->> 'id')::uuid from made_nt) and num = 1)
     = any(array[pg_temp.ws_uid('ada'), pg_temp.ws_uid('bea'), pg_temp.ws_uid('cade')]),
   'a no-timer round 1 names a First Wordsmith from among the players'
+);
+
+-- ─── (6) The clock's seconds ───
+select pg_temp.as_user(pg_temp.ws_uid('ada'));
+create temp table made_15 on commit drop as
+select (pg_temp.try(pg_temp.setup(p_seconds => 15)) -> 'data' ->> 'id')::uuid as gid;
+-- The column has no client grant, so read it as the owner.
+reset role;
+select is(
+  (select timer_seconds from wordsy.games where game_id = (select gid from made_15)),
+  15,
+  'a 15-second game keeps its seconds'
+);
+select pg_temp.envelope_is(
+  pg_temp.ws_submit((select gid from made_15), 'ada', 'able'),
+  '{"type":"ok","data":{"result":"submitted","timer_started":true,"round_ended":false}}'::jsonb,
+  '… its first word starts the clock'
+);
+reset role;
+select is(
+  (select kind || '/' || countdown_seconds_at_setup || '/' || ticks from common.timers
+    where game_id = (select gid from made_15)),
+  'countdown/15/0',
+  '… and its first word arms a 15-second clock'
 );
 
 select * from finish();

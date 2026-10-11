@@ -2,10 +2,10 @@
 
 /**
  * wordsy's setup form: the players, the dictionary band, the length, how a
- * round ends and one word a round — and no Timer section, since the round's
- * clock is the game's own.
+ * round ends with the clock's seconds, and one word a round — and no Timer
+ * section, since the round's clock is the game's own.
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { SetupForm } from './SetupForm'
@@ -46,7 +46,7 @@ function draw({ errors = {} as FormErrors, values = {} } = {}) {
 describe('wordsy setup — what it offers', () => {
   it('offers exactly these settings, in this order, and no timer', () => {
     expect(fieldNames(draw().container))
-      .toEqual(['player_user_ids', 'legal_band', 'n_rounds', 'round_style', 'one_word'])
+      .toEqual(['player_user_ids', 'legal_band', 'n_rounds', 'round_style', 'timer_seconds', 'one_word'])
   })
 
   it('reads its choices back in the section summaries', () => {
@@ -59,6 +59,29 @@ describe('wordsy setup — what it offers', () => {
   it('says one word in the Round summary when the timer style has it', () => {
     draw({ values: { one_word: true } })
     expect(screen.getByText('Round: 30-second timer, one word')).toBeInTheDocument()
+  })
+
+  it('names the typed seconds in the Round summary, or just the timer while the box is empty', () => {
+    draw({ values: { timer_seconds: 45 } })
+    expect(screen.getByText('Round: 45-second timer')).toBeInTheDocument()
+  })
+
+  it('says just the timer in the Round summary while the seconds box is empty', () => {
+    draw({ values: { timer_seconds: NaN } })
+    expect(screen.getByText('Round: timer')).toBeInTheDocument()
+  })
+})
+
+describe('wordsy setup — the clock\'s seconds', () => {
+  it('writes the seconds the RPC checks', () => {
+    const { set } = draw()
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Seconds' }), { target: { value: '45' } })
+    expect(set).toHaveBeenCalledWith('timer_seconds', 45)
+  })
+
+  it('is disabled in no-timer, which has no clock', () => {
+    draw({ values: { round_style: 'no-timer' } })
+    expect(screen.getByRole('spinbutton', { name: 'Seconds' })).toBeDisabled()
   })
 })
 
@@ -100,6 +123,7 @@ describe('wordsy setup — where a refusal lands', () => {
   it.each([
     ['legal_band', 'Pick a dictionary.'],
     ['round_style', 'Pick how a round ends.'],
+    ['timer_seconds', 'Pick 1 to 120 seconds.'],
     ['n_rounds', 'Pick a length.'],
   ])('puts a message naming %s under that field', (field, message) => {
     draw({ errors: { [field]: message } })

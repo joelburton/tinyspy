@@ -10,8 +10,10 @@ import styles from './scoresheet.module.css'
 /**
  * The whole game's scoresheet, in the board's place once the game has ended:
  * a table per player, the winner's first, a row per round with the round's
- * number first, and the total under them. Each player's lowest word scores,
- * which the total drops, are struck. Scrolls inside its frame.
+ * number first, and the total under them. Its headings are the round sheet's:
+ * only the bonus columns and = are named, since a word and its score need no
+ * label. Each player's lowest word scores, which the total drops, are struck.
+ * Scrolls inside its frame.
  */
 export function GameScoresheet({ gd }: { gd: GGameData }) {
   return (
@@ -25,11 +27,11 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
             <thead>
               <tr>
                 <th/>
-                <th>Word</th>
-                <th className={styles.num}>Score</th>
+                <th/>
+                <th/>
                 <SheetBeatHeading/>
                 <SheetFastestHeading/>
-                <th className={styles.num}>Total</th>
+                <th className={styles.num}>=</th>
               </tr>
             </thead>
             <tbody>

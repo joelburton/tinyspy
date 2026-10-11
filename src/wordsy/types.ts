@@ -89,7 +89,7 @@ export type GRoundRaw = {
   // The player who may not start this round's clock: last round's Fastest,
   // while more than two still play.
   noFlipHolder: string | null
-  // The round's 30 seconds are counting down.
+  // The round's clock is counting down.
   isTimerRunning: boolean
   ended: boolean
 }
@@ -170,7 +170,7 @@ export type GAnswer =
   | { answerType: 'submitted' }
   | { answerType: 'not_a_word' }
   | { answerType: 'already_played'; earlier: string }
-  | { answerType: 'first_in_peer' }
+  | { answerType: 'first_in_peer'; seconds: number }
   | { answerType: 'no_word' }
 
 /**
@@ -349,7 +349,7 @@ export type GBoardColActions = {
  */
 export type GBoardColView = 'board' | 'roundSheet' | 'lastRoundSheet' | 'gameSheet'
 
-/** How a round ends: at its 30-second clock, or once everyone has submitted. */
+/** How a round ends: at its clock, or once everyone has submitted. */
 export type GRoundStyle = 'timer' | 'no-timer'
 
 /** A game's length: the rulebook's seven rounds, or a short game's three. */
@@ -362,6 +362,9 @@ export type GSetupValues = {
   // The may-enter band: a word at or below it is legal.
   legal_band: number
   round_style: GRoundStyle
+  // How long the round's clock runs once the first word is in, 1–120; 30 is
+  // the rulebook's. Stored and unread in no-timer.
+  timer_seconds: number
   n_rounds: GNRounds
   // Every submit is final, and the round ends once everyone is in — the
   // no-timer style's rule, in the timer style too, where the clock can still

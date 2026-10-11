@@ -24,6 +24,15 @@ describe('wordsySetupError', () => {
     expect(wordsySetupError({ ...DEFAULT_WORDSY_SETUP, n_rounds: 5 as never }))
       .toEqual({ n_rounds: 'Pick a length.' })
   })
+
+  it('refuses seconds outside 1–120, or no number, under its field', () => {
+    for (const timer_seconds of [0, 121, 2.5, NaN]) {
+      expect(wordsySetupError({ ...DEFAULT_WORDSY_SETUP, timer_seconds }))
+        .toEqual({ timer_seconds: 'Pick 1 to 120 seconds.' })
+    }
+    expect(wordsySetupError({ ...DEFAULT_WORDSY_SETUP, timer_seconds: 1 })).toEqual({})
+    expect(wordsySetupError({ ...DEFAULT_WORDSY_SETUP, timer_seconds: 120 })).toEqual({})
+  })
 })
 
 describe('makeSetupRows', () => {
@@ -39,5 +48,9 @@ describe('makeSetupRows', () => {
   it('says one word in the Round row, in the timer style only', () => {
     expect(rows({ one_word: true }).round_style).toBe('30-second timer, one word')
     expect(rows({ one_word: true, round_style: 'no-timer' }).round_style).toBe('No timer')
+  })
+
+  it('names the clock\'s seconds in the Round row', () => {
+    expect(rows({ timer_seconds: 45 }).round_style).toBe('45-second timer')
   })
 })

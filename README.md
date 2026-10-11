@@ -20,7 +20,7 @@ Eighteen games are live today (the parenthetical is each game's in-app brand):
 - **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
 - **wordle** (WordNerd) — Wordle-style guess-the-word.
 - **wordleone** (WordNerdier) — Wordle-in-1-style: one row is already colored, and the hidden word is the only one that fits it.
-- **wordsy** (FlipWord) — [Wordsy](https://boardgamegeek.com/boardgame/208480/wordsy): everyone writes one word a round from eight consonant cards worth 5, 4, 3 and 2; the first word in starts a 30-second clock.
+- **wordsy** (FlipWord) — [Wordsy](https://boardgamegeek.com/boardgame/208480/wordsy): everyone writes one word a round from eight consonant cards worth 5, 4, 3 and 2; the first word in starts the clock.
 - **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the center.
 
 Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams and wordsy are competitive only. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).

@@ -17,8 +17,8 @@ a browser may refuse to play it, and a player may have it off.
 There are three sounds. The **bell** rings when the turn becomes yours, in every
 game where the turn passes between players, and at each FlipWord round's
 reveal. The **jingle** plays when a win is celebrated. The **timer** plays
-when a rival's word starts a FlipWord round's 30-second clock on you, beside
-the caution frame.
+when a rival's word starts a FlipWord round's clock on you, beside the
+caution frame.
 
 ## Details
 

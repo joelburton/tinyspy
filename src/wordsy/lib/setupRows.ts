@@ -4,15 +4,16 @@ import type { Member } from '@/common/members/member'
 import { dictBandValue } from '@/common/setup-form/dictBand'
 import { makeRosterRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
-import { N_ROUNDS_OPTIONS, ROUND_STYLE_OPTIONS } from './setup'
+import { describeRound, N_ROUNDS_OPTIONS } from './setup'
 import type { GSetup } from '../types'
 
 /**
  * wordsy's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order and words mirror
  * `components/SetupForm.tsx`. No Timer row: the setup's `timer` is fixed at
- * none, and the round's clock is the Round row, which says "one word" when the
- * timer style has it on (no-timer is always one word, so it says nothing).
+ * none, and the round's clock is the Round row (`describeRound`), which names
+ * its seconds and says "one word" when the timer style has it on (no-timer is
+ * always one word, so it says nothing).
  */
 export function makeSetupRows(
   setup: GSetup,
@@ -27,11 +28,6 @@ export function makeSetupRows(
       label: 'Length',
       value: N_ROUNDS_OPTIONS.find((o) => o.value === setup.n_rounds)!.label,
     },
-    {
-      key: 'round_style',
-      label: 'Round',
-      value: ROUND_STYLE_OPTIONS.find((o) => o.value === setup.round_style)!.label
-        + (setup.round_style === 'timer' && setup.one_word ? ', one word' : ''),
-    },
+    { key: 'round_style', label: 'Round', value: describeRound(setup) },
   ]
 }
