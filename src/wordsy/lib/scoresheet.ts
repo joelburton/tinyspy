@@ -42,8 +42,8 @@ export function makeGameSheets(gd: GGameData): { player: GPlayer; rows: GSheetRo
   })
 }
 
-/** One logged word as a row: its bonus in the Fastest's column or the
- *  beat-the-Fastest column. */
+/** One logged word as a row: its bonus in the beat-the-Fastest column or the
+ *  Fastest's own. */
 function makeRow(event: GEvent, round: GRound): GSheetRow {
   const isFastest = round.fastest === event.by
   return {
@@ -51,8 +51,8 @@ function makeRow(event: GEvent, round: GRound): GSheetRow {
     player: event.by,
     word: event.word,
     score: event.score,
-    fastestBonus: isFastest && event.bonus > 0 ? event.bonus : null,
     beatBonus: !isFastest && event.bonus > 0 ? event.bonus : null,
+    fastestBonus: isFastest && event.bonus > 0 ? event.bonus : null,
     rowTotal: event.score + event.bonus,
     isStar: false,
     isStruck: false,

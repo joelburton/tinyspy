@@ -48,9 +48,10 @@ export type GSheetRow = {
   word: string
   // The word's score against the round's table.
   score: number
-  // The round's bonus, in its column: the Fastest's, or for beating them.
-  fastestBonus: number | null
+  // The round's bonus, in its column: for beating the Fastest, or the
+  // Fastest's own.
   beatBonus: number | null
+  fastestBonus: number | null
   // Everything the row adds to the total: the score, unless struck, and the
   // bonus.
   rowTotal: number

@@ -217,9 +217,11 @@ the log.
   word by how it scored (`ScoredWord`).
 - **The scoresheets** (`RoundScoresheet`, `GameScoresheet` and the cells they
   share in `SheetCells`, over `lib/scoresheet.ts`) take the board's place,
-  framed. A round's: who, the word, its score, the Fastest's bonus under ⏳,
-  the bonus for beating them under >⏳ ("+2"; a dash for none), the round's
-  total (score and bonus) under =, and a gold ★ for the best total; "Start
+  framed. A round's: who, the word, its score, the bonus for beating the
+  Fastest, then the Fastest's own ("+2"; a dash for none) — each column headed
+  by its rule in the registry's glyphs, player > hourglass and hourglass ≥
+  players — the round's total (score and bonus) under =, and a gold ★ for the
+  best total; "Start
   round N" under it. A past round opened from the log shows its board over
   it. When the game ends in front of me the last round's sheet comes first,
   with "Show final scores"; a game opened already over goes straight to the

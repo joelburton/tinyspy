@@ -155,6 +155,14 @@ export {
   Star as IconThemeFind, // an ordinary theme word
   Check as IconWordOk, // a valid word that isn't part of the puzzle
   X as IconWordNo, // rejected — too short, unknown, or already counted
+  // The three figures a scoresheet's bonus heading is written in, so a column
+  // can say its rule without a sentence: wordsy's "player > fastest" (you
+  // scored above the Fastest Wordsmith) and "fastest ≥ opponents" (the
+  // Fastest tied or beat enough of the others). One figure, the clock, and
+  // the crowd — three glyphs that read as three parties in one row.
+  User as IconPlayer, // the row's player: you
+  Hourglass as IconFastest, // the player the round's clock named — wordsy's Fastest Wordsmith
+  Users as IconOpponents, // the other players still playing
   // remove THIS ITEM from a list, in place (letterboxed's × on the chain's
   // last word). Same lucide glyph as IconWordNo, aliased separately because
   // the purpose is different — one marks a verdict, the other is an action.

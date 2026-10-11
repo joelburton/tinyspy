@@ -67,8 +67,6 @@ export function InfoCol({
           <span className={shared.actionsDivider}/>
           <ActionButton action={actions.actRestart} show="icon"/>
           <ActionButton action={actions.actNewGame} show="icon"/>
-          {/* Filled once the game has ended: the weight is the placement's
-              choice, not the action's (docs/ui.md → What a `<button>` is). */}
           <ActionButton
             action={actions.actBackToClub}
             show="icon"

@@ -58,6 +58,14 @@
   text-align: center;
 }
 
+/* A bonus column's heading: two glyphs around a > or ≥, the glyphs centered
+ * on the sign's line. */
+/* @@ */ .heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
 /* @@ */ .table .star {
   width: 2rem;
   text-align: center;

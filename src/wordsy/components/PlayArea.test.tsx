@@ -438,6 +438,19 @@ describe('wordsy PlayArea — the scoresheets', () => {
     expect(within(sheet).getByText('11')).toBeInTheDocument()
   })
 
+  it('heads the bonus columns beat-the-Fastest then the Fastest\'s, and fills them so', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    const sheet = screen.getByTestId('round-scoresheet')
+    const [beatHead, fastestHead] = within(sheet).getAllByRole('columnheader').slice(3, 5)
+    expect(beatHead!.querySelector('.lucide-user')).not.toBeNull()
+    expect(beatHead!.querySelector('.lucide-hourglass')).not.toBeNull()
+    expect(fastestHead!.querySelector('.lucide-hourglass')).not.toBeNull()
+    expect(fastestHead!.querySelector('.lucide-users')).not.toBeNull()
+    // Me, the Fastest: a dash under beat, +2 under the Fastest's.
+    const mine = within(sheet).getAllByRole('row')[1]!
+    expect(within(mine).getAllByRole('cell').slice(3, 5).map((c) => c.textContent)).toEqual(['–', '+2'])
+  })
+
   it('Start round 2 calls start_round', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ready' }))

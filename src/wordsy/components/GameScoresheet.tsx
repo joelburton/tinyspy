@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import { makeGameSheets } from '../lib/scoresheet'
-import { SheetBonus, SheetWord } from './SheetCells'
+import { SheetBeatHeading, SheetBonus, SheetFastestHeading, SheetWord } from './SheetCells'
 import type { GGameData } from '../types'
 import styles from './scoresheet.module.css'
 
@@ -27,8 +27,8 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 <th/>
                 <th>Word</th>
                 <th className={styles.num}>Score</th>
-                <th className={styles.bonus}>⏳</th>
-                <th className={styles.bonus}>&gt;⏳</th>
+                <SheetBeatHeading/>
+                <SheetFastestHeading/>
                 <th className={styles.num}>Total</th>
               </tr>
             </thead>
@@ -38,8 +38,8 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                   <td>{row.num}</td>
                   <td className={cls(row.isStruck && styles.struck)}><SheetWord row={row}/></td>
                   <td className={cls(styles.num, row.isStruck && styles.struck)}>{row.score}</td>
-                  <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
                   <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
+                  <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
                   <td className={styles.num}>{row.rowTotal}</td>
                 </tr>
               ))}
