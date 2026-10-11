@@ -16,44 +16,69 @@ export function Help({ onClose, brand }: Props) {
     <GameHelpCompanion
       brand={brand}
       onClose={onClose}
-      size={{ width: 480, height: 470 }}
+      size={{ width: 500, height: 520 }}
       minSize={{ width: 300, height: 260 }}
     >
       <p>
-        Eight consonant cards sit in four columns worth <strong>5, 4, 3 and
-        2</strong>. Everyone writes one word at once, using any letters at
-        all — only the letters on the cards score.
+        <strong>The table.</strong> Eight consonant cards sit in four columns
+        worth <strong>5, 4, 3 and 2</strong>. Everyone writes one word at the
+        same time, using any letters at all; only the letters on the cards
+        score.
       </p>
       <p>
-        A word scores each card it uses at its column's value, once per card:
-        two Bs against one B card score one B. Red cards add <strong>+1</strong>,
-        blue cards <strong>+2</strong>.
+        <strong>Scoring.</strong> Each card your word uses scores its column's
+        value, and each card scores once: two Bs against one B card score one
+        B. A card marked <strong>+1</strong> or <strong>+2</strong> adds that
+        to its column's value. Letters with no card score nothing. The score of
+        the word you are typing shows under the entry as you go.
       </p>
       <p>
-        Type a word and press <strong>Enter</strong>. The first word in starts
-        a <strong>30-second</strong> clock, and that player — the Fastest
-        Wordsmith — can't change it. Everyone else may submit again until the
-        clock runs out; your last word stands. Then every word is revealed and
-        scored, and the next round starts once everyone has pressed{' '}
-        <strong>Start round</strong>. With <strong>one word a round</strong>, everyone's first word
-        is final, and the round ends once everyone has one in.
+        <strong>A round.</strong> Type a word and press <strong>Enter</strong>.
+        The first word in starts a <strong>30-second</strong> clock; its player
+        is the <strong>Fastest Wordsmith</strong> and cannot change it. Everyone
+        else may keep submitting until the clock runs out, and their last word
+        stands. Then every word is revealed and scored on a scoresheet, and the
+        next round is dealt once everyone has pressed{' '}
+        <strong>Start round</strong>. The Fastest Wordsmith holds{' '}
+        <strong>No Flip</strong> next round: they may not be first in.
       </p>
       <p>
-        <strong>Bonuses:</strong> beat the Fastest Wordsmith for +1 (+2 in
-        rounds 4–6, +3 in round 7); as the Fastest, tie or beat enough
-        opponents for +2 (+3, +4). The Fastest holds <strong>No Flip</strong>{' '}
-        next round and can't be first in.
+        <strong>Bonuses.</strong> Beat the Fastest Wordsmith's score for{' '}
+        <strong>+1</strong> (+2 in rounds 4–6, +3 in round 7). As the Fastest,
+        tie or beat enough opponents (all of them up to three) for{' '}
+        <strong>+2</strong> (+3, +4).
       </p>
       <p>
-        A word must be in the dictionary, and new: nothing anyone scored in an
-        earlier round, and no other form of it (fish, fishes and fishing are
-        one word).
+        <strong>Words.</strong> A word must be in the dictionary, and new:
+        nothing anyone scored in an earlier round, nor another form of it
+        (fish, fishes and fishing are one word). A word that is refused costs
+        nothing but the retype.
       </p>
       <p>
-        After seven rounds, your best five rounds plus every bonus is your
-        total — in a short game, three rounds and the best two. Highest total
-        wins; a tie is shared.
+        <strong>The end.</strong> After the last round, your best rounds plus
+        every bonus is your total. Highest total wins; a tie is shared.
       </p>
+      <p><strong>Setup options:</strong></p>
+      <ul>
+        <li>
+          <strong>Dictionary</strong> — how obscure a word may be.
+        </li>
+        <li>
+          <strong>Length</strong> — seven rounds, the best five counted (the
+          rulebook's game), or three rounds, the best two.
+        </li>
+        <li>
+          <strong>Round</strong> — the 30-second timer, or no timer: everyone
+          takes as long as they need, a <strong>First Wordsmith</strong> named
+          at the deal stands in for the Fastest, and the round ends once
+          everyone has submitted.
+        </li>
+        <li>
+          <strong>One word a round</strong> — with the timer, everyone's first
+          word is final, and the round ends as soon as everyone has one in
+          (or when the clock runs out). No timer always plays this way.
+        </li>
+      </ul>
     </GameHelpCompanion>
   )
 }
