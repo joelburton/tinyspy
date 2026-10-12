@@ -55,6 +55,15 @@ export function bindPointerTriggers(control: TooltipControl): () => void {
     }
   }
 
+  // Focus leaving the carrier takes down the bubble focus showed. Focus leaving
+  // anything else is not about this bubble: a tap on a readout blurs whatever
+  // button held focus (a scoresheet's Start), and must not take down the
+  // bubble the tap just opened.
+  function onFocusOut(e: FocusEvent) {
+    const carrier = control.activeCarrier
+    if (carrier && carrier.contains(e.target as Node)) control.hide()
+  }
+
   // A press may change the control, so a bubble about it would go stale. A
   // readout's text can't, so its bubble stays.
   function onMouseDown(e: MouseEvent) {
@@ -73,7 +82,7 @@ export function bindPointerTriggers(control: TooltipControl): () => void {
     listenOnDocument('mouseover', onMouseOver),
     listenOnDocument('mouseout', onMouseOut),
     listenOnDocument('focusin', onFocusIn),
-    listenOnDocument('focusout', () => control.hide()),
+    listenOnDocument('focusout', onFocusOut),
     listenOnDocument('mousedown', onMouseDown),
     listenOnDocument('scroll', onScroll, { capture: true, passive: true }),
   ]

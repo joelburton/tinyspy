@@ -252,6 +252,39 @@ describe('a READOUT carrier — data-tooltip-on="readout"', () => {
     expect(screen.queryByText('Genius · 76 pts')).not.toBeInTheDocument()
   })
 
+  it('a tap that blurs another control leaves it up', () => {
+    // A tap moves focus off whatever held it — a round's Start button, which
+    // takes focus so ↵ presses it — and the bubble the tap just opened is not
+    // about that button.
+    render(
+      <>
+        <button>Start</button>
+        <li data-tooltip="Genius · 76 pts" data-tooltip-on="readout">square</li>
+        <TooltipHost />
+      </>,
+    )
+    const start = screen.getByRole('button')
+    start.focus()
+    fireEvent.touchStart(screen.getByText('square'), touch())
+    fireEvent.focusOut(start)
+    expect(screen.getByText('Genius · 76 pts')).toBeInTheDocument()
+  })
+
+  it('its carrier losing focus does take it down', () => {
+    render(
+      <>
+        <button data-tooltip="End the game">x</button>
+        <TooltipHost />
+      </>,
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.mouseOver(btn)
+    act(() => void vi.advanceTimersByTime(450))
+    expect(screen.getByText('End the game')).toBeInTheDocument()
+    fireEvent.focusOut(btn)
+    expect(screen.queryByText('End the game')).not.toBeInTheDocument()
+  })
+
   it('a press LEAVES it up, where a control\'s press dismisses', () => {
     const { container } = readout()
     const li = container.querySelector('li')!

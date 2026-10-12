@@ -81,6 +81,10 @@ to cover it because a tooltip blocks nothing.
   a control — nobody crosses a readout on the way to pressing something, and
   there is no tap to protect — while a readout's bubble is its whole purpose,
   so asking has to cost nothing. A press can't make its text stale either.
+- **Focus leaving takes down only its own carrier's bubble.** A tap moves
+  focus off whatever held it, often a button that took focus so ↵ presses
+  it, such as a scoresheet's Start. If any blur hid the bubble, a readout
+  tapped on that page would show and vanish in the same moment.
 - **The hover gate is asked once, at mount,** not subscribed to: a device does
   not grow a mouse mid-session. jsdom has no `matchMedia` and is treated as
   hover-capable, which is what lets the component tests hover.
