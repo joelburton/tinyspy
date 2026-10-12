@@ -3,7 +3,8 @@
 import { DotActor } from '@/common/members/ActorMention'
 import { makeRoundSheet } from '../lib/scoresheet'
 import {
-  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetFastestHeading, SheetWord,
+  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
+  SheetFastestHeading, SheetTotalHeading, SheetWord,
 } from './SheetCells'
 import type { GGameData, GRound } from '../types'
 import styles from './scoresheet.module.css'
@@ -35,8 +36,8 @@ export function RoundScoresheet({
             <th/>
             {isCoop ? <SheetClockHeading/> : <SheetBeatHeading/>}
             {isCoop ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
-            <th className={styles.bonus}>+</th>
-            <th className={styles.num}>=</th>
+            {isCoop ? <SheetCoopBonusHeading/> : <th className={styles.bonus}>+</th>}
+            <SheetTotalHeading/>
             {!isCoop && <th className={styles.star}/>}
           </tr>
         </thead>

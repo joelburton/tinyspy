@@ -16,18 +16,18 @@ of nothing as an hour of play.
 
 So the clock does not measure elapsed time at all. It counts ticks. The whole
 of it is `common.timers.ticks`, a single integer, and `common.tick_timer`, which
-advances that integer by at most one per real second no matter how many people
-ask. Every client with the game live in front of it asks once a second; the
-server's own `now()` decides whether the count moves, so a client with a skewed
+advances that integer by one for each real second since it last moved, no
+matter how many people ask. Every client with the game live in front of it asks
+about once a second; the server's own `now()` decides how far the count moves, so a client with a skewed
 clock or a throttled background tab can only *trigger* the attempt, never move
 the number. The count that comes back is what everyone shows.
 
 What falls out is that there is nothing to maintain. A paused game, an idle
 game and a killed tab all stop the same way — nobody asks, so nothing counts —
 and there is no accumulator to fold, no cleanup that has to fire, no gap to
-remember on the way back. A second with no tick is, by construction, a second
-that did not count. The price is about a second of slack around a pause, which
-is the right trade for friendly word games.
+remember on the way back. A gap of five seconds or more with no tick is, by
+construction, time that did not count. The price is a few seconds of slack
+around a pause, which is the right trade for friendly word games.
 
 Everything on screen is then derived from that one integer. Countup shows the
 count, countdown shows what is left of the configured seconds, an untimed game
@@ -81,18 +81,23 @@ on the same network in the same second, so presenting one while the other
 stayed silent would put a modal on the mount and nothing on the next forty
 attempts.
 
-**The SQL half is one table and one conditional.** `common.timers (game_id,
+**The SQL half is one table and one rule.** `common.timers (game_id,
 ticks, last_tick)` is its own table rather than a column on `common.games`, so
 the per-second UPDATE does not churn the games realtime stream; its `kind` and
-countdown length are what `shell_data`'s `timer` reads. `tick_timer`'s
-`now() - last_tick >= 1 second` is the whole of dedup, pause and idle in one
-line. `common._reset_game` zeroes the row on a replay, the view-state RPCs are
+countdown length are what `shell_data`'s `timer` reads. `common._clock_due` is
+the rule: nothing within a second of the last tick, every whole second of a gap
+under five with `last_tick` moved by exactly that many — so a poll landing a
+little early or late neither drops a second nor adds one, and the count keeps
+real time — and one second for a longer gap, which is a pause or an idle game.
+`tick_timer` applies it under a row lock, which is the dedup; a game that judges
+a move against the clock reads the count through it too (wordsy's coop bonus). `common._reset_game` zeroes the row on a replay, the view-state RPCs are
 pointer flips that do no timer work, and `common._require_valid_timer` validates
 the setup shape at create time — its five raises are all faults (PN035–PN039),
-because the timer control cannot produce any of them. The conditional is pinned
+because the timer control cannot produce any of them. The rule is pinned
 by `supabase/tests/common/tick_timer_test.sql`, which rewinds `last_tick` by
 hand instead of sleeping: one advance per real second however many players
-ask, a minute's gap costing one, and a deleted game answering moot.
+ask, the fraction carried, a late poll counting every second it missed, a
+minute's gap costing one, and a deleted game answering moot.
 
 **M:SS is written once**, in `timerLabel.ts`, which is the file that owns the
 timer's words: `formatTimerSeconds` for the header and the countdown input,

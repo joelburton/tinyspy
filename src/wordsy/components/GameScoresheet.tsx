@@ -4,7 +4,8 @@ import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import { makeGameSheets } from '../lib/scoresheet'
 import {
-  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetFastestHeading, SheetWord,
+  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
+  SheetFastestHeading, SheetTotalHeading, SheetWord,
 } from './SheetCells'
 import type { GGameData } from '../types'
 import styles from './scoresheet.module.css'
@@ -41,8 +42,8 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 <th/>
                 {team !== null ? <SheetClockHeading/> : <SheetBeatHeading/>}
                 {team !== null ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
-                <th className={styles.bonus}>+</th>
-                <th className={styles.num}>=</th>
+                {team !== null ? <SheetCoopBonusHeading/> : <th className={styles.bonus}>+</th>}
+                <SheetTotalHeading/>
               </tr>
             </thead>
             <tbody>

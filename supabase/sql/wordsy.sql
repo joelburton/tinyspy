@@ -612,8 +612,10 @@ revoke execute on function wordsy._end_round(uuid, uuid) from public;
 -- wordsy._reveal_coop_round — the team's word against the solo card
 -- ============================================================
 -- The card, as Joel transcribed it (src/wordsy/doc.md → The solo card (coop)). The
--- word scores as any word. It beat the clock when its submit came within
--- `timer_seconds` of the deal, by the server's clock. A word that beat the
+-- word scores as any word. It beat the clock when the round's clock — the
+-- one on every page, `common.timers` — had not reached `timer_seconds` as it
+-- stood, counted up to that moment (`common._clock_due`); a clock already put
+-- away has run out. A pause stops that clock, so it costs no time. A word that beat the
 -- clock and scored 15 or more earns the round's bonus: with the timer on band
 -- 1 the higher column's value (`p_higher`, 2 / 3 / 4), on 2 or 3 the lower's
 -- (`p_lower`, 1 / 2 / 3). Then the timer moves: under 20 moves it down a band,
@@ -643,7 +645,10 @@ begin
   select * into w from wordsy.round_words where game_id = g.game_id and num = r.num;
 
   v_score := wordsy._score_word(w.word, r.tiles);
-  v_beat_clock := w.submitted_at <= r.timer_started_at + make_interval(secs => g.timer_seconds);
+  select t.kind = 'countdown'
+         and t.ticks + (common._clock_due(t.last_tick)).owed < g.timer_seconds
+    into v_beat_clock
+    from common.timers t where t.game_id = g.game_id;
   if v_beat_clock and v_score >= 15 then
     v_bonus := case when g.band = 1 then p_higher else p_lower end;
   end if;

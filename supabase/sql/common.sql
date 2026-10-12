@@ -16,7 +16,7 @@
 --   set_current_view           makes a game the club's current game
 --   unset_current_view         clears the club's current game when its last
 --                              viewer leaves
---   tick_timer                 advances a game's clock by at most a second
+--   tick_timer                 advances a game's clock by the seconds it is owed
 --   delete_game                deletes a game and everything under it
 --   set_scratchpad             saves a scratchpad
 --   anagrams                   the dictionary words a set of letters spells
@@ -52,6 +52,7 @@
 --   _require_club_member       the caller is signed in and in this club
 --   _require_game_player       the caller is signed in and in this game
 --   _require_valid_timer       the setup's timer is well formed
+--   _clock_due                 the seconds a game's clock is owed, and its next last_tick
 --   _require_valid_mode        the mode is coop or compete
 --   _require_compete           the game is a compete game
 --   _require_player_count_max  no more players than the game takes
@@ -2572,23 +2573,62 @@ grant execute on function common.unset_current_view(uuid) to authenticated;
 -- answered in an envelope, and `create or replace` cannot change a return type.
 drop function if exists common.tick_timer(uuid);
 
+-- ─── common._clock_due ─────────────────────────────────────
+-- What a clock that last ticked at `p_last_tick` is owed now: `owed`, the
+-- seconds to add, and `next_tick`, the `last_tick` to write with them. The
+-- one rule for how the count follows real time, read by `tick_timer` to
+-- advance the clock and by a game that judges a move against it
+-- (wordsy's `_reveal_coop_round`).
+--
+--   - **Under a second:** nothing owed.
+--   - **Up to five seconds:** every whole second, and `next_tick` moves by
+--     exactly that many, so the leftover fraction carries into the next
+--     call. This is what keeps the count on real time: viewers poll about
+--     once a second, and a poll landing a little early or late neither
+--     drops a second nor adds one.
+--   - **Longer:** a pause, an idle game, a page nobody had open. One
+--     second, and `next_tick` is now: the gap is not play.
+create or replace function common._clock_due(
+  p_last_tick timestamptz,
+  out owed int,
+  out next_tick timestamptz
+)
+language plpgsql
+stable
+as $$
+declare
+  v_gap interval := now() - p_last_tick;
+begin
+  if v_gap < interval '1 second' then
+    owed := 0;
+    next_tick := p_last_tick;
+  elsif v_gap < interval '5 seconds' then
+    owed := floor(extract(epoch from v_gap))::int;
+    next_tick := p_last_tick + make_interval(secs => owed);
+  else
+    owed := 1;
+    next_tick := now();
+  end if;
+end;
+$$;
+revoke execute on function common._clock_due(timestamptz) from public;
+
 -- ─── common.tick_timer ─────────────────────────────────────
 -- The game clock's one writer. Every actively-playing client calls
--- this once a second; it advances common.timers.ticks by AT MOST 1
--- per real second and returns the current count.
+-- this about once a second; it advances common.timers.ticks by the
+-- seconds `_clock_due` says are owed, and returns the current count.
 --
--- The conditional (`now() - last_tick >= 1 second`) does all the
--- work:
---   - **Dedup across players.** Three clients calling within the
---     same second: only the first passes the WHERE and advances;
---     the other two no-op and just read the value back. So the
---     clock runs at ~1 tick/sec no matter how many are driving it —
---     no leader election needed.
+--   - **The count keeps real time.** Each whole second that passed is
+--     counted, with the fraction carried, so a 30-second countdown
+--     takes 30 seconds however the polls happen to land.
+--   - **Dedup across players.** The row is locked while it is read
+--     and advanced, so three clients calling in the same second
+--     count it once: the first is owed it, the other two are owed
+--     nothing and just read the value back.
 --   - **Pause / idle are free.** When the game is paused, or nobody
 --     is viewing it, no client calls this, so last_tick stays put.
---     The first call on resume adds +1 (it's `ticks + 1`, never
---     `ticks + gap`), so a five-minute pause costs one second, not
---     five minutes. No gap tracking anywhere.
+--     The first call after a gap of five seconds or more adds 1, so
+--     a five-minute pause costs one second, not five minutes.
 --   - **Server clock is authority.** The `now()` is the database's,
 --     so a client's wall-clock skew or setInterval drift can't move
 --     the count — it only triggers the attempt.
@@ -2604,6 +2644,8 @@ as $$
 declare
   target_club text;
   current_ticks int;
+  v_last_tick timestamptz;
+  v_due record;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
 begin
   select club_handle into target_club from common.games where id = target_game;
@@ -2623,22 +2665,22 @@ begin
   end if;
   perform common._require_club_member(target_club);
 
-  update common.timers
-     set ticks = ticks + 1,
-         last_tick = now()
-   where game_id = target_game
-     and now() - last_tick >= interval '1 second'
-  returning ticks into current_ticks;
-
-  -- WHERE didn't match (already ticked this second) — read current.
-  if current_ticks is null then
-    select ticks into current_ticks
-      from common.timers where game_id = target_game;
+  -- Locked, so a second caller waits here and then finds nothing owed.
+  select ticks, last_tick into current_ticks, v_last_tick
+    from common.timers where game_id = target_game
+     for update;
+  v_due := common._clock_due(v_last_tick);
+  if v_due.owed > 0 then
+    update common.timers
+       set ticks = ticks + v_due.owed,
+           last_tick = v_due.next_tick
+     where game_id = target_game
+    returning ticks into current_ticks;
   end if;
 
-  -- The authoritative count. Every viewer polls once a second and the guard
-  -- above lets only the first of them advance it, so three players do not make
-  -- three ticks — the rest fall through to this read.
+  -- The authoritative count. Every viewer polls about once a second and the
+  -- lock above lets only the first of them advance it, so three players do not
+  -- make three ticks — the rest read it back.
   return common._ok_envelope(jsonb_build_object('result', 'ticked', 'ticks', coalesce(current_ticks, 0)));
 
 exception when others then

@@ -109,8 +109,9 @@ transcribed it on 2026-10-10, and this is the one copy:
 > Wordsmith, 110 Wordspert, 120 Wordmaster.
 
 What the app makes of it. The clock runs from the deal, for the setup's
-seconds, and a word **beat the clock** when its submit came within them, by
-the server's time. The bonus columns are compete's: the higher is the
+seconds, and a word **beat the clock** when the clock every page shows
+(`common.timers`) had not yet run out as it stood, so the bonus follows the
+clock on screen and a pause costs nothing. The bonus columns are compete's: the higher is the
 Fastest's, 2 / 3 / 4 by rounds 1–3 / 4–6 / 7; the lower the beat-the-Fastest
 column's, 1 / 2 / 3. The card does not say what a penalty is worth nor whether
 the two lowest rounds are dropped. Joel ruled (2026-10-10) that the best five

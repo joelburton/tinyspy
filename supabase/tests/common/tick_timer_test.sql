@@ -5,12 +5,15 @@
 -- ============================================================
 --
 -- The game clock is an additive tick count, advanced by every
--- actively-playing client once a second. tick_timer's conditional
--- (`now() - last_tick >= 1 second`) carries the whole design:
---   - advances by AT MOST 1 per real second;
+-- actively-playing client about once a second. `common._clock_due`
+-- carries the whole design:
+--   - nothing within a second of the last tick;
+--   - every whole second of a gap up to five, the fraction carried
+--     into `last_tick`, so the count keeps real time;
 --   - dedupes across players (concurrent calls in the same second
 --     don't double-count);
---   - a pause / idle GAP costs +1 on resume, not the gap;
+--   - a pause / idle GAP of five seconds or more costs +1 on resume,
+--     not the gap;
 --   - returns the current count either way.
 --
 -- We control `last_tick` directly (as postgres) to simulate elapsed
@@ -25,7 +28,7 @@ set search_path = common, public, extensions;
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
 
-select plan(9);
+select plan(11);
 
 -- Set JWT claims WITHOUT switching role away from postgres, so we
 -- keep execute privilege on the security-revoked tick_timer while
@@ -88,10 +91,10 @@ select pg_temp.envelope_is(
   'tick_timer: within the first second → no advance, returns 0'
 );
 
--- Rewind last_tick by 2s to simulate a real second elapsing.
+-- Rewind last_tick by 1.5s to simulate a real second and a half elapsing.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update common.timers set last_tick = now() - interval '2 seconds'
+update common.timers set last_tick = now() - interval '1.5 seconds'
  where game_id = (select id from g);
 
 -- (3) Now a second has passed → advance to 1.
@@ -99,10 +102,21 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
   '{"type": "ok", "data": {"result": "ticked", "ticks": 1}}'::jsonb,
-  'tick_timer: ≥1s elapsed → advances to 1'
+  'tick_timer: 1.5s elapsed → advances to 1'
 );
 
--- (4) Dedup: an immediate second call (last_tick just set to now)
+-- (4) … and last_tick moved by exactly the second counted, so the half
+--     second left over counts toward the next one.
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select now() - last_tick from common.timers where game_id = (select id from g)),
+  interval '0.5 seconds',
+  'tick_timer: the fraction carries into last_tick'
+);
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+
+-- (5) Dedup: an immediate second call (last_tick half a second ago)
 --     does NOT advance — returns the same 1. Stands in for a second
 --     player calling within the same second.
 select pg_temp.envelope_is(
@@ -111,7 +125,7 @@ select pg_temp.envelope_is(
   'tick_timer: a call within the same second does not double-count'
 );
 
--- (5) bea (a second player) calling, still within the second, also
+-- (6) bea (a second player) calling, still within the second, also
 --     no-ops — the clock is per-game, not per-player.
 select pg_temp.as_jwt_only('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
@@ -120,7 +134,21 @@ select pg_temp.envelope_is(
   'tick_timer: a different player in the same second also no-ops'
 );
 
--- (6) Pause/idle gap: rewind last_tick by a full minute (nobody
+-- (7) A late poll: 3.5s since the last tick (a slow network, a
+--     throttled tab) counts all three seconds, not one.
+reset role;
+select set_config('request.jwt.claims', '', true);
+update common.timers set last_tick = now() - interval '3.5 seconds'
+ where game_id = (select id from g);
+
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  common.tick_timer((select id from g)),
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 4}}'::jsonb,
+  'tick_timer: 3.5s since the last tick counts three'
+);
+
+-- (8) Pause/idle gap: rewind last_tick by a full minute (nobody
 --     called for a minute). The next call adds +1, NOT +60.
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -130,20 +158,22 @@ update common.timers set last_tick = now() - interval '60 seconds'
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
-  '{"type": "ok", "data": {"result": "ticked", "ticks": 2}}'::jsonb,
+  '{"type": "ok", "data": {"result": "ticked", "ticks": 5}}'::jsonb,
   'tick_timer: a 60s gap costs +1 (resume), not +60'
 );
 
--- (7) The row reflects the advance + last_tick was refreshed.
+-- (9) The row reflects the advance, and last_tick is now: the gap is
+--     not carried.
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select ticks from common.timers where game_id = (select id from g)),
-  2,
-  'tick_timer: persisted ticks = 2'
+  (select format('%s ticks, last tick %s', ticks, last_tick = now())
+     from common.timers where game_id = (select id from g)),
+  '5 ticks, last tick t',
+  'tick_timer: persisted ticks = 5, last_tick reset to now'
 );
 
--- (8) Non-member (dee) is rejected.
+-- (10) Non-member (dee) is rejected.
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   common.tick_timer((select id from g)),
@@ -152,7 +182,7 @@ select pg_temp.envelope_is(
   'tick_timer: a non-member gets a declared fault'
 );
 
--- (9) A deleted game is `ok`, the third of the family (set_current_view's
+-- (11) A deleted game is `ok`, the third of the family (set_current_view's
 --     PA003, unset_current_view's PA001): there is no clock to advance, so the
 --     job is MOOT rather than failed. Which is this function's whole character
 --     — the clock only moves while someone is looking at it, so "nothing to

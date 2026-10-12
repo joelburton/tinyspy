@@ -131,10 +131,11 @@ referred to as `foo.games` below for brevity.)
   last_tick, kind, countdown_seconds_at_setup)`** — NOT on the games row, so the
   once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks`
   is an **additive** count of whole seconds of *active play*: every
-  actively-playing client calls `common.tick_timer` once a second, which
-  advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s`
-  conditional dedupes across players and makes a pause/idle gap cost +1, not
-  the gap). Pauses and "nobody viewing" need **no tracking** — they're just
+  actively-playing client calls `common.tick_timer` about once a second, which
+  advances `ticks` by each whole second since the last tick, carrying the
+  fraction, so the count keeps real time (`common._clock_due`; it dedupes
+  across players and makes a pause/idle gap of five seconds or more cost +1,
+  not the gap). Pauses and "nobody viewing" need **no tracking** — they're just
   seconds where nobody calls tick_timer, so the clock stops.
   `set_current_view`/`unset_current_view` are pure pointer-flips with no timer
   work.

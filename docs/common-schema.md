@@ -72,9 +72,11 @@ row — kind, length, `ticks` back to 0 — and its builder's next call carries
 the change to every client; `setup.timer` stays what the game was created
 with. `ticks`
 counts whole seconds of **active play**: every
-playing client calls `common.tick_timer` once a second, and it advances by at
-most one per real second, which removes duplicates across players and makes a
-pause cost one second rather than its length. Pause and "nobody here" need no
+playing client calls `common.tick_timer` about once a second, and it advances
+by each whole second since the last tick, the fraction carried so the count
+keeps real time (`common._clock_due`). That removes duplicates across players,
+and makes a pause — a gap of five seconds or more — cost one second rather
+than its length. Pause and "nobody here" need no
 bookkeeping — they are seconds when nobody ticks. The frontend half is
 [`common/timer`](../src/common/timer/doc.md).
 

@@ -528,6 +528,12 @@ describe('wordsy PlayArea — coop', () => {
     expect(within(sheet).getByText('1 penalty')).toBeInTheDocument()
     expect(within(sheet).getByText('−2')).toBeInTheDocument()
     expect(within(sheet).getByTestId('beat-clock')).toBeInTheDocument()
+    // Coop's headings say what their columns mean: the clock, the bonus, the total.
+    expect(within(sheet).getAllByRole('columnheader').map((h) => h.dataset.tooltip).filter(Boolean)).toEqual([
+      'Beat the clock: the word was in before time ran out',
+      'Bonus: beat the clock with 15 or more',
+      'The round\'s total',
+    ])
   })
 })
 
@@ -547,6 +553,19 @@ describe('wordsy PlayArea — the scoresheets', () => {
     expect(within(sheet).getByText('★')).toBeInTheDocument()
     // ELF: 9, and the Fastest's 2, under =.
     expect(within(sheet).getByText('11')).toBeInTheDocument()
+  })
+
+  it('each named heading says what its column means', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    const sheet = screen.getByTestId('round-scoresheet')
+    const said = within(sheet).getAllByRole('columnheader')
+      .filter((h) => h.dataset.tooltip !== undefined)
+      .map((h) => [h.dataset.tooltip, h.dataset.tooltipOn])
+    expect(said).toEqual([
+      ['Beat the Fastest: scored higher than the Fastest\'s word', 'readout'],
+      ['Fastest\'s bonus: the Fastest tied or beat three opponents, or all of them if fewer', 'readout'],
+      ['The round\'s total', 'readout'],
+    ])
   })
 
   it('heads the bonus columns beat-the-Fastest then the Fastest\'s, and fills them so', () => {

@@ -34,7 +34,7 @@ export function PauseAndClock({ pause, timer, ended }: Props) {
         />
       )}
       {showTimer && (
-        <span className={cls(styles.timer, isTimerStopped && styles.timerStopped)}>
+        <span data-testid="clock" className={cls(styles.timer, isTimerStopped && styles.timerStopped)}>
           {formatTimerSeconds(timer.displaySeconds)}
         </span>
       )}

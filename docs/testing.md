@@ -371,6 +371,12 @@ in these buckets:
   properties jsdom can't see.
 - **game-specific browser behavior** — chat unread, clue-form focus traps,
   tap-to-trace, AI opponent, the bananagrams touch block, etc.
+- **the clock against real time** — `timer-accuracy.e2e.ts` watches the
+  header clock for 20 real seconds, with each `tick_timer` poll held a random
+  0–200 ms the way prod's network holds it, and asks that the count kept up.
+  **Opt-in**: it is skipped unless `SLOW=1` (`SLOW=1 npx playwright test
+  timer-accuracy`), because it is slow and nothing else in a game depends on
+  it.
 
 The list is illustrative, not a contract. When you add a spec, add it for a
 browser-only surface in one of these buckets — not to re-test logic Vitest/pgTAP

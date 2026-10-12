@@ -16,16 +16,19 @@
 --   4. turns: the writer's gate (PN243), the holder in the blob, the rotation
 --      after each round
 --   5. the clock running out ends nothing: `expired`, then the race, the
---      round still open and the word still taken
+--      round still open and the word still taken, too late for the clock
 --   6. never a Fastest or No Flip; no concede in coop
 --   7. Restart puts the card back on band 1 and arms the clock
+--   8. beating the clock is the clock every page shows, counted up to the
+--      word: not the time since the deal, and the seconds owed since the
+--      last tick count
 -- ============================================================
 
 begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(29);
+select plan(31);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -183,7 +186,11 @@ select is((pg_temp.ws_round(pg_temp.s())).num, 1, '… and the round is still in
 -- The kind alone: the second buzz's helper ran the count up before meeting
 -- the race.
 select is(split_part(pg_temp.timer(pg_temp.s()), '/', 1), 'none', '… with the clock put away');
-select is((pg_temp.ws_coop_round(pg_temp.s(), 'ada', 5)).num, 1, 'the word is taken all the same');
+select is(
+  (select format('round %s, beat clock %s', (e).num, (e).beat_clock)
+     from (select pg_temp.ws_coop_round(pg_temp.s(), 'ada', 5) as e) w),
+  'round 1, beat clock f',
+  'the word is taken all the same, too late for the clock');
 
 -- ─── (6) Never a Fastest or No Flip; no concede ───
 select pg_temp.ws_coop_round(pg_temp.s(), 'ada', 5);
@@ -215,6 +222,22 @@ reset role;
 select is(pg_temp.ws_card(pg_temp.s()) || ' · ' || pg_temp.timer(pg_temp.s()),
   'band 1 · penalties 0 · countdown/30/0',
   '… puts the card back on band 1 and arms round 1''s clock');
+
+-- ─── (8) The clock the page shows ───
+-- An hour since the deal, but the clock has counted 29 of its 30: a paused
+-- or slow round. The word beat the clock the players were looking at.
+reset role;
+update wordsy.rounds set timer_started_at = now() - interval '1 hour'
+ where game_id = pg_temp.s() and ended_at is null;
+update common.timers set ticks = 29, last_tick = now() where game_id = pg_temp.s();
+select is((pg_temp.ws_coop_round(pg_temp.s(), 'ada', 5)).beat_clock, true,
+  'the clock on screen decides, not the time since the deal');
+
+-- 29 counted, and a second and a half since: the second owed is the 30th.
+update common.timers set ticks = 29, last_tick = now() - interval '1.5 seconds'
+ where game_id = pg_temp.s();
+select is((pg_temp.ws_coop_round(pg_temp.s(), 'ada', 5)).beat_clock, false,
+  '… counted up to the word: the second owed since the last tick runs it out');
 
 select * from finish();
 rollback;
