@@ -11,6 +11,8 @@
   border: var(--border-width-line-thick) solid var(--page-divider-color);
   border-radius: var(--radius-md);
   padding: 0.6rem 0.8rem;
+  /* A step under body size, both sheets in both modes (Joel). */
+  font-size: var(--font-size-2);
 }
 
 /* The game's sheet is as tall as its tables and no taller; only when the

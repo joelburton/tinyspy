@@ -21,12 +21,14 @@
   text-transform: uppercase;
 }
 
-/* A rare card's bonus, small in the top-right corner, as the card prints it. */
+/* A rare card's bonus, small in the top-right corner, as the card prints it.
+ * A fifth of the card, never under 0.875rem: on a phone's card a fifth is
+ * too small to read (Joel), while a desktop's card is past the floor. */
 /* @@ */ .bonus {
   position: absolute;
   top: 6cqmin;
   right: 9cqmin;
-  font-size: 20cqmin;
+  font-size: max(20cqmin, 0.875rem);
   font-weight: 700;
   line-height: 1;
 }

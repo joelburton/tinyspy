@@ -541,6 +541,9 @@ describe('wordsy PlayArea — coop', () => {
     // A red dot beside the band of each round that took a penalty: rounds 2 and 3.
     const rows = within(sheet).getAllByRole('row').slice(1, 4)
     expect(rows.map((r) => within(r).queryByTestId('penalty-dot') !== null)).toEqual([false, true, true])
+    // No round numbers: a row opens on its writer, and has a cell per heading.
+    expect(within(rows[0]!).getAllByRole('cell')[0]!.textContent).toMatch(/FBCDQ/i)
+    expect(within(rows[0]!).getAllByRole('cell')).toHaveLength(within(sheet).getAllByRole('columnheader').length)
     // Under the rows, a dot a penalty and the word.
     const penalties = within(sheet).getByText(/penalties/)
     expect(penalties.textContent!.trim()).toBe('penalties')

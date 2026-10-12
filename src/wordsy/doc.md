@@ -316,7 +316,8 @@ the log.
   the hourglass and a check), the band it was scored on (headed #, a red dot
   beside it when the word took a penalty), its bonus, and the total; the
   game's one table is headed by the title, or "The team", with the penalties
-  under the rows, a red dot each, and their cost; its bonus column is headed +, which compete
+  under the rows, a red dot each, and their cost, and no round numbers, its
+  rows being the rounds in order (Joel); its bonus column is headed +, which compete
   has none of. Each named heading says what its column means in a tooltip.
   The ending reads "Won (Wordsmith)" or
   "Lost (82 pts)" (`lib/endingLabel.ts`).

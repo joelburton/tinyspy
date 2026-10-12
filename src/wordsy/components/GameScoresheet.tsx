@@ -19,7 +19,7 @@ import styles from './scoresheet.module.css'
  * As tall as its tables; a longer one than the column scrolls inside its frame.
  *
  * In coop the one table is the team's, headed by the card's title or "The
- * team": a row per round with its writer, whether the word beat the clock and
+ * team": a row per round, in order and unnumbered, with its writer, whether the word beat the clock and
  * the band it was scored on (a red dot for a penalty); under the rows, the
  * penalties, a dot each, and their cost, then the total.
  */
@@ -37,7 +37,7 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th/>
+                {team === null && <th/>}
                 <th/>
                 <th/>
                 {team !== null ? <SheetClockHeading/> : <SheetBeatHeading/>}
@@ -49,7 +49,9 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.num}>
-                  <td>{row.num}</td>
+                  {/* The round's number; coop's rows go in order, one a round,
+                      so they need none (Joel). */}
+                  {team === null && <td>{row.num}</td>}
                   <td className={cls(row.isStruck && styles.struck)}>
                     {team !== null && <DotActor actor={row.player}/>}
                     {team !== null && ' '}
@@ -73,7 +75,7 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
               ))}
               {team !== null && team.nPenalties > 0 && (
                 <tr className={styles.penaltiesRow}>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     {/* A dot a penalty, as the band column marks them. */}
                     {Array.from({ length: team.nPenalties }, (_, i) => <SheetPenaltyDot key={i}/>)}
                     {' '}
@@ -83,9 +85,8 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 </tr>
               )}
               <tr className={styles.grandTotal}>
-                {/* Under every column but the total's: six in coop, five in
-                    compete. */}
-                <td colSpan={team !== null ? 6 : 5}/>
+                {/* Under every column but the total's: five in either mode. */}
+                <td colSpan={5}/>
                 <td className={styles.num}>{total}</td>
               </tr>
             </tbody>
