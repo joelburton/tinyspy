@@ -3,7 +3,6 @@
 import { useEffect, type RefObject } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { useAction } from '@/common/actions/actionsStore'
@@ -18,7 +17,6 @@ import { Board } from './Board'
 import { GameScoresheet } from './GameScoresheet'
 import { RoundScoresheet } from './RoundScoresheet'
 import { SoloCard } from './SoloCard'
-import { StateLine } from './StateLine'
 import { WordLines } from './WordLines'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
@@ -29,9 +27,9 @@ import type { GGameData, GHistoryView, GTile } from '../types'
  * wordsy's board column. In the board's place it shows one of four surfaces
  * (`useBoardColView`): the table with the entry under it, a finished round's
  * scoresheet with "Start round N", the last round's sheet with "Show final
- * scores", or the game's sheet. Over the table, the round it is — in coop with
- * the solo card beside it; under it, the entry, the two lines that score it,
- * and the on-screen keyboard.
+ * scores", or the game's sheet. Over every surface, at every width, a bar:
+ * the round, in coop the solo card, and the total; under the table, the
+ * entry, the two lines that score it, and the on-screen keyboard.
  *
  * The move is the column's: the word being typed (`useTypedWord`) and its
  * trip to `submit_word` (`useSubmitWord`). Nothing reaches the server until
@@ -123,14 +121,6 @@ export function BoardCol({
     }
     return (
       <>
-        <div className={styles.aboveBoard}>
-          {/* The round on the board: a past one while it is open. */}
-          <span data-testid="round-label" className={styles.roundLabel}>
-            Round <strong>{historyView.viewedNum ?? gd.round.num}</strong> of {gd.nRounds}
-          </span>
-          {gd.team !== null && <SoloCard team={gd.team}/>}
-        </div>
-
         <Board
           tiles={shownTiles}
           pickedSlots={pickedSlots}
@@ -201,9 +191,14 @@ export function BoardCol({
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
-      <MobileStatusBar>
-        <StateLine gd={gd}/>
-      </MobileStatusBar>
+      {/* "1 / 7   1-2-3   37 pts": the round, in coop the solo card, and the
+          total, with no penalties (Joel). Not the shared `<MobileStatusBar>`,
+          which is a phone's alone: this bar shows at every width. */}
+      <div data-testid="status-bar" className={styles.statusBar}>
+        <span><strong>{gd.round.num}</strong> / {gd.nRounds}</span>
+        {gd.team !== null && <SoloCard team={gd.team}/>}
+        <span><strong>{gd.me.total}</strong> pts</span>
+      </div>
       {getSurface()}
     </div>
   )

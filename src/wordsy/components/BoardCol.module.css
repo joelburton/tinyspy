@@ -1,7 +1,7 @@
 /* cs-unmet */
 
-/* wordsy's board column: the round over the table, then the entry and its
- * two lines. */
+/* wordsy's board column: the bar over the table, then the entry and its two
+ * lines. */
 /* @@ */ .boardCol {
   gap: 1rem;
 }
@@ -21,17 +21,24 @@
   gap: 0.4rem;
 }
 
-/* Over the table: the round, and in coop the solo card beside it. */
-/* @@ */ .aboveBoard {
+/* Over every surface, at every width: the round, in coop the solo card, and
+ * the total. One line that never wraps, so it costs the column the same
+ * height on every round. Full-strength text, the numbers a size up, as the
+ * info column's state line draws them. */
+/* @@ */ .statusBar {
   display: flex;
+  flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  gap: 1.2rem;
+  gap: 1.6rem;
+  white-space: nowrap;
+  color: var(--page-text-color);
+  font-size: 0.95rem;
 }
 
-/* @@ */ .roundLabel {
-  font-size: 1.05rem;
-  white-space: nowrap;
+/* @@ */ .statusBar strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Under the entry: the two word lines, centered. */

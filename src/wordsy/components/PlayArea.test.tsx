@@ -473,15 +473,19 @@ describe('wordsy PlayArea — through the dispatcher', () => {
 describe('wordsy PlayArea — coop', () => {
   beforeEach(() => rpc.mockReset())
 
-  it('shows the solo card beside the round, the dark border on the band, and no penalties', () => {
+  it('shows the solo card in the bar, the dark border on the band, and no penalties', () => {
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ mode: 'coop', team: { band: 2, nPenalties: 1 } })} />)
     const card = screen.getByTestId('solo-card')
     expect(within(card).getByTestId('band-2').className).toMatch(/current/)
     expect(within(card).getByTestId('band-1').className).not.toMatch(/current/)
     // A penalty is the game's scoresheet's to show, not the next word's.
     expect(within(card).queryByText('−2')).toBeNull()
-    // Over the table, beside the round.
-    expect(card.parentElement).toContainElement(screen.getByTestId('round-label'))
+    // In the bar over the board, between the round and the total, and the bar
+    // says nothing of the penalty.
+    const bar = screen.getByTestId('status-bar')
+    expect(bar.children[1]).toBe(card)
+    expect(bar).toHaveTextContent(/^1 \/ 7\s*123\s*\d+ pts$/)
+    expect(bar).not.toHaveTextContent(/penalt/)
     // No strip: every player would show the team's one total.
     expect(screen.queryByText('Total')).toBeNull()
   })
@@ -664,15 +668,16 @@ describe('wordsy PlayArea — the scoresheets', () => {
     expect(screen.getByRole('button', { name: 'Waiting for others' })).toBeDisabled()
   })
 
-  it('names the round over the table, a past one while it is open', async () => {
-    const user = userEvent.setup()
-    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+  it('puts the round and the total in the bar over the board, over a scoresheet too', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
       rounds: [{ num: 1, ended: true, fastest: 'u1' }, { num: 2 }],
       events: BETWEEN.events,
     })} />)
-    expect(screen.getByTestId('round-label')).toHaveTextContent('Round 2 of 7')
-    await user.click(screen.getAllByText('#1')[0]!)
-    expect(screen.getByTestId('round-label')).toHaveTextContent('Round 1 of 7')
+    expect(screen.getByTestId('status-bar')).toHaveTextContent(/^2 \/ 7\s*\d+ pts$/)
+    expect(screen.getByTestId('board')).toBeInTheDocument()
+    rerender(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    expect(screen.getByTestId('round-scoresheet')).toBeInTheDocument()
+    expect(screen.getByTestId('status-bar')).toHaveTextContent(/^1 \/ 7/)
   })
 
   it('a past round opened from the log shows its board over the scoresheet', async () => {

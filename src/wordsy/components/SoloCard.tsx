@@ -5,7 +5,8 @@ import { BandSquare } from './BandSquare'
 import styles from './SoloCard.module.css'
 
 /**
- * The solo card, over the table in coop beside the round: the three bands, green 1 over
+ * The solo card, in coop in the bar over the table, between the round and the
+ * total: the three bands, green 1 over
  * amber 2 over red 3 as a row, a dark border on the one the timer sits on
  * (doc.md → The solo card (coop)). The penalties taken are the game's
  * scoresheet's to show, not the next word's. It only shows; the server moves

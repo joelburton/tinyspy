@@ -280,12 +280,13 @@ the log.
   `TurnStatusLine` says whose word it is.
 - **The solo card** (`SoloCard`, three `BandSquare`s in the game's own
   `--wordsy-band-*` colors — copies of the outcome bases, not aliases, since
-  a band is where the timer sits and not a verdict) sits over the table in
-  coop, beside the round ("Round 5 of 7", a past round's number while one is
-  open), which every game shows there (Joel): the dark border on the band the
-  timer is on, and no penalties — those are the game's scoresheet's to show,
-  and beside the next word they read as part of it (Joel). The state line
-  counts the penalties. Under turns the
+  a band is where the timer sits and not a verdict) sits in coop in the bar
+  over the board, which reads "1 / 7", the card, "37 pts" (Joel): the dark
+  border on the band the timer is on, and no penalties — those are the
+  game's scoresheet's to show, and beside the next word they read as part of
+  it (Joel). The info column's state line counts them. The bar is wordsy's
+  own, not the shared `MobileStatusBar`, because it shows at every width
+  (Joel). Under turns the
   entry is the writer's alone: the others' boards dim and the second word
   line says whose turn it is; the new table's bell and frame ring for the
   writer alone, since the table arriving IS their turn arriving
