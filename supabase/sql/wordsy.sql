@@ -609,6 +609,21 @@ $$;
 revoke execute on function wordsy._end_round(uuid, uuid) from public;
 
 -- ============================================================
+-- wordsy._takes_penalty — the card's penalty
+-- ============================================================
+-- A word under 20 scored with the timer on band 3 takes a penalty (and the
+-- timer goes to 2). The reveal applies it; the page's events say it of each
+-- coop word (`_make_json_events`), so a scoresheet marks the rows that took one.
+create or replace function wordsy._takes_penalty(p_band smallint, p_score int)
+returns boolean
+language sql
+immutable
+as $$
+  select p_band = 3 and p_score < 20;
+$$;
+revoke execute on function wordsy._takes_penalty(smallint, int) from public;
+
+-- ============================================================
 -- wordsy._reveal_coop_round — the team's word against the solo card
 -- ============================================================
 -- The card, as Joel transcribed it (src/wordsy/doc.md → The solo card (coop)). The
@@ -658,13 +673,11 @@ begin
   values (g.game_id, w.user_id, 'word', true, r.num, w.word, v_score, v_bonus,
           v_beat_clock, g.band);
 
-  if v_score < 20 then
-    if g.band = 3 then
-      v_penalties := v_penalties + 1;
-      v_band := 2;
-    else
-      v_band := g.band + 1;
-    end if;
+  if wordsy._takes_penalty(g.band, v_score) then
+    v_penalties := v_penalties + 1;
+    v_band := 2;
+  elsif v_score < 20 then
+    v_band := g.band + 1;
   elsif v_bonus > 0 then
     v_band := greatest(1, g.band - 1);
   end if;
@@ -759,12 +772,13 @@ revoke execute on function wordsy._deal_next_round(uuid) from public;
 --     nBestRounds                          how many rounds' words count: 5, or 2
 --     nTilesInDeck                         60 less the cards dealt
 --     rounds: [round, …]                   every round dealt, the one in play last
---     events: [{id, userId, kind, num, word, score, bonus, beatClock, band, tookTurn, at}, …]
+--     events: [{id, userId, kind, num, word, score, bonus, beatClock, band, penalty, tookTurn, at}, …]
 --                                          every finished round's words; per round
 --                                          the Fastest's first, then as they came
 --                                          in, no word last; word '' for none.
---                                          beatClock and band are the coop
---                                          word's against the card; null in compete
+--                                          beatClock, band and penalty are the
+--                                          coop word's against the card; null in
+--                                          compete
 --     players: [player, …]                 the common player, plus:
 --       total                              the best rounds + bonuses, so far; the
 --                                          team's in coop, less the penalties
@@ -855,6 +869,7 @@ as $$
            'bonus',    e.bonus,
            'beatClock', e.beat_clock,
            'band',     e.band,
+           'penalty',  case when e.band is not null then wordsy._takes_penalty(e.band, e.score) end,
            'tookTurn', e.took_turn,
            'at',       e.created_at) order by e.id), '[]'::jsonb)
     from wordsy.events e

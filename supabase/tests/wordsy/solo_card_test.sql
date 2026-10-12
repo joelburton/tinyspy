@@ -18,14 +18,15 @@
 --      go above 1
 --   7. a late 20 earns nothing and stays; the seventh round ends the game
 --   8. the total is the best five plus the bonuses less 2 a penalty, and the
---      title follows it
+--      title follows it; the page's events mark the one round that took the
+--      penalty
 -- ============================================================
 
 begin;
 
 set search_path = wordsy, common, public, extensions;
 
-select plan(12);
+select plan(13);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -93,6 +94,13 @@ select is(
   (select summary_data -> 'team' from common.games where id = pg_temp.g()),
   '{"total": 107, "band": 1, "nPenalties": 1, "title": "Wordsmith"}'::jsonb,
   'the summary''s team: the total, the card, the title'
+);
+
+select is(
+  (select jsonb_agg(e -> 'penalty' order by (e ->> 'num')::int)
+     from jsonb_array_elements((select game_data -> 'events' from common.games where id = pg_temp.g())) e),
+  '[false, false, true, false, false, false, false]'::jsonb,
+  'the page''s events mark round 3, the one that took the penalty'
 );
 
 select * from finish();

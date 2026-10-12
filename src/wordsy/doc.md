@@ -167,7 +167,7 @@ the page blobs.
 | blob | wordsy's part |
 |---|---|
 | `static_game_data` | the common part alone: a round's table changes every round |
-| `game_data` | `team` (coop: the team's `total`, `nBonuses`, `roundScores`, and the card's `band`, `nPenalties`, `title`; null in compete), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events` (each with `beatClock` and `band`, the coop word's against the card, null in compete), and each player's `total`, `nBonuses`, `roundScores` (the team's in coop), `hasSubmitted`, `word`, `isWordFrozen`, `isBlockedByNoFlip` (the No Flip gate `submit_word` refuses on, written for the page), `isReadyForNextRound` |
+| `game_data` | `team` (coop: the team's `total`, `nBonuses`, `roundScores`, and the card's `band`, `nPenalties`, `title`; null in compete), `nRounds`, `nBestRounds`, `nTilesInDeck`, `rounds` (each with its `tiles`, `fastest`, `noFlipHolder`, `isTimerRunning`, `ended`), `events` (each with `beatClock`, `band` and `penalty`, the coop word's against the card, null in compete), and each player's `total`, `nBonuses`, `roundScores` (the team's in coop), `hasSubmitted`, `word`, `isWordFrozen`, `isBlockedByNoFlip` (the No Flip gate `submit_word` refuses on, written for the page), `isReadyForNextRound` |
 | `summary_data` | `team` (coop: `total`, `band`, `nPenalties`, `title`; null in compete), `nRoundsPlayed`, `winnerTotal`, `nRounds`, `legalBand`, `roundStyle`, `oneWord` |
 
 `shell_data`'s `timer` is read off `common.timers`, so the header follows the
@@ -225,7 +225,8 @@ finishes the game after the last round. In coop its reveal is
 `_reveal_coop_round`, the team's word against the card: a word that beat the
 clock and scored 15 or more earns the higher bonus on band 1 and the lower on
 2 or 3; then under 20 moves the band down, or at 3 takes a penalty and goes
-to 2, while 20 or more with a bonus moves it up. `_finish` in coop wins the
+to 2 (`_takes_penalty`, which the page's events read too), while 20 or more
+with a bonus moves it up. `_finish` in coop wins the
 team at 90 or more (`_title_for`) and loses it under.
 
 ## FE submissions
@@ -279,9 +280,12 @@ the log.
   `TurnStatusLine` says whose word it is.
 - **The solo card** (`SoloCard`, three `BandSquare`s in the game's own
   `--wordsy-band-*` colors — copies of the outcome bases, not aliases, since
-  a band is where the timer sits and not a verdict) sits beside the word
-  lines under the entry in coop: the dark border on the band the timer is on,
-  a −2 mark a penalty. The state line counts the penalties. Under turns the
+  a band is where the timer sits and not a verdict) sits over the table in
+  coop, beside the round ("Round 5 of 7", a past round's number while one is
+  open), which every game shows there (Joel): the dark border on the band the
+  timer is on, and no penalties — those are the game's scoresheet's to show,
+  and beside the next word they read as part of it (Joel). The state line
+  counts the penalties. Under turns the
   entry is the writer's alone: the others' boards dim and the second word
   line says whose turn it is; the new table's bell and frame ring for the
   writer alone, since the table arriving IS their turn arriving
@@ -308,12 +312,13 @@ the log.
   it scrolls inside its frame when they are taller than the column,
   and stays. In coop the sheets take the team's shape: one row a round with
   its writer, the word, its score, a check for beating the clock (headed by
-  the hourglass and a check), the band it was scored on, its bonus, and the
-  total; the game's one table is headed by the title, or "The team", with the
-  penalties' cost under the rows; its bonus column is headed +, which compete
+  the hourglass and a check), the band it was scored on (headed #, a red dot
+  beside it when the word took a penalty), its bonus, and the total; the
+  game's one table is headed by the title, or "The team", with the penalties
+  under the rows, a red dot each, and their cost; its bonus column is headed +, which compete
   has none of. Each named heading says what its column means in a tooltip.
   The ending reads "Won (Wordsmith)" or
-  "Lost (82 pts · 90 for Wordprentice)" (`lib/endingLabel.ts`).
+  "Lost (82 pts)" (`lib/endingLabel.ts`).
 - **The printout** is the totals — the team's one line in coop, named by its
   title — each finished round's table, and the log.
 - **Setup** defaults to band 4, a step above the roster's usual: Wordsy

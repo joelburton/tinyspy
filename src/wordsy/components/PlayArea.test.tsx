@@ -473,12 +473,15 @@ describe('wordsy PlayArea — through the dispatcher', () => {
 describe('wordsy PlayArea — coop', () => {
   beforeEach(() => rpc.mockReset())
 
-  it('shows the solo card beside the entry, the dark border on the band and a mark per penalty', () => {
+  it('shows the solo card beside the round, the dark border on the band, and no penalties', () => {
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx({ mode: 'coop', team: { band: 2, nPenalties: 1 } })} />)
     const card = screen.getByTestId('solo-card')
     expect(within(card).getByTestId('band-2').className).toMatch(/current/)
     expect(within(card).getByTestId('band-1').className).not.toMatch(/current/)
-    expect(within(card).getAllByText('−2')).toHaveLength(1)
+    // A penalty is the game's scoresheet's to show, not the next word's.
+    expect(within(card).queryByText('−2')).toBeNull()
+    // Over the table, beside the round.
+    expect(card.parentElement).toContainElement(screen.getByTestId('round-label'))
     // No strip: every player would show the team's one total.
     expect(screen.queryByText('Total')).toBeNull()
   })
@@ -513,9 +516,13 @@ describe('wordsy PlayArea — coop', () => {
   it('the ending names the title and the total, and the game\'s sheet the penalties', () => {
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
       mode: 'coop',
-      team: { total: 107, nBonuses: 4, band: 1, nPenalties: 1, title: 'Wordsmith' },
-      rounds: [{ num: 7, ended: true }],
-      events: [ZTest_word(1, 'u1', 7, 'fbcdq', 23, 4, { beatClock: true, band: 1 })],
+      team: { total: 107, nBonuses: 4, band: 1, nPenalties: 2, title: 'Wordsmith' },
+      rounds: [{ num: 1, ended: true }, { num: 2, ended: true }, { num: 3, ended: true }],
+      events: [
+        ZTest_word(1, 'u1', 1, 'fbcdq', 23, 4, { beatClock: true, band: 1 }),
+        ZTest_word(2, 'u1', 2, 'elf', 9, 0, { beatClock: true, band: 3, penalty: true }),
+        ZTest_word(3, 'u1', 3, 'bob', 5, 0, { beatClock: false, band: 3, penalty: true }),
+      ],
       players: [
         { ...ZTest_TWO[0]!, finalRanking: 1, outcome: 'won' }, { ...ZTest_TWO[1]!, finalRanking: 1, outcome: 'won' },
       ],
@@ -525,15 +532,40 @@ describe('wordsy PlayArea — coop', () => {
     expect(screen.getByText('Won (Wordsmith)')).toBeInTheDocument()
     const sheet = screen.getByTestId('game-scoresheet')
     expect(within(sheet).getByText('Wordsmith')).toBeInTheDocument()
-    expect(within(sheet).getByText('1 penalty')).toBeInTheDocument()
-    expect(within(sheet).getByText('−2')).toBeInTheDocument()
-    expect(within(sheet).getByTestId('beat-clock')).toBeInTheDocument()
-    // Coop's headings say what their columns mean: the clock, the bonus, the total.
+    expect(within(sheet).getByText('−4')).toBeInTheDocument()
+    expect(within(sheet).getAllByTestId('beat-clock')).toHaveLength(2)
+    // A red dot beside the band of each round that took a penalty: rounds 2 and 3.
+    const rows = within(sheet).getAllByRole('row').slice(1, 4)
+    expect(rows.map((r) => within(r).queryByTestId('penalty-dot') !== null)).toEqual([false, true, true])
+    // Under the rows, a dot a penalty and the word.
+    const penalties = within(sheet).getByText(/penalties/)
+    expect(penalties.textContent!.trim()).toBe('penalties')
+    expect(within(penalties).getAllByTestId('penalty-dot')).toHaveLength(2)
+    // Coop's headings say what their columns mean: the clock, the band, the
+    // bonus, the total.
     expect(within(sheet).getAllByRole('columnheader').map((h) => h.dataset.tooltip).filter(Boolean)).toEqual([
       'Beat the clock: the word was in before time ran out',
+      'The timer\'s band when the word was scored; a red dot is a penalty',
       'Bonus: beat the clock with 15 or more',
       'The round\'s total',
     ])
+  })
+
+  it('says one penalty in the singular', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      mode: 'coop',
+      team: { total: 98, nBonuses: 0, band: 2, nPenalties: 1, title: 'Wordprentice' },
+      rounds: [{ num: 1, ended: true }],
+      events: [ZTest_word(1, 'u1', 1, 'elf', 9, 0, { beatClock: true, band: 3, penalty: true })],
+      players: [
+        { ...ZTest_TWO[0]!, finalRanking: 1, outcome: 'won' }, { ...ZTest_TWO[1]!, finalRanking: 1, outcome: 'won' },
+      ],
+      ending: { reason: 'resource_exhausted', detail: 'rounds_played', by: 'u1' },
+      outcome: 'won',
+    })} />)
+    const penalty = within(screen.getByTestId('game-scoresheet')).getByText(/penalty/)
+    expect(penalty.textContent!.trim()).toBe('penalty')
+    expect(within(penalty).getAllByTestId('penalty-dot')).toHaveLength(1)
   })
 })
 
@@ -630,6 +662,17 @@ describe('wordsy PlayArea — the scoresheets', () => {
       players: [{ ...ZTest_TWO[0]!, isReadyForNextRound: true }, ZTest_TWO[1]!],
     })} />)
     expect(screen.getByRole('button', { name: 'Waiting for others' })).toBeDisabled()
+  })
+
+  it('names the round over the table, a past one while it is open', async () => {
+    const user = userEvent.setup()
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx({
+      rounds: [{ num: 1, ended: true, fastest: 'u1' }, { num: 2 }],
+      events: BETWEEN.events,
+    })} />)
+    expect(screen.getByTestId('round-label')).toHaveTextContent('Round 2 of 7')
+    await user.click(screen.getAllByText('#1')[0]!)
+    expect(screen.getByTestId('round-label')).toHaveTextContent('Round 1 of 7')
   })
 
   it('a past round opened from the log shows its board over the scoresheet', async () => {

@@ -61,6 +61,7 @@ function makeRow(event: GEvent, round: GRound): GSheetRow {
     fastestBonus: isFastest && event.bonus > 0 ? event.bonus : null,
     beatClock: event.beatClock,
     band: event.band,
+    penalty: event.penalty,
     rowTotal: event.score + event.bonus,
     isStar: false,
     isStruck: false,

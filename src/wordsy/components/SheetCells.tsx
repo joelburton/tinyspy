@@ -38,9 +38,33 @@ export function SheetBeatClock({ beatClock }: { beatClock: boolean }) {
   return beatClock ? <IconWordOk size={GLYPH_SIZE} data-testid="beat-clock"/> : <>–</>
 }
 
-/** Coop's band cell: the band the word was scored on, as the card draws it. */
-export function SheetBand({ band }: { band: GBand }) {
-  return <BandSquare band={band}/>
+/** Coop's band column's heading: #, "the band the timer was on". */
+export function SheetBandHeading() {
+  return (
+    <th
+      className={styles.bonus}
+      data-tooltip="The timer's band when the word was scored; a red dot is a penalty"
+      data-tooltip-on="readout"
+    >
+      #
+    </th>
+  )
+}
+
+/** Coop's band cell: the band the word was scored on, as the card draws it,
+ *  and a red dot beside it when the word took a penalty. */
+export function SheetBand({ band, penalty }: { band: GBand; penalty: boolean }) {
+  return (
+    <span className={styles.bandCell}>
+      <BandSquare band={band}/>
+      {penalty && <SheetPenaltyDot/>}
+    </span>
+  )
+}
+
+/** A penalty, as a small red dot: beside a band, and counted under the rows. */
+export function SheetPenaltyDot() {
+  return <span className={styles.penaltyDot} data-testid="penalty-dot"/>
 }
 
 /** The beat-the-Fastest column's heading, its rule in glyphs: player >

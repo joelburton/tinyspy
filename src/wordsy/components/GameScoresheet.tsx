@@ -4,8 +4,8 @@ import { cls } from '@/common/utils/cls'
 import { DotActor } from '@/common/members/ActorMention'
 import { makeGameSheets } from '../lib/scoresheet'
 import {
-  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
-  SheetFastestHeading, SheetTotalHeading, SheetWord,
+  SheetBand, SheetBandHeading, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
+  SheetFastestHeading, SheetPenaltyDot, SheetTotalHeading, SheetWord,
 } from './SheetCells'
 import type { GGameData } from '../types'
 import styles from './scoresheet.module.css'
@@ -20,8 +20,8 @@ import styles from './scoresheet.module.css'
  *
  * In coop the one table is the team's, headed by the card's title or "The
  * team": a row per round with its writer, whether the word beat the clock and
- * the band it was scored on; under the rows, the penalties' cost, then the
- * total.
+ * the band it was scored on (a red dot for a penalty); under the rows, the
+ * penalties, a dot each, and their cost, then the total.
  */
 export function GameScoresheet({ gd }: { gd: GGameData }) {
   const team = gd.team
@@ -41,7 +41,7 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 <th/>
                 <th/>
                 {team !== null ? <SheetClockHeading/> : <SheetBeatHeading/>}
-                {team !== null ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
+                {team !== null ? <SheetBandHeading/> : <SheetFastestHeading/>}
                 {team !== null && <SheetCoopBonusHeading/>}
                 <SheetTotalHeading/>
               </tr>
@@ -59,7 +59,7 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                   {team !== null ? (
                     <>
                       <td className={styles.bonus}><SheetBeatClock beatClock={row.beatClock!}/></td>
-                      <td className={styles.bonus}><SheetBand band={row.band!}/></td>
+                      <td className={styles.bonus}><SheetBand band={row.band!} penalty={row.penalty!}/></td>
                       <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
                     </>
                   ) : (
@@ -74,7 +74,10 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
               {team !== null && team.nPenalties > 0 && (
                 <tr className={styles.penaltiesRow}>
                   <td colSpan={6}>
-                    {team.nPenalties === 1 ? '1 penalty' : `${team.nPenalties} penalties`}
+                    {/* A dot a penalty, as the band column marks them. */}
+                    {Array.from({ length: team.nPenalties }, (_, i) => <SheetPenaltyDot key={i}/>)}
+                    {' '}
+                    {team.nPenalties === 1 ? 'penalty' : 'penalties'}
                   </td>
                   <td className={styles.num}>−{2 * team.nPenalties}</td>
                 </tr>

@@ -144,7 +144,7 @@ describe('wordsy coop summaryFor', () => {
       ending: ROUNDS_PLAYED, outcome: 'lost', nRoundsPlayed: 7,
       team: { total: 82, band: 2, nPenalties: 2, title: null },
     })
-    expect(coopLine(data)).toBe('Lost (82 pts · 90 for Wordprentice)')
+    expect(coopLine(data)).toBe('Lost (82 pts)')
   })
 
   it('a Stop', () => {

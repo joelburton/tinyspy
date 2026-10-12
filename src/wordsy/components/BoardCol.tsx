@@ -29,9 +29,9 @@ import type { GGameData, GHistoryView, GTile } from '../types'
  * wordsy's board column. In the board's place it shows one of four surfaces
  * (`useBoardColView`): the table with the entry under it, a finished round's
  * scoresheet with "Start round N", the last round's sheet with "Show final
- * scores", or the game's sheet. Under the table sit the entry, the two lines
- * that score it — in coop with the solo card beside them — and the on-screen
- * keyboard.
+ * scores", or the game's sheet. Over the table, the round it is — in coop with
+ * the solo card beside it; under it, the entry, the two lines that score it,
+ * and the on-screen keyboard.
  *
  * The move is the column's: the word being typed (`useTypedWord`) and its
  * trip to `submit_word` (`useSubmitWord`). Nothing reaches the server until
@@ -123,6 +123,14 @@ export function BoardCol({
     }
     return (
       <>
+        <div className={styles.aboveBoard}>
+          {/* The round on the board: a past one while it is open. */}
+          <span data-testid="round-label" className={styles.roundLabel}>
+            Round <strong>{historyView.viewedNum ?? gd.round.num}</strong> of {gd.nRounds}
+          </span>
+          {gd.team !== null && <SoloCard team={gd.team}/>}
+        </div>
+
         <Board
           tiles={shownTiles}
           pickedSlots={pickedSlots}
@@ -171,7 +179,6 @@ export function BoardCol({
               isBlockedByNoFlip={gd.me.isBlockedByNoFlip && isEntryOpen}
               waitingFor={gd.turns !== null && gd.me.waitingForTurn ? gd.turns.holder : null}
             />
-            {gd.team !== null && <SoloCard team={gd.team}/>}
           </div>
 
           {/* The on-screen keyboard, at every width as the other word games

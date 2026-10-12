@@ -77,6 +77,6 @@ describe('makeEndingLabel', () => {
   it('coop: under 90, the total and the first title\'s bar', () => {
     const game = { ...ENDED, mode: 'coop', team: { total: 82, title: null } } as const
     expect(words(player({ outcome: 'lost' }), game, []))
-      .toEqual({ pill: 'Lost: 82 pts · 90 for Wordprentice', infoCol: 'Lost (82 pts · 90 for Wordprentice)', outcome: 'lost' })
+      .toEqual({ pill: 'Lost: 82 pts', infoCol: 'Lost (82 pts)', outcome: 'lost' })
   })
 })

@@ -52,10 +52,11 @@ export type GSheetRow = {
   // Fastest's own. In coop the one bonus is the Fastest's column's.
   beatBonus: number | null
   fastestBonus: number | null
-  // The coop word against the card: whether it beat the clock, and the band
-  // it was scored on. Null in compete.
+  // The coop word against the card: whether it beat the clock, the band it
+  // was scored on, and whether it took a penalty. Null in compete.
   beatClock: boolean | null
   band: GBand | null
+  penalty: boolean | null
   // Everything the row adds to the total: the score, unless struck, and the
   // bonus.
   rowTotal: number
@@ -230,10 +231,12 @@ export type GEventRaw = {
   score: number
   // What the round's bonuses gave: 0–4.
   bonus: number
-  // The coop word against the card: it beat the clock, and the band it was
-  // scored on. Null in compete.
+  // The coop word against the card: it beat the clock, the band it was
+  // scored on, and whether it took a penalty (`wordsy._takes_penalty`). Null
+  // in compete.
   beatClock: boolean | null
   band: GBand | null
+  penalty: boolean | null
   tookTurn: boolean
   at: string
 }
@@ -293,7 +296,7 @@ export type GPlayerRaw = PlayerRaw & GFacts
  *   id, letter, bonus, slot, value
  *
  * event:
- *   id, by, kind, num, word, score, bonus, beatClock, band, tookTurn, at
+ *   id, by, kind, num, word, score, bonus, beatClock, band, penalty, tookTurn, at
  */
 
 /**

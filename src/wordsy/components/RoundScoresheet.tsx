@@ -3,7 +3,7 @@
 import { DotActor } from '@/common/members/ActorMention'
 import { makeRoundSheet } from '../lib/scoresheet'
 import {
-  SheetBand, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
+  SheetBand, SheetBandHeading, SheetBeatClock, SheetBeatHeading, SheetBonus, SheetClockHeading, SheetCoopBonusHeading,
   SheetFastestHeading, SheetTotalHeading, SheetWord,
 } from './SheetCells'
 import type { GGameData, GRound } from '../types'
@@ -15,8 +15,8 @@ import styles from './scoresheet.module.css'
  * the bonus for beating the Fastest, the Fastest's own bonus (each column
  * headed by its rule in glyphs), the round's total under =, and a gold star
  * on the best total. In coop the one row is the team's word: who wrote it,
- * the word, its score, whether it beat the clock, the band it was scored on,
- * its bonus, and the total.
+ * the word, its score, whether it beat the clock, the band it was scored on
+ * (a red dot for a penalty), its bonus, and the total.
  */
 export function RoundScoresheet({
   gd,
@@ -35,7 +35,7 @@ export function RoundScoresheet({
             <th/>
             <th/>
             {isCoop ? <SheetClockHeading/> : <SheetBeatHeading/>}
-            {isCoop ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
+            {isCoop ? <SheetBandHeading/> : <SheetFastestHeading/>}
             {isCoop && <SheetCoopBonusHeading/>}
             <SheetTotalHeading/>
             {!isCoop && <th className={styles.star}/>}
@@ -50,7 +50,7 @@ export function RoundScoresheet({
               {isCoop ? (
                 <>
                   <td className={styles.bonus}><SheetBeatClock beatClock={row.beatClock!}/></td>
-                  <td className={styles.bonus}><SheetBand band={row.band!}/></td>
+                  <td className={styles.bonus}><SheetBand band={row.band!} penalty={row.penalty!}/></td>
                   <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
                 </>
               ) : (

@@ -134,9 +134,9 @@ select is(
      from jsonb_array_elements(pg_temp.gd() -> 'events') e),
   jsonb_build_array(
     jsonb_build_object('userId', pg_temp.ws_uid('ada'), 'kind', 'word', 'num', 1, 'word', 'ab',
-                       'score', 5, 'bonus', 2, 'beatClock', null, 'band', null, 'tookTurn', true),
+                       'score', 5, 'bonus', 2, 'beatClock', null, 'band', null, 'penalty', null, 'tookTurn', true),
     jsonb_build_object('userId', pg_temp.ws_uid('bea'), 'kind', 'word', 'num', 1, 'word', 'ad',
-                       'score', 4, 'bonus', 0, 'beatClock', null, 'band', null, 'tookTurn', true)),
+                       'score', 4, 'bonus', 0, 'beatClock', null, 'band', null, 'penalty', null, 'tookTurn', true)),
   'the log: each word, its score and its bonus; the coop keys null in compete'
 );
 select is(
@@ -208,8 +208,8 @@ reset role;
 select is(
   (select e - 'id' - 'at' - 'userId' from jsonb_array_elements(pg_temp.cgd() -> 'events') e),
   '{"kind": "word", "num": 1, "word": "aefbcdq", "score": 23, "bonus": 2, "beatClock": true,
-    "band": 1, "tookTurn": true}'::jsonb,
-  'the reveal row says the word beat the clock and the band it was scored on'
+    "band": 1, "penalty": false, "tookTurn": true}'::jsonb,
+  'the reveal row says the word beat the clock, the band it was scored on, and no penalty'
 );
 select is(
   pg_temp.cgd() -> 'team',

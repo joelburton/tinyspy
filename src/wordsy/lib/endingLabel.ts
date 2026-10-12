@@ -15,8 +15,7 @@ import type { GTeam } from '../types'
  * points)"). A conceder is out while the others play on.
  *
  * Coop: the team comes out as one, with the card's title ("Won (Wordsmith)"),
- * or under 90 the total and the first title's bar ("Lost (82 pts · 90 for
- * Wordprentice)").
+ * or under 90 the total ("Lost (82 pts)").
  */
 export function makeEndingLabel(
   player: Pick<PlayerRaw, 'outcome' | 'conceded' | 'finalRanking' | 'solved' | 'stillPlaying'>,
@@ -53,7 +52,7 @@ export function makeEndingLabel(
       // In compete, ranked players are won or placed and a conceder is
       // conceded, so a loss left over is a player who finished with nothing.
       // In coop the team fell short of the first title.
-      const rest = game.team === null ? 'no points' : `${game.team.total} pts · 90 for Wordprentice`
+      const rest = game.team === null ? 'no points' : `${game.team.total} pts`
       return { ...base, long: rest, pill: rest }
     }
     default:

@@ -1,6 +1,7 @@
 /* cs-unmet */
 
-/* wordsy's board column: the table, then the entry and its two lines. */
+/* wordsy's board column: the round over the table, then the entry and its
+ * two lines. */
 /* @@ */ .boardCol {
   gap: 1rem;
 }
@@ -20,14 +21,23 @@
   gap: 0.4rem;
 }
 
-/* Under the entry: the two word lines, and in coop the solo card beside them.
- * The lines keep their width (`WordLines` centers in it), so the card sits to
- * their right without moving them as they fill. */
+/* Over the table: the round, and in coop the solo card beside it. */
+/* @@ */ .aboveBoard {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+/* @@ */ .roundLabel {
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+/* Under the entry: the two word lines, centered. */
 /* @@ */ .underEntry {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  gap: 1.2rem;
 }
 
 /* The one button under a round's scoresheet: "Start round N", or "Show final

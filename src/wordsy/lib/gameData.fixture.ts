@@ -88,11 +88,12 @@ export function ZTest_word(
   word: string,
   score: number,
   bonus = 0,
-  card: { beatClock: boolean; band: GBand } | null = null,
+  card: { beatClock: boolean; band: GBand; penalty?: boolean } | null = null,
 ): GEventRaw {
   return {
     id, userId, kind: 'word', num, word, score, bonus,
-    beatClock: card?.beatClock ?? null, band: card?.band ?? null, tookTurn: true,
+    beatClock: card?.beatClock ?? null, band: card?.band ?? null,
+    penalty: card === null ? null : (card.penalty ?? false), tookTurn: true,
     at: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
   }
 }
