@@ -42,7 +42,7 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 <th/>
                 {team !== null ? <SheetClockHeading/> : <SheetBeatHeading/>}
                 {team !== null ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
-                {team !== null ? <SheetCoopBonusHeading/> : <th className={styles.bonus}>+</th>}
+                {team !== null && <SheetCoopBonusHeading/>}
                 <SheetTotalHeading/>
               </tr>
             </thead>
@@ -66,7 +66,6 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                     <>
                       <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
                       <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
-                      <td className={styles.bonus}/>
                     </>
                   )}
                   <td className={styles.num}>{row.rowTotal}</td>
@@ -81,7 +80,9 @@ export function GameScoresheet({ gd }: { gd: GGameData }) {
                 </tr>
               )}
               <tr className={styles.grandTotal}>
-                <td colSpan={6}/>
+                {/* Under every column but the total's: six in coop, five in
+                    compete. */}
+                <td colSpan={team !== null ? 6 : 5}/>
                 <td className={styles.num}>{total}</td>
               </tr>
             </tbody>

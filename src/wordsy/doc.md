@@ -310,7 +310,9 @@ the log.
   its writer, the word, its score, a check for beating the clock (headed by
   the hourglass and a check), the band it was scored on, its bonus, and the
   total; the game's one table is headed by the title, or "The team", with the
-  penalties' cost under the rows. The ending reads "Won (Wordsmith)" or
+  penalties' cost under the rows; its bonus column is headed +, which compete
+  has none of. Each named heading says what its column means in a tooltip.
+  The ending reads "Won (Wordsmith)" or
   "Lost (82 pts · 90 for Wordprentice)" (`lib/endingLabel.ts`).
 - **The printout** is the totals — the team's one line in coop, named by its
   title — each finished round's table, and the log.

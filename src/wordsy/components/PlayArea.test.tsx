@@ -568,6 +568,15 @@ describe('wordsy PlayArea — the scoresheets', () => {
     ])
   })
 
+  it('has no + column in compete: its bonuses are the two before =', () => {
+    render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
+    const sheet = screen.getByTestId('round-scoresheet')
+    const headings = within(sheet).getAllByRole('columnheader')
+    expect(headings.map((h) => h.textContent)).not.toContain('+')
+    // A heading for every cell of a row.
+    expect(within(within(sheet).getAllByRole('row')[1]!).getAllByRole('cell')).toHaveLength(headings.length)
+  })
+
   it('heads the bonus columns beat-the-Fastest then the Fastest\'s, and fills them so', () => {
     render(<PlayAreaLoader {...ZTest_makeWordsyCtx(BETWEEN)} />)
     const sheet = screen.getByTestId('round-scoresheet')

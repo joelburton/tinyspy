@@ -36,7 +36,7 @@ export function RoundScoresheet({
             <th/>
             {isCoop ? <SheetClockHeading/> : <SheetBeatHeading/>}
             {isCoop ? <th className={styles.bonus}/> : <SheetFastestHeading/>}
-            {isCoop ? <SheetCoopBonusHeading/> : <th className={styles.bonus}>+</th>}
+            {isCoop && <SheetCoopBonusHeading/>}
             <SheetTotalHeading/>
             {!isCoop && <th className={styles.star}/>}
           </tr>
@@ -57,7 +57,6 @@ export function RoundScoresheet({
                 <>
                   <td className={styles.bonus}><SheetBonus bonus={row.beatBonus}/></td>
                   <td className={styles.bonus}><SheetBonus bonus={row.fastestBonus}/></td>
-                  <td className={styles.bonus}/>
                 </>
               )}
               <td className={styles.num}>{row.rowTotal}</td>

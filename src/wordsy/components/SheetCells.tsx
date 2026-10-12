@@ -76,7 +76,7 @@ export function SheetFastestHeading() {
 }
 
 /** Coop's bonus column's heading: +, "the bonus for beating the clock with
- *  15 or more". Compete's + heads no column of its own. */
+ *  15 or more". Compete has no such column: its bonuses are the two before. */
 export function SheetCoopBonusHeading() {
   return (
     <th
