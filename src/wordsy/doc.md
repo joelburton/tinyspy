@@ -251,7 +251,11 @@ the log.
 
 - **The board is four columns**, a value plaque over two cards each. A common
   card is the default tile; the +1 and the +2 wear the app's two flex colors,
-  their bonus printed.
+  their bonus printed. A card a letter of the typed word scores on wears the
+  picked edge, khaki as in every word-finding game, by `lib/score.ts`'s rule:
+  one C against two C cards picks the better.
+- **The scratchpad** is the shared one (`scratchpad: 'perPlayerInCompete'`):
+  a coop team writes on one pad, and a compete player has a private one.
 - **The entry is `<WordEntryArea>`**, taking up to 18 letters (`MAX_WORD_LENGTH`
   in `useTypedWord`; the shared capture's own cap is 16, short of the
   rulebook's BACCALAUREATES); under it the typed word's score, worked

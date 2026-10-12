@@ -9,11 +9,16 @@ import type { GTile } from '../types'
  * One faceup card: its letter, and a rare card's bonus in the corner. A common
  * card is the default tile; the +1 and the +2 wear the app's two flex colors
  * (Tile.module.css). Nobody acts on a card (a word is typed), so it is the
- * shared inert face, with no hover and no press.
+ * shared inert face, with no hover and no press. A card a typed letter scores
+ * on wears the picked edge.
  */
-export function Tile({ tile }: { tile: GTile }) {
+export function Tile({ tile, isPicked }: {
+  tile: GTile
+  // A letter of the word being typed scores on this card.
+  isPicked: boolean
+}) {
   return (
-    <div className={cls(shared.tileFace, styles.tile, styles[`kind_${tile.bonus}`])}>
+    <div className={cls(shared.tileFace, styles.tile, styles[`kind_${tile.bonus}`], isPicked && styles.picked)}>
       <span className={styles.letter}>{tile.letter}</span>
       {tile.bonus > 0 && <span className={styles.bonus}>+{tile.bonus}</span>}
     </div>

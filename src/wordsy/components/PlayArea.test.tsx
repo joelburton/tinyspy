@@ -194,6 +194,31 @@ describe('wordsy PlayArea — the on-screen keyboard', () => {
   })
 })
 
+describe('wordsy PlayArea — the picked cards', () => {
+  /** The board's cards for `letter`, in slot order. */
+  const cards = (letter: string) =>
+    within(screen.getByTestId('board')).getAllByText(letter).map((el) => el.parentElement!)
+
+  it('a typed letter picks the card it scores on, the best first', async () => {
+    render(<WithKeys {...ZTest_makeWordsyCtx()} />)
+    await typeWord('cab')
+    // One C against two C cards picks the 4, not the 3.
+    const [c4, c3] = cards('c')
+    expect(c4!.className).toMatch(/picked/)
+    expect(c3!.className).not.toMatch(/picked/)
+    expect(cards('b')[0]!.className).toMatch(/picked/)
+    expect(cards('d')[0]!.className).not.toMatch(/picked/)
+  })
+
+  it('a second C picks the second C card, and ⌫ puts it back', async () => {
+    render(<WithKeys {...ZTest_makeWordsyCtx()} />)
+    await typeWord('cc')
+    expect(cards('c').map((el) => /picked/.test(el.className))).toEqual([true, true])
+    await press({ key: 'Backspace', code: 'Backspace' })
+    expect(cards('c').map((el) => /picked/.test(el.className))).toEqual([true, false])
+  })
+})
+
 describe('wordsy PlayArea — the standing word', () => {
   it('a word that can still change reads "Your word"', () => {
     render(<WithKeys {...ZTest_makeWordsyCtx({

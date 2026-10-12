@@ -44,3 +44,12 @@
 /* @@ */   --tile-slot-fill-color: var(--flex-color-2-wash);
 /* @@ */   --tile-slot-edge-color: var(--flex-color-2);
 }
+
+/* A card a letter of the typed word scores on, in the PICKED channel: the
+ * thicker edge, in the khaki every word-finding game wears for it
+ * (plans/tile-feedback.md → The channels). Two classes, so it beats the
+ * shared `.tileFace`'s border on specificity rather than stylesheet order. */
+/* @@ */ .tile.picked {
+  border-color: var(--tile-spent-edge-color);
+  border-width: var(--tile-picked-edge-width);
+}

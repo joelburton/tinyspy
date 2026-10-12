@@ -24,6 +24,7 @@ const COLUMNS = [
  */
 export function Board({
   tiles,
+  pickedSlots,
   isViewingHistory,
   endingOutcome,
   isDimmed,
@@ -33,6 +34,8 @@ export function Board({
   // The round's eight cards, in slot order: the live round's, or a past
   // round's — PlayArea picks.
   tiles: GTile[]
+  // The slots of the cards the word being typed scores on.
+  pickedSlots: ReadonlySet<number>
   // A past round is open on the board.
   isViewingHistory: boolean
   // How I came out, for the ended board's frame; null while I still play.
@@ -62,7 +65,7 @@ export function Board({
         <div key={column.value} className={styles.column}>
           <div className={styles.plaque}>{column.value}</div>
           {column.slots.map((slot) => (
-            <Tile key={slot} tile={tileBySlot.get(slot)!}/>
+            <Tile key={slot} tile={tileBySlot.get(slot)!} isPicked={pickedSlots.has(slot)}/>
           ))}
         </div>
       ))}

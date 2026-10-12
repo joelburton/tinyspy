@@ -17,11 +17,13 @@
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PuzzleSourceField } from './PuzzleSourceField'
 import { summarize } from '../lib/puzzleSummary'
 import { errorUnder } from '@/common/fields/errorUnder'
 import { expectFieldContract } from '@/common/fields/fieldContract'
+import { StandardForm } from '@/common/forms/StandardForm'
 import type { GPuzzleChoice } from '../types'
 import button from '@/common/buttons/StandardButton.module.css'
 
@@ -204,6 +206,34 @@ describe('the field', () => {
 
     const picker = screen.getByRole('group', { name: 'Guardian series' })
     expect(picker.contains(document.activeElement)).toBe(true)
+  })
+
+  it('hands focus to Start after a pick, so Enter starts the game', async () => {
+    // The picker held focus, and closing it dropped focus on the body — outside
+    // the form, where Enter reached nothing.
+    function InAForm({ onSubmit }: { onSubmit: () => void }) {
+      const [value, setValue] = useState<GPuzzleChoice>({ source: undefined })
+      return (
+        <StandardForm initialValues={{}} onSubmit={onSubmit}>
+          {() => (
+            <>
+              <PuzzleSourceField name="source" value={value} onChange={setValue} seenBy={['self']} clubHandle="moths" />
+              <button type="submit">Start</button>
+            </>
+          )}
+        </StandardForm>
+      )
+    }
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    render(<InAForm onSubmit={onSubmit} />)
+
+    await user.click(screen.getByRole('button', { name: 'NYT' }))
+    await user.click(screen.getByText('Monday'))
+    expect(screen.getByRole('button', { name: 'Start' })).toHaveFocus()
+
+    await user.keyboard('{Enter}')
+    expect(onSubmit).toHaveBeenCalledOnce()
   })
 
   it('draws the named source as the PRIMARY button and the rest as secondary', () => {

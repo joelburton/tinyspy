@@ -52,7 +52,7 @@ abstract class WordsyManifest extends Manifest {
   readonly logoUrl = logoUrl
   readonly help = helpLoader
   readonly draftsOffTurn = false
-  readonly scratchpad = 'none'
+  readonly scratchpad = 'perPlayerInCompete'
   readonly PlayArea = playAreaLoader
   protected readonly db = db
 

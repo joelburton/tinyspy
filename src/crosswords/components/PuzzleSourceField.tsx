@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Field } from '@/common/fields/Field'
 import type { AllFieldProps } from '@/common/fields/fieldProps'
@@ -121,6 +121,19 @@ export function PuzzleSourceField({
 
   const resolved = nextDate?.key === nextKey ? nextDate.date : undefined
 
+  // AFTER A PICK, START TAKES FOCUS, so ↵ starts the game. The picker held
+  // focus, and its unmounting drops it on the body — outside the form, where
+  // Enter reaches nothing. After the commit, because Start may only now be
+  // enabled.
+  const sourcesRef = useRef<HTMLDivElement>(null)
+  const focusStartAfterPick = useRef(false)
+  useEffect(() => {
+    if (open !== null || !focusStartAfterPick.current) return
+    focusStartAfterPick.current = false
+    sourcesRef.current?.closest('form')
+      ?.querySelector<HTMLButtonElement>('button[type="submit"]')?.focus()
+  }, [open])
+
   return (
     <>
       <Field
@@ -146,7 +159,7 @@ export function PuzzleSourceField({
             a row gives the thing it is actually doing. Until a picker answers,
             `source` is absent and all four are secondary, which is the state a
             fresh form and a canceled picker both leave behind. */}
-        <div className={styles.sources}>
+        <div className={styles.sources} ref={sourcesRef}>
           <StandardButton
             show="label"
             label="Library"
@@ -202,9 +215,8 @@ export function PuzzleSourceField({
           clubHandle={clubHandle}
           onClose={cancel}
           onPick={(p) => {
-            choose({ source: 'library', puzzle_id: p.id })
+            pick({ source: 'library', puzzle_id: p.id })
             setLibraryTitle(`${p.title}${p.author ? ` · ${p.author}` : ''}`)
-            setOpen(null)
           }}
         />
       )}
@@ -214,8 +226,7 @@ export function PuzzleSourceField({
           onPick={(picked) => {
             // Exactly one of the two, always: a weekday clears any override and
             // an override clears the weekday, because they answer one question.
-            choose({ source: 'nyt', weekday: picked.weekday, date: picked.date })
-            setOpen(null)
+            pick({ source: 'nyt', weekday: picked.weekday, date: picked.date })
           }}
         />
       )}
@@ -223,8 +234,7 @@ export function PuzzleSourceField({
         <GuardianPickerBlockingModal
           onClose={cancel}
           onPick={(slug) => {
-            choose({ source: 'guardian', series: slug })
-            setOpen(null)
+            pick({ source: 'guardian', series: slug })
           }}
         />
       )}
@@ -232,8 +242,7 @@ export function PuzzleSourceField({
         <UploadPickerBlockingModal
           onClose={cancel}
           onPick={({ board, filename }) => {
-            choose({ source: 'upload', board, filename })
-            setOpen(null)
+            pick({ source: 'upload', board, filename })
           }}
         />
       )}
@@ -257,6 +266,13 @@ export function PuzzleSourceField({
   function choose(next: GPuzzleChoice) {
     if (next.source !== 'library') setLibraryTitle(null)
     onChange(next)
+  }
+
+  /** A picker answered: take its choice, close it, and hand focus to Start. */
+  function pick(next: GPuzzleChoice) {
+    choose(next)
+    focusStartAfterPick.current = true
+    setOpen(null)
   }
 
   /**

@@ -101,6 +101,8 @@ export function BoardCol({
 
   // The typed word scores against the live round, whatever the board shows.
   const typed = isEntryOpen && entry.word !== '' ? makeScoredWord(entry.word, gd.round.tiles) : null
+  // The cards its letters score on, picked on the board.
+  const pickedSlots = new Set(typed?.letters.flatMap((l) => (l.tile === null ? [] : [l.tile.slot])))
   const standing = gd.me.word === null
     ? null
     : { ...makeScoredWord(gd.me.word, gd.round.tiles), isFrozen: gd.me.isWordFrozen }
@@ -123,6 +125,7 @@ export function BoardCol({
       <>
         <Board
           tiles={shownTiles}
+          pickedSlots={pickedSlots}
           isViewingHistory={historyView.isViewing}
           endingOutcome={gd.me.outcome}
           // Nothing is left for me to enter on this table: my word is in and
