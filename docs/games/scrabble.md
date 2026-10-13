@@ -673,7 +673,9 @@ stages a rack tile for it (or a blank declared as it) and moves on past played
 tiles, ⌫ takes one back and ⇧⌫ all of them — the shared `useBoardCursorKeys`, with Submit as its
 commit (Enter). Or tap a rack tile, then tap an empty cell: one picked tile is
 placed there; with two or more picked, a tap on a cell does nothing, since it
-can't say which. A tap on a rack tile picks it — to place, or for a Swap.
+can't say which. A tap on a rack tile picks it — to place, or for a Swap. A tile
+placed on the board by a drag or a tap takes the cursor with it, along the axis
+the cursor already had, so typing carries on from it.
 
 **Two gates.** `isInteractive` (stage, recall, reorder) is true while I'm
 still playing on the live board — **on another player's turn too**, so a
@@ -752,7 +754,9 @@ flash, as the turn becomes mine), `useHistoryView`, `useMovePreview` (the Broadc
 held tiles and the green and red marks), `useStagedTiles` (the staged tiles,
 the picks, the blank's letter, a suggestion staged, a tap-placed tile),
 `useRackOrder` (my order, Shuffle, the drawn-tiles flash), `useBoardDrag` (the
-drag and the taps) and `useBoardColActions` (the cursor keys and the six
+drag and the taps), `useWordAttention` (the shared attention flash on another
+player's word — a teammate's, a rival's or a bot's — as it lands, held for
+2 seconds rather than the shared beat; my own has the green ring instead) and `useBoardColActions` (the cursor keys and the six
 commands). `lib/`: `board.ts` (the constants and the board-string decoders),
 `play.ts` (the geometry, the words and the score — the one copy), `suggest.ts`,
 `rank.ts` and `policy.ts` (§11–12), `answer.ts`, `eventText.ts` (a logged

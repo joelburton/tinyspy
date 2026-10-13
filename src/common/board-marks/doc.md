@@ -57,7 +57,10 @@ What this folder decides is which pieces are hot and for how long; the drawing
 is CSS, in `game-page/playArea.module.css`. The durations are not written twice:
 `feedbackTiming.ts` holds them and publishes them to the stylesheet at startup,
 and the marks are animations on those published durations, so what a mark looks
-like and how long it lasts end at one instant that no timer can move. Who a mark
+like and how long it lasts end at one instant that no timer can move. The one
+game that holds the attention flash longer — scrabble, on another player's word —
+passes its length to `useMoveAttention` as `fadeMs` and sets the same number on
+its tiles as `--mark-attention-flash-duration`, so the two still end together. Who a mark
 is FOR stays with the caller, because it differs per game: your own move is news
 to everyone except you, so each game's diff is where the decision to leave
 something unmarked is made.
@@ -68,7 +71,7 @@ something unmarked is made.
 
 | hook | callers | what it marks |
 |---|---|---|
-| `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the attention flash on pieces a move changed |
+| `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board`; scrabble's `useWordAttention` | the attention flash on pieces a move changed |
 | `useMark` | every game that marks something of its own, most more than once | a refused word's answer, a teammate's word announced then answered, a head-shake, an ambiguous letter, an arrival, a placement outline |
 | `useTurnStartFlash` (over `useTurnArrival` and `useMarkBeat`) | codenamesduet, waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives, and the bell |
 | `useTurnArrival` | `useTurnStartFlash`, wordsy's `useRoundMarks` | the turn becoming mine, as a count — or any rising edge a game counts |

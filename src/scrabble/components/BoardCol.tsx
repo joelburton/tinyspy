@@ -18,6 +18,7 @@ import { useSubmitMove } from '../hooks/useSubmitMove'
 import { useBoardDrag } from '../hooks/useBoardDrag'
 import { useBoardColActions } from '../hooks/useBoardColActions'
 import { useLandMove } from '../hooks/useLandMove'
+import { useWordAttention } from '../hooks/useWordAttention'
 import type {
   GCell,
   GGameData,
@@ -129,6 +130,9 @@ export function BoardCol({
   // A move landed: the rack, my staged tiles and the viewer follow it.
   useLandMove({ gd, rack, historyView, submission, staged, rackOrder })
 
+  // Another player's word, flashed for a beat.
+  const attentionCellIds = useWordAttention({ gd, historyView })
+
   // Any key is the next move, so any key drops the previous move's result.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
@@ -154,6 +158,7 @@ export function BoardCol({
     justPlayedCellIds: historyView.isViewing
       ? NO_CELLS
       : submission.playedCellIds,
+    attentionCellIds,
     refusedCellIds: historyView.isViewing
       ? NO_CELLS
       : submission.refusedCellIds,

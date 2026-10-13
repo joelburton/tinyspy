@@ -39,7 +39,8 @@ function findRackInsertIndex(px: number): number | null {
  * rack tile dropped along the rack moves in its order. A plain tap picks a
  * rack tile — for a swap, or to place — and a tap on an empty cell places the
  * one picked tile there (`placePickedAt`); otherwise a tap on a cell puts the
- * keyboard cursor there.
+ * keyboard cursor there. A tile placed either way takes the cursor with it,
+ * along the axis it already had, so typing carries on from the tile.
  *
  * While a past turn or a preview is open, a press on the board is the
  * viewer's exit rather than a move. A press is the next move, so it drops the
@@ -74,7 +75,7 @@ export function useBoardDrag({
   recall: (x: number, y: number) => void
   togglePick: (rackIdx: number) => void
   moveRackTile: (rackIdx: number, insertAt: number) => void
-  setCursor: (cursor: GridCursor) => void
+  setCursor: (cursor: GridCursor | ((cur: GridCursor) => GridCursor)) => void
   localFeedbackSlot: FeedbackSlot
 }) {
   const cellsRef = useRef(cells)
@@ -83,6 +84,12 @@ export function useBoardDrag({
     cellsRef.current = cells
     isInteractiveRef.current = isInteractive
   }, [cells, isInteractive])
+
+  // The cursor onto a tile just placed, keeping its axis.
+  const moveCursorTo = useCallback(
+    ({ x, y }: { x: number; y: number }) => setCursor((cur) => ({ ...cur, x, y })),
+    [setCursor],
+  )
 
   const finishDrag = useCallback(
     (g: DragGesture<DragSource>, px: number, py: number) => {
@@ -95,6 +102,7 @@ export function useBoardDrag({
         if (isTaken && !isOwnCell) return
         if (g.source.kind === 'rack') placeFromRack(target.x, target.y, g.source.rackIdx)
         else moveStaged(g.source, target)
+        moveCursorTo(target)
         return
       }
       if (!isOverRack(px, py)) return
@@ -106,7 +114,7 @@ export function useBoardDrag({
       const insertAt = findRackInsertIndex(px)
       if (insertAt !== null) moveRackTile(g.source.rackIdx, insertAt)
     },
-    [stagedAt, placeFromRack, moveStaged, recall, moveRackTile],
+    [stagedAt, placeFromRack, moveStaged, recall, moveRackTile, moveCursorTo],
   )
 
   const onTap = useCallback(
@@ -118,10 +126,12 @@ export function useBoardDrag({
       if (!g.cell) return
       // A picked tile goes where the tap lands; with several picked, the tap
       // can't say which, so it does nothing.
-      if (placePickedAt(g.cell.x, g.cell.y) === 'several') return
-      setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
+      const placed = placePickedAt(g.cell.x, g.cell.y)
+      if (placed === 'several') return
+      if (placed === 'placed') moveCursorTo(g.cell)
+      else setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
     },
-    [togglePick, placePickedAt, setCursor],
+    [togglePick, placePickedAt, setCursor, moveCursorTo],
   )
 
   const { drag, hover, start } = useDragGesture<DragSource>({ onDrop: finishDrag, onTap })

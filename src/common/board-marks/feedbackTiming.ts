@@ -6,7 +6,10 @@
  *
  * They live here rather than in each game because "how long news stays up" is a
  * property of the vocabulary, not of a game — a player who learns the beat in one
- * game should read it in the next.
+ * game should read it in the next. One exception: scrabble holds the attention
+ * flash on another player's word for its own `WORD_ATTENTION_FADE_MS`, through
+ * `useMoveAttention`'s `fadeMs`, since a word lands among a whole board of
+ * tiles.
  *
  * CSS draws every animated mark and CSS times it: `publishMarkDurations` writes
  * the fade and shake durations below into the tokens the animations read, so the
@@ -63,8 +66,14 @@ export const AMBIGUOUS_PICK_FLASH_MS = 800
  *  cannot be re-raised before the class is free again. */
 const CLASS_HOLD_SLACK_MS = 100
 
+/** How long to hold a mark's class for an animation of `fadeMs`: the fade plus
+ *  the slack. */
+export function makeClassHoldMs(fadeMs: number): number {
+  return fadeMs + CLASS_HOLD_SLACK_MS
+}
+
 /** A piece wearing the attention flash: "this changed, look here". */
-export const ATTENTION_FLASH_MS = ATTENTION_FADE_MS + CLASS_HOLD_SLACK_MS
+export const ATTENTION_FLASH_MS = makeClassHoldMs(ATTENTION_FADE_MS)
 
 /** The board frame at the moment the turn becomes yours. */
 export const YOUR_TURN_FLASH_MS = YOUR_TURN_FADE_MS + CLASS_HOLD_SLACK_MS

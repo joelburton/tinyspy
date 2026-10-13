@@ -1,7 +1,9 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
 import { tileValue } from '../lib/board'
+import { WORD_ATTENTION_FADE_MS } from '../hooks/useWordAttention'
 import styles from './Tile.module.css'
 
 /** What the board or the rack says about a tile, beside the tile itself. */
@@ -14,6 +16,8 @@ type TileMarks = {
   isLifted?: boolean
   // Board: in the word just played, ringed green for its beat.
   isJustPlayed?: boolean
+  // Board: in another player's word just played, flashed for its beat.
+  isFlashing?: boolean
   // Board: new in a word the dictionary refused, ringed red for its beat.
   isRefused?: boolean
   // Board: placed by the past turn on view.
@@ -67,6 +71,7 @@ export function Tile({
         marks.isLocked && styles.locked,
         marks.isLifted && styles.lifted,
         marks.isJustPlayed && styles.justPlayed,
+        marks.isFlashing && cls(shared.attentionFlash, styles.flashing),
         marks.isHistoryLit && styles.historyLit,
         marks.isRefused && styles.refused,
         marks.isDropBlocked && styles.dropBlocked,
@@ -74,6 +79,11 @@ export function Tile({
         marks.isPicked && styles.picked,
         marks.isDrawn && styles.drawn,
       )}
+      // scrabble's word flash runs longer than the shared beat; the animation
+      // reads its length from here.
+      style={marks.isFlashing
+        ? { '--mark-attention-flash-duration': `${WORD_ATTENTION_FADE_MS}ms` } as React.CSSProperties
+        : undefined}
     >
       <span className={styles.letter}>{letter ?? '?'}</span>
       {value > 0 && <span className={styles.value}>{value}</span>}

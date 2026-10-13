@@ -21,6 +21,7 @@ import {
 } from '../lib/gameData.fixture'
 import { PlayAreaLoader } from './PlayArea'
 import { DEFAULT_SCRABBLE_SETUP } from '../lib/setup'
+import { WORD_ATTENTION_FADE_MS } from '../hooks/useWordAttention'
 
 /**
  * scrabble's PLAY SURFACE — the mounted tree, which is the one layer its other
@@ -533,6 +534,36 @@ describe('scrabble PlayArea — tap a rack tile, then a cell', () => {
     expect(cell(7, 7).querySelector('[data-tile="7,7"]')!.textContent).toBe('c3')
   })
 
+  it('the placed tile takes the cursor, along the axis it had', async () => {
+    const hasCursor = (x: number, y: number, dir: 'H' | 'V') =>
+      cell(x, y).querySelector(`[class*="_cursor${dir}_"]`) !== null
+    render(<WithKeys {...ZTest_makeScrabbleCtx()} />)
+    // The cursor starts across, on the star; ↓ turns it down where it stands.
+    await press({ key: 'ArrowDown', code: 'ArrowDown' })
+    expect(hasCursor(7, 7, 'V')).toBe(true)
+    act(() => tap(rackTile(0)))
+    act(() => tap(cell(4, 4)))
+    expect(cell(4, 4).querySelector('[data-tile="4,4"]')).not.toBeNull()
+    expect(hasCursor(4, 4, 'V')).toBe(true)
+  })
+
+  it('a tile dragged onto a cell takes the cursor there', () => {
+    const hasCursor = (x: number, y: number) => cell(x, y).querySelector('[class*="_cursor_"]') !== null
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx()} />)
+    const saved = document.elementFromPoint
+    document.elementFromPoint = () => cell(5, 7)
+    try {
+      act(() => { fireEvent.pointerDown(rackTile(0), { button: 0, clientX: 1, clientY: 1 }) })
+      act(() => { fireEvent.pointerMove(window, { clientX: 40, clientY: 40 }) })
+      act(() => { fireEvent.pointerUp(window, { button: 0, clientX: 40, clientY: 40 }) })
+    } finally {
+      document.elementFromPoint = saved
+    }
+    expect(cell(5, 7).querySelector('[data-tile="5,7"]')).not.toBeNull()
+    expect(hasCursor(5, 7)).toBe(true)
+    expect(hasCursor(7, 7)).toBe(false)
+  })
+
   it('with two picked, a tap on a cell does nothing — not even the cursor moves — and Swap still swaps them', () => {
     const hasCursor = (x: number, y: number) => cell(x, y).querySelector('[class*="_cursor_"]') !== null
     render(<PlayAreaLoader {...ZTest_makeScrabbleCtx()} />)
@@ -574,6 +605,68 @@ describe('scrabble PlayArea — pass', () => {
     const confirms = await screen.findAllByRole('button', { name: 'Pass' })
     await user.click(confirms[confirms.length - 1]!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('pass_turn', { p_game_id: 'g1', p_base_version: 0 }))
+  })
+})
+
+describe('scrabble PlayArea — another player\'s word', () => {
+  const flashing = (id: string) => /_attentionFlash_/.test(document.querySelector(`[data-tile="${id}"]`)!.className)
+  const TEAM = [ME, MOTH]
+
+  it('coop: a teammate\'s word flashes as it lands', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: TEAM })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx({
+      players: TEAM,
+      events: [ZTest_word(1, MOTH.id, ['7,7:a', '8,7:t'], ['at'], 2)],
+    })} />)
+    expect(flashing('7,7')).toBe(true)
+    expect(flashing('8,7')).toBe(true)
+  })
+
+  it('holds for scrabble\'s longer beat, and its tiles carry it to CSS', () => {
+    vi.useFakeTimers()
+    try {
+      const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: TEAM })} />)
+      rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx({
+        players: TEAM,
+        events: [ZTest_word(1, MOTH.id, ['7,7:a', '8,7:t'], ['at'], 2)],
+      })} />)
+      const tile = document.querySelector<HTMLElement>('[data-tile="7,7"]')!
+      expect(tile.style.getPropertyValue('--mark-attention-flash-duration')).toBe(`${WORD_ATTENTION_FADE_MS}ms`)
+      act(() => { vi.advanceTimersByTime(WORD_ATTENTION_FADE_MS - 100) })
+      expect(flashing('7,7')).toBe(true)
+      act(() => { vi.advanceTimersByTime(300) })
+      expect(flashing('7,7')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('my own word does not', () => {
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: TEAM })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx({
+      players: TEAM,
+      events: [ZTest_word(1, ME.id, ['7,7:a', '8,7:t'], ['at'], 2)],
+    })} />)
+    expect(flashing('7,7')).toBe(false)
+  })
+
+  it('compete: a bot\'s word flashes too', () => {
+    const players = [ME, BOT]
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ mode: 'compete', players })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx({
+      mode: 'compete',
+      players,
+      events: [ZTest_word(1, BOT.id, ['7,7:a', '8,7:t'], ['at'], 2)],
+    })} />)
+    expect(flashing('7,7')).toBe(true)
+  })
+
+  it('a board opened with words on it flashes nothing', () => {
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({
+      players: TEAM,
+      events: [ZTest_word(1, MOTH.id, ['7,7:a', '8,7:t'], ['at'], 2)],
+    })} />)
+    expect(flashing('7,7')).toBe(false)
   })
 })
 

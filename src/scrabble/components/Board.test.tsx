@@ -17,6 +17,7 @@ function renderBoard(marks: Partial<Parameters<typeof Board>[0]['marks']> = {}) 
       marks={{
         stagedTiles: new Map(),
         justPlayedCellIds: new Set(),
+        attentionCellIds: new Set(),
         refusedCellIds: new Set(),
         historyLitCellIds: new Set(),
         liftedCellId: null,

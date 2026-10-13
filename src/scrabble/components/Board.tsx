@@ -19,6 +19,8 @@ type BoardMarks = {
   stagedTiles: ReadonlyMap<string, GTile>
   // The word just played, ringed green for its beat.
   justPlayedCellIds: ReadonlySet<string>
+  // Another player's word just played, in the attention flash for its beat.
+  attentionCellIds: ReadonlySet<string>
   // The new cells of a refused word, ringed red for its beat.
   refusedCellIds: ReadonlySet<string>
   // The past turn on view: the cells it placed.
@@ -88,6 +90,7 @@ export function Board({
               isLocked: cell.tile !== null,
               isLifted,
               isJustPlayed: marks.justPlayedCellIds.has(cell.id),
+              isFlashing: marks.attentionCellIds.has(cell.id),
               isRefused: marks.refusedCellIds.has(cell.id),
               isHistoryLit: marks.historyLitCellIds.has(cell.id),
             }}

@@ -1,7 +1,7 @@
 // cs-blessed-board-marks
 
 import { useEffect, useState } from 'react'
-import { ATTENTION_FLASH_MS } from './feedbackTiming'
+import { ATTENTION_FADE_MS, makeClassHoldMs } from './feedbackTiming'
 import { useChangeCause } from './useChangeCause'
 
 /** A stable empty set, so "nothing is hot" is one object rather than a new one
@@ -24,6 +24,11 @@ type MoveAttentionOptions<Content, Id> = {
    *  turn is not being told about the live board, and a game whose own move
    *  needs no mark says so here. */
   quiet?: boolean
+  /** The flash's length, when a game holds it longer than the shared
+   *  `ATTENTION_FADE_MS`. The game's pieces must carry the same number to CSS
+   *  as `--mark-attention-flash-duration`, so the animation and the class end
+   *  together. */
+  fadeMs?: number
 }
 
 /**
@@ -57,6 +62,7 @@ export function useMoveAttention<Content, Id>({
   moveCount,
   changed,
   quiet = false,
+  fadeMs = ATTENTION_FADE_MS,
 }: MoveAttentionOptions<Content, Id>): ReadonlySet<Id> {
   const [hot, setHot] = useState<ReadonlySet<Id>>(NOTHING)
 
@@ -78,9 +84,9 @@ export function useMoveAttention<Content, Id>({
   // same number (see `feedbackTiming`).
   useEffect(function takeMarkOffAfterBeat() {
     if (hot.size === 0) return
-    const timer = setTimeout(() => setHot(NOTHING), ATTENTION_FLASH_MS)
+    const timer = setTimeout(() => setHot(NOTHING), makeClassHoldMs(fadeMs))
     return () => clearTimeout(timer)
-  }, [hot])
+  }, [hot, fadeMs])
 
   return hot
 }
