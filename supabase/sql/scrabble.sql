@@ -263,13 +263,16 @@ drop function if exists scrabble._write_statuses(uuid, boolean);
 --                                          empty cell, "c" a C tile, "C" a
 --                                          blank played as C
 --     team: {rack, score, nRackTiles}      the team's one rack and its score,
---                                          the players' sum less the leftovers;
+--                                          the players' sum less the swaps'
+--                                          costs and the leftovers;
 --                                          null in compete
 --     events: [event, …]                   every row, every player's, in both modes:
 --       id, userId, kind                   word / exchange / pass / leftovers / went_out
 --       placements                         a word's, ["x,y:c", …] under the
 --                                          board's case rule; null otherwise
---       words, score, nTiles
+--       words, score, nTiles               score: a word's points; a coop
+--                                          exchange's cost, negative; a
+--                                          compete exchange's null
 --       rack                               the rack the move was played from
 --                                          (a `leftovers` row's: the rack it
 --                                          counted); null on a row older than
@@ -357,8 +360,9 @@ $$;
 
 revoke execute on function scrabble._make_json_events(uuid) from public;
 
--- The team's score: the players' sum, less what the rack still held at the
--- end (the `leftovers` row).
+-- The team's score: the players' sum, less what its swaps cost (each
+-- `exchange` row's negative score) and what the rack still held at the end
+-- (the `leftovers` row).
 create or replace function scrabble._team_score(p_game_id uuid)
 returns int
 language sql
@@ -367,7 +371,7 @@ set search_path = scrabble, common, public, extensions
 as $$
   select (select coalesce(sum(p.score), 0) from scrabble.players p where p.game_id = p_game_id)::int
        + (select coalesce(sum(e.score), 0) from scrabble.events e
-           where e.game_id = p_game_id and e.kind = 'leftovers')::int;
+           where e.game_id = p_game_id and e.kind in ('exchange', 'leftovers'))::int;
 $$;
 
 revoke execute on function scrabble._team_score(uuid) from public;
@@ -707,6 +711,8 @@ drop function if exists scrabble.create_game(text, jsonb, uuid[], text);
 --     "ai_count": 0..3, "ai_level": beginner | casual | intermediate |
 --       strong | best (compete only),
 --     "coop_style": 'free' | 'turns', "first_turn_user_id": uuid,
+--     "swap_cost": 0.. (default 5; coop only — what a swap takes off the
+--       team's score),
 --     "timer": (none | countup | countdown{seconds}) }
 -- Builds + shuffles the 100-tile bag, deals 7-tile racks (per player in
 -- compete, one coop rack), seats the bots after the people and picks a
@@ -727,6 +733,8 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_dict_2      int;
   s_dict_3plus  int;
+  s_swap_cost   int;
+  v_setup       jsonb := p_setup;
   v_bag         text[];
   v_empty_board jsonb;
   uid           uuid;
@@ -760,6 +768,18 @@ begin
     raise exception 'BUG: longer-word dictionary of %', s_dict_3plus
       using errcode = 'PN079', hint = 'fault', column = '_',
       detail = 'setup.dict_3plus must be 1..6';
+  end if;
+
+  -- What a coop swap costs the team. Written into the setup the game keeps,
+  -- so `_commit_exchange` reads one number however the game was started.
+  if p_mode = 'coop' then
+    s_swap_cost := coalesce((p_setup->>'swap_cost')::int, 5);
+    if s_swap_cost < 0 then
+      raise exception 'BUG: swap cost of %', s_swap_cost
+        using errcode = 'PN561', hint = 'fault', column = '_',
+        detail = 'setup.swap_cost must be 0 or more';
+    end if;
+    v_setup := p_setup || jsonb_build_object('swap_cost', s_swap_cost);
   end if;
 
   -- AI players (compete only; docs/games/scrabble.md). 0..3 bots, all at the
@@ -852,7 +872,7 @@ begin
   -- (a per-game "who goes first" pick; coop_style rides).
   new_id := common._create_game(
     p_club_handle, 'scrabble_' || p_mode, p_mode, p_player_user_ids || v_bot_ids,
-    'New game', p_setup, p_setup - 'first_turn_user_id');
+    'New game', v_setup, v_setup - 'first_turn_user_id');
 
   if p_mode = 'compete' then
     insert into scrabble.games (game_id, dict_2, dict_3plus, board, bag)
@@ -1303,7 +1323,8 @@ drop function if exists scrabble._commit_exchange(uuid, int, int, text[]);
 -- rule). Compete: costs the turn and CLEARS the pass streak — swapping tiles
 -- is a real attempt to get unstuck, not a refusal to move, and since it needs
 -- 7+ tiles in the bag it can't stall the endgame, where blocked ends happen.
--- Coop: a rack refresh (and a turn, in turn-by-turn coop). The core shared
+-- Coop: a rack refresh (and a turn, in turn-by-turn coop) that costs the
+-- team the setup's `swap_cost`, the row's negative score. The core shared
 -- by exchange_tiles (a person) and ai_exchange_tiles (a bot).
 --
 -- The page's lib/answer.ts says what the row this wrote is worth. Answers
@@ -1327,10 +1348,14 @@ declare
   v_bag      text[];
   v_n        int;
   v_drawn    text[];
+  v_cost     int;    -- coop: what the swap takes off the team's score
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   g := scrabble._require_move(p_game_id, p_base_version, 'PN447');
-  select mode into v_mode from common.games where id = p_game_id;
+  -- A coop game from before the setting had free swaps, and keeps them.
+  select mode, case when mode = 'coop' then coalesce((setup->>'swap_cost')::int, 0) end
+    into v_mode, v_cost
+    from common.games where id = p_game_id;
   -- The common turn pointer; a no-op for free-for-all coop.
   perform common._require_turn(p_game_id, p_user_id);
 
@@ -1360,8 +1385,8 @@ begin
   v_bag   := v_bag[v_n+1:];
   v_rack  := v_rack || v_drawn;
 
-  insert into scrabble.events (game_id, user_id, kind, tile_count, rack, exchanged, took_turn)
-  values (p_game_id, p_user_id, 'exchange', v_n, v_played_from, p_rack_tiles, true);
+  insert into scrabble.events (game_id, user_id, kind, score, tile_count, rack, exchanged, took_turn)
+  values (p_game_id, p_user_id, 'exchange', -v_cost, v_n, v_played_from, p_rack_tiles, true);
 
   update scrabble.games
      set bag = v_bag, version = version + 1,

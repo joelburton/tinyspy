@@ -570,7 +570,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
         p_club_handle: 'testclub',
-        p_setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
+        p_setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
         p_player_user_ids: ['u1'],
         p_mode: 'coop',
       }),

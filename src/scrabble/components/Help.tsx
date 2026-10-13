@@ -52,7 +52,8 @@ export function Help({ onClose, brand }: Props) {
       </ul>
       <p>
         <strong>Coop:</strong> one shared rack and score — plan the best word
-        together over chat; anyone can play it. <strong>Suggest</strong> asks
+        together over chat; anyone can play it. A swap costs the team the
+        points set up for the game (5 unless you chose otherwise). <strong>Suggest</strong> asks
         for the best moves, and <strong>Show move to team</strong> lays yours
         out on their boards. Play every tile and the team wins; if the timer
         runs out first, the game just ends. <strong>Compete:</strong> your own

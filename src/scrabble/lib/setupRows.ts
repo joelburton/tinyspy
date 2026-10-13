@@ -25,6 +25,10 @@ export function makeSetupRows(
     { key: 'dict_2', label: 'Dictionary (2-letter)', value: dictBandValue(setup.dict_2) },
     { key: 'dict_3plus', label: 'Dictionary (longer)', value: dictBandValue(setup.dict_3plus) },
   ]
+  // A coop game started before the setting has none, and its swaps are free.
+  if (mode === 'coop') {
+    rows.push({ key: 'swap_cost', label: 'Swap cost', value: `${setup.swap_cost ?? 0} pts` })
+  }
   if (mode === 'compete' && setup.ai_count > 0) {
     rows.push({
       key: 'ai_count',

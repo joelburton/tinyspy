@@ -81,16 +81,18 @@ export function ZTest_word(
 }
 
 /** An exchange of `nTiles` tiles, and the rack it was made from with the
- *  tiles it put back (none by default). It takes the player's go. */
+ *  tiles it put back (none by default). It takes the player's go. `score` is
+ *  a coop swap's cost, negative; null, compete's, by default. */
 export function ZTest_exchange(
   id: number,
   userId: string,
   nTiles: number,
   rack: string[] | null = null,
   exchanged: string[] | null = null,
+  score: number | null = null,
 ): GEventRaw {
   return {
-    id, userId, kind: 'exchange', placements: null, words: null, score: null,
+    id, userId, kind: 'exchange', placements: null, words: null, score,
     nTiles, rack, exchanged, tookTurn: true, at: at(id),
   }
 }
@@ -138,8 +140,8 @@ const sumScores = (rows: readonly GEventRaw[]) => rows.reduce((n, e) => n + (e.s
 /**
  * Build the `game_data` blob `scrabble._rebuild_data_cols` would write from
  * these facts: the board laid down by the words, each player's score off
- * their rows in the log (a coop table's leftovers are the team's alone), the
- * team's score the players' sum and the leftovers, and where every player
+ * their rows in the log (a coop table's leftovers and swap costs are the
+ * team's alone), the team's score the players' sum, the swaps and the leftovers, and where every player
  * stands derived. Every rack is in it, as the builder writes it.
  */
 export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDataRaw {
@@ -149,7 +151,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     version = 0,
     nBagTiles = 86,
     clubHandle = 'testclub',
-    setup = { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
+    setup = { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
     teamRack = ZTest_RACK,
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
@@ -164,7 +166,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
-    const rows = events.filter((e) => e.userId === p.id && (!coop || e.kind !== 'leftovers'))
+    const rows = events.filter((e) => e.userId === p.id && (!coop || (e.kind !== 'leftovers' && e.kind !== 'exchange')))
     const rack = coop ? null : p.rack ?? ZTest_RACK
     return {
       id: p.id,
@@ -209,7 +211,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       ? {
         rack: teamRack,
         score: players.reduce((n, p) => n + p.score, 0)
-          + sumScores(events.filter((e) => e.kind === 'leftovers')),
+          + sumScores(events.filter((e) => e.kind === 'leftovers' || e.kind === 'exchange')),
         nRackTiles: teamRack.length,
       }
       : null,

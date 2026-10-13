@@ -162,7 +162,10 @@ and the tile scores 0 forever.
 - **Exchange:** return some or all rack tiles to the bag, reshuffle, and redraw
   the same count. Legal only when the **bag holds ≥ 7 tiles** (standard rule).
   Costs the turn (compete) but **clears** the pass streak — it's an attempt to
-  get unstuck, not a refusal to move ([§2.7](#27-ending-the-game)).
+  get unstuck, not a refusal to move ([§2.7](#27-ending-the-game)). In coop it
+  costs the team `setup.swap_cost` points (default 5, any whole number from 0),
+  the exchange row's negative `score`; a coop game started before the setting
+  swaps free.
 - **Pass:** forfeit the turn with no play. Compete only (coop has no turns —
   the coop "we're stuck" path is exchange-if-possible or **Stop game**). Feeds
   the **consecutive-pass streak** that ends a blocked game, which is why it asks
@@ -207,7 +210,8 @@ ends through `common._end_game` ([docs/win-lose.md](../win-lose.md)):
   a game nobody played in has no winner. The reason is the act: `resource_exhausted` /
   `complete` (going out), `all_passed` / `blocked`, `timeout`, or `conceded`
   (see Concede, §5.6).
-- **Coop:** the team's score is the players' own scores summed, less the
+- **Coop:** the team's score is the players' own scores summed, less its
+  swaps' costs ([§2.6](#26-exchange--pass)) and the
   shared rack's leftovers — one `leftovers` row, in the name of whoever's act
   ended the game. **Playing every tile is a win** (`resource_exhausted` /
   `complete`, the whole team ranked 1): "Won (every tile played)", and it
@@ -302,7 +306,7 @@ tables: it reads the two blobs on `common.games` (below).
 |---|---|---|
 | `games` | one row per game, keyed `game_id`. `dict_2` + `dict_3plus` (the two acceptance bands), `board` jsonb (a flat 225-cell array of `{l, b}` or null — the RPCs' working state, and the shape the AI reads), `bag` text[] (the remaining draw order), `version` int (the move counter for optimistic concurrency — see [§6](#6-where-validation-lives)), `team_rack` text[] (coop's one rack; null in compete), `consecutive_passes` (compete's blocked-end counter). The mode and the club are `common.games`'. | `game_id`, `board`, `version`, `team_rack`, `consecutive_passes` — never the bands or the bag |
 | `players` | PK `(game_id, user_id)`; every player, bot or person, is found by `user_id`. `score` is the player's own in both modes — the points from the words they played, less their leftovers in compete. `rack` is compete's (null in coop). `ai_level` is non-null on a bot's row: its strength in this game. A compete game's turn order is `common.game_players.turn_seat`: people, then bots. | everything but `rack` |
-| `events` | the move log, keyed by a `bigint identity` and read `order by id`. `user_id` is the player whose row it is. `kind`: `word` (`placements` jsonb `[{x, y, letter, blank}]`, `words`, `score`) / `exchange` (`tile_count`, `exchanged`: the tiles put back) / `pass` / `leftovers` (negative `score`, the rack's `tile_count`) / `went_out` (positive `score`). `rack` is the rack the move was played from — a `leftovers` row's, the rack it counted; a `went_out` row's, empty; null on rows from before 2026-10-10. `took_turn` is true on the three moves and false on the two rows an ending writes. | everything but `rack` and `exchanged` |
+| `events` | the move log, keyed by a `bigint identity` and read `order by id`. `user_id` is the player whose row it is. `kind`: `word` (`placements` jsonb `[{x, y, letter, blank}]`, `words`, `score`) / `exchange` (`tile_count`, `exchanged`: the tiles put back; in coop a `score` of minus the swap cost, null in compete) / `pass` / `leftovers` (negative `score`, the rack's `tile_count`) / `went_out` (positive `score`). `rack` is the rack the move was played from — a `leftovers` row's, the rack it counted; a `went_out` row's, empty; null on rows from before 2026-10-10. `took_turn` is true on the three moves and false on the two rows an ending writes. | everything but `rack` and `exchanged` |
 
 Letters are lowercase in every column; a capital never reaches the database.
 
@@ -365,7 +369,9 @@ Club-member + player-count + timer validation. The count rules speak in
 at least one human always — an empty roster is rejected); compete additionally
 requires the **total** (humans + `setup.ai_count`) to be 2–4, so a solo human
 vs an AI is a legal compete table but a 1-seat "race" is not. Reads
-`setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), then:
+`setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), and in coop
+`setup.swap_cost` (0 or more, default 5; `PN561` below 0), which it writes into
+the setup the game keeps. Then:
 
 - Builds the 100-tile bag and **shuffles** it (`order by random()`); the shuffle
   is the only randomness — no board library, no builder edge function.
@@ -467,7 +473,8 @@ return (`?` for a blank). Requires 7 or more tiles in the bag. Returns the tiles
 bag, reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
 **Compete:** `consecutive_passes = 0` (an exchange clears the streak), advance
 turn. **Coop:** none of that — it's just a rack refresh (no compete turns,
-no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'`) the
+no blocked-end) that costs the team `setup.swap_cost`, written as the row's
+negative `score`. Under **coop turn-by-turn** (setup `coop_style = 'turns'`) the
 shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
 (There's no coop pass — `pass_turn` is compete-only, which is the rule now in

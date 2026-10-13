@@ -236,6 +236,8 @@ export type GEventRaw = {
   // A word's tiles, "x,y:c" under the board's case rule; null otherwise.
   placements: string[] | null
   words: string[] | null
+  // A word's points, an ending row's, or a coop exchange's cost (0 or
+  // negative); null otherwise.
   score: number | null
   // The tiles an exchange swapped, or the tiles a `leftovers` row's rack still
   // held; null otherwise.
@@ -480,6 +482,9 @@ export type GSetupValues = CoopTurnSetup & {
   dict_3plus: number
   // A `countdown` ends the game when it runs out (`scrabble.submit_timeout`).
   timer: TimerMode
+  // Coop only: what a swap takes off the team's score, 0 or more. Ignored in
+  // compete.
+  swap_cost: number
   // Compete only: this many bots (0..3), all at `ai_level`. Ignored in coop.
   ai_count: number
   ai_level: GAiLevel

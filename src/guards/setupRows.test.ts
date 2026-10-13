@@ -88,6 +88,9 @@ const NOT_A_ROW: Record<string, string> = {
  * game must still show, which NOT_A_ROW would excuse everywhere.
  */
 const NOT_A_ROW_IN: Record<string, Record<string, string>> = {
+  scrabble: {
+    swap_cost: 'coop only, where it is the Swap cost row; this guard reads the compete manifest',
+  },
   wordsy: {
     timer: 'fixed at none; FlipWord has no whole-game timer, and its round clock is the Round row',
     timer_seconds: 'said in the Round row ("45-second timer"), as the form says it in its Round section',

@@ -63,6 +63,18 @@ describe('scrabble setup — what it offers', () => {
     ])
   })
 
+  it('offers a swap cost in co-op only, after the dictionaries', () => {
+    expect(fieldNames(draw({ mode: 'coop' }).container)).toEqual([
+      'player_user_ids',
+      'coop_style',
+      'dict_2',
+      'dict_3plus',
+      'swap_cost',
+      'timer',
+    ])
+    expect(fieldNames(draw().container)).not.toContain('swap_cost')
+  })
+
   it('offers no AI in co-op, where there is nobody to play against', () => {
     // The RPC agrees (PN081), but the form never puts the question.
     expect(fieldNames(draw({ mode: 'coop' }).container)).not.toContain('ai_count')

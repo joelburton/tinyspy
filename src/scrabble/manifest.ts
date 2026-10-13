@@ -10,7 +10,7 @@ import type { Member } from '@/common/members/member'
 import { findUsername } from '@/common/members/memberList'
 import { db } from './db'
 import { makeEndingLabel } from './lib/endingLabel'
-import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup } from './lib/setup'
+import { DEFAULT_SCRABBLE_SETUP, validateScrabbleCoopSetup, validateScrabbleSetup } from './lib/setup'
 import type { GSetup, GSummaryData } from './types'
 import logoUrl from './logo.svg?url'
 
@@ -81,7 +81,13 @@ class ScrabbleCoopManifest extends ScrabbleManifest {
   readonly shortDescription = 'Build words together on one board'
   // Solo or coop up to 4. Must agree with _require_player_count_max(4).
   readonly numberOfPlayers: [number, number] = [1, 4]
-  readonly setupForm: Manifest['setupForm'] = { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP, intro: SETUP_INTRO }
+  // `validate` blocks Start on a swap cost that isn't a whole number, 0 or more.
+  readonly setupForm: Manifest['setupForm'] = {
+    Component: setupFormLoader,
+    defaults: DEFAULT_SCRABBLE_SETUP,
+    validate: validateScrabbleCoopSetup,
+    intro: SETUP_INTRO,
+  }
 
   /**
    * The team's score, and how much bag is left while it plays. The team comes

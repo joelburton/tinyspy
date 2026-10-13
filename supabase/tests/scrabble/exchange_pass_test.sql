@@ -7,7 +7,8 @@
 -- (needs bag ≥ 7). Pass forfeits a compete turn. Both bump version and
 -- advance the turn (coop has no pass), but they treat the blocked-end
 -- streak oppositely: a pass feeds it, an exchange clears it. Either one into
--- a game a friend just deleted is the shared race (PN485).
+-- a game a friend just deleted is the shared race (PN485). A coop swap costs
+-- the team setup.swap_cost (default 5), a negative score on its row.
 
 begin;
 set search_path = scrabble, common, public, extensions;
@@ -15,7 +16,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(22);
+select plan(29);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -65,6 +66,44 @@ select is((select rack from scrabble.events where game_id = (select id from gco)
   array['a','b','c','d','e','f','g'], 'the row keeps the rack the exchange was made from');
 select is((select exchanged from scrabble.events where game_id = (select id from gco)),
   array['a','b'], 'and the tiles it put back');
+
+-- ─── Exchange: the coop swap cost ────────────────────────
+select is((select (setup->>'swap_cost')::int from common.games where id = (select id from gco)), 5,
+  'a coop game set up without a swap cost keeps the default, 5');
+select is((select score from scrabble.events where game_id = (select id from gco)), -5,
+  'the coop exchange row carries the cost as a negative score');
+select is((select (game_data->'team'->>'score')::int from common.games where id = (select id from gco)), -5,
+  'and the team''s score pays it');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gfree on commit drop as
+  select (scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "swap_cost": 0, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
+select scrabble.exchange_tiles((select id from gfree), 0,
+  (select team_rack[1:1] from scrabble.games where game_id = (select id from gfree)));
+reset role;
+select is((select (game_data->'team'->>'score')::int from common.games where id = (select id from gfree)), 0,
+  'a swap cost of 0 makes a free swap');
+
+-- A coop game from before the setting has no swap_cost, and swaps free.
+update common.games set setup = setup - 'swap_cost' where id = (select id from gfree);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.exchange_tiles((select id from gfree), 1,
+  (select team_rack[1:1] from scrabble.games where game_id = (select id from gfree)));
+reset role;
+select is((select min(score) from scrabble.events where game_id = (select id from gfree)), 0,
+  'a coop game without the setting swaps free');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "swap_cost": -1, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
+  '{"type":"not-ok","severity":"fault","dbcode":"PN561",
+    "message":"BUG: swap cost of -1"}'::jsonb,
+  'a negative swap cost is refused');
+reset role;
 
 -- ─── Pass (compete) advances the turn + pass streak ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -127,6 +166,8 @@ select scrabble.exchange_tiles((select id from gcx), 1, array['a']);
 reset role;
 select is((select consecutive_passes from scrabble.games where game_id = (select id from gcx)), 0,
   'an exchange clears the pass streak');
+select is((select score from scrabble.events where game_id = (select id from gcx) and kind = 'exchange'),
+  null, 'a compete exchange costs nothing');
 select is((select ended_at from common.games where id = (select id from gcx)), null,
   'pass-then-exchange does NOT end the game');
 

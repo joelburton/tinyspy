@@ -4,6 +4,7 @@ import { DictBandField } from '@/common/fields/DictBandField'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'
+import { NumberField } from '@/common/fields/NumberField'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SelectField } from '@/common/fields/SelectField'
 import { SetupSection } from '@/common/setup-form/SetupSection'
@@ -19,6 +20,7 @@ import type { GAiLevel, GSetupValues } from '../types'
  *     2-letter and 3+-letter words (the bananagrams split). Uniquely for
  *     scrabble these ARE the acceptance bar, so a lower band makes a stricter
  *     game (docs/games/scrabble.md → The dictionary);
+ *   - **the swap cost (coop only)** — what a swap takes off the team's score;
  *   - the timer;
  *   - **AI opponents (compete only)** — 0–3 AI seats at one skill level. The
  *     band requirement is shown inline; the dialog's `validate` (see manifest)
@@ -91,6 +93,20 @@ export function SetupForm({
           onChange={(dict_3plus) => set('dict_3plus', dict_3plus)}
         />
       </SetupSection>
+
+      {mode === 'coop' && (
+        <SetupSection label={`Swap cost: ${Number.isFinite(s.swap_cost) ? s.swap_cost : '?'} pts`}>
+          <NumberField
+            name="swap_cost"
+            error={errors.swap_cost}
+            label="Points off the team's score for each swap"
+            min={0}
+            chars={3}
+            value={s.swap_cost}
+            onChange={(swap_cost) => set('swap_cost', swap_cost)}
+          />
+        </SetupSection>
+      )}
 
       {/* AI opponents — compete only (coop is one shared rack, no bot to seat). */}
       {/* The help stays the SECTION's: it reports the COMBINED choice — count and

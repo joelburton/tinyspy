@@ -14,7 +14,7 @@
  * something that is correct.
  */
 import { describe, expect, it } from 'vitest'
-import { AI_BAND, DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup } from './setup'
+import { AI_BAND, DEFAULT_SCRABBLE_SETUP, validateScrabbleCoopSetup, validateScrabbleSetup } from './setup'
 
 const setup = (over: Partial<typeof DEFAULT_SCRABBLE_SETUP> = {}) => ({
   ...DEFAULT_SCRABBLE_SETUP,
@@ -95,5 +95,18 @@ describe('validateScrabbleSetup — the AI needs a dictionary it can play in', (
         1,
       ),
     ).toEqual({})
+  })
+})
+
+describe('validateScrabbleCoopSetup — the swap cost', () => {
+  it('accepts the default, and zero', () => {
+    expect(validateScrabbleCoopSetup(setup())).toEqual({})
+    expect(validateScrabbleCoopSetup(setup({ swap_cost: 0 }))).toEqual({})
+  })
+
+  it('refuses a negative, a fraction and an empty box', () => {
+    for (const swap_cost of [-1, 2.5, NaN]) {
+      expect(validateScrabbleCoopSetup(setup({ swap_cost }))).toHaveProperty('swap_cost')
+    }
   })
 })

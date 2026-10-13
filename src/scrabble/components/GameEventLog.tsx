@@ -78,7 +78,13 @@ export function GameEventLog({
                 ))}
               </>
             )}
-            {event.kind === 'exchange' && <span>Exchanged {event.nTiles!} tiles</span>}
+            {event.kind === 'exchange' && (
+              <>
+                <span>Exchanged {event.nTiles!} tiles</span>
+                {/* A coop swap's cost; a free or compete swap has none. */}
+                {!!event.score && <> <span className={styles.scoreNeg}>{event.score}</span></>}
+              </>
+            )}
             {event.kind === 'pass' && <span>Passed</span>}
             {event.kind === 'leftovers' && (
               <span className={styles.scoreNeg}>{makeEventText(event)}</span>

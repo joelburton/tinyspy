@@ -18,7 +18,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { makeGameData } from '../hooks/useGame'
-import { ZTest_leftovers, ZTest_makeGameDataRaw, ZTest_word, type ZTest_PlayerFacts } from '../lib/gameData.fixture'
+import { ZTest_exchange, ZTest_leftovers, ZTest_makeGameDataRaw, ZTest_word, type ZTest_PlayerFacts } from '../lib/gameData.fixture'
 import type { GEvent, GHistoryView } from '../types'
 import { GameEventLog } from './GameEventLog'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
@@ -106,5 +106,20 @@ describe('scrabble GameEventLog — the rows an ending writes', () => {
     const log = makeLog('compete', PLAYERS.slice(0, 2), [ZTest_leftovers(1, 'u1', -7, 3)])
     render(<GameEventLog events={log.events} players={log.players} myId="u1" mode="compete" historyView={NO_VIEW} />)
     expect(screen.getByText('-7 for 3 tiles left')).toBeInTheDocument()
+  })
+})
+
+describe('scrabble GameEventLog — a swap', () => {
+  it('shows a coop swap\'s cost', () => {
+    const log = makeLog('coop', PLAYERS.slice(0, 2), [ZTest_exchange(1, 'u1', 3, null, null, -5)])
+    render(<GameEventLog events={log.events} players={log.players} myId="u1" mode="coop" historyView={NO_VIEW} />)
+    expect(screen.getByText('Exchanged 3 tiles')).toBeInTheDocument()
+    expect(screen.getByText('-5')).toBeInTheDocument()
+  })
+
+  it('shows no cost for a free swap', () => {
+    const log = makeLog('coop', PLAYERS.slice(0, 2), [ZTest_exchange(1, 'u1', 3, null, null, 0)])
+    render(<GameEventLog events={log.events} players={log.players} myId="u1" mode="coop" historyView={NO_VIEW} />)
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
 })
