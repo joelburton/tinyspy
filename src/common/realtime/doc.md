@@ -128,7 +128,8 @@ and re-reads the rows.
   every `SUBSCRIBED`, not only the first, so events missed while the socket was
   down are read over. `useRealtimeReconnect`, mounted once in `App.tsx`,
   reopens the socket on `visibilitychange`, `focus` and `online` so that
-  `SUBSCRIBED` comes promptly. Broadcasts sent during a disconnect are not
+  `SUBSCRIBED` comes promptly, renewing the socket's token first so the rejoin
+  doesn't offer one that expired while the tab slept. Broadcasts sent during a disconnect are not
   replayed at all; presence-pause freezes the game while a player is missing,
   so nothing is broadcast that they would need.
 - **The deaf window is multi-second, and the event in it is dropped, not

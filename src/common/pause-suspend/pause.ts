@@ -87,7 +87,7 @@ export function computeGamePause({
 export type GamePause = {
   // Somebody the game waits for is away, or somebody clicked Pause.
   paused: boolean
-  // Who is connected to the game right now.
+  // Who is connected to the game right now; I am always among them.
   presentUserIds: Set<string>
   // The human players who haven't ended: who the pause waits for, and whom
   // the overlay draws a dot for.

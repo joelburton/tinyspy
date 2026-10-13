@@ -426,6 +426,21 @@ describe('useCommonGame — paused unification', () => {
     expect(result.current.pause.manuallyPausedBy).toBeNull()
   })
 
+  it('counts me as present before the server echoes me back', async () => {
+    // My own presence can be slow to come back, or fail for a while; until it
+    // does, a solo game would wait for me behind the overlay.
+    const result = await load()
+
+    // The server has seen only bea so far.
+    presenceStateRecord = {
+      bea: [{ user_id: 'bea' }],
+    }
+    act(() => firePresenceSync())
+
+    expect(result.current.pause.paused).toBe(false)
+    expect(result.current.pause.presentUserIds.has('ada')).toBe(true)
+  })
+
   it('paused stays false when the only missing player is out of the game', async () => {
     // cara conceded, solved early or spent her budget, then closed her tab.
     // The remaining players must keep playing — her absence must NOT raise

@@ -22,24 +22,35 @@ import { supabase } from '../supabase/supabase'
  * heartbeat; this handles the common clean-close-after-sleep case right away.
  * The pause overlay's Return-to-club / Stop-game buttons are the manual backstop
  * for anything this doesn't recover.)
+ *
+ * The token is renewed before the reconnect. supabase-js hands the socket a
+ * token only when auth announces a new one, and auth's renewal timer pauses
+ * while the tab is hidden, so a socket reopened on return would rejoin every
+ * channel with the token it held when the tab went to sleep, and be refused.
  */
 export function useRealtimeReconnect(): void {
   useEffect(function reconnectOnReturn() {
-    const reconnectIfDown = () => {
+    const reconnectIfDown = async () => {
+      // A fresh token first, so a rejoin never offers one that expired while
+      // the tab slept. `setAuth()` with no token asks supabase-js, whose
+      // `getSession` renews an expired one; it also hands the new token to
+      // every channel's next join.
+      await supabase.realtime.setAuth()
       if (!supabase.realtime.isConnected()) supabase.realtime.connect()
     }
     // Only when the tab is actually visible — no point reconnecting a
     // backgrounded tab (and its token auto-refresh is paused while hidden).
     const onVisible = () => {
-      if (document.visibilityState === 'visible') reconnectIfDown()
+      if (document.visibilityState === 'visible') void reconnectIfDown()
     }
+    const onOnline = () => void reconnectIfDown()
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
-    window.addEventListener('online', reconnectIfDown)
+    window.addEventListener('online', onOnline)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('focus', onVisible)
-      window.removeEventListener('online', reconnectIfDown)
+      window.removeEventListener('online', onOnline)
     }
   }, [])
 }

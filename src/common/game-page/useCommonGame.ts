@@ -35,7 +35,7 @@
  *   stillPlaying
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../supabase/db'
 import { navigate } from '../routing/router'
@@ -266,9 +266,17 @@ export function useCommonGame(
   const shell = loaded?.shell ?? null
   const ended = shell?.ended ?? false
 
+  // I am always here: this page is my view of the game. Waiting for the
+  // server's presence to echo me back would park a solo game behind the
+  // overlay for as long as that echo is slow or failing.
+  const presentUserIdsWithMe = useMemo(
+    () => new Set(presentUserIds).add(auth.user.id),
+    [presentUserIds, auth.user.id],
+  )
+
   const pauseState = computeGamePause({
     players: shell?.players ?? [],
-    presentUserIds,
+    presentUserIds: presentUserIdsWithMe,
     manuallyPausedById,
     ended,
   })
@@ -295,7 +303,7 @@ export function useCommonGame(
     cg,
     gameData: loaded?.gameData ?? null,
     staticGameData: loaded?.staticGameData ?? null,
-    pause: { ...pauseState, presentUserIds, sendManualPause, sendManualUnpause },
+    pause: { ...pauseState, presentUserIds: presentUserIdsWithMe, sendManualPause, sendManualUnpause },
     timer: { mode: timerMode, ...timer },
     sendSuspend,
     loading: lastRead === null,

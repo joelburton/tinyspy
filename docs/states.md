@@ -46,7 +46,8 @@ viewing.
 
 The two sources stay as today:
 - **Presence-pause**: someone in `common.game_players` isn't currently connected
-  to the channel.
+  to the channel. Never me: my own page counts me present without waiting for
+  the server's presence to echo me back, so a solo game never waits on it.
 - **Manual-pause**: someone clicked Pause; broadcast to peers.
 
 **Getting out of a pause.** Presence-pause clears itself the moment the missing
