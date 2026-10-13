@@ -10,6 +10,7 @@ export type Database = {
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"kind": string,"n_drawn": number,"tile": string | null,"took_turn": boolean,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"n_drawn": number,"tile"?: string | null,"took_turn"?: boolean,"user_id": string
                   }
@@ -29,6 +30,7 @@ isOneToOne: false
                   Row: {
                     "bag": string,"bunch": string,"bunch_at_setup": string,"dict_2": number,"dict_3plus": number,"dump_to_bag": boolean,"game_id": string,"hand_size": number,"word_check": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "bag"?: string,"bunch": string,"bunch_at_setup": string,"dict_2": number,"dict_3plus": number,"dump_to_bag": boolean,"game_id": string,"hand_size": number,"word_check": string
                   }
@@ -42,6 +44,7 @@ isOneToOne: false
                   Row: {
                     "board": string,"game_id": string,"tiles": string,"updated_at": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board": string,"game_id": string,"tiles": string,"updated_at"?: string,"user_id": string
                   }
@@ -133,6 +136,7 @@ isOneToOne: false
                   Row: {
                     "found_at": string,"game_id": string,"is_bonus": boolean,"points": number,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "found_at"?: string,"game_id": string,"is_bonus": boolean,"points": number,"user_id": string,"word": string
                   }
@@ -152,6 +156,7 @@ isOneToOne: false
                   Row: {
                     "board": string,"board_side_size": number,"bonus_words": NonNullable<Json>,"game_id": string,"legal_band": number,"min_word_length": number,"n_reqd_words": number,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_win_percent": number | null,"_make_json_puzzle": Json | null,"_make_json_tiles": Json | null
                   }
+                  ComputedFields: "_make_json_puzzle" | "_make_json_tiles"
                   Insert: {
                     "board": string,"board_side_size": number,"bonus_words"?: NonNullable<Json>,"game_id": string,"legal_band": number,"min_word_length": number,"n_reqd_words": number,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_win_percent"?: number | null
                   }
@@ -183,7 +188,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["boggle"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["boggle"]['Tables']["games"]['Row'], Database["boggle"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -195,7 +200,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
-{ Args: { "g": Database["boggle"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["boggle"]['Tables']["games"]['Row'], Database["boggle"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_words":
 { Args: { "p_bonus": boolean,"p_words": Json }; Returns: Json
@@ -240,6 +245,7 @@ isOneToOne: false
                   Row: {
                     "clue_count": number | null,"clue_from_ai": boolean | null,"clue_word": string | null,"created_at": string,"game_id": string,"guess_position": number | null,"guess_result": string | null,"id": number,"kind": string,"seat": string,"took_turn": boolean,"turn_number": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "clue_count"?: number | null,"clue_from_ai"?: boolean | null,"clue_word"?: string | null,"created_at"?: string,"game_id": string,"guess_position"?: number | null,"guess_result"?: string | null,"id"?: never,"kind": string,"seat": string,"took_turn"?: boolean,"turn_number": number,"user_id": string
                   }
@@ -259,6 +265,7 @@ isOneToOne: false
                   Row: {
                     "current_clue_giver": string | null,"game_id": string,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"turn_number": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "current_clue_giver"?: string | null,"game_id": string,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"turn_number"?: number
                   }
@@ -272,6 +279,7 @@ isOneToOne: false
                   Row: {
                     "pool": number,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "pool": number,"word": string
                   }
@@ -285,6 +293,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"neutral_a": boolean,"neutral_b": boolean,"position": number,"revealed_as": string | null,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"neutral_a"?: boolean,"neutral_b"?: boolean,"position": number,"revealed_as"?: string | null,"word": string
                   }
@@ -352,7 +361,7 @@ isOneToOne: false
 { Args: { "p_game_id": string,"p_seat": string }; Returns: boolean
                            },
 "_seat_of":
-{ Args: { "cg": Database["codenamesduet"]['Tables']["games"]['Row'],"p_user_id": string }; Returns: string
+{ Args: { "cg": Omit<Database["codenamesduet"]['Tables']["games"]['Row'], Database["codenamesduet"]['Tables']["games"]['ComputedFields']>,"p_user_id": string }; Returns: string
                            },
 "_turns_remaining":
 { Args: { "p_max_turns": number,"p_turn_number": number }; Returns: number
@@ -400,6 +409,7 @@ isOneToOne: false
                   Row: {
                     "can_edit_settings": boolean,"created_at": string,"created_by": string,"handle": string,"is_solo": boolean,"name": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "can_edit_settings"?: boolean,"created_at"?: string,"created_by": string,"handle": string,"is_solo"?: never,"name": string
                   }
@@ -419,6 +429,7 @@ isOneToOne: false
                   Row: {
                     "added_at": string,"club_handle": string,"default_setup": Json | null,"gametype": string,"is_enabled": boolean,"max_daily_games": number | null,"n_started_today": number,"started_on": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "added_at"?: string,"club_handle": string,"default_setup"?: Json | null,"gametype": string,"is_enabled"?: boolean,"max_daily_games"?: number | null,"n_started_today"?: number,"started_on"?: string | null
                   }
@@ -444,6 +455,7 @@ isOneToOne: false
                   Row: {
                     "club_handle": string,"joined_at": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "club_handle": string,"joined_at"?: string,"user_id": string
                   }
@@ -469,6 +481,7 @@ isOneToOne: false
                   Row: {
                     "final_ranking": number | null,"game_id": string,"joined_at": string,"outcome": string | null,"player_ended_at": string | null,"player_ended_reason": string | null,"player_ended_reason_detail": string | null,"solved_at": string | null,"turn_seat": number | null,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "final_ranking"?: number | null,"game_id": string,"joined_at"?: string,"outcome"?: string | null,"player_ended_at"?: string | null,"player_ended_reason"?: string | null,"player_ended_reason_detail"?: string | null,"solved_at"?: string | null,"turn_seat"?: number | null,"user_id": string
                   }
@@ -494,6 +507,7 @@ isOneToOne: false
                   Row: {
                     "body": string,"game_id": string,"id": string,"owner_id": string | null,"version": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "body"?: string,"game_id": string,"id"?: string,"owner_id"?: string | null,"version"?: number
                   }
@@ -519,6 +533,7 @@ isOneToOne: false
                   Row: {
                     "club_handle": string,"created_by": string | null,"current_turn_user_id": string | null,"ended_at": string | null,"game_data": Json | null,"game_ended_by_user_id": string | null,"game_ended_outcome": string | null,"game_ended_reason": string | null,"game_ended_reason_detail": string | null,"gametype": string,"id": string,"is_current_view": boolean,"mode": string,"restart_count": number,"setup": NonNullable<Json>,"shell_data": Json | null,"started_at": string,"static_game_data": Json | null,"status_changed_at": string,"summary_data": Json | null,"title": string,"updated_at": string,"_make_json_ending": Json | null
                   }
+                  ComputedFields: "_make_json_ending"
                   Insert: {
                     "club_handle": string,"created_by"?: string | null,"current_turn_user_id"?: string | null,"ended_at"?: string | null,"game_data"?: Json | null,"game_ended_by_user_id"?: string | null,"game_ended_outcome"?: string | null,"game_ended_reason"?: string | null,"game_ended_reason_detail"?: string | null,"gametype": string,"id"?: string,"is_current_view"?: boolean,"mode": string,"restart_count"?: number,"setup": NonNullable<Json>,"shell_data"?: Json | null,"started_at"?: string,"static_game_data"?: Json | null,"status_changed_at"?: string,"summary_data"?: Json | null,"title": string,"updated_at"?: string
                   }
@@ -562,6 +577,7 @@ isOneToOne: false
                   Row: {
                     "brand": string,"default_enroll": boolean,"gametype": string,"min_players": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "brand": string,"default_enroll"?: boolean,"gametype": string,"min_players"?: number
                   }
@@ -575,6 +591,7 @@ isOneToOne: false
                   Row: {
                     "club_handle": string,"content": string,"id": string,"sent_at": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "club_handle": string,"content": string,"id"?: string,"sent_at"?: string,"user_id": string
                   }
@@ -600,6 +617,7 @@ isOneToOne: false
                   Row: {
                     "ai_member": boolean,"can_edit_words": boolean,"color": string,"created_at": string,"sounds_enabled": boolean,"theme": string | null,"user_id": string,"username": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "ai_member"?: boolean,"can_edit_words"?: boolean,"color": string,"created_at"?: string,"sounds_enabled"?: boolean,"theme"?: string | null,"user_id": string,"username": string
                   }
@@ -613,6 +631,7 @@ isOneToOne: false
                   Row: {
                     "countdown_seconds_at_setup": number | null,"game_id": string,"kind": string,"last_tick": string,"ticks": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "countdown_seconds_at_setup"?: number | null,"game_id": string,"kind": string,"last_tick"?: string,"ticks"?: number
                   }
@@ -632,6 +651,7 @@ isOneToOne: true
                   Row: {
                     "american": boolean,"australian": boolean,"band": number,"british": boolean,"canadian": boolean,"crude": number,"definition": string | null,"definition_source": string | null,"hint": string | null,"len": number,"letter_mask": number | null,"root_word": string | null,"slang": boolean,"slur": number,"word": string,"wordle": boolean
                   }
+                  ComputedFields: never
                   Insert: {
                     "american": boolean,"australian": boolean,"band": number,"british": boolean,"canadian": boolean,"crude"?: number,"definition"?: string | null,"definition_source"?: string | null,"hint"?: string | null,"len": number,"letter_mask"?: never,"root_word"?: string | null,"slang"?: boolean,"slur"?: number,"word": string,"wordle"?: boolean
                   }
@@ -645,6 +665,7 @@ isOneToOne: true
                   Row: {
                     "edited_at": string,"edited_by": string,"edited_by_username": string,"id": number,"kind": string,"new": Json | null,"note": string | null,"old": Json | null,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "edited_at"?: string,"edited_by": string,"edited_by_username": string,"id"?: never,"kind": string,"new"?: Json | null,"note"?: string | null,"old"?: Json | null,"word": string
                   }
@@ -661,6 +682,7 @@ isOneToOne: true
                   Row: {
                     "club_handle": string | null,"default_setup": Json | null,"gametype": string | null,"is_enabled": boolean | null,"max_daily_games": number | null,"used_today": number | null
                   }
+                  ComputedFields: never
                   Insert: {
                            "club_handle"?: string | null,"default_setup"?: Json | null,"gametype"?: string | null,"is_enabled"?: boolean | null,"max_daily_games"?: number | null,"used_today"?: never
                          }
@@ -694,6 +716,9 @@ isOneToOne: false
 "_assign_turn_order":
 { Args: { "first_user_id": string,"target_game": string }; Returns: undefined
                            },
+"_clock_due":
+{ Args: { "p_last_tick": string }; Returns: Record<string, unknown>
+                           },
 "_color_for_username":
 { Args: { "username": string }; Returns: string
                            },
@@ -721,13 +746,13 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: boolean
                            },
 "_make_json_ending":
-{ Args: { "g": Database["common"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["common"]['Tables']["games"]['Row'], Database["common"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_game_data":
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_player":
-{ Args: { "g": Database["common"]['Tables']["games"]['Row'],"gp": Database["common"]['Tables']["game_players"]['Row'],"p_turn_based": boolean,"prof": Database["common"]['Tables']["profiles"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["common"]['Tables']["games"]['Row'], Database["common"]['Tables']["games"]['ComputedFields']>,"gp": Omit<Database["common"]['Tables']["game_players"]['Row'], Database["common"]['Tables']["game_players"]['ComputedFields']>,"p_turn_based": boolean,"prof": Omit<Database["common"]['Tables']["profiles"]['Row'], Database["common"]['Tables']["profiles"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_players":
 { Args: { "p_game_id": string }; Returns: {
@@ -875,6 +900,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"kind": string,"matched_cat_rank": number | null,"result": string,"tiles": (string)[],"took_turn": boolean,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"matched_cat_rank"?: number | null,"result": string,"tiles": (string)[],"took_turn"?: boolean,"user_id": string
                   }
@@ -894,6 +920,7 @@ isOneToOne: false
                   Row: {
                     "board": NonNullable<Json>,"game_id": string,"puzzle_date": string | null,"puzzle_id": string | null,"_make_json_puzzle": Json | null
                   }
+                  ComputedFields: "_make_json_puzzle"
                   Insert: {
                     "board": NonNullable<Json>,"game_id": string,"puzzle_date"?: string | null,"puzzle_id"?: string | null
                   }
@@ -913,6 +940,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_matched_cats": number,"n_mistakes": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_matched_cats"?: number,"n_mistakes"?: number,"user_id": string
                   }
@@ -932,6 +960,7 @@ isOneToOne: false
                   Row: {
                     "categories": NonNullable<Json>,"id": string,"imported_at": string,"puzzle_date": string | null,"source_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "categories": NonNullable<Json>,"id"?: string,"imported_at"?: string,"puzzle_date"?: string | null,"source_id": string
                   }
@@ -963,7 +992,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["connections"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["connections"]['Tables']["games"]['Row'], Database["connections"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1032,6 +1061,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date": string | null,"puzzle_id": string | null,"revision": number,"solution": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"puzzle_content": NonNullable<Json>,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"revision"?: number,"solution": NonNullable<Json>
                   }
@@ -1051,6 +1081,7 @@ isOneToOne: false
                   Row: {
                     "cells": NonNullable<Json>,"game_id": string,"id": number,"owner_id": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "cells"?: NonNullable<Json>,"game_id": string,"id"?: never,"owner_id"?: string | null
                   }
@@ -1070,6 +1101,7 @@ isOneToOne: false
                   Row: {
                     "content_hash": string,"created_at": string,"id": string,"puzzle_content": NonNullable<Json>,"solution": NonNullable<Json>,"source": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "content_hash": string,"created_at"?: string,"id"?: string,"puzzle_content": NonNullable<Json>,"solution": NonNullable<Json>,"source": string
                   }
@@ -1124,7 +1156,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["crosswords"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
+{ Args: { "g": Omit<Database["crosswords"]['Tables']["games"]['Row'], Database["crosswords"]['Tables']["games"]['ComputedFields']>,"p_ended": boolean }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1232,6 +1264,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"kind": string,"n_covered_letters": number,"took_turn": boolean,"user_id": string,"word": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"n_covered_letters": number,"took_turn"?: boolean,"user_id": string,"word"?: string | null
                   }
@@ -1251,6 +1284,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"legal_band": number,"max_words": number,"sides": string,"solution": (string)[],"words": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"legal_band": number,"max_words": number,"sides": string,"solution": (string)[],"words": NonNullable<Json>
                   }
@@ -1264,6 +1298,7 @@ isOneToOne: false
                   Row: {
                     "chain": (string)[],"game_id": string,"hints_used": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "chain"?: (string)[],"game_id": string,"hints_used"?: number,"user_id": string
                   }
@@ -1283,6 +1318,7 @@ isOneToOne: false
                   Row: {
                     "band": number,"letters": string,"mask": number | null,"word_a": string,"word_b": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "band": number,"letters": string,"mask"?: never,"word_a": string,"word_b": string
                   }
@@ -1317,7 +1353,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "lg": Database["letterboxed"]['Tables']["games"]['Row'],"p_ended": boolean }; Returns: Json
+{ Args: { "lg": Omit<Database["letterboxed"]['Tables']["games"]['Row'], Database["letterboxed"]['Tables']["games"]['ComputedFields']>,"p_ended": boolean }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1407,6 +1443,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"is_correct": boolean,"kind": string,"took_turn": boolean,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"is_correct": boolean,"kind": string,"took_turn"?: boolean,"user_id": string,"word": string
                   }
@@ -1426,6 +1463,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"max_guesses": number,"secrets": (string)[],"words": (string)[]
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"max_guesses": number,"secrets": (string)[],"words": (string)[]
                   }
@@ -1439,6 +1477,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_found_secrets": number,"n_guesses_used": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_found_secrets"?: number,"n_guesses_used"?: number,"user_id": string
                   }
@@ -1473,7 +1512,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"pg": Database["psychicnum"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"pg": Omit<Database["psychicnum"]['Tables']["games"]['Row'], Database["psychicnum"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1555,6 +1594,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"exchanged": (string)[] | null,"game_id": string,"id": number,"kind": string,"placements": Json | null,"rack": (string)[] | null,"score": number | null,"tile_count": number | null,"took_turn": boolean,"user_id": string,"words": (string)[] | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"exchanged"?: (string)[] | null,"game_id": string,"id"?: never,"kind": string,"placements"?: Json | null,"rack"?: (string)[] | null,"score"?: number | null,"tile_count"?: number | null,"took_turn"?: boolean,"user_id": string,"words"?: (string)[] | null
                   }
@@ -1572,13 +1612,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes": number,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack": (string)[] | null,"version": number
+                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes": number,"deal": (string)[] | null,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack": (string)[] | null,"version": number
                   }
+                  ComputedFields: never
                   Insert: {
-                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes"?: number,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack"?: (string)[] | null,"version"?: number
+                    "bag": (string)[],"board": NonNullable<Json>,"consecutive_passes"?: number,"deal"?: (string)[] | null,"dict_2": number,"dict_3plus": number,"game_id": string,"team_rack"?: (string)[] | null,"version"?: number
                   }
                   Update: {
-                    "bag"?: (string)[],"board"?: NonNullable<Json>,"consecutive_passes"?: number,"dict_2"?: number,"dict_3plus"?: number,"game_id"?: string,"team_rack"?: (string)[] | null,"version"?: number
+                    "bag"?: (string)[],"board"?: NonNullable<Json>,"consecutive_passes"?: number,"deal"?: (string)[] | null,"dict_2"?: number,"dict_3plus"?: number,"game_id"?: string,"team_rack"?: (string)[] | null,"version"?: number
                   }
                   Relationships: [
                     
@@ -1587,6 +1628,7 @@ isOneToOne: false
                   Row: {
                     "ai_level": string | null,"game_id": string,"rack": (string)[] | null,"score": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "ai_level"?: string | null,"game_id": string,"rack"?: (string)[] | null,"score"?: number,"user_id": string
                   }
@@ -1664,6 +1706,7 @@ isOneToOne: false
               "bag": (string)[],
 "board": NonNullable<Json>,
 "consecutive_passes": number,
+"deal": (string)[] | null,
 "dict_2": number,
 "dict_3plus": number,
 "game_id": string,
@@ -1746,6 +1789,7 @@ isOneToOne: false
                   Row: {
                     "board_after": (number)[],"created_at": string,"game_id": string,"id": number,"kind": string,"tiles": (number)[],"took_turn": boolean,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board_after": (number)[],"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"tiles": (number)[],"took_turn"?: boolean,"user_id": string
                   }
@@ -1765,6 +1809,7 @@ isOneToOne: false
                   Row: {
                     "board": (number)[],"deck": (number)[],"deck_kind": string,"deck_pos": number,"game_id": string,"palette": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board": (number)[],"deck": (number)[],"deck_kind": string,"deck_pos"?: number,"game_id": string,"palette": string
                   }
@@ -1778,6 +1823,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_hints_used": number,"n_sets_found": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_hints_used"?: number,"n_sets_found"?: number,"user_id": string
                   }
@@ -1884,6 +1930,7 @@ isOneToOne: false
                   Row: {
                     "found_at": string,"game_id": string,"is_bonus": boolean,"is_pangram": boolean,"points": number,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "found_at"?: string,"game_id": string,"is_bonus": boolean,"is_pangram": boolean,"points": number,"user_id": string,"word": string
                   }
@@ -1903,6 +1950,7 @@ isOneToOne: false
                   Row: {
                     "bonus_words": NonNullable<Json>,"center_letter": string,"game_id": string,"legal_band": number,"n_reqd_words": number,"outer_letters": string,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_rank": number | null,"_make_json_puzzle": Json | null,"_make_json_tiles": Json | null
                   }
+                  ComputedFields: "_make_json_puzzle" | "_make_json_tiles"
                   Insert: {
                     "bonus_words": NonNullable<Json>,"center_letter": string,"game_id": string,"legal_band": number,"n_reqd_words": number,"outer_letters": string,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_rank"?: number | null
                   }
@@ -1916,6 +1964,7 @@ isOneToOne: false
                   Row: {
                     "has_rare_letters": boolean,"mask": number,"n_reqd_words": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "has_rare_letters": boolean,"mask": number,"n_reqd_words": number
                   }
@@ -1941,7 +1990,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["spellingbee"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["spellingbee"]['Tables']["games"]['Row'], Database["spellingbee"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1953,7 +2002,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
-{ Args: { "g": Database["spellingbee"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["spellingbee"]['Tables']["games"]['Row'], Database["spellingbee"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_word":
 { Args: { "p_bonus": boolean,"p_word": Json }; Returns: Json
@@ -2006,6 +2055,7 @@ isOneToOne: false
                   Row: {
                     "band": number,"created_at": string,"id": string,"tiles": NonNullable<Json>,"words": (string)[]
                   }
+                  ComputedFields: never
                   Insert: {
                     "band": number,"created_at"?: string,"id"?: string,"tiles": NonNullable<Json>,"words": (string)[]
                   }
@@ -2019,6 +2069,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"for_word_index": number | null,"game_id": string,"id": number,"kind": string,"tile_ids": (number)[] | null,"took_turn": boolean,"user_id": string,"valid": boolean | null,"word": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"for_word_index"?: number | null,"game_id": string,"id"?: never,"kind": string,"tile_ids"?: (number)[] | null,"took_turn"?: boolean,"user_id": string,"valid"?: boolean | null,"word"?: string | null
                   }
@@ -2038,6 +2089,7 @@ isOneToOne: false
                   Row: {
                     "board_id": string | null,"game_id": string,"solution": (string)[],"tiles": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "board_id"?: string | null,"game_id": string,"solution": (string)[],"tiles": NonNullable<Json>
                   }
@@ -2057,6 +2109,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_found_words": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_found_words"?: number,"user_id": string
                   }
@@ -2103,7 +2156,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"sg": Database["stackdown"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"sg": Omit<Database["stackdown"]['Tables']["games"]['Row'], Database["stackdown"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2169,6 +2222,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"kind": string,"path": NonNullable<Json>,"result": string | null,"took_turn": boolean,"user_id": string,"word": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"path": NonNullable<Json>,"result"?: string | null,"took_turn"?: boolean,"user_id": string,"word"?: string | null
                   }
@@ -2188,6 +2242,7 @@ isOneToOne: false
                   Row: {
                     "band": number,"board": (string)[],"game_id": string,"hint_cost": number,"min_word_length": number,"puzzle_date": string | null,"puzzle_id": string | null,"puzzle_title": string,"solution": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "band": number,"board": (string)[],"game_id": string,"hint_cost": number,"min_word_length": number,"puzzle_date"?: string | null,"puzzle_id"?: string | null,"puzzle_title": string,"solution": NonNullable<Json>
                   }
@@ -2207,6 +2262,7 @@ isOneToOne: false
                   Row: {
                     "active_hint_coords": Json | null,"game_id": string,"hint_points": number,"n_hints_used": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "active_hint_coords"?: Json | null,"game_id": string,"hint_points"?: number,"n_hints_used"?: number,"user_id": string
                   }
@@ -2226,6 +2282,7 @@ isOneToOne: false
                   Row: {
                     "board": (string)[],"id": string,"imported_at": string,"puzzle_date": string,"solution": NonNullable<Json>,"source_id": string,"title": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board": (string)[],"id"?: string,"imported_at"?: string,"puzzle_date": string,"solution": NonNullable<Json>,"source_id": string,"title": string
                   }
@@ -2266,7 +2323,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"sg": Database["strands"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"sg": Omit<Database["strands"]['Tables']["games"]['Row'], Database["strands"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_puzzle_words":
 { Args: { "p_solution": Json }; Returns: Json
@@ -2344,6 +2401,7 @@ isOneToOne: false
                   Row: {
                     "colors": string,"created_at": string,"game_id": string,"id": number,"kind": string,"letter_a": string,"letter_b": string,"pos_a": number,"pos_b": number,"took_turn": boolean,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "colors": string,"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"letter_a": string,"letter_b": string,"pos_a": number,"pos_b": number,"took_turn"?: boolean,"user_id": string
                   }
@@ -2363,6 +2421,7 @@ isOneToOne: false
                   Row: {
                     "board_at_setup": string,"game_id": string,"max_swaps": number,"par_swaps": number,"solution": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board_at_setup": string,"game_id": string,"max_swaps": number,"par_swaps": number,"solution": string
                   }
@@ -2376,6 +2435,7 @@ isOneToOne: false
                   Row: {
                     "board": string,"game_id": string,"n_swaps_used": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "board": string,"game_id": string,"n_swaps_used"?: number,"user_id": string
                   }
@@ -2425,7 +2485,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"wg": Database["waffle"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"wg": Omit<Database["waffle"]['Tables']["games"]['Row'], Database["waffle"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2493,6 +2553,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"game_id": string,"id": number,"kind": string,"len": number,"reason": string | null,"took_turn": boolean,"user_id": string,"valid": boolean,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"game_id": string,"id"?: never,"kind": string,"len": number,"reason"?: string | null,"took_turn"?: boolean,"user_id": string,"valid"?: boolean,"word": string
                   }
@@ -2512,6 +2573,7 @@ isOneToOne: false
                   Row: {
                     "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_len": number,"_make_json_puzzle": Json | null
                   }
+                  ComputedFields: "_make_json_puzzle"
                   Insert: {
                     "base": string,"game_id": string,"legal_words": NonNullable<Json>,"longest_words": NonNullable<Json>,"max_word_len": number
                   }
@@ -2546,7 +2608,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["wordiply"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["wordiply"]['Tables']["games"]['Row'], Database["wordiply"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2623,6 +2685,7 @@ isOneToOne: false
                   Row: {
                     "colors": string,"created_at": string,"game_id": string,"id": number,"is_correct": boolean,"kind": string,"took_turn": boolean,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "colors": string,"created_at"?: string,"game_id": string,"id"?: never,"is_correct": boolean,"kind": string,"took_turn"?: boolean,"user_id": string,"word": string
                   }
@@ -2642,6 +2705,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"legal_band": number,"max_guesses": number,"target": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"legal_band"?: number,"max_guesses": number,"target": string
                   }
@@ -2655,6 +2719,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_guesses_used": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_guesses_used"?: number,"user_id": string
                   }
@@ -2692,7 +2757,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"wg": Database["wordle"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"wg": Omit<Database["wordle"]['Tables']["games"]['Row'], Database["wordle"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
@@ -2749,6 +2814,7 @@ isOneToOne: false
                   Row: {
                     "colors": string | null,"created_at": string,"game_id": string,"id": number,"is_correct": boolean | null,"kind": string,"took_turn": boolean,"user_id": string,"verdict": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "colors"?: string | null,"created_at"?: string,"game_id": string,"id"?: never,"is_correct"?: never,"kind": string,"took_turn"?: boolean,"user_id": string,"verdict": string,"word": string
                   }
@@ -2768,6 +2834,7 @@ isOneToOne: false
                   Row: {
                     "difficulty": string,"game_id": string,"legal_band": number,"load_bearing": number | null,"positive_space": number | null,"starter": string,"starter_colors": string,"target": string,"tier": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "difficulty": string,"game_id": string,"legal_band": number,"load_bearing"?: number | null,"positive_space"?: number | null,"starter": string,"starter_colors": string,"target": string,"tier": string
                   }
@@ -2781,6 +2848,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"n_misses": number,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"n_misses"?: number,"user_id": string
                   }
@@ -2800,6 +2868,7 @@ isOneToOne: false
                   Row: {
                     "answer": string,"answer_band": number | null,"comment": string | null,"created_at": string,"difficulty_asked": string | null,"game_id": string | null,"greens": number | null,"id": number,"legal_band": number,"load_bearing": number | null,"n_misses": number | null,"n_submits": number | null,"positive_space": number | null,"rated_difficulty": number | null,"seconds_measured": number | null,"seconds_reported": number | null,"solved_at": string | null,"starter": string,"starter_colors": string,"suggested_band": number | null,"tier": string,"user_id": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "answer": string,"answer_band"?: number | null,"comment"?: string | null,"created_at"?: string,"difficulty_asked"?: string | null,"game_id"?: string | null,"greens"?: never,"id"?: never,"legal_band": number,"load_bearing"?: number | null,"n_misses"?: number | null,"n_submits"?: number | null,"positive_space"?: number | null,"rated_difficulty"?: number | null,"seconds_measured"?: number | null,"seconds_reported"?: number | null,"solved_at"?: string | null,"starter": string,"starter_colors": string,"suggested_band"?: number | null,"tier": string,"user_id"?: string | null
                   }
@@ -2834,7 +2903,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "p_ended": boolean,"wg": Database["wordleone"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "p_ended": boolean,"wg": Omit<Database["wordleone"]['Tables']["games"]['Row'], Database["wordleone"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -2897,6 +2966,7 @@ isOneToOne: false
                   Row: {
                     "band": number | null,"beat_clock": boolean | null,"bonus": number,"created_at": string,"game_id": string,"id": number,"kind": string,"num": number,"score": number,"took_turn": boolean,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "band"?: number | null,"beat_clock"?: boolean | null,"bonus": number,"created_at"?: string,"game_id": string,"id"?: never,"kind": string,"num": number,"score": number,"took_turn"?: boolean,"user_id": string,"word": string
                   }
@@ -2916,6 +2986,7 @@ isOneToOne: false
                   Row: {
                     "band": number | null,"deck": (number)[],"drawn": (number)[],"game_id": string,"legal_band": number,"n_penalties": number | null,"n_rounds": number,"one_word": boolean,"round_style": string,"timer_seconds": number,"_is_one_word": boolean | null
                   }
+                  ComputedFields: "_is_one_word"
                   Insert: {
                     "band"?: number | null,"deck": (number)[],"drawn"?: (number)[],"game_id": string,"legal_band": number,"n_penalties"?: number | null,"n_rounds"?: number,"one_word"?: boolean,"round_style": string,"timer_seconds"?: number
                   }
@@ -2929,6 +3000,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"ready_for_num": number | null,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"ready_for_num"?: number | null,"user_id": string
                   }
@@ -2948,6 +3020,7 @@ isOneToOne: false
                   Row: {
                     "game_id": string,"num": number,"submitted_at": string,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "game_id": string,"num": number,"submitted_at"?: string,"user_id": string,"word": string
                   }
@@ -2973,6 +3046,7 @@ isOneToOne: false
                   Row: {
                     "ended_at": string | null,"fastest_user_id": string | null,"game_id": string,"no_flip_user_id": string | null,"num": number,"tiles": (number)[],"timer_started_at": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "ended_at"?: string | null,"fastest_user_id"?: string | null,"game_id": string,"no_flip_user_id"?: string | null,"num": number,"tiles": (number)[],"timer_started_at"?: string | null
                   }
@@ -3030,6 +3104,9 @@ isOneToOne: false
 "_finish":
 { Args: { "p_ended_by_user_id": string,"p_game_id": string }; Returns: undefined
                            },
+"_is_coop":
+{ Args: { "p_game_id": string }; Returns: boolean
+                           },
 "_is_everyone_in":
 { Args: { "p_game_id": string,"p_num": number }; Returns: boolean
                            },
@@ -3040,7 +3117,7 @@ isOneToOne: false
 { Args: { "p_band": number,"p_word": string }; Returns: boolean
                            },
 "_is_one_word":
-{ Args: { "g": Database["wordsy"]['Tables']["games"]['Row'] }; Returns: boolean
+{ Args: { "g": Omit<Database["wordsy"]['Tables']["games"]['Row'], Database["wordsy"]['Tables']["games"]['ComputedFields']> }; Returns: boolean
                            },
 "_make_json_events":
 { Args: { "p_game_id": string }; Returns: Json
@@ -3056,6 +3133,9 @@ isOneToOne: false
                            },
 "_make_json_summary_data":
 { Args: { "p_game_id": string,"p_status_changed_at": string }; Returns: Json
+                           },
+"_make_json_team":
+{ Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
 { Args: { "p_tiles": (number)[] }; Returns: Json
@@ -3077,6 +3157,9 @@ isOneToOne: false
 "_rebuild_data_cols_for_all":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"_reveal_coop_round":
+{ Args: { "g": Omit<Database["wordsy"]['Tables']["games"]['Row'], Database["wordsy"]['Tables']["games"]['ComputedFields']>,"p_higher": number,"p_lower": number,"r": Omit<Database["wordsy"]['Tables']["rounds"]['Row'], Database["wordsy"]['Tables']["rounds"]['ComputedFields']> }; Returns: undefined
+                           },
 "_root_of":
 { Args: { "p_word": string }; Returns: string
                            },
@@ -3086,11 +3169,17 @@ isOneToOne: false
 "_slot_value":
 { Args: { "p_slot": number }; Returns: number
                            },
+"_takes_penalty":
+{ Args: { "p_band": number,"p_score": number }; Returns: boolean
+                           },
 "_tile_bonus":
 { Args: { "p_id": number }; Returns: number
                            },
 "_tile_letter":
 { Args: { "p_id": number }; Returns: string
+                           },
+"_title_for":
+{ Args: { "p_total": number }; Returns: string
                            },
 "_write_static_game_data":
 { Args: { "p_game_id": string }; Returns: undefined
@@ -3129,6 +3218,7 @@ isOneToOne: false
                   Row: {
                     "found_at": string,"game_id": string,"is_bonus": boolean,"is_pangram": boolean,"points": number,"user_id": string,"word": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "found_at"?: string,"game_id": string,"is_bonus": boolean,"is_pangram": boolean,"points": number,"user_id": string,"word": string
                   }
@@ -3148,6 +3238,7 @@ isOneToOne: false
                   Row: {
                     "bonus_words": NonNullable<Json>,"center_letter": string,"game_id": string,"legal_band": number,"n_reqd_words": number,"outer_letters": string,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_rank": number | null,"_make_json_puzzle": Json | null,"_make_json_tiles": Json | null
                   }
+                  ComputedFields: "_make_json_puzzle" | "_make_json_tiles"
                   Insert: {
                     "bonus_words": NonNullable<Json>,"center_letter": string,"game_id": string,"legal_band": number,"n_reqd_words": number,"outer_letters": string,"reqd_words_score": number,"required_band": number,"required_words": NonNullable<Json>,"target_rank"?: number | null
                   }
@@ -3161,6 +3252,7 @@ isOneToOne: false
                   Row: {
                     "band": number,"has_rare_letters": boolean,"letters": string,"mask": number | null,"word_counts": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "band": number,"has_rare_letters": boolean,"letters": string,"mask"?: never,"word_counts": NonNullable<Json>
                   }
@@ -3186,7 +3278,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_puzzle":
-{ Args: { "g": Database["wordwheel"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["wordwheel"]['Tables']["games"]['Row'], Database["wordwheel"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_static_game_data":
 { Args: { "p_game_id": string }; Returns: Json
@@ -3198,7 +3290,7 @@ isOneToOne: false
 { Args: { "p_game_id": string }; Returns: Json
                            },
 "_make_json_tiles":
-{ Args: { "g": Database["wordwheel"]['Tables']["games"]['Row'] }; Returns: Json
+{ Args: { "g": Omit<Database["wordwheel"]['Tables']["games"]['Row'], Database["wordwheel"]['Tables']["games"]['ComputedFields']> }; Returns: Json
                            },
 "_make_json_word":
 { Args: { "p_bonus": boolean,"p_word": Json }; Returns: Json

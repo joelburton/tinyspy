@@ -40,7 +40,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   // facts): spread on, the side's — the team's in coop, their own in compete;
   // under `own`, their own. A coop rack is the team's alone, so it is every
   // player's own too.
-  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null }
+  const gameFacts = { mode: raw.mode, ended: raw.ended, reason: ending?.reason ?? null, goalScore: team?.goalScore ?? null }
   const players: GPlayer[] = raw.players.map(function makePlayer(p) {
     const tiedWithNames = raw.players
       .filter((o) => o.id !== p.id && p.finalRanking !== null && o.finalRanking === p.finalRanking)

@@ -63,16 +63,29 @@ describe('scrabble setup — what it offers', () => {
     ])
   })
 
-  it('offers a swap cost in co-op only, after the dictionaries', () => {
+  it('offers a point goal and a swap cost in co-op only, after the dictionaries', () => {
     expect(fieldNames(draw({ mode: 'coop' }).container)).toEqual([
       'player_user_ids',
       'coop_style',
       'dict_2',
       'dict_3plus',
+      'goal_kind',
       'swap_cost',
       'timer',
     ])
+    expect(fieldNames(draw().container)).not.toContain('goal_kind')
     expect(fieldNames(draw().container)).not.toContain('swap_cost')
+  })
+
+  it('asks for the points only once there is a goal', () => {
+    expect(fieldNames(draw({ mode: 'coop', values: { goal_score: 300 } }).container))
+      .toContain('goal_score')
+  })
+
+  it('choosing a goal starts it at 300', async () => {
+    const { set } = draw({ mode: 'coop' })
+    await userEvent.click(screen.getByRole('radio', { name: 'Goal' }))
+    expect(set).toHaveBeenCalledWith('goal_score', 300)
   })
 
   it('offers no AI in co-op, where there is nobody to play against', () => {

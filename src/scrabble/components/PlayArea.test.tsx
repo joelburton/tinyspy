@@ -14,11 +14,13 @@ import { db } from '../db'
 import {
   ZTest_CONCEDED,
   ZTest_makeScrabbleCtx,
+  ZTest_pass,
   ZTest_word,
   type ZTest_GameDataFacts,
   type ZTest_PlayerFacts,
 } from '../lib/gameData.fixture'
 import { PlayAreaLoader } from './PlayArea'
+import { DEFAULT_SCRABBLE_SETUP } from '../lib/setup'
 
 /**
  * scrabble's PLAY SURFACE — the mounted tree, which is the one layer its other
@@ -326,6 +328,20 @@ describe('scrabble PlayArea — the ending', () => {
     expect(screen.queryByText(/Every tile played!/)).toBeNull()
   })
 
+  it('coop: a goal met on the timer celebrates the goal, not the tiles', () => {
+    const GOAL_MET: ZTest_GameDataFacts = {
+      setup: { ...DEFAULT_SCRABBLE_SETUP, goal_score: 300 },
+      ending: { reason: 'timeout', detail: 'timeout', by: null },
+      outcome: 'won',
+      players: [{ ...ME, outcome: 'won', finalRanking: 1 }],
+    }
+    const { rerender } = render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ setup: GOAL_MET.setup })} />)
+    rerender(<PlayAreaLoader {...ZTest_makeScrabbleCtx(GOAL_MET)} />)
+    expect(screen.getByText(/Goal reached!/)).toBeInTheDocument()
+    expect(screen.queryByText(/Every tile played!/)).toBeNull()
+    expect(screen.getByText('Won (reached 300)')).toBeInTheDocument()
+  })
+
   it('compete: a tie for first names the other winner after the word', () => {
     render(
       <PlayAreaLoader
@@ -561,6 +577,33 @@ describe('scrabble PlayArea — pass', () => {
   })
 })
 
+describe('scrabble PlayArea — pass in coop', () => {
+  const GOAL = { ...DEFAULT_SCRABBLE_SETUP, goal_score: 300 }
+  const TWO = [ME, { id: 'u2', username: 'bea', color: 'blue' }] satisfies ZTest_PlayerFacts[]
+
+  it('has no Pass with no goal', () => {
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ players: TWO })} />)
+    expect(screen.queryByRole('button', { name: 'Pass' })).toBeNull()
+  })
+
+  it('offers Pass with a goal, and asks about ending the game', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <PlayAreaLoader {...ZTest_makeScrabbleCtx({ setup: GOAL, players: TWO })} />
+        <ConfirmationHost />
+      </>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Pass' }))
+    expect(await screen.findByText(/Once every player has passed/)).toBeInTheDocument()
+  })
+
+  it('waits once I have passed, until a teammate passes too', () => {
+    render(<PlayAreaLoader {...ZTest_makeScrabbleCtx({ setup: GOAL, players: TWO, events: [ZTest_pass(1, 'u1')] })} />)
+    expect(screen.getByRole('button', { name: 'Pass' })).toBeDisabled()
+  })
+})
+
 describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
   it('+ at the end deals a new game with no question, people only', async () => {
     rpc.mockResolvedValue(okEnvelope({ result: 'created', id: 'next-game-id' }))
@@ -570,7 +613,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith('create_game', {
         p_club_handle: 'testclub',
-        p_setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
+        p_setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, goal_score: null, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
         p_player_user_ids: ['u1'],
         p_mode: 'coop',
       }),

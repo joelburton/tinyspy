@@ -86,7 +86,8 @@ function PlayArea({
   const infoSheet = useInfoSheet()
 
   // Confetti the moment the win is MINE, as the server ranked it: the team's
-  // in coop (every tile played), mine in a race, a tie included.
+  // in coop (every tile played, or the goal reached), mine in a race, a tie
+  // included.
   const celebration = useCelebration(gd.ended && gd.me.outcome === 'won')
 
   // A bot holding the turn plays it.
@@ -174,7 +175,10 @@ function PlayArea({
 
       {celebration.isOpen && (
         <CelebrationBlockingModal
-          title={gd.coop ? 'Every tile played! 🎉' : 'You win! 🎉'}
+          title={!gd.coop
+            ? 'You win! 🎉'
+            // A coop game from before the goal has none (setup.goal_score absent).
+            : (gd.setup.goal_score ?? null) === null ? 'Every tile played! 🎉' : 'Goal reached! 🎉'}
           onClose={celebration.close}
         />
       )}

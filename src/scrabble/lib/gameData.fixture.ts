@@ -151,7 +151,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     version = 0,
     nBagTiles = 86,
     clubHandle = 'testclub',
-    setup = { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
+    setup = { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' }, swap_cost: 5, goal_score: null, ai_count: 0, ai_level: 'strong', coop_style: 'free-for-all' },
     teamRack = ZTest_RACK,
     events = [],
     players: playerFacts = [{ id: 'u1', username: 'me', color: 'red' }],
@@ -163,6 +163,9 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   const coop = mode === 'coop'
   const turnBased = turnHolderId !== undefined
 
+  // Who passed since the last word or swap, as `scrabble._passed_players`.
+  const lastMove = events.findLastIndex((e) => e.kind === 'word' || e.kind === 'exchange')
+  const passedIds = new Set(events.slice(lastMove + 1).filter((e) => e.kind === 'pass').map((e) => e.userId))
   const players = playerFacts.map(function makePlayer(p, i): GPlayerRaw {
     const stillPlaying = !ended && (p.ending ?? null) === null
     const onTurn = stillPlaying && (!turnBased || turnHolderId === p.id)
@@ -187,6 +190,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       score: sumScores(rows),
       rack,
       nRackTiles: rack === null ? null : rack.length,
+      passed: coop ? passedIds.has(p.id) : null,
     }
   })
 
@@ -210,6 +214,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     team: coop
       ? {
         rack: teamRack,
+        goalScore: setup.goal_score,
         score: players.reduce((n, p) => n + p.score, 0)
           + sumScores(events.filter((e) => e.kind === 'leftovers' || e.kind === 'exchange')),
         nRackTiles: teamRack.length,

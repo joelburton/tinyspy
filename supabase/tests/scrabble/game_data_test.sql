@@ -114,7 +114,7 @@ select is(
   (select summary_data - 'id' - 'gametype' - 'title' - 'statusChangedAt' - 'ended' - 'outcome' - 'ending'
                        - 'players'
      from common.games where id = (select id from g where mode = 'coop')),
-  '{"team": {"score": 0}, "nBagTiles": 93, "winnerScore": null}'::jsonb,
+  '{"team": {"score": 0, "goalScore": null}, "nBagTiles": 93, "winnerScore": null}'::jsonb,
   'a fresh coop summary: the team''s score, the bag, no winning score');
 select is(
   (select summary_data->'team' from common.games where id = (select id from g where mode = 'compete')),
@@ -209,7 +209,7 @@ reset role;
 select is(
   (select jsonb_build_object('team', summary_data->'team', 'outcome', summary_data->'outcome')
      from common.games where id = (select id from g where mode = 'coop')),
-  '{"team": {"score": -23}, "outcome": "neutral"}'::jsonb,
+  '{"team": {"score": -23, "goalScore": null}, "outcome": "neutral"}'::jsonb,
   'a coop Stop: the team''s 4 less the rack''s 27 (s e r d x y z), and no verdict');
 
 -- ─── (5) A Restart empties it all again ───

@@ -46,8 +46,8 @@ export function Help({ onClose, brand }: Props) {
         </li>
         <li>
           Stuck? Tap tiles to pick them and <strong>Swap</strong> them for new
-          ones (needs ≥ 7 tiles left in the bag). In compete you can also{' '}
-          <strong>Pass</strong>.
+          ones (needs ≥ 7 tiles left in the bag). In compete, and in coop with a
+          point goal, you can also <strong>Pass</strong>.
         </li>
       </ul>
       <p>
@@ -55,8 +55,13 @@ export function Help({ onClose, brand }: Props) {
         together over chat; anyone can play it. A swap costs the team the
         points set up for the game (5 unless you chose otherwise). <strong>Suggest</strong> asks
         for the best moves, and <strong>Show move to team</strong> lays yours
-        out on their boards. Play every tile and the team wins; if the timer
-        runs out first, the game just ends. <strong>Compete:</strong> your own
+        out on their boards. With no goal, play every tile and the team wins;
+        if the timer runs out first, the game just ends. With a{' '}
+        <strong>point goal</strong>, the game ends when the tiles or the timer
+        run out, or once every player has passed since the last word or swap,
+        and the team wins if its final score reaches the goal, and loses if
+        not.{' '}
+        <strong>Compete:</strong> your own
         rack, taking turns; highest score when the tiles run out wins, and a
         tie goes to the higher score before leftover tiles count.
       </p>

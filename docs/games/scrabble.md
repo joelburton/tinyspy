@@ -166,11 +166,15 @@ and the tile scores 0 forever.
   costs the team `setup.swap_cost` points (default 5, any whole number from 0),
   the exchange row's negative `score`; a coop game started before the setting
   swaps free.
-- **Pass:** forfeit the turn with no play. Compete only (coop has no turns —
-  the coop "we're stuck" path is exchange-if-possible or **Stop game**). Feeds
-  the **consecutive-pass streak** that ends a blocked game, which is why it asks
-  first — scrabble's own question (`PASS_CONFIRM`, through `askConfirmation`),
-  since the registry's `act-pass` carries none.
+- **Pass:** forfeit the turn with no play. In compete it feeds the
+  **consecutive-pass streak** that ends a blocked game. In **coop with a point
+  goal** it is the team's way to end the game without playing every tile: the
+  game ends once every player still in has passed since the last word or swap
+  ([§2.7](#27-ending-the-game)), and a player who has passed waits, their Pass
+  disabled. Coop with no goal has no Pass (its "we're stuck" path is exchange
+  or **Stop game**). Either way it asks first — scrabble's own question
+  (`PASS_CONFIRM` / `COOP_PASS_CONFIRM`, through `askConfirmation`), since the
+  registry's `act-pass` carries none.
 
 ### 2.7 Ending the game
 
@@ -178,7 +182,7 @@ Two natural end triggers, plus the universal manual / timeout paths:
 
 - **Going out:** the bag is empty **and** a player empties their rack (compete)
   / the shared rack is empty (coop). The classic end.
-- **Blocked (compete only):** **every player still in passed in a row** — one lap of
+- **Blocked:** in compete, **every player still in passed in a row** — one lap of
   the table with nobody willing to play. A deliberate *casual* house rule
   (2026-08-01) in place of tournament Scrabble's 6 consecutive scoreless turns,
   which drags a decided game out. The threshold is the count of players still
@@ -186,8 +190,12 @@ Two natural end triggers, plus the universal manual / timeout paths:
   conceded, two passes end it. An **exchange clears the streak** rather than
   feeding it — swapping tiles is a real attempt to move, and (needing a 7+ tile
   bag) it's impossible in the endgame where blocked-ends actually happen.
-  **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
-  or **Stop game**.
+  **Coop with a point goal** ends `all_passed` / `blocked` once every player
+  still in has passed since the last word or swap (`scrabble._passed_players`;
+  a free-for-all table has no rotation to count a streak along), and is
+  judged against the goal like the clock. **Coop with no goal has no
+  blocked-end** (and no passes): it ends *only* on going-out, the clock or
+  **Stop game**.
 - **Manual end** (`stop_game`): any player stops the game. **Compete** is the
   uniform neutral stop ([common-schema.md →
   Stop](../common-schema.md#stop--every-gametypes-stop_game)) —
@@ -213,10 +221,18 @@ ends through `common._end_game` ([docs/win-lose.md](../win-lose.md)):
 - **Coop:** the team's score is the players' own scores summed, less its
   swaps' costs ([§2.6](#26-exchange--pass)) and the
   shared rack's leftovers — one `leftovers` row, in the name of whoever's act
-  ended the game. **Playing every tile is a win** (`resource_exhausted` /
-  `complete`, the whole team ranked 1): "Won (every tile played)", and it
-  celebrates. **The clock, with tiles left over, is no result** (`timeout`,
-  nobody ranked, neutral): "Ended (out of time)". A coop table cannot lose.
+  ended the game. **With no point goal** (the default), **playing every tile
+  is a win** (`resource_exhausted` / `complete`, the whole team ranked 1):
+  "Won (every tile played)", and it celebrates. **The clock, with tiles left
+  over, is no result** (`timeout`, nobody ranked, neutral): "Ended (out of
+  time)". A coop table without a goal cannot lose.
+  **With a point goal** (`setup.goal_score`, any number from 1), every end but
+  a Stop — every tile played, the clock, every player passing
+  ([§2.6](#26-exchange--pass)) — is judged on the **final score**, after the
+  leftovers: at or over the goal the whole team is ranked 1, "Won (reached
+  300)", and it celebrates "Goal reached!"; under it nobody is ranked and the
+  team lost, "Lost (short of 300)". Reaching the goal mid-game decides nothing — play goes on, and the
+  leftovers can still pull the team back under.
   **A Stop is neutral**
   (`stopped`), **but not free in coop**: tiles still in hand cost their value,
   the same penalty a natural end applies, so a team is pushed to find plays
@@ -304,7 +320,7 @@ tables: it reads the two blobs on `common.games` (below).
 
 | table | what it holds | granted to a club member |
 |---|---|---|
-| `games` | one row per game, keyed `game_id`. `dict_2` + `dict_3plus` (the two acceptance bands), `board` jsonb (a flat 225-cell array of `{l, b}` or null — the RPCs' working state, and the shape the AI reads), `bag` text[] (the remaining draw order), `version` int (the move counter for optimistic concurrency — see [§6](#6-where-validation-lives)), `team_rack` text[] (coop's one rack; null in compete), `consecutive_passes` (compete's blocked-end counter). The mode and the club are `common.games`'. | `game_id`, `board`, `version`, `team_rack`, `consecutive_passes` — never the bands or the bag |
+| `games` | one row per game, keyed `game_id`. `dict_2` + `dict_3plus` (the two acceptance bands), `board` jsonb (a flat 225-cell array of `{l, b}` or null — the RPCs' working state, and the shape the AI reads), `bag` text[] (the remaining draw order), `deal` text[] (the bag as `create_game` shuffled it, which Restart deals again; null on a game from before it, until its first Restart), `version` int (the move counter for optimistic concurrency — see [§6](#6-where-validation-lives)), `team_rack` text[] (coop's one rack; null in compete), `consecutive_passes` (compete's blocked-end counter). The mode and the club are `common.games`'. | `game_id`, `board`, `version`, `team_rack`, `consecutive_passes` — never the bands, the bag or the deal |
 | `players` | PK `(game_id, user_id)`; every player, bot or person, is found by `user_id`. `score` is the player's own in both modes — the points from the words they played, less their leftovers in compete. `rack` is compete's (null in coop). `ai_level` is non-null on a bot's row: its strength in this game. A compete game's turn order is `common.game_players.turn_seat`: people, then bots. | everything but `rack` |
 | `events` | the move log, keyed by a `bigint identity` and read `order by id`. `user_id` is the player whose row it is. `kind`: `word` (`placements` jsonb `[{x, y, letter, blank}]`, `words`, `score`) / `exchange` (`tile_count`, `exchanged`: the tiles put back; in coop a `score` of minus the swap cost, null in compete) / `pass` / `leftovers` (negative `score`, the rack's `tile_count`) / `went_out` (positive `score`). `rack` is the rack the move was played from — a `leftovers` row's, the rack it counted; a `went_out` row's, empty; null on rows from before 2026-10-10. `took_turn` is true on the three moves and false on the two rows an ending writes. | everything but `rack` and `exchanged` |
 
@@ -334,13 +350,13 @@ common part:
 | `version` | the move counter every move sends back |
 | `nBagTiles` | the tiles left in the bag; the bag's order never leaves the server |
 | `board.letters` | the one board, shared in both modes: 225 characters, row by row — `.` an empty cell, `c` a C tile, `C` a blank played as C. Case carries the blank, and `makeGameData` is its one reader, decoding each cell into a `GCell` holding its `GTile` |
-| `team` | coop's own facts, sent once: `{rack, score, nRackTiles}`; null in compete |
+| `team` | coop's own facts, sent once: `{rack, score, goalScore, nRackTiles}` (`goalScore` the setup's point goal, null for none); null in compete |
 | `events` | every row, every player's: `id`, `userId`, `kind`, `placements` (a word's tiles as `"x,y:c"`, the board's case rule), `words`, `score`, `nTiles`, `rack` and `exchanged` (every rack; `makeGameData` withholds a rival's mid-race, as it does the players'), `tookTurn`, `at` |
-| `players` | the common player, plus `aiLevel`, `score` (own, every mode), `rack` and `nRackTiles` (compete; null in coop) |
+| `players` | the common player, plus `aiLevel`, `score` (own, every mode), `rack` and `nRackTiles` (compete; null in coop), `passed` (coop: passed since the last word or swap; null in compete) |
 
 | `summary_data` key | what it is |
 |---|---|
-| `team` | coop's `{score}`; null in compete |
+| `team` | coop's `{score, goalScore}`; null in compete |
 | `nBagTiles` | the tiles left in the bag |
 | `winnerScore` | the score every player ranked first shares — a compete tie shares rank 1; null in coop, or with no winner |
 
@@ -370,8 +386,9 @@ at least one human always — an empty roster is rejected); compete additionally
 requires the **total** (humans + `setup.ai_count`) to be 2–4, so a solo human
 vs an AI is a legal compete table but a 1-seat "race" is not. Reads
 `setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), and in coop
-`setup.swap_cost` (0 or more, default 5; `PN561` below 0), which it writes into
-the setup the game keeps. Then:
+`setup.swap_cost` (0 or more, default 5; `PN561` below 0) and
+`setup.goal_score` (1 or more, or null for no goal, the default; `PN562` below
+1), which it writes into the setup the game keeps. Then:
 
 - Builds the 100-tile bag and **shuffles** it (`order by random()`); the shuffle
   is the only randomness — no board library, no builder edge function.
@@ -457,7 +474,7 @@ and that is why "Game over" and "Not your turn" are races too.
 | `PN243` "Not your turn" | `race` | the turn pointer, from `common._require_turn` |
 | `PN439`–`PN442` `BUG: …` | `fault` | no word formed, a tile off the board, on an occupied cell, not in the rack |
 | `PN449` / `PN450` `BUG: a swap of no tiles` / `…against a bag under seven` | `fault` | |
-| `PN454` `BUG: a pass in a coop game` | `fault` | see Deferred — the rule itself is in question |
+| `PN454` `BUG: a pass in a coop game with no goal` | `fault` | see Deferred |
 | `PN443` / `PN451` / `PN458` `BUG: a move from a player with no seat` | `fault` | the person's wrappers, through `_require_person` |
 | `PN444` / `PN452` / `PN459` `BUG: an AI move for a player who is not a bot` | `fault` | the AI wrappers, through `_require_bot` |
 | `PN485` "That game was already deleted" | `race` | `common._raise_game_deleted`, asked by every wrapper's gate before the membership gate — a friend may delete the game from the club list |
@@ -477,15 +494,16 @@ no blocked-end) that costs the team `setup.swap_cost`, written as the row's
 negative `score`. Under **coop turn-by-turn** (setup `coop_style = 'turns'`) the
 shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
-(There's no coop pass — `pass_turn` is compete-only, which is the rule now in
-question: see Deferred — so only `_commit_word` and `_commit_exchange` carry the
-common gate.) Answers an `ok` · `{result:'exchanged', drawn}`; an exchange
+(`_commit_pass` carries the same gate, for a coop game with a goal.) Answers an `ok` · `{result:'exchanged', drawn}`; an exchange
 never ends a game. A CAS miss is `PN447`, a race, exactly as `play_word`'s.
 
-### 5.4 `pass_turn(p_game_id, p_base_version)` (compete only)
+### 5.4 `pass_turn(p_game_id, p_base_version)` (compete, and coop with a goal)
 
 Advances the turn, `consecutive_passes += 1`, logs `kind='pass'`, checks the
-blocked-end condition (streak == the players still in). Like the other moves it takes
+blocked-end condition: in compete, the streak == the players still in; in coop,
+every player still in has passed since the last word or swap
+(`_passed_players`). A coop game with no goal refuses it (`PN454`, a fault: the
+page shows no Pass there). Like the other moves it takes
 `base_version` and runs the optimistic-concurrency gate. Answers an `ok` ·
 `{result:'passed'}` — a pass is a turn that counts and that nothing
 adjudicates — or `PN456`, a race, on a CAS miss.
@@ -495,11 +513,12 @@ adjudicates — or `PN456`, a race, on a CAS miss.
 The "Restart" menu item / ending-row Restart. Note what "the board" means
 here: scrabble's 15×15 premium grid is the **standard layout**, the same for
 every game — not a generated puzzle. So unlike waffle/wordle there is nothing to
-restore, and a replay **re-deals**: freshly shuffled bag, new racks, empty grid,
-keeping the setup (club, players and bots, turn order, dictionary bands). "Same
-table, new deal", not "same puzzle again" — which is also why replay and New
-game differ less here than elsewhere (New game additionally mints a NEW game
-row, leaving this one in the club's list).
+restore, and a replay **deals the same game again**: `games.deal`, the bag as
+`create_game` shuffled it, so every rack is the one first dealt and the draws
+come in the same order, on an empty grid, keeping the setup (club, players and
+bots, turn order, dictionary bands). New game shuffles a new bag on a NEW game
+row, leaving this one in the club's list. A game created before `deal` existed
+has none: its first replay shuffles afresh and keeps that deal.
 
 Any game player may call it, from a finished game OR mid-game; both modes reset
 every player. Three subtleties:
@@ -509,9 +528,9 @@ every player. Three subtleties:
   holding a stale mid-game version play against the fresh deal; bumping keeps
   it monotonic so every in-flight move fails its check — correct, since that
   move was for the old deal.
-- **Compete re-randomizes the opener**, matching `create_game`: the deal is
-  new, so who opens is drawn afresh — after `common._reset_game`, which rewinds
-  the turn to `turn_seat` 0.
+- **Compete re-randomizes the opener**, matching `create_game`: the racks are
+  the first deal's, but who opens is drawn afresh — after `common._reset_game`,
+  which rewinds the turn to `turn_seat` 0.
 - **Coop turn-order rewinds** to the player seated first
   (`game_players.turn_seat = 0`) — `common._reset_game` does it. The rotation
   was assigned at create time and doesn't change, so this restores the original
@@ -618,10 +637,10 @@ square that fits, like waffle/boggle) and, directly below it, the **rack and
 the move row** (the rack *is* the input, so it lives with everything needed to
 play). That row is pinned to the board width: the rack, with Shuffle
 (`act-shuffle`, `⌥Z`) floating over its corner; then Recall
-(`act-recall-tiles`) and Show move (`act-share-preview`, coop with a teammate) on
+(`act-recall-tiles`, `⇧⌫`) and Show move (`act-share-preview`, coop with a teammate) on
 the left of the controls; and the **move slot** on the right — Swap
 (`act-exchange`, icon-only, carrying its own reason when it can't act), Pass
-(`act-pass`, compete only, the end-turn octagon in the registry's caution
+(`act-pass`, compete and coop with a point goal, the end-turn octagon in the registry's caution
 tone) and Submit (`SubmitWithScore` over `act-submit`, doubling as the live
 score, "+23", an em-dash with nothing staged). The move slot doubles as the
 **local feedback area**: while the slot holds a message — a move's answer, a
@@ -651,7 +670,7 @@ without page scroll. Guard: `e2e/scrabble-mobile.e2e.ts`.
 rearrange tiles to hunt for anagrams). Or tap a cell to put the keyboard cursor
 there and type: an arrow moves the cursor, a sideways arrow turns it, a letter
 stages a rack tile for it (or a blank declared as it) and moves on past played
-tiles, ⌫ takes one back — the shared `useBoardCursorKeys`, with Submit as its
+tiles, ⌫ takes one back and ⇧⌫ all of them — the shared `useBoardCursorKeys`, with Submit as its
 commit (Enter). Or tap a rack tile, then tap an empty cell: one picked tile is
 placed there; with two or more picked, a tap on a cell does nothing, since it
 can't say which. A tap on a rack tile picks it — to place, or for a Swap.
@@ -860,7 +879,7 @@ commit, not the TS-owned geometry and scoring:
 - `turn_order` / `compete_turn_order` — coop's opt-in turns and compete's turn
   on the common pointer: people then bots, the out-of-turn race, the turn
   handed on, a conceder skipped, a restart.
-- `replay` — the re-deal ([§5.5](#55-replay_board)).
+- `replay` — the same deal again ([§5.5](#55-replay_board)).
 - `concede` — the turn-based concede ([§5.6](#56-stop_game--concede--submit_timeout)).
 - `ai_players` — the bots ([§12](#12-the-ai-opponent-compete)).
 - `get_suggest_context` — the suggester's door ([§11](#11-the-move-suggester-ai)).
@@ -1009,23 +1028,14 @@ function).
 
 ## Deferred
 
-**Passing is refused in turn-by-turn coop, and probably should not be** (raised
-2026-09-01, converting the area to envelopes). Scrabble supports the opt-in
-coop turn pointer — `create_game` seats it when `setup.coop_style = 'turns'`,
-and BOTH other move cores respect it: `_commit_word` and `_commit_exchange`
-each `perform common._require_turn` and `_advance_turn`. `_commit_pass` is the
-odd one out: it refuses coop outright, on the stated grounds that *"coop has no
-turns to pass"* — which was true before opt-in turn coop landed and is not true
-now.
-
-Deliberately left alone rather than fixed in passing, because allowing it is a
-GAMEPLAY decision with a second question inside it: compete's pass feeds
-`consecutive_passes`, the blocked-end counter, and coop has no blocked end. So
-a coop pass either stays a pure hand-off — the shape letterboxed's undo takes,
-priced at one turn — or it becomes a way for a coop game to end in a stalemate,
-which is a rule this game does not have today. The FE's `act-pass` is hidden in
-coop, so nothing is broken meanwhile; the refusal is a fault (PN452) for
-exactly that reason.
+**Passing is refused in turn-by-turn coop with no goal, and perhaps should
+not be** (raised 2026-09-01). A coop game WITH a point goal passes: there a
+pass is a vote to end the game and be judged against the goal. Without a goal
+there is nothing to be judged against, so a pass could only be a pure hand-off
+of the turn — the shape letterboxed's undo takes, priced at one turn — and
+whether turn-by-turn coop wants that is a gameplay decision not yet made. The
+FE's `act-pass` is hidden there, so nothing is broken meanwhile; the refusal
+is a fault (PN454) for exactly that reason.
 
 **The AI suggest-a-move box is the one SelectionList site that didn't convert,
 and the choice is still open.** It was on the roster for

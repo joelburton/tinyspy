@@ -113,6 +113,42 @@
   outline-offset: 1px;
 }
 
+/* ─── Hover: a tile that can still move ─── */
+
+/* A rack tile not already on the board, or a board tile laid this turn, rises
+ * while its shadow falls away — the gap between them IS the elevation, as on
+ * wordwheel's and letterboxed's tiles. `z-index` lifts it over the cells and
+ * slots beside it, which would otherwise paint over its shadow. A picked tile
+ * keeps its own, higher, lift.
+ *
+ * Only on a device that really hovers: a touchscreen keeps `:hover` on the
+ * last-tapped tile (common/tooltips/doc.md). */
+@media (hover: hover) {
+/* @@ */   .tile:not(.locked):not(.used):not(.lifted):hover {
+    z-index: 1;
+    transform: translateY(-2px);
+    box-shadow: var(--tile-hover-shadow);
+  }
+/* @@ */   .tile.picked:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* Pressed: back down, slightly smaller, slightly darker. */
+/* @@ */ .tile:not(.locked):not(.used):not(.lifted):active {
+  transform: translateY(0) scale(0.96);
+  filter: brightness(0.92);
+}
+
+/* Reduced motion: the movement goes, the shadow and the darkening stay. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.locked):not(.used):not(.lifted):hover,
+/* @@ */   .tile.picked:hover,
+/* @@ */   .tile:not(.locked):not(.used):not(.lifted):active {
+    transform: none;
+  }
+}
+
 /* ─── The glyph ─── */
 
 /* @@ */ .letter {

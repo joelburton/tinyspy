@@ -159,9 +159,9 @@ export type GGameDataRaw = Omit<GameDataRaw, 'setup' | 'players'> & {
   board: {
     letters: string
   }
-  // The team's own facts, sent once: the one rack and the score. Null in
-  // compete, where there is no team.
-  team: GFactsRaw | null
+  // The team's own facts, sent once: the one rack, the score and the point
+  // goal. Null in compete, where there is no team.
+  team: GTeamRaw | null
   // The log: every row, in the order of play.
   events: GEventRaw[]
   players: GPlayerRaw[]
@@ -191,6 +191,13 @@ export type GFactsRaw = {
   score: number
   rack: string[]
   nRackTiles: number
+}
+
+/** The coop team's facts as the blob carries them: its side's facts, and the
+ *  setup's point goal, which a natural end's final score must reach to win;
+ *  null for no goal. */
+export type GTeamRaw = GFactsRaw & {
+  goalScore: number | null
 }
 
 /** The one board as `gd` holds it. */
@@ -263,6 +270,9 @@ export type GPlayerRaw = PlayerRaw & {
   rack: string[] | null
   // Compete; null in coop.
   nRackTiles: number | null
+  // Coop: passed since the last word or swap — once every player has, the
+  // game ends. Null in compete.
+  passed: boolean | null
 }
 
 /*
@@ -297,6 +307,7 @@ export type GPlayerRaw = PlayerRaw & {
  *   score                                    # the side's: the team's in coop, their own in compete
  *   rack                                     # a rival's null mid-race
  *   nRackTiles
+ *   passed                                   # coop: since the last word or swap; null in compete
  *   board:                                   # the one board, the same object on every player
  *     cells: [cell, …]                       # 225, row by row
  *     cellsById
@@ -485,6 +496,10 @@ export type GSetupValues = CoopTurnSetup & {
   // Coop only: what a swap takes off the team's score, 0 or more. Ignored in
   // compete.
   swap_cost: number
+  // Coop only: the final score a natural end must reach for the team to win,
+  // 1 or more; null for no goal, where playing every tile wins. Ignored in
+  // compete.
+  goal_score: number | null
   // Compete only: this many bots (0..3), all at `ai_level`. Ignored in coop.
   ai_count: number
   ai_level: GAiLevel
@@ -509,7 +524,7 @@ export type GSetup = SetupOf<GSetupValues>
  * coop, or with no winner.
  */
 export type GSummaryData = SummaryData & {
-  team: { score: number } | null
+  team: { score: number; goalScore: number | null } | null
   nBagTiles: number
   winnerScore: number | null
 }

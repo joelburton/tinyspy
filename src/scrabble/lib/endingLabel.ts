@@ -8,10 +8,11 @@ import type { PlayerRaw } from '@/common/game-page/gameData'
  * How one scrabble player came out, or null while they still play: the common
  * type and word, and what scrabble adds after the word.
  *
- * Coop wins by playing every tile ("Won (every tile played)"); the timer with
- * tiles left over is no result ("Ended (out of time)"), so a coop table cannot
- * lose. Compete ranks by final score, a tie broken by the score before the
- * leftovers; one that survives it names the others at the same place ("tied
+ * Coop with no goal wins by playing every tile ("Won (every tile played)");
+ * the timer with tiles left over is no result ("Ended (out of time)"), so the
+ * table cannot lose. Coop with a point goal is judged on its final score at
+ * every end but a Stop: "Won (reached 300)" or "Lost (short of 300)". Compete
+ * ranks by final score, a tie broken by the score before the leftovers; one that survives it names the others at the same place ("tied
  * with bea"). A player who played no word has no place.
  *
  * The pill is the word alone: scrabble's pill sits in the room the move
@@ -24,6 +25,8 @@ export function makeEndingLabel(
     mode: 'coop' | 'compete'
     ended: boolean
     reason: GameEndedReason | null
+    // Coop's point goal; null for none, and always in compete.
+    goalScore: number | null
   },
   // The other players ranked at this player's place, by name; empty for none.
   tiedWithNames: string[],
@@ -44,7 +47,8 @@ export function makeEndingLabel(
 
   switch (result.labelType) {
     case 'won':
-      return { ...base, long: game.mode === 'coop' ? 'every tile played' : tie }
+      if (game.mode === 'compete') return { ...base, long: tie }
+      return { ...base, long: game.goalScore === null ? 'every tile played' : `reached ${game.goalScore}` }
     case 'placed':
       return { ...base, long: tie }
     case 'stopped':
@@ -52,8 +56,9 @@ export function makeEndingLabel(
     case 'conceded':
       return { ...base, long: game.ended ? '' : 'game continues' }
     case 'lost':
-      // Only compete loses, and only a player who played no word is unranked
-      // without conceding.
+      // Coop loses only short of a goal; in compete, only a player who played
+      // no word is unranked without conceding.
+      if (game.mode === 'coop') return { ...base, long: `short of ${game.goalScore!}` }
       return { ...base, long: 'no words played' }
     default:
       throw new Error(`BUG: scrabble never ends a player ${result.labelType}`)

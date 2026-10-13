@@ -272,7 +272,8 @@ wins.**
     game ended by concession, even when every other player had spent their
     budget; it is the act that ended the game that counts.
 - **`all-passed`** — this game ended because every active player passed in
-  a row (scrabble compete).
+  a row (scrabble compete; in scrabble coop with a point goal, every player
+  since the last word or swap).
   - Doesn't mean: `resource-exhausted`. Nothing ran out; nobody would move.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it

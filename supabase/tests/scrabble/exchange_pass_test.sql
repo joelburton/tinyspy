@@ -5,7 +5,7 @@
 -- ============================================================
 -- Exchange returns tiles to the bag, reshuffles, redraws the same count
 -- (needs bag ≥ 7). Pass forfeits a compete turn. Both bump version and
--- advance the turn (coop has no pass), but they treat the blocked-end
+-- advance the turn (coop with no goal has no pass; goal_test has coop's), but they treat the blocked-end
 -- streak oppositely: a pass feeds it, an exchange clears it. Either one into
 -- a game a friend just deleted is the shared race (PN485). A coop swap costs
 -- the team setup.swap_cost (default 5), a negative score on its row.
@@ -171,16 +171,14 @@ select is((select score from scrabble.events where game_id = (select id from gcx
 select is((select ended_at from common.games where id = (select id from gcx)), null,
   'pass-then-exchange does NOT end the game');
 
--- ─── Coop has no pass ────────────────────────────────────
+-- ─── Coop with no goal has no pass (goal_test: with one) ─
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- A fault because the FE renders PassButton in compete only. Whether it
--- SHOULD be refused in turn-by-turn coop, where there is a turn to pass and the
--- other two cores respect it, is docs/games/scrabble.md → Deferred.
+-- A fault because the FE shows Pass in coop only when there is a goal.
 select pg_temp.envelope_is(
   scrabble.pass_turn((select id from gco), 1),
   '{"type":"not-ok","severity":"fault","dbcode":"PN454",
-    "message":"BUG: a pass in a coop game"}'::jsonb,
-  'passing is rejected in coop');
+    "message":"BUG: a pass in a coop game with no goal"}'::jsonb,
+  'passing is rejected in coop with no goal');
 
 -- ─── Exchange can return a blank `?` to the bag ──────────
 -- The exchange path runs `?` through `_remove_tiles` just like a letter;

@@ -110,3 +110,16 @@ describe('validateScrabbleCoopSetup — the swap cost', () => {
     }
   })
 })
+
+describe('validateScrabbleCoopSetup — the point goal', () => {
+  it('accepts no goal, and a goal of 1 or more', () => {
+    expect(validateScrabbleCoopSetup(setup({ goal_score: null }))).toEqual({})
+    expect(validateScrabbleCoopSetup(setup({ goal_score: 1 }))).toEqual({})
+  })
+
+  it('refuses a goal under 1, a fraction and an empty box', () => {
+    for (const goal_score of [0, 250.5, NaN]) {
+      expect(validateScrabbleCoopSetup(setup({ goal_score }))).toHaveProperty('goal_score')
+    }
+  })
+})

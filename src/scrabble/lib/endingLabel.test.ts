@@ -33,10 +33,10 @@ const conceded = (over: Partial<Player> = {}) =>
     ...over,
   })
 
-const gameEnded = (mode: 'coop' | 'compete', reason: GameEndedReason): Game =>
-  ({ mode, ended: true, reason })
+const gameEnded = (mode: 'coop' | 'compete', reason: GameEndedReason, goalScore: number | null = null): Game =>
+  ({ mode, ended: true, reason, goalScore })
 
-const racePlaying: Game = { mode: 'compete', ended: false, reason: null }
+const racePlaying: Game = { mode: 'compete', ended: false, reason: null, goalScore: null }
 
 describe('makeEndingLabel', () => {
   it('has no label while I still play', () => {
@@ -52,6 +52,16 @@ describe('makeEndingLabel', () => {
     ['coop: out of time, tiles left over', player({ outcome: 'neutral' }), gameEnded('coop', 'timeout'), [],
       'Ended', 'out of time', 'neutral', 'game'],
     ['coop: a Stop', player({ outcome: 'neutral' }), gameEnded('coop', 'stopped'), [],
+      'Stopped', '', 'neutral', 'game'],
+    ['coop, a goal: every tile played, over it', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'resource_exhausted', 300), [],
+      'Won', 'reached 300', 'won', 'game'],
+    ['coop, a goal: out of time, over it', player({ outcome: 'won', finalRanking: 1 }), gameEnded('coop', 'timeout', 300), [],
+      'Won', 'reached 300', 'won', 'game'],
+    ['coop, a goal: every tile played, short', player({ outcome: 'lost' }), gameEnded('coop', 'resource_exhausted', 300), [],
+      'Lost', 'short of 300', 'lost', 'game'],
+    ['coop, a goal: out of time, short', player({ outcome: 'lost' }), gameEnded('coop', 'timeout', 300), [],
+      'Lost', 'short of 300', 'lost', 'game'],
+    ['coop, a goal: a Stop', player({ outcome: 'neutral' }), gameEnded('coop', 'stopped', 300), [],
       'Stopped', '', 'neutral', 'game'],
     ['compete: the highest score', player({ outcome: 'won', finalRanking: 1 }), gameEnded('compete', 'resource_exhausted'), [],
       'Won', '', 'won', 'game'],

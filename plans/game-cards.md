@@ -677,13 +677,16 @@ scored by tile values and premium squares. Compete can seat AI players.
 
 - **goal**
   - `game-goal`
-    - coop: `goal-intrinsic`: go out
+    - coop:
+      - with point goal: `goal-chosen`
+      - without: `goal-intrinsic`: go out
     - compete: `goal-intrinsic`: the highest score
-  - `goal-chosen` — none
+  - `goal-chosen` — coop: a final score, any number
   - `goal-progress` — score
   - `score-formula`
     - each word: tile values, with premium squares
     - +50 for playing all seven tiles
+    - coop: −the setup's cost per swap, 5 by default
     - at the end: −own leftover tiles
     - compete, at the end: whoever went out +everyone's leftovers
 - **solving**
@@ -695,16 +698,22 @@ scored by tile values and premium squares. Compete can seat AI players.
     1. the highest score
     2. the higher score before the leftovers
     3. `co-winners`
-  - `loses-by` — `loses-by-none`
+  - `loses-by`
+    - coop:
+      - with point goal: under it at the end (see below)
+      - without: `loses-by-none`
+    - compete: `loses-by-none`
   - `announce-when` — `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: score
 - **ending**
   - `exhaustible-resource` — the tiles: a player goes out with the bag empty
   - `ends-when`
     - `ends-when-resource-exhausted`
-    - compete: also `ends-when-all-passed`
+    - compete, and coop with point goal: also `ends-when-all-passed`
   - `timeout-result`
-    - coop: `timeout-no-result`
+    - coop:
+      - with point goal: `timeout-ranks-by-goal`
+      - without: `timeout-no-result`
     - compete: `timeout-ranks-by-progress`
 - **hints**
   - `hint` — a suggested move
@@ -713,7 +722,10 @@ scored by tile values and premium squares. Compete can seat AI players.
 
 **Mismatches** — none.
 
-**Surprises and ruling ideas** — none.
+**Surprises and ruling ideas** — coop with a point goal loses on falling
+short of it at the natural end, wordsy coop's shape: no `loses-by-*` term
+names it. Reaching the goal mid-game decides nothing; the final score, after
+the leftovers, does.
 
 ### setgame
 

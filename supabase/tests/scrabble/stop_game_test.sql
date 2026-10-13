@@ -86,7 +86,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.submit_timeout((select id from gt));
 reset role;
 -- Playing every tile is a win (see auto_finish_test); the clock with tiles left
--- over is no result, so a coop table cannot lose.
+-- over is no result, so a coop table with no goal cannot lose (goal_test: with
+-- one).
 select is((select game_ended_outcome from common.games where id = (select id from gt)),
   'neutral', 'coop timeout is no result — tiles were left over');
 select is((select count(*)::int from common.game_players

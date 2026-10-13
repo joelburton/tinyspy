@@ -23,6 +23,7 @@ import {
   IconNewGame,
   IconPeel,
   IconPrint,
+  IconRecall,
   IconRestart,
   IconRevealSolution,
   IconScratchpad,
@@ -30,7 +31,6 @@ import {
   IconShuffle,
   IconSpoiler,
   IconSubmit,
-  IconClear,
   IconWordCheck,
   IconZoomFit,
 } from '../icons/icons'
@@ -258,8 +258,8 @@ export const ACTIONS = {
   // scrabble's Recall: take every STAGED tile back to the rack at once. Distinct
   // from `act-remove-tile`, which takes back one — hence its own id
   // rather than a second meaning for ⌫, which the board cursor already owns
-  // here. Keyless: it is a button.
-  'act-recall-tiles': { label: 'Recall', icon: IconClear },
+  // here. ⇧⌫ is the all-at-once of that ⌫, as crosswords' ⇧⌫ clears the word.
+  'act-recall-tiles': { label: 'Recall', icon: IconRecall, keys: [named('Backspace', '⇧⌫', true)] },
   'act-suggest-move': { label: 'Suggest a move', icon: IconAI, tone: 'caution' },
   // codenamesduet's clue-giver asks Claude for a clue. Its own id rather than
   // `act-suggest-move`'s: what it hands back is a WORD and a number for the

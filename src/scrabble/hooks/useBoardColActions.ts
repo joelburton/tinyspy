@@ -28,6 +28,15 @@ const PASS_CONFIRM: ConfirmOptions = {
   cancelLabel: 'Keep playing',
 }
 
+/** Coop's Pass question: there a pass is a vote to end the game and be
+ *  judged against the goal. */
+const COOP_PASS_CONFIRM: ConfirmOptions = {
+  title: 'Pass?',
+  message: 'Once every player has passed since the last word or swap, the game ends, and the team wins if its final score reaches the goal.',
+  confirmLabel: 'Pass',
+  cancelLabel: 'Keep playing',
+}
+
 /**
  * The board column's commands, each ONE action behind its control: the cursor
  * keys (an arrow moves the cursor, a letter stages a tile at it, Backspace
@@ -157,7 +166,7 @@ export function useBoardColActions({
 
   async function passTurn() {
     // Asked here rather than by the registry: the question is scrabble's alone.
-    if ((await askConfirmation(PASS_CONFIRM)) !== 'confirm') return
+    if ((await askConfirmation(gd.coop ? COOP_PASS_CONFIRM : PASS_CONFIRM)) !== 'confirm') return
     await submission.sendPass()
   }
 
@@ -201,11 +210,17 @@ export function useBoardColActions({
     run: swapTiles,
   })
 
-  // Pass — compete only (a coop table simply plays on), and only with nothing
-  // staged: passing is what you do INSTEAD of a move.
+  // Pass — compete, and coop with a point goal, where it is the team's way to
+  // end the game and be judged; a coop table with no goal simply plays on. Only
+  // with nothing staged: passing is what you do INSTEAD of a move.
   const actPass = useBindAction('act-pass', {
     describe: () => {
-      if (gd.coop) return 'hidden'
+      if (gd.coop && (gd.setup.goal_score ?? null) === null) return 'hidden'
+      if (gd.me.passed) return {
+        state: 'disabled',
+        label: 'Pass',
+        tooltip: 'You passed: waiting for the rest of the team',
+      }
       return canSubmit && staged.tiles.length === 0 && !actSubmit.pending &&
       !actExchange.pending
         ? 'active'

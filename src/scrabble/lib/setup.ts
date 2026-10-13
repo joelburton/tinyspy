@@ -43,6 +43,7 @@ export const DEFAULT_SCRABBLE_SETUP: GSetup = {
   dict_3plus: 3,
   timer: { kind: 'none' },
   swap_cost: 5,
+  goal_score: null,
   ai_count: 0,
   ai_level: 'strong',
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
@@ -91,13 +92,17 @@ export function validateScrabbleSetup(setup: unknown, playerCount: number): Form
 }
 
 /**
- * Coop setup validation: a swap's cost is a whole number, 0 or more
- * (`create_game` re-checks the floor).
+ * Coop setup validation: a swap's cost is a whole number, 0 or more, and a
+ * point goal, when there is one, 1 or more (`create_game` re-checks both
+ * floors).
  */
 export function validateScrabbleCoopSetup(setup: unknown): FormErrors {
   const s = setup as GSetup
   if (!Number.isInteger(s.swap_cost) || s.swap_cost < 0) {
     return { swap_cost: 'A swap costs a whole number of points, 0 or more.' }
+  }
+  if (s.goal_score !== null && (!Number.isInteger(s.goal_score) || s.goal_score < 1)) {
+    return { goal_score: 'A goal is a whole number of points, 1 or more.' }
   }
   return {}
 }

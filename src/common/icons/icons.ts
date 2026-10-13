@@ -47,6 +47,9 @@ export {
   Triangle as IconSubmit,
   // clear the current selection
   Eraser as IconClear,
+  // put placed tiles back on the rack (scrabble's Recall) — the return-arrow
+  // reads as sending the tiles home, where an eraser read as wiping them out
+  CornerDownLeft as IconRecall,
   // delete the last typed character (the backspace key glyph)
   Delete as IconDelete,
   // take back the LAST MOVE, leaving the rest of the game standing

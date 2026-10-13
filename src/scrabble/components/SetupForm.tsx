@@ -14,12 +14,17 @@ import { AI_LEVELS } from '../lib/aiLevels'
 import { AI_BAND, AI_LEVEL_LABEL } from '../lib/setup'
 import type { GAiLevel, GSetupValues } from '../types'
 
+// What the goal box holds when a goal is first chosen.
+const NEW_GOAL_SCORE = 300
+
 /**
  * scrabble's setup form. Shared by both modes:
  *   - two dictionary bands (all six offered each) — separate ceilings for
  *     2-letter and 3+-letter words (the bananagrams split). Uniquely for
  *     scrabble these ARE the acceptance bar, so a lower band makes a stricter
  *     game (docs/games/scrabble.md → The dictionary);
+ *   - **the point goal (coop only)** — none, where playing every tile wins, or
+ *     a score the team's final score must reach to win;
  *   - **the swap cost (coop only)** — what a swap takes off the team's score;
  *   - the timer;
  *   - **AI opponents (compete only)** — 0–3 AI seats at one skill level. The
@@ -47,6 +52,9 @@ export function SetupForm({
       ? 'AI opponents: none'
       : `AI opponents: ${s.ai_count} × ${AI_LEVEL_LABEL[s.ai_level]}`
   const aiBandName = dictBandValue(AI_BAND[s.ai_level])
+  const goalLabel = s.goal_score === null
+    ? 'Point goal: none'
+    : `Point goal: ${Number.isFinite(s.goal_score) ? s.goal_score : '?'} pts`
 
   return (
     <>
@@ -93,6 +101,36 @@ export function SetupForm({
           onChange={(dict_3plus) => set('dict_3plus', dict_3plus)}
         />
       </SetupSection>
+
+      {mode === 'coop' && (
+        <SetupSection
+          label={goalLabel}
+          help={s.goal_score === null
+            ? 'Playing every tile wins.'
+            : 'The game ends when the tiles or the timer run out, or every player passes; the team wins if its final score reaches the goal, and loses if not.'}
+        >
+          <RadioRow<'none' | 'goal'>
+            name="goal_kind"
+            options={[
+              { value: 'none', label: 'No goal' },
+              { value: 'goal', label: 'Goal' },
+            ]}
+            value={s.goal_score === null ? 'none' : 'goal'}
+            onChange={(kind) => set('goal_score', kind === 'none' ? null : NEW_GOAL_SCORE)}
+          />
+          {s.goal_score !== null && (
+            <NumberField
+              name="goal_score"
+              error={errors.goal_score}
+              label="Points to reach"
+              min={1}
+              chars={4}
+              value={s.goal_score}
+              onChange={(goal_score) => set('goal_score', goal_score)}
+            />
+          )}
+        </SetupSection>
+      )}
 
       {mode === 'coop' && (
         <SetupSection label={`Swap cost: ${Number.isFinite(s.swap_cost) ? s.swap_cost : '?'} pts`}>

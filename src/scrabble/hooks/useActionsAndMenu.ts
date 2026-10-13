@@ -44,9 +44,10 @@ export function useActionsAndMenu({
 } & Pick<PlayAreaLoaderProps, 'goToFollowUpGame' | 'menu'>): {
   actions: GActions
 } {
-  // The shared trio — Stop / Concede / Restart. Restart re-deals: the board is
-  // the standard layout, so there is no puzzle to restore — a fresh bag, new
-  // racks and an empty board, with the setup, players and bots kept.
+  // The shared trio — Stop / Concede / Restart. Restart deals the game again:
+  // the board is the standard layout, so what it restores is the first deal —
+  // the same racks and draws on an empty board, with the setup, players and
+  // bots kept.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId: gd.id,

@@ -5,13 +5,13 @@
 -- ============================================================
 -- The "Replay board" game-menu item. scrabble's 15×15 grid is the standard
 -- layout, not a generated puzzle, so a replay restores the SETUP (same club,
--- roster, seats, dictionary bands, AI opponents) and RE-DEALS: fresh bag, new
--- racks, empty grid. Both modes reset every seat. Available from a finished
+-- roster, seats, dictionary bands, AI opponents) and the DEAL: the bag as
+-- create_game shuffled it, so the same racks, on an empty grid. Both modes reset every seat. Available from a finished
 -- game OR mid-game; any game player may call it; a non-player is rejected.
 --
 -- The three subtleties the RPC calls out, all pinned here:
 --   - `version` is BUMPED, not zeroed (a stale in-flight move must fail its
---     optimistic check rather than land on the new deal);
+--     optimistic check rather than land on the restarted game);
 --   - the title stops advertising the previous deal's words;
 --   - coop turn-order rewinds to the player seated first.
 
@@ -21,7 +21,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(19);
+select plan(24);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -108,6 +108,8 @@ create temp table g2 on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
 update scrabble.players set score = 42 where game_id = (select id from g2);
+create temp table racks2 on commit drop as
+  select user_id, rack from scrabble.players where game_id = (select id from g2);
 
 -- Capture the version an in-flight client would be holding, so we can prove
 -- the bump below actually invalidates it.
@@ -122,6 +124,10 @@ select is(
   (select count(*) from scrabble.players
     where game_id = (select id from g2) and score = 0 and array_length(rack, 1) = 7),
   2::bigint, 'compete: replay → every seat zeroed + re-dealt 7 tiles');
+select is(
+  (select count(*) from scrabble.players p join racks2 r using (user_id)
+    where p.game_id = (select id from g2) and p.rack = r.rack),
+  2::bigint, 'compete: replay → every seat gets the rack it was first dealt');
 
 -- ─── The mid-game bump, which is the whole reason `version` isn't zeroed ──
 -- This game was never ended: a restart mid-race is legal (nothing guards on the
@@ -169,6 +175,40 @@ select is(
   (select current_turn_user_id from common.games where id = (select id from g3)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'coop turns: replay → the turn rewinds to the first-seated player');
+
+-- ─── Coop: the same deal after moves changed the rack and bag ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g4 on commit drop as
+  select (scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+create temp table first4 on commit drop as
+  select team_rack, bag from scrabble.games where game_id = (select id from g4);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.exchange_tiles((select id from g4), 0,
+  (select team_rack[1:3] from scrabble.games where game_id = (select id from g4)));
+select scrabble.replay_board((select id from g4));
+reset role;
+select is((select team_rack from scrabble.games where game_id = (select id from g4)),
+  (select team_rack from first4), 'coop: replay → the rack the game was first dealt');
+select is((select bag from scrabble.games where game_id = (select id from g4)),
+  (select bag from first4), 'coop: replay → and the bag in its first order, so the same draws');
+
+-- A game from before the deal was kept shuffles once more, and keeps that.
+update scrabble.games set deal = null where game_id = (select id from g4);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.replay_board((select id from g4));
+reset role;
+select isnt((select deal from scrabble.games where game_id = (select id from g4)), null,
+  'a game with no deal keeps the one its replay shuffles');
+create temp table again4 on commit drop as
+  select team_rack from scrabble.games where game_id = (select id from g4);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.replay_board((select id from g4));
+reset role;
+select is((select team_rack from scrabble.games where game_id = (select id from g4)),
+  (select team_rack from again4), 'so its next replay deals the same rack');
 
 -- ─── Non-player rejected ─────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

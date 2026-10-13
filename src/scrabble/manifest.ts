@@ -69,7 +69,12 @@ abstract class ScrabbleManifest extends Manifest {
       .map((o) => findUsername(members, o.id) ?? 'someone')
     return makeEndingLabel(
       player,
-      { mode: this.mode, ended: summary.ended, reason: summary.ending?.reason ?? null },
+      {
+        mode: this.mode,
+        ended: summary.ended,
+        reason: summary.ending?.reason ?? null,
+        goalScore: summary.team?.goalScore ?? null,
+      },
       tiedWithNames,
     )
   }
