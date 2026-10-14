@@ -11,11 +11,17 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
 import { dictBandValue } from '@/common/setup-form/dictBand'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
 import { AI_LEVELS } from '../lib/aiLevels'
+import { useAiAccounts } from '../hooks/useAiAccounts'
 import { AI_BAND, AI_LEVEL_LABEL } from '../lib/setup'
 import type { GAiLevel, GSetupValues } from '../types'
+import type { Member } from '@/common/members/member'
 
 // What the goal box holds when a goal is first chosen.
 const NEW_GOAL_SCORE = 300
+
+// The first-player menu's value for "Random", which stores no pick. No user id
+// is empty, so it can't collide.
+const RANDOM_FIRST_PLAYER = ''
 
 /**
  * scrabble's setup form. Shared by both modes:
@@ -27,6 +33,9 @@ const NEW_GOAL_SCORE = 300
  *     a score the team's final score must reach to win;
  *   - **the swap cost (coop only)** — what a swap takes off the team's score;
  *   - the timer;
+ *   - **the first player (compete only)** — random, or any seated player, a
+ *     bot included. A pick who leaves the table (unchecked, or a bot the AI
+ *     count no longer seats) goes back to random;
  *   - **AI opponents (compete only)** — 0–3 AI seats at one skill level. The
  *     band requirement is shown inline; the dialog's `validate` (see manifest)
  *     blocks Start if the dictionary is too narrow for the chosen level or the
@@ -43,6 +52,26 @@ export function SetupForm({
   // The checked subset of the roster, in `members` order — a control that
   // must name the ACTUAL players lists only who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.id))
+  const aiAccounts = useAiAccounts()
+
+  // Who a compete game would seat with these people and this many bots: the
+  // people, then the bots `create_game` picks.
+  function seatsFor(playerIds: Set<string>, aiCount: number): Member[] {
+    return [
+      ...members.filter((m) => playerIds.has(m.id)),
+      ...aiAccounts.slice(0, aiCount),
+    ]
+  }
+  const seats = seatsFor(s.player_user_ids, s.ai_count)
+  const firstPlayer = seats.find((m) => m.id === s.first_turn_user_id)
+
+  // A change to who sits at the table drops a first player who no longer does.
+  function setSeats(playerIds: Set<string>, aiCount: number) {
+    set('player_user_ids', playerIds)
+    set('ai_count', aiCount)
+    const stillSeated = seatsFor(playerIds, aiCount).some((m) => m.id === s.first_turn_user_id)
+    if (mode === 'compete' && !stillSeated) set('first_turn_user_id', undefined)
+  }
 
   // Disclosure summary carries the current bands so the section reads without
   // opening (the boggle/spellingbee pattern — 2-letter band first, then 3+).
@@ -64,7 +93,7 @@ export function SetupForm({
         numberOfPlayers={numberOfPlayers}
         error={errors.player_user_ids}
         value={s.player_user_ids}
-        onChange={(next) => set('player_user_ids', next)}
+        onChange={(next) => setSeats(next, s.ai_count)}
       />
       {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
           below the dialog's player picker. Self-gates to nothing for
@@ -174,7 +203,7 @@ export function SetupForm({
               { value: 3, label: '3' },
             ]}
             value={s.ai_count}
-            onChange={(ai_count) => set('ai_count', ai_count)}
+            onChange={(ai_count) => setSeats(s.player_user_ids, ai_count)}
           />
           {s.ai_count > 0 && (
             <SelectField
@@ -191,6 +220,29 @@ export function SetupForm({
               ))}
             </SelectField>
           )}
+        </SetupSection>
+      )}
+
+      {/* Below the AI section, since the bots it seats are on the menu. "Random"
+          stores no pick, so New game, which reuses this setup, draws again. */}
+      {mode === 'compete' && (
+        <SetupSection label={`First player: ${firstPlayer?.username ?? 'random'}`}>
+          <SelectField
+            name="first_turn_user_id"
+            error={errors.first_turn_user_id}
+            label="First player"
+            value={firstPlayer?.id ?? RANDOM_FIRST_PLAYER}
+            onChange={(id) =>
+              set('first_turn_user_id', id === RANDOM_FIRST_PLAYER ? undefined : id)
+            }
+          >
+            <option value={RANDOM_FIRST_PLAYER}>Random</option>
+            {seats.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.username}
+              </option>
+            ))}
+          </SelectField>
         </SetupSection>
       )}
 

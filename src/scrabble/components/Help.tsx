@@ -62,7 +62,8 @@ export function Help({ onClose, brand }: Props) {
         and the team wins if its final score reaches the goal, and loses if
         not.{' '}
         <strong>Compete:</strong> your own
-        rack, taking turns; highest score when the tiles run out wins, and a
+        rack, taking turns, opened by the setup's first player (random unless
+        you chose); highest score when the tiles run out wins, and a
         tie goes to the higher score before leftover tiles count.
       </p>
       <p className="muted">

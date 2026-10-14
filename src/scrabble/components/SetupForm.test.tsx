@@ -29,6 +29,14 @@ const MEMBERS = [
   { id: 'moth', username: 'moth', color: 'blue' },
 ] satisfies Member[]
 
+// The bot accounts, as create_game seats them: by username.
+const BOTS = [
+  { id: 'ada-id', username: 'ada-bot', color: 'brown' },
+  { id: 'bjarne-id', username: 'bjarne-bot', color: 'purple' },
+  { id: 'claude-id', username: 'claude-bot', color: 'pink' },
+] satisfies Member[]
+vi.mock('../hooks/useAiAccounts', () => ({ useAiAccounts: () => BOTS }))
+
 function draw({ mode = 'compete' as 'coop' | 'compete', values = {}, errors = {} as FormErrors } = {}) {
   const set = vi.fn()
   const view = render(
@@ -59,6 +67,7 @@ describe('scrabble setup — what it offers', () => {
       'dict_2',
       'dict_3plus',
       'ai_count',
+      'first_turn_user_id',
       'timer',
     ])
   })
@@ -73,6 +82,7 @@ describe('scrabble setup — what it offers', () => {
       'swap_cost',
       'timer',
     ])
+    expect(fieldNames(draw({ mode: 'coop' }).container)).not.toContain('first_turn_user_id')
     expect(fieldNames(draw().container)).not.toContain('goal_kind')
     expect(fieldNames(draw().container)).not.toContain('swap_cost')
   })
@@ -107,6 +117,47 @@ describe('scrabble setup — the AI', () => {
     await user.click(screen.getByRole('radio', { name: '2' }))
 
     expect(set).toHaveBeenCalledWith('ai_count', 2)
+  })
+})
+
+describe('scrabble setup — the first player', () => {
+  const menu = () => screen.getByRole('combobox', { name: 'First player' })
+  const offered = () =>
+    [...menu().querySelectorAll('option')].map((o) => o.textContent)
+
+  it('offers Random, the people, and the bots the AI count seats', () => {
+    draw({ values: { ai_count: 2 } })
+    expect(offered()).toEqual(['Random', 'joel', 'moth', 'ada-bot', 'bjarne-bot'])
+    expect(menu()).toHaveValue('')
+  })
+
+  it('writes a pick as its id, and Random as no pick', async () => {
+    const user = userEvent.setup()
+    const { set } = draw({ values: { ai_count: 1, first_turn_user_id: 'moth' } })
+
+    await user.selectOptions(menu(), 'ada-bot')
+    expect(set).toHaveBeenCalledWith('first_turn_user_id', 'ada-id')
+
+    await user.selectOptions(menu(), 'Random')
+    expect(set).toHaveBeenCalledWith('first_turn_user_id', undefined)
+  })
+
+  it('drops a bot the new AI count no longer seats', async () => {
+    const user = userEvent.setup()
+    const { set } = draw({ values: { ai_count: 2, first_turn_user_id: 'bjarne-id' } })
+
+    await user.click(screen.getByRole('radio', { name: '1' }))
+
+    expect(set).toHaveBeenCalledWith('first_turn_user_id', undefined)
+  })
+
+  it('keeps a person through a change to the AI count', async () => {
+    const user = userEvent.setup()
+    const { set } = draw({ values: { ai_count: 2, first_turn_user_id: 'moth' } })
+
+    await user.click(screen.getByRole('radio', { name: '1' }))
+
+    expect(set).not.toHaveBeenCalledWith('first_turn_user_id', undefined)
   })
 })
 

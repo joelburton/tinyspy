@@ -28,7 +28,8 @@ let triePromise: Promise<Trie> | null = null
 
 async function decodeAndBuild(): Promise<Trie> {
   const bytes = Uint8Array.from(atob(WORDLIST_GZ_B64), (c) => c.charCodeAt(0))
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+  const stream = new Blob([bytes]).stream().pipeThrough(
+    new DecompressionStream('gzip'))
   const text = await new Response(stream).text()
   const words: string[] = []
   const ratings: number[] = []

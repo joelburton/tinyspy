@@ -44,17 +44,17 @@ import { ratedTrie } from '../scrabble-suggest-move/dict.ts'
 type AiContext =
   | { result: 'done' }
   | {
-      result: 'context'
-      user_id: string
-      // The board as the page gets it: one string, decoded by lib/board.ts.
-      board: { letters: string }
-      rack: string[]
-      dict_2: number
-      dict_3plus: number
-      ai_level: GAiLevel
-      version: number
-      n_bag_tiles: number
-    }
+  result: 'context'
+  user_id: string
+  // The board as the page gets it: one string, decoded by lib/board.ts.
+  board: { letters: string }
+  rack: string[]
+  dict_2: number
+  dict_3plus: number
+  ai_level: GAiLevel
+  version: number
+  n_bag_tiles: number
+}
 
 /** What the three `ai_*` move RPCs answer. A board that moved under the bot is
  *  a RACE on the not-ok arm, not a `stale` result. */
@@ -72,14 +72,18 @@ serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
   if (req.method !== 'POST') {
-    return fault('PN333', 'BUG: an ai-move request that was not a POST', `scrabble-ai-move: ${req.method}, not POST`)
+    return fault(
+      'PN333',
+      'BUG: an ai-move request that was not a POST',
+      `scrabble-ai-move: ${req.method}, not POST`)
   }
 
   try {
     const body = await req.json().catch(() => ({}))
     const gameId: unknown = body.game_id
     if (!gameId || typeof gameId !== 'string') {
-      return fault('PN334', 'BUG: an ai-move request with no game', `scrabble-ai-move: game_id=${JSON.stringify(gameId)}`)
+      return fault('PN334', 'BUG: an ai-move request with no game',
+        `scrabble-ai-move: game_id=${JSON.stringify(gameId)}`)
     }
     // No header check of our own: `callerClient` sends whatever arrived, and
     // `get_ai_context`'s own membership gate refuses it in its words.
@@ -101,7 +105,8 @@ serve(async (req: Request): Promise<Response> => {
       // Its own refusals relay untouched; `runRpc` folds "it never ran" and "it
       // answered something unreadable" into the same branch.
       if (ctxRes.type === 'not-ok') {
-        console.error(`[ai-move] game ${gameId}: get_ai_context refused —`, ctxRes.message)
+        console.error(`[ai-move] game ${gameId}: get_ai_context refused —`,
+          ctxRes.message)
         return json(ctxRes)
       }
       // `done` is the COMMON answer, not an edge case: every client pokes this
@@ -115,7 +120,8 @@ serve(async (req: Request): Promise<Response> => {
       // it is reproducible, and two concurrent drivers compute the same move,
       // which makes a duplicate harmless.
       const rng = mulberry32(((ctx.version >>> 0) ^ 0x9e3779b9) >>> 0)
-      const choice = choosePlay(decodeBoard(ctx.board.letters), ctx.rack, trie, bands, knobs, rng)
+      const choice = choosePlay(decodeBoard(ctx.board.letters), ctx.rack, trie,
+        bands, knobs, rng)
 
       let res: Envelope<MoveAnswer>
       if (choice.kind === 'word') {
@@ -127,16 +133,25 @@ serve(async (req: Request): Promise<Response> => {
           p_words: choice.words.map((w) => w.word),
           p_score: choice.score,
         }), 'ai_play_word')
-        log.push({ userId: ctx.user_id, words: choice.words.map((w) => w.word), score: choice.score })
+        log.push({
+          userId: ctx.user_id,
+          words: choice.words.map((w) => w.word),
+          score: choice.score,
+        })
       } else if (ctx.n_bag_tiles >= 7) {
         // No playable word but the bag can afford a swap — dump the whole rack.
         res = await runRpc<MoveAnswer>(db.rpc('ai_exchange_tiles', {
-          p_game_id: gameId, p_user_id: ctx.user_id, p_base_version: ctx.version, p_rack_tiles: choice.tiles,
+          p_game_id: gameId,
+          p_user_id: ctx.user_id,
+          p_base_version: ctx.version,
+          p_rack_tiles: choice.tiles,
         }), 'ai_exchange_tiles')
         log.push({ userId: ctx.user_id, exchange: choice.tiles.length })
       } else {
         res = await runRpc<MoveAnswer>(db.rpc('ai_pass_turn', {
-          p_game_id: gameId, p_user_id: ctx.user_id, p_base_version: ctx.version,
+          p_game_id: gameId,
+          p_user_id: ctx.user_id,
+          p_base_version: ctx.version,
         }), 'ai_pass_turn')
         log.push({ userId: ctx.user_id, pass: true })
       }
@@ -146,23 +161,30 @@ serve(async (req: Request): Promise<Response> => {
       // ordinary outcome and not a failure of anything. Stop, and let whoever
       // won carry the chain on.
       if (res.type === 'not-ok' && res.severity === 'race') {
-        console.log(`[ai-move] game ${gameId}: lost the race after ${played} turn(s) —`, res.message)
+        console.log(
+          `[ai-move] game ${gameId}: lost the race after ${played} turn(s) —`,
+          res.message)
         break
       }
       // Anything else refused is the bot genuinely stuck: relay it, with a
       // tagged line.
       if (res.type === 'not-ok') {
-        console.error(`[ai-move] game ${gameId}: FAILED after ${played} turn(s) —`, res.message)
+        console.error(
+          `[ai-move] game ${gameId}: FAILED after ${played} turn(s) —`,
+          res.message)
         return json(res)
       }
       played++
     }
 
     // KEEP — the AI turns this invocation took, inspectable in the terminal.
-    console.log(`[ai-move] game ${gameId}: played ${played} —`, JSON.stringify(log))
-    // TURNS, not moves: one loop pass is one seat's turn, however many words it
-    // crossed. Consecutive AI seats all move in one invocation, so this is 0..40
-    // — and 0 is the COMMON case, since every client pokes and only one wins.
+    console.log(`[ai-move] game ${gameId}: played ${played} —`,
+      JSON.stringify(log))
+    // TURNS, not moves: one loop pass is one seat's turn, however many words
+    // it
+    // crossed. Consecutive AI seats all move in one invocation, so this is
+    // 0..40 — and 0 is the COMMON case, since every client pokes and only one
+    // wins.
     return ok({ result: 'moved', turns: played })
   } catch (e) {
     console.error('scrabble-ai-move threw:', e)

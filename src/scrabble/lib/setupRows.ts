@@ -39,6 +39,11 @@ export function makeSetupRows(
       value: `${setup.ai_count} x ${AI_LEVEL_LABEL[setup.ai_level]}`,
     })
   }
+  if (mode === 'compete') {
+    // `players` holds the bots too, so a bot's pick finds its name.
+    const first = players.find((p) => p.id === setup.first_turn_user_id)
+    rows.push({ key: 'first_turn_user_id', label: 'First player', value: first?.username ?? 'Random' })
+  }
   rows.push(makeTimerRow(setup.timer))
   return rows
 }

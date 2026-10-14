@@ -124,7 +124,10 @@ Standard Scrabble scoring:
 
 - **Compete** (`scrabble_compete`, 1–4 players): classic Scrabble.
   **Turn-based** — a rotating order, only the active player may play / exchange
-  / pass. Private per-player racks, per-player scores. Highest final score wins.
+  / pass. The setup's **First player** picks who opens: Random (the default,
+  drawn again each New game and each Restart) or any seated player, a bot
+  included. Private per-player racks, per-player scores. Highest final score
+  wins.
   Unusually for a compete manifest, its floor is **1**, not 2: a lone player can
   race the autonomous AI opponent (see §12), which fills the other seat.
 - **Coop** (`scrabble_coop`, 1–4 players, solo-capable): **one shared rack, one
@@ -394,9 +397,12 @@ vs an AI is a legal compete table but a 1-seat "race" is not. Reads
   is the only randomness — no board library, no builder edge function.
 - **Deals racks:** compete → 7 tiles into each `players.rack`, people then
   bots; coop → 7 into `games.team_rack`.
-- Sets the turn order (compete: `turn_seat` people then bots, the opener a
-  **random player** among all of them — so a bot may open; see
-  [§12](#12-the-ai-opponent-compete)).
+- Sets the turn order (compete: `turn_seat` people then bots, the opener
+  `setup.first_turn_user_id` — any of them, a bot included — or, when the
+  setup names none, a **random player** among all of them; see
+  [§12](#12-the-ai-opponent-compete)). A first player who isn't seated is
+  `PN086`. "Random" stores no key, so New game, which passes the setup on,
+  draws again.
 - Inserts the `games` row + one `players` row per player, and writes the
   blobs ([§4.2](#42-the-page-blobs)).
 
@@ -528,9 +534,10 @@ every player. Three subtleties:
   holding a stale mid-game version play against the fresh deal; bumping keeps
   it monotonic so every in-flight move fails its check — correct, since that
   move was for the old deal.
-- **Compete re-randomizes the opener**, matching `create_game`: the racks are
-  the first deal's, but who opens is drawn afresh — after `common._reset_game`,
-  which rewinds the turn to `turn_seat` 0.
+- **Compete reopens on the setup's first player**, matching `create_game`: the
+  racks are the first deal's, and the opener is `setup.first_turn_user_id`, or
+  drawn afresh when the setup named none — after `common._reset_game`, which
+  rewinds the turn to `turn_seat` 0.
 - **Coop turn-order rewinds** to the player seated first
   (`game_players.turn_seat = 0`) — `common._reset_game` does it. The rotation
   was assigned at create time and doesn't change, so this restores the original
@@ -883,6 +890,9 @@ commit, not the TS-owned geometry and scoring:
 - `turn_order` / `compete_turn_order` — coop's opt-in turns and compete's turn
   on the common pointer: people then bots, the out-of-turn race, the turn
   handed on, a conceder skipped, a restart.
+- `first_player` — compete's First player: a named person or bot opens, every
+  Restart included; an unseated pick is refused; Random stores no pick and
+  draws again.
 - `replay` — the same deal again ([§5.5](#55-replay_board)).
 - `concede` — the turn-based concede ([§5.6](#56-stop_game--concede--submit_timeout)).
 - `ai_players` — the bots ([§12](#12-the-ai-opponent-compete)).

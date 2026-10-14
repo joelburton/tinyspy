@@ -755,7 +755,10 @@ drop function if exists scrabble.create_game(text, jsonb, uuid[], text);
 --   { "dict_2": 1..6 (default 3), "dict_3plus": 1..6 (default 3),
 --     "ai_count": 0..3, "ai_level": beginner | casual | intermediate |
 --       strong | best (compete only),
---     "coop_style": 'free' | 'turns', "first_turn_user_id": uuid,
+--     "coop_style": 'free' | 'turns',
+--     "first_turn_user_id": uuid (coop turns: required, one of the people;
+--       compete: optional, one of the people or the seated bots, absent for
+--       a random opener each game and each Restart),
 --     "swap_cost": 0.. (default 5; coop only — what a swap takes off the
 --       team's score),
 --     "goal_score": 1.. or null (default null, no goal; coop only — the
@@ -763,8 +766,8 @@ drop function if exists scrabble.create_game(text, jsonb, uuid[], text);
 --     "timer": (none | countup | countdown{seconds}) }
 -- Builds + shuffles the 100-tile bag, keeps that shuffle as `deal` for
 -- Restart, deals 7-tile racks (per player in compete, one coop rack), seats
--- the bots after the people and picks a random first player (compete), and
--- seeds an empty board.
+-- the bots after the people and opens on the setup's first player or a
+-- random one (compete), and seeds an empty board.
 create or replace function scrabble.create_game(
   p_club_handle     text,
   p_setup           jsonb,
@@ -912,6 +915,19 @@ begin
     end if;
   end if;
 
+  -- The first player: coop turns must name one of the people; compete may
+  -- name anyone it seats, a bot included, or nobody for a random opener.
+  -- Free-for-all coop has no first player and ignores the key.
+  first_turn := (p_setup->>'first_turn_user_id')::uuid;
+  if (p_mode = 'coop' and p_setup->>'coop_style' = 'turns' and first_turn is null)
+     or ((p_mode = 'compete' or p_setup->>'coop_style' = 'turns')
+         and first_turn is not null
+         and not (first_turn = any(p_player_user_ids || v_bot_ids))) then
+    raise exception 'BUG: first player who is not in the game'
+      using errcode = 'PN086', hint = 'fault', column = '_',
+      detail = 'setup.first_turn_user_id must be one of the players';
+  end if;
+
   perform common._require_valid_timer(p_setup->'timer');
 
   -- Shuffle the bag (the only per-game randomness).
@@ -946,13 +962,16 @@ begin
     update scrabble.games gm set bag = v_bag where gm.game_id = new_id;
 
     -- The turn order walks the people, then the bots — the order the opponent
-    -- strip draws — and any of them, a bot included, may open.
+    -- strip draws — and any of them, a bot included, may open: the setup's
+    -- first player, or a random one when it named none.
     update common.game_players gp
        set turn_seat = o.pos - 1
       from unnest(p_player_user_ids || v_bot_ids) with ordinality as o(user_id, pos)
      where gp.game_id = new_id and gp.user_id = o.user_id;
     update common.games
-       set current_turn_user_id = (p_player_user_ids || v_bot_ids)[1 + floor(random() * v_total)::int]
+       set current_turn_user_id = coalesce(
+             first_turn,
+             (p_player_user_ids || v_bot_ids)[1 + floor(random() * v_total)::int])
      where id = new_id;
   else
     -- Coop: one rack, on the game row; each player's score is their own.
@@ -966,12 +985,6 @@ begin
     -- rotation so _commit_word / _commit_exchange gate the coop-rack moves.
     -- Free-for-all coop leaves the pointer null.
     if p_setup->>'coop_style' = 'turns' then
-      first_turn := (p_setup->>'first_turn_user_id')::uuid;
-      if first_turn is null or not (first_turn = any(p_player_user_ids)) then
-        raise exception 'BUG: first player who is not in the game'
-          using errcode = 'PN086', hint = 'fault', column = '_',
-      detail = 'setup.first_turn_user_id must be one of the players';
-      end if;
       perform common._assign_turn_order(new_id, first_turn);
     end if;
   end if;
@@ -2069,7 +2082,8 @@ drop function if exists scrabble.replay_board(uuid);
 --     Zeroing it would let a client holding a stale mid-game version commit
 --     a move against the fresh deal; bumping keeps it monotonic, so every
 --     in-flight move fails its version check.
---   - **compete re-randomizes the opener**, matching create_game — after
+--   - **compete reopens on the setup's first player**, or a new random one
+--     when the setup named none, matching create_game — after
 --     common._reset_game, which rewinds the turn to `turn_seat` 0.
 --   - **coop's turn order rewinds** to the player seated first inside
 --     common._reset_game; a free-for-all game has a null pointer and stays
@@ -2146,12 +2160,14 @@ begin
 
   perform common._reset_game(p_game_id);
 
-  -- Compete opens on a random player, after reset_game rewound the turn.
+  -- Compete opens on the setup's first player, or a random one when it named
+  -- none, after reset_game rewound the turn.
   if v_mode = 'compete' then
-    update common.games
-       set current_turn_user_id = (
-         select user_id from common.game_players
-          where game_id = p_game_id order by random() limit 1)
+    update common.games cg
+       set current_turn_user_id = coalesce(
+             (cg.setup->>'first_turn_user_id')::uuid,
+             (select user_id from common.game_players
+               where game_id = p_game_id order by random() limit 1))
      where id = p_game_id;
   end if;
 
