@@ -17,6 +17,8 @@
  * are how they get tried.
  */
 
+import { shuffle } from '../../../src/common/utils/shuffle.ts'
+
 /** One five-letter row of `common.words`, the columns the filters read. */
 export interface WordRow {
   word: string
@@ -239,16 +241,6 @@ function countConsistent(starter: string, colors: string, entries: readonly Entr
   return n
 }
 
-/** Fisher–Yates over a copy, drawing from `random`. */
-function shuffled<T>(items: readonly T[], random: () => number): T[] {
-  const out = [...items]
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
-
 export interface BuildOptions {
   /** The answer band: 0 the NYT answer list, 1–6 any clean non-plural word at or below. The pool follows it (`poolBandFor`). */
   answerBand: number
@@ -292,10 +284,10 @@ export function buildPuzzle(words: readonly WordRow[], opts: BuildOptions): Puzz
   if (answers.length === 0 || starters.length === 0) return null
 
   const shapes = new Set(TIER_SHAPES[tier])
-  for (const answer of shuffled(answers, random).slice(0, opts.maxAnswers ?? DEFAULT_MAX_ANSWERS)) {
+  for (const answer of shuffle(answers, random).slice(0, opts.maxAnswers ?? DEFAULT_MAX_ANSWERS)) {
     // Positive space always counts the answer itself, so an off-list answer's number compares with a listed one's.
     const positiveList = answerList.some((e) => e.word === answer) ? answerList : [...answerList, { word: answer, mask: maskOf(answer) }]
-    for (const starter of shuffled(starters, random)) {
+    for (const starter of shuffle(starters, random)) {
       if (starter === answer) continue
       const colors = colorsOf(starter, answer)
       if (!shapes.has(shapeOf(colors))) continue

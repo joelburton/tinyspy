@@ -17,7 +17,6 @@ import {
   isPlayable,
   letterMask,
   partitionSides,
-  shuffle,
   sideOf,
 } from './board.ts'
 
@@ -140,10 +139,3 @@ Deno.test('isOneWordSolvable: false for an ordinary board', () => {
   assertEquals(isOneWordSolvable(['adg', 'gjb', 'kcfil']), false)
 })
 
-// ── shuffle ─────────────────────────────────────────────────────────────────
-Deno.test('shuffle: permutes without mutating the input', () => {
-  const input = [1, 2, 3, 4, 5]
-  const out = shuffle(input, seededRandom(9))
-  assertEquals(input, [1, 2, 3, 4, 5])
-  assertEquals([...out].sort(), [1, 2, 3, 4, 5])
-})

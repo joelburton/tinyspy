@@ -39,15 +39,6 @@
   the play surface against the window, and this is the slack one level in,
   inside the board column.
 
-- **`shuffle` in `supabase/functions/letterboxed-build-board/board.ts` is a
-  hand-written Fisher–Yates** — `src/common/utils/shuffle.ts` is the same
-  function with the rng optional, so the local one goes, its three seeded
-  call sites pass their `rnd` unchanged, and the edge function imports the
-  util by relative path with an explicit `.ts`, the way `scrabble-ai-move`
-  imports `mulberry32`. The exported `shuffle` also has its own case in
-  `board_test.ts` (permutes without mutating), which is pinned beside the
-  util now and goes with it.
-
 ## Someday
 
 ## Maybe

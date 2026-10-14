@@ -14,6 +14,8 @@
  * See docs/games/letterboxed.md §4.
  */
 
+import { shuffle } from '../../../src/common/utils/shuffle.ts'
+
 /** Letters on a board — four sides of three. */
 export const BOARD_SIZE = 12
 /** Letters per side. */
@@ -93,16 +95,6 @@ export function partitionSides(
   return sides
     .map((members) => shuffle(members, rnd).map((i) => letters[i]).join(''))
     .join('')
-}
-
-/** Fisher-Yates on a copy, so callers keep their input. */
-export function shuffle<T>(xs: T[], rnd: () => number): T[] {
-  const a = [...xs]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 /** letter → side index (0..3), derived from a `sides` string. */

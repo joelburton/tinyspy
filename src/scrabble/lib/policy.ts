@@ -52,6 +52,7 @@ import type {
 // (scrabble-ai-move → here) and Deno cannot resolve the alias.
 import { walkWord, type Trie } from '../../shared/dict-trie/trie.ts'
 import { mulberry32 } from '../../common/utils/mulberry32.ts'
+import { shuffle } from '../../common/utils/shuffle.ts'
 
 // ── The strength knobs ──────────────────────────────────────────────────────
 
@@ -177,16 +178,6 @@ const EXCHANGE_MIN_BAG = RACK_SIZE
  *  which a solo simulation with no opponents can't express. Tuning numbers are
  *  comparable across strength levels because every level stops the same way. */
 const MAX_SCORELESS = 3
-
-/** Seeded Fisher–Yates. */
-function shuffle<T>(arr: readonly T[], rng: () => number): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 /**
  * Self-play a coop game to completion and report the result. Fully
