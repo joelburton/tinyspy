@@ -20,9 +20,11 @@ import { useActionsAndMenu } from '../hooks/useActionsAndMenu'
 import { useGetEndingMessage } from '../hooks/useGetEndingMessage'
 import { useHistoryView } from '../hooks/useHistoryView'
 import { useShowPartnerMessages } from '../hooks/useShowPartnerMessages'
+import { useClueRules } from '../hooks/useClueRules'
 import {
   CodenamesduetAISuggestCompanion,
 } from './CodenamesduetAISuggestCompanion'
+import { ClueRulesCompanion } from './ClueRulesCompanion'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -101,6 +103,10 @@ function PlayArea({
     null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
+  // The clue rules companion — open by itself at the start of the game, and
+  // from the info column's help line while I write a clue (`useClueRules`).
+  const clueRules = useClueRules(gd)
+
   // ─── The local slot ────────────────────────────────────
   // The below-board slot, for messages about ME. Born here because BOTH columns
   // show into it — BoardCol's guess and clue strip (a refused guess / clue /
@@ -157,8 +163,14 @@ function PlayArea({
           endingMessage={endingMessage}
           actions={actions}
           historyView={historyView}
+          onShowClueRules={clueRules.open}
         />
       </InfoSheet>
+
+      {/* The clue rules, a child of `.layout` like the other companions. */}
+      {clueRules.isOpen && (
+        <ClueRulesCompanion setup={gd.setup} onClose={clueRules.close}/>
+      )}
 
       {/* The AI clue-suggestion dialog — a child of `.layout`, like the other
           dialogs: react-rnd positions from the static flow position, and deep

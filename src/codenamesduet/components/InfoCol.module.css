@@ -13,7 +13,7 @@
 
 /* The finished-player banner, told to both players once one of them has found
  * all their agents (Duet's finished-player rule) — its box, shared by both
- * sides; the two colors below say whose news it is. */
+ * sides and by the declined banner; the colors below say whose news it is. */
 /* @@ */ .finishedNote {
   font-size: 0.9rem;
   line-height: 1.45;
@@ -29,8 +29,10 @@
 }
 
 /* To their partner, who now gives every clue: informational rather than
- * celebratory, so the calm bystander tan instead of the green. */
-/* @@ */ .finishedNote.partnerFinished {
+ * celebratory, so the calm bystander tan instead of the green. A decline to
+ * give clues is the same news to both players, in the same tan. */
+/* @@ */ .finishedNote.partnerFinished,
+.finishedNote.clueGivingDeclined {
   background: var(--codenamesduet-neutral-soft-bright);
   color: var(--codenamesduet-neutral-text);
 }

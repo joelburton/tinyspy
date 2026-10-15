@@ -15,9 +15,10 @@ import type { GGameData } from '../types'
  * - **Where the turn stands** — writing a clue, guessing mine, waiting on me —
  *   in `lib/answer.ts`'s words, held while it is true: news in the header
  *   covers it and it comes back as the news fades.
- * - **My partner asked the AI for a clue**, once, as it lands; my own hint is
- *   not, since the suggestion dialog is its feedback. Old hints are not
- *   replayed on load; see `useShowPeerFeedback`.
+ * - **My partner asked the AI for a clue, or declined to give clues**, once,
+ *   as it lands; my own is not, since the suggestion dialog and the clue seat
+ *   leaving me say it. Old ones are not replayed on load; see
+ *   `useShowPeerFeedback`.
  */
 export function useShowPartnerMessages(gd: GGameData, globalFeedbackSlot: FeedbackSlot) {
   // Derived to primitives so a reload's fresh `partner` object does not re-show
@@ -53,8 +54,11 @@ export function useShowPartnerMessages(gd: GGameData, globalFeedbackSlot: Feedba
     items: gd.events,
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
-      if (e.kind !== 'hint' || e.by === gd.me) return null
-      const { outcome, text } = answerMessage({ answerType: 'hint_peer' })
+      if (e.by === gd.me) return null
+      if (e.kind !== 'hint' && e.kind !== 'decline') return null
+      const { outcome, text } = answerMessage({
+        answerType: e.kind === 'hint' ? 'hint_peer' : 'declined_peer',
+      })
       return FeedbackMessage.peer(e.by, outcome, text)
     },
     globalFeedbackSlot,

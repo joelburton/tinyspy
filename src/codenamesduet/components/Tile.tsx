@@ -16,8 +16,9 @@ const KEY_SQUARE: Record<GKey, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = {
   A: 'keyAssassin',
 }
 
-/** What a turned-over tile SHOWS, the same for both players → its fill class.
- *  A tile nobody has guessed is `bgWhite`. */
+/** A tile's fill (`Board` decides it) → its fill class. A tile with no fill —
+ *  nobody has guessed it, or only one player has, as a bystander — is
+ *  `bgWhite`. */
 const FILL: Record<GKey, 'bgAgent' | 'bgNeutral' | 'bgAssassin'> = {
   G: 'bgAgent',
   N: 'bgNeutral',
@@ -37,15 +38,17 @@ type TileMarks = {
 }
 
 /**
- * One tile on the codenamesduet board, as a button: its word, its fill — what
+ * One tile on the codenamesduet board, as a button: its word (when shown), its fill — what
  * it shows, the same for both players — the key-card squares and the
  * bystander arrows, and the marks this screen adds. `Board` decides all of
  * them; this draws what it is handed.
  */
 export function Tile({
   tile,
+  fill,
   myKey,
   partnerKey,
+  isWordShown,
   arrowToMe,
   arrowToPartner,
   marks,
@@ -53,6 +56,10 @@ export function Tile({
   onClick,
 }: {
   tile: GTile
+  // What the fill shows; null for the untouched shade.
+  fill: GKey | null
+  // The word is drawn; a decided tile's is not, during play.
+  isWordShown: boolean
   // My key-card square, bottom-left; null when it is not drawn.
   myKey: GKey | null
   // My partner's key-card square, top-right; null when it is not drawn.
@@ -74,9 +81,7 @@ export function Tile({
         shared.tileFace,
         shared.tile,
         styles.overlayTile,
-        tile.revealed === null
-          ? styles.bgWhite
-          : styles[FILL[tile.revealed.as]],
+        fill === null ? styles.bgWhite : styles[FILL[fill]],
         marks.isPicked && shared.picked,
         marks.isUnderCursor && shared.selectionCursor,
         marks.isInFlight && shared.dimInFlight,
@@ -96,12 +101,14 @@ export function Tile({
           <span className={cls(styles.triangle, styles.triPartner)}
                 aria-hidden/>}
       {/* --len drives the shared .tileWord auto-fit font heuristic. */}
-      <span
-        className={shared.tileWord}
-        style={{ ['--len' as string]: tile.puzzleTile.word.length }}
-      >
-        {tile.puzzleTile.word}
-      </span>
+      {isWordShown && (
+        <span
+          className={shared.tileWord}
+          style={{ ['--len' as string]: tile.puzzleTile.word.length }}
+        >
+          {tile.puzzleTile.word}
+        </span>
+      )}
       {arrowToMe &&
           <span className={cls(styles.triangle, styles.triMine)} aria-hidden/>}
       {myKey !== null && (

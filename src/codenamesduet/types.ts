@@ -89,6 +89,9 @@ export type GTile = {
   revealed: GReveal | null
   // The players who may still guess it.
   guessableBy: ReadonlySet<GPlayer>
+  // The turn whose guess decided it — nobody may guess it since — or null
+  // while anyone still may (`useGame`, from the log).
+  decidedOnTurn: number | null
 }
 
 /**
@@ -111,10 +114,11 @@ export type GReveal = {
 export type GFacts = {
   nFoundAgents: number
   // Turns over, and the turn the game ended on when anything was played in it;
-  // never past the budget.
+  // never past the budget, nor counting sudden death's turns.
   nTurnsUsed: number
   maxTurns: number
-  // The budget is spent; stays true once a game that reached it has ended.
+  // The budget is spent, or nobody is left to give a clue; stays true once a
+  // game that reached it has ended.
   suddenDeath: boolean
   board: GBoard
 }
@@ -138,6 +142,9 @@ export type GTurnsRaw = {
   num: number
   // Given until the guessing ends; null while it is being written.
   currClue: { word: string; count: number; fromAi: boolean; userId: string } | null
+  // The guesser may pass now: always, unless the setup's `guess_required`
+  // waits for this turn's first guess.
+  passAllowed: boolean
 }
 
 /** The turn as `gd` holds it, its user ids as players. */
@@ -145,6 +152,7 @@ export type GTurns = {
   holder: GPlayer | null
   num: number
   currClue: { word: string; count: number; fromAi: boolean; by: GPlayer } | null
+  passAllowed: boolean
 }
 
 /** One row of the log, as the builder wrote it. */
@@ -152,7 +160,9 @@ export type GEventRaw = {
   // The row's own id, and the order of play.
   id: number
   userId: string
-  kind: 'clue' | 'guess' | 'pass' | 'hint'
+  // A `decline` is the clue-giver declining to give clues for the rest of the
+  // game (`can_decline_clue_giving`).
+  kind: 'clue' | 'guess' | 'pass' | 'hint' | 'decline'
   turnNum: number
   // This event spent the turn: a pass, or a guess that ended it.
   tookTurn: boolean
@@ -164,7 +174,7 @@ export type GEventRaw = {
   // A guess's: the tile and what it turned over as; null on every other kind.
   tileId: string | null
   result: GKey | null
-  // Its turn was past the budget: played in sudden death.
+  // Played in sudden death.
   suddenDeath: boolean
 }
 
@@ -181,6 +191,11 @@ export type GClueEvent = GEvent & {
   clueFromAi: boolean
 }
 
+/** A decline to give clues (`lib/events.ts → declinesOf`). */
+export type GDeclineEvent = GEvent & {
+  kind: 'decline'
+}
+
 /** A guess, its payload present, with the word on its tile
  *  (`lib/events.ts → guessesOf`). */
 export type GGuessEvent = GEvent & {
@@ -191,7 +206,8 @@ export type GGuessEvent = GEvent & {
 }
 
 /** A player as codenamesduet's game_data shows them: the common player, with
- *  the clue seat and whether their agents are all found. */
+ *  the clue seat, whether their agents are all found, and whether they
+ *  declined to give clues. */
 export type GPlayerRaw = PlayerRaw & {
   // Holds the clue seat this turn; false for both in sudden death and once the
   // game has ended.
@@ -199,6 +215,9 @@ export type GPlayerRaw = PlayerRaw & {
   // Every agent on this player's key is contacted: their partner has nothing
   // left to guess.
   allAgentsFound: boolean
+  // Declined to give clues for the rest of the game; their partner gives every
+  // one.
+  declinedClueGiving: boolean
 }
 
 /**
@@ -234,10 +253,11 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *     holder                                 # null in sudden death with words on both sides
  *     num                                    # the turn being played, from 1
  *     currClue: {word, count, fromAi, by}    # given until the guessing ends; null while it is being written
+ *     passAllowed                            # the guesser may pass now (guess_required waits for a guess)
  *   ending: {reason, detail, by, winners}
  *   ended
  *   outcome
- *   events: [event, …]                       # every clue, guess, pass and hint, in order
+ *   events: [event, …]                       # every clue, guess, pass, hint and decline, in order
  *   players: [player, …]                     # seat order: A, then B
  *   playersById
  *   me
@@ -247,6 +267,7 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *   the common player                        # seat 0 is A, who gives the first clue
  *   clueGiver                                # gives this turn's clue
  *   allAgentsFound                           # every agent on this player's key is contacted
+ *   declinedClueGiving                       # declined to give clues for the rest of the game
  *   nFoundAgents                             # the team's, on both players
  *   nTurnsUsed
  *   maxTurns
@@ -268,11 +289,12 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *   revealed: {as, arrows}                   # what it shows (G / N / A), and the Set of players
  *                                            # to point an arrow at; null until anyone guesses it
  *   guessableBy                              # the Set of players who may still guess it
+ *   decidedOnTurn                            # the turn whose guess decided it; null while anyone may guess it
  *
  * event:
  *   id
  *   by
- *   kind                                     # clue / guess / pass / hint
+ *   kind                                     # clue / guess / pass / hint / decline
  *   turnNum
  *   tookTurn
  *   at
@@ -281,7 +303,7 @@ export type GPlayer = GPlayerRaw & FactsApart<GFacts> & {
  *   clueFromAi
  *   tileId                                   # a guess's; null otherwise
  *   result                                   # G / N / A
- *   suddenDeath                              # its turn was past the budget
+ *   suddenDeath                              # played in sudden death
  */
 
 /**
@@ -343,6 +365,13 @@ export type GSetupValues = {
   // The word pools the board's 25 words come from, one or more, in pool order
   // (`WORD_POOLS` in lib/setup.ts). `create_game` deals them in equal shares.
   word_pools: GWordPool[]
+  // The guesser may not pass before their first guess of the turn.
+  guess_required: boolean
+  // A clue is the letters a to z: no spaces, hyphens or digits.
+  strict_words: boolean
+  // The clue-giver may decline instead of giving a clue: no turn is spent, and
+  // their partner gives every clue for the rest of the game.
+  can_decline_clue_giving: boolean
   // WHO IS PLAYING — a field like any other, and the only one that is not
   // part of the setup blob: `create_game` takes it as its own argument and
   // writes `common.game_players` rows from it.
@@ -385,6 +414,11 @@ export type GAnswer =
   // My partner asked the AI for a clue. (My own asking has no answer: the
   // suggestion dialog is its feedback.)
   | { answerType: 'hint_peer' }
+
+  // My partner declined to give clues for the rest of the game. (My own
+  // decline has no answer: the clue seat leaving me says it, and the info
+  // column's banner holds it.)
+  | { answerType: 'declined_peer' }
 
   // A clue given exactly as the AI suggested it. Nothing is SAID — the answer's
   // job is its outcome, which the event log's mark on that clue wears. A clue

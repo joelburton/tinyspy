@@ -21,10 +21,11 @@ chooses to look.
 A turn is a clue and then the guesses it earns. The seat that holds the clue
 is on the game row, and passes when the guesser turns over a bystander or
 chooses to stop. It does not always alternate: once a player's own agents are
-all found, their partner gives every clue from then on, so the turn flow is
-lopsided on purpose and both players are told so. When the budget is spent the
-game drops into sudden death — no more clues, whoever still has words to
-guess guesses, and any word that is not an agent loses the game.
+all found, or they have declined to give clues, their partner gives every clue
+from then on, so the turn flow is lopsided on purpose and both players are
+told so. When the budget is spent, or nobody is left to give a clue, the game
+drops into sudden death — no more clues, whoever still has words to guess
+guesses, and any word that is not an agent loses the game.
 
 The turn lives in the game's own state — the seat that holds the clue, and
 whether this turn's clue is in — and the server mirrors it onto the shared
@@ -94,6 +95,19 @@ agents are all found gives no more clues**: the partner takes every clue from
 then on (the rulebook's own words). Both players are told this happened, so
 neither reads the lopsided turns as a bug.
 
+**Three setup options**, beyond the rulebook, each on by default:
+
+- **Guess required** — the guesser may not stop before their first guess of
+  the turn.
+- **Strict words** — a clue is the letters a to z: no spaces, hyphens or
+  digits.
+- **Can decline clue-giving** — instead of giving a clue, the clue-giver may
+  decline. No turn is spent: the partner takes the clue seat on the same turn,
+  and a player who declined gives no more clues, as a finished player gives
+  none. When that leaves **nobody to give a clue** — the partner has declined
+  too, or has no agents left, now or later — sudden death begins at once,
+  with turns left in the budget (Joel, 2026-10-15).
+
 **The 25 words** come from the word pools ticked at setup, in equal shares:
 Codenames Duet (the game's own list, and the default), Codenames, and
 Undercover (adult), whose sexual terms its label warns of. Two pools deal
@@ -111,8 +125,8 @@ the guesser alone and the partner may still guess it. Only a word both players
 have hit as a bystander is dead for both. An agent contacted and an assassin
 hit are the same for both players.
 
-**Sudden death** starts when the budget is spent with agents left. There are
-no more clues. A guess is made from memory and read off the PARTNER's side, so
+**Sudden death** starts when the budget is spent with agents left, or when
+nobody is left to give a clue. There are no more clues. A guess is made from memory and read off the PARTNER's side, so
 a player whose partner's agents are all found has no words left to guess. If
 only one player has words left, that player guesses; if both do, either may,
 in any order, without discussing strategy. Every agent is a turn of its own,
@@ -127,8 +141,9 @@ and anything but an agent loses.
 | **contacted** | an agent turned over; the same for both players |
 | **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver` — nobody, in sudden death — and the other seat |
 | **turn budget** | `max_turns`, copied from `setup.turns` at create. The turns left are worked out, `greatest(max_turns − turn_number + 1, 0)` (`_turns_remaining`), never stored. Distinct from the wall-clock timer, which is an optional setup of its own |
-| **sudden death** | the budget spent with agents left: `turn_number` past `max_turns` while the game hasn't ended |
+| **sudden death** | the budget spent with agents left, or nobody left to give a clue: `sudden_death_turn`, the turn it began on, is set |
 | **finished player** | a player whose own agents are all contacted; they stop giving clues |
+| **declined** | a player who declined to give clues (`decline_clue_giving`); they stop giving clues too |
 
 ### How a game ends
 
@@ -150,16 +165,17 @@ death with words on both sides.
 
 ## Schema
 
-Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql` and
-`20260923000001_codenamesduet_events.sql` (shape) and
+Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql`,
+`20260923000001_codenamesduet_events.sql` and
+`20261015000000_codenamesduet_setup_options.sql` (shape) and
 `supabase/sql/codenamesduet.sql` (behavior).
 
 | | |
 |---|---|
-| `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 keys indexed by board position), the budget (`max_turns`) and the turn state (`turn_number`, `current_clue_giver`). The ending is on `common.games` |
+| `codenamesduet.games` | one row per game: the two seats (`player_a_user_id`, `player_b_user_id`), both key cards (`key_card_a`, `key_card_b`, each 25 keys indexed by board position), the budget (`max_turns`), the three setup options (`guess_required`, `strict_words`, `can_decline_clue_giving`, copied from the setup at create) and the turn state (`turn_number`, `current_clue_giver`, `sudden_death_turn`). The ending is on `common.games` |
 | `codenamesduet.word_pool` | the words a board is drawn from, seeded by the migrations, lowercase as every game's words are, each with its `pool`: 1 Codenames Duet, 2 Codenames, 3 Undercover (adult). The key is the word, so a word in two source lists belongs to the lower-numbered one (`20261007000008_codenamesduet_word_pools.sql`). Setup names a pool (`duet`, `codenames`, `undercover`) and `create_game` maps it to the number. No policy and no grant: only `create_game` reads it |
 | `codenamesduet.words` | the board, 25 rows per game: the word, and what has happened to it — `revealed_as` (`G` or `A`, the same for both players) and `neutral_a` / `neutral_b` (a bystander hit by that seat) |
-| `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
+| `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass`, `hint` and `decline`, `order by id`. Who has declined is read off it, so a Restart takes every decline back. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
 
 **The seats are columns, not a table.** `common.game_players` says who played;
 which seat each holds, and what that seat's key card says, is game state and
@@ -201,7 +217,7 @@ hook merges it into `game_data`, each key in its place:
 | blob | codenamesduet's part |
 |---|---|
 | `static_game_data` | `puzzle: {tiles}`, the deal: the 25 words by position, each with both players' keys, `{[userId]: G / N / A}` |
-| `game_data` | `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, the pair's facts, sent once, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue}`, the common turn with its number and its clue; `events`, every clue, guess, pass and hint in order, each with `suddenDeath` when its turn was past the budget; on each player `clueGiver` and `allAgentsFound` |
+| `game_data` | `team: {nFoundAgents, nTurnsUsed, maxTurns, suddenDeath, board}`, the pair's facts, sent once, `nTurnsUsed` counting the turn the game ended on when anything was played in it, and `board: {tiles}` the table as it stands — each tile's `revealed: {as, arrows}` (what it shows, the same for both, and who to point a bystander's arrow at; null until anyone guesses it) and `guessableBy`, the players who may still guess it; `turns: {holder, num, currClue, passAllowed}`, the common turn with its number, its clue, and whether the guesser may pass yet (`guess_required`); `events`, every clue, guess, pass, hint and decline in order, each with `suddenDeath` when it was played in sudden death; on each player `clueGiver`, `allAgentsFound` and `declinedClueGiving` |
 | `summary_data` | `team`, the pair's facts without the board |
 
 The pair's facts (`GFacts`) are on both players twice — spread on, the side's;
@@ -235,7 +251,8 @@ game on the local stack, `PAGE-CHAIN-EGG`, seat A giving the first clue.
 
 Starts a game. It checks the setup — a turn budget of 7 to 15, a
 first clue-giver who is one of the players, the timer, one or more known word
-pools, none twice — and that there are exactly two players. It draws
+pools, none twice, and the three options each true or false — and that there
+are exactly two players. It draws
 twenty-five words from `codenamesduet.word_pool` in equal shares across the
 chosen pools, shuffled, titles the game after the first three in board
 order (`PAGE-CHAIN-EGG`: the top-left three cells, which never move), seats the
@@ -258,7 +275,10 @@ The play surface's New game calls it too, with this game's setup and roster.
     "turns": 9,
     "first_clue_giver_user_id": "deadbeef-…-000000000001",
     "timer": { "kind": "none" },
-    "word_pools": ["duet"]
+    "word_pools": ["duet"],
+    "guess_required": true,
+    "strict_words": true,
+    "can_decline_clue_giving": true
   },
   "p_player_user_ids": ["deadbeef-…-000000000001", "deadbeef-…-000000000002"]
 }
@@ -278,9 +298,10 @@ turn has no clue yet — each of which the partner's move or the caller's own
 can change while the form is on screen, so a refusal here is a race. It
 logs the clue as an event of the turn and the seat, with whether it is exactly
 the AI's suggestion — the client says so, being the only side that saw the
-suggestion. It does not judge the clue: the word is whatever was typed — a
-board word included — and the count any whole number from zero up. The players
-police their own clues, as they would at a table.
+suggestion. It does not judge the clue beyond **Strict words**, which holds it
+to the letters a to z: the word is whatever was typed — a board word included —
+and the count any whole number from zero up. The players police their own
+clues, as they would at a table.
 
 The clue is stored lowercase.
 
@@ -325,9 +346,9 @@ in this game:
   (SMOKE, position 5; the turn goes on)
 - a bystander — `{ "result": "bystander", "revealed": "N", "found_agents_count": 1,
   "turn_number": 2, "turns_remaining": 8, "clue_giver": "B" }`
-  (PAGE, position 0; the turn ended). When that spent the last turn,
-  `turns_remaining` is 0 and `clue_giver` is null — sudden death has no clues,
-  so nobody holds the seat.
+  (PAGE, position 0; the turn ended). When that began sudden death — the
+  last turn spent, or nobody left to clue — `clue_giver` is null, since
+  sudden death has no clues, so nobody holds the seat.
 
 The two that end the game are named for its outcome, and carry the ending's
 detail as `reason`, the key turned over, the agents found and the turns
@@ -342,9 +363,10 @@ board shows it when the next blob arrives.
 ### `codenamesduet.pass_turn(p_game_id)`
 
 The guesser stops guessing and spends the turn — legal before the first guess
-too, for a clue that makes no sense. It refuses a pass from the clue-giver and
-a pass before this turn's clue, both races, and otherwise logs the pass and
-ends the turn exactly as a bystander does.
+too, for a clue that makes no sense, unless **Guess required** is on. It
+refuses a pass from the clue-giver and a pass before this turn's clue, both
+races, and otherwise logs the pass and ends the turn exactly as a bystander
+does.
 
 **Passed:** `{ "p_game_id": "88ae6f5a…" }`
 
@@ -353,6 +375,23 @@ turn keys the bystander answer carries:
 
 ```json
 { "result": "passed", "turn_number": …, "turns_remaining": …, "clue_giver": "A" | "B" | null }
+```
+
+### `codenamesduet.decline_clue_giving(p_game_id)`
+
+The clue-giver's other move, when **Can decline clue-giving** is on: no clue,
+this turn or any later one. Under a lock on the game row it checks what
+`submit_clue` checks — ordinary play, the clue seat, no clue in yet, the same
+races in the same words — logs a `decline` that takes no turn, and hands the
+clue seat to the partner on the same turn. When the partner may not clue
+either, it hands it to nobody and sudden death begins on this turn.
+
+**Passed:** `{ "p_game_id": "88ae6f5a…" }`
+
+**Returned** — one answer, who clues now:
+
+```json
+{ "result": "declined", "clue_giver": "B" | "A" | null }
 ```
 
 ### `codenamesduet-suggest-clue` — the edge function behind the AI button
@@ -411,12 +450,18 @@ it, and Enter (`act-submit`, called "Guess") to send it; the second key is the
 confirmation a click's aim gives, since an arrow can land a cell off and the
 word can be the assassin. The tile shows it is committing, and all five `ok`s
 leave the frontend silent, because the tile's color arriving IS the answer.
-**A pass** is the guesser's Pass & End Turn button; `passed` says nothing
-either, since the new turn arrives in the next blob. An ending is not answered
+**A pass** is the guesser's Pass & End Turn button, grayed with its reason
+while the blob's `passAllowed` is false; `passed` says nothing either, since
+the new turn arrives in the next blob. **A decline** is the clue form's red,
+icon-only Decline clues button, shown only when the setup allows it; its
+tooltip is "Decline to give clues for rest of game", and `declined` says
+nothing, since the clue seat leaving arrives in the next blob. With **Strict
+words** the word field takes only letters, and an AI suggestion fills it cut to
+its letters. An ending is not answered
 at the call site: the verdict is a standing condition of the local slot, built
 in `PlayArea` from `gd`'s ending.
 
-**A refusal is the only thing any of the three shows**, in the local slot
+**A refusal is the only thing any of the four shows**, in the local slot
 under the board, in the server's words; the clue form keeps what was typed,
 since the clue was never recorded:
 
@@ -435,11 +480,15 @@ since the clue was never recorded:
 | a pass, the game ended under it | me | `Game over` | `warning` | `pass_turn` |
 | a pass, the last turn spent under it | me | `Sudden death — no turn to pass` | `warning` | `pass_turn` |
 | a pass, I became the giver | me | `You're giving the clue this turn` | `warning` | `pass_turn` |
+| a decline, the game ended under it | me | `Game over` | `warning` | `decline_clue_giving` |
+| a decline, the last turn spent under it | me | `Sudden death — no more clues` | `warning` | `decline_clue_giving` |
+| a decline, the seat moved | me | `Your partner is giving the clue now` | `warning` | `decline_clue_giving` |
+| a decline, my clue already in | me | `A clue is already in for this turn` | `warning` | `decline_clue_giving` |
 
 **The partner is narrated in the header**: what they are doing right now,
 held for as long as it is true — `writing clue`, `guessing`, `waiting for
 clue`, `waiting for you` — and, once as it lands, their asking the AI — `got
-hint`. The words and outcomes are [`lib/answer.ts`](lib/answer.ts)'s; sudden
+hint` — or declining to give clues — `declined clues`. The words and outcomes are [`lib/answer.ts`](lib/answer.ts)'s; sudden
 death narrates nothing there, and the clue strip carries it.
 
 **The AI suggestion** opens a floating dialog the moment the button is
@@ -474,7 +523,8 @@ describes: a loader that gates on the three ways a game can fail to load, then
         │     └── below the board        one of: HistoryBanner ←, the local slot's
         │                                FeedbackPill ←, or ClueStrip — the clue form,
         │                                the clue and Pass, or who we're waiting for; the
-        │                                AI button (useSuggestClue), Pass (usePassTurn)
+        │                                AI button (useSuggestClue), Pass (usePassTurn),
+        │                                Decline (useDeclineClueGiving)
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
         │           ├── StateLine        agents found, turns spent or sudden death
@@ -484,6 +534,7 @@ describes: a loader that gates on the three ways a game can fail to load, then
         │           ├── SetupDisclosure ←
         │           └── GameEventLog     the log, a table of turns
         ├── CodenamesduetAISuggestCompanion   the AI's suggestion, a floating panel
+        ├── ClueRulesCompanion       the rules for giving a clue (useClueRules)
         └── CelebrationBlockingModal ←   a win, as it lands
 
   ← belongs to common/ ; everything else is this folder's
@@ -504,15 +555,21 @@ nothing and subscribes to nothing. `PlayArea`'s hooks hold the rest:
 What is codenamesduet's own:
 
 - **The board draws what happened, and the marks draw what the cards say.** A
-  tile's fill is what happened to it: untouched, a bystander hit by either
-  player, an agent contacted, the assassin. The untouched tile is lighter than
+  tile's fill is what happened to it: untouched, a bystander hit by both
+  players, an agent contacted, the assassin. A bystander only one player has
+  hit keeps the untouched fill and wears that player's triangle, in the tile's
+  ink — except my own while I am guessing: closed to me, it takes the tan and
+  drops its word, keeping its triangle. The untouched tile is lighter than
   every other game's, because the shared resting shade is too close to the
-  bystander tan. In the corners are the key-card squares: mine bottom-left,
+  bystander tan. A decided tile — one nobody may still guess, an agent
+  contacted or a bystander to both — drops its word once the turn that
+  decided it is over (`decidedOnTurn`, which `useGame` reads off the log); the
+  end of the game and a viewed past turn draw every word. In the corners are the key-card squares: mine bottom-left,
   shown except while I am guessing, since my own card says nothing about my
   partner's clue; my partner's top-right, once the game is over and I have
   asked. A bystander hit from one side is a triangle pointing at the player who
   hit it: my partner's above the word, mine below — the tile's `arrows`, which
-  the builder decides. A word I hit as a bystander stays locked to me alone —
+  the builder decides. A bystander both of us hit wears none. A word I hit as a bystander stays locked to me alone —
   the tile's `guessableBy`, the builder's too, which the keyboard's Space asks
   of me.
 - **The keyboard's selection cursor** (`Board`'s `useTileCursor`, the shape
@@ -533,6 +590,11 @@ What is codenamesduet's own:
   above never moves: the clue form for the giver, the clue and Pass & End Turn
   for the guesser, who we are waiting for otherwise, and the sudden-death
   notice. The clue form keeps Tab on its two inputs.
+- **The clue rules** are a companion that opens by itself on turn 1 of a
+  running game, once per game for each player — closing it by its ✕ marks it
+  seen in this browser — and from the help line's "Rules for clues" link while
+  I write a clue. Its line about hyphens and digits follows Strict words; a word a rule forbids is struck in the markup (`<s>`) and drawn
+  unstruck behind a ❌.
 - **The AI button** is on the clue form. It opens the suggestion in a floating
   panel and fills the form with it; the player still presses Submit.
 - **The partner in the header.** `useShowPartnerMessages` holds a line saying
@@ -545,12 +607,15 @@ What is codenamesduet's own:
   the shared pointer.
 - **The finished-player banner** tells each player, in the info column, when
   one of them has found all their agents: in green to the one who finished,
-  in tan to their partner, who now gives every clue.
+  in tan to their partner, who now gives every clue. **The declined banner**
+  says the same of a decline, in tan to both, and takes the finished-player
+  banner's place when both are true.
 - **The key card** is a disclosure in the info column: my side as a 5×5 grid of
   colors, with no words, for a player who wants to see the whole card at once.
 - **The event log is a table of turns**: the clue, who gave it and whether it
   was the AI's, then the guesses under it in their key-card colors — or, in
-  sudden death, one row per guess. Its bar is the turn's outcome
+  sudden death, one row per guess. A decline is an unnumbered row of its own,
+  above the clue the partner then gives. Its bar is the turn's outcome
   (`lib/turnOutcome.ts`), and its number opens that turn on the board
   (`lib/history.ts`). The picker filters by who gave the clue.
 - **The ending** is the pill and the row's line, from the team's ending label
@@ -573,7 +638,7 @@ test finds a position by its key), `pg_temp.codenamesduet_setup()` and
 
 | file | pins |
 |---|---|
-| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the page at turn 1, the title in capitals, and the key card's joint table exactly |
+| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer, a missing option — the rows written, the options on the game row, the page at turn 1, the title in capitals, and the key card's joint table exactly |
 | `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on and the club-list agent count with it, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
@@ -585,8 +650,9 @@ test finds a position by its key), `pg_temp.codenamesduet_setup()` and
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |
 | `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, the whole board and the clues given so far; a deleted game is the shared race through it and `log_hint` |
-| `game_data_test` | the page blobs: a fresh game's deal and untouched table; mid-game the turn's clue, an agent shown to both, a bystander pointing at its guesser and still open to the partner; a hint re-dating the page; both bystanders closing a tile; the turn the game ended on counted; sudden death and its events; a Restart; a rebuild of every game without re-dating it |
+| `game_data_test` | the page blobs: a fresh game's deal and untouched table; mid-game the turn's clue, an agent shown to both, a bystander pointing at its guesser and still open to the partner; a hint re-dating the page; both bystanders closing a tile and pointing at nobody; the turn the game ended on counted; sudden death and its events; a Restart; a rebuild of every game without re-dating it |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
+| `setup_options_test` | Guess required refuses a pass before the turn's first guess; Strict words refuses anything but letters; a decline spends no turn and hands the clue over for good, and nobody left to clue — both declined, the partner finished, or the last giver finishing — begins sudden death early, its turns not the budget's; Restart takes the declines back |
 
 The edge function has no tests; `deno check` is its only net.
 
@@ -597,9 +663,9 @@ Vitest, beside the code:
 | `lib/turnOutcome.test` · `lib/endingLabel.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's label; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the clues and the guesses out of the log; a past turn's board, its bystanders pointing at their guessers and its own tiles ringed |
 | `hooks/useGame.test` | `gd` from the blob, on the fixture (`lib/gameData.fixture.ts`): the links to players and tiles, each tile's guessers, the facts on both players and the one table, the turn and its clue, and the seat rule — my partner's key withheld until the end |
-| `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; the help line on my move; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the setup options — Pass waiting for a guess, Decline offered, the declined banners, a partner's decline in the header, early sudden death; the finished-player banners; the help line on my move; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
 | `components/Board.test` · `components/StateLine.test` | the bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns used and sudden death |
-| `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |
+| `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows, decline rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, the sudden-death notice, the letters-only word field, Decline, and a grayed Pass; the key card's grid; the setup form's fields |
 | `pdf/model.test` | the partner's card never printed mid-game; each tile's mark and triangles; the clue log; the summary's turns used |
 
 Playwright, in `e2e/`: `codenamesduet` (the board holds its height through

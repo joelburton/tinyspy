@@ -13,7 +13,7 @@ import { useDecidedTileMarks } from '../hooks/useDecidedTileMarks'
 import { useTileCursor } from '../hooks/useTileCursor'
 import { Tile } from './Tile'
 import styles from './Board.module.css'
-import type { GHistoryView, GPlayer, GTile } from '../types'
+import type { GHistoryView, GKey, GPlayer, GTile } from '../types'
 
 /** What this screen adds to the board: worn on or around it, never in the blob. */
 type BoardMarks = {
@@ -31,8 +31,8 @@ type BoardMarks = {
 
 /**
  * The 5×5 codenamesduet board: a grid of tiles, and the keyboard's way around
- * them (`useTileCursor`). It decides which marks each tile wears — its key
- * squares, its arrows, whether it takes a click, and the shared board marks
+ * them (`useTileCursor`). It decides which marks each tile wears — its fill,
+ * whether its word is drawn, its key squares, its arrows, whether it takes a click, and the shared board marks
  * (plans/tile-feedback.md): the pick and the cursor ring, the in-flight dim,
  * the attention flash and the shake (`useDecidedTileMarks`) — and on the board
  * the turn dim and flash and the game-over frame. `Tile` draws them.
@@ -45,6 +45,8 @@ export function Board({
   me,
   partner,
   showsPartnerKey,
+  isGameEnded,
+  turnNum,
   isInteractive,
   onPick,
   onGuess,
@@ -63,6 +65,10 @@ export function Board({
   partner: GPlayer
   // My partner's key-card squares are drawn: the game has ended and I asked.
   showsPartnerKey: boolean
+  // The game is over: every word is drawn again, the decided ones included.
+  isGameEnded: boolean
+  // The turn being played: a tile decided on it keeps its word until it ends.
+  turnNum: number
   // The board takes my guess right now (BoardCol's `isInteractive`).
   isInteractive: boolean
   // Pick a tile, or un-pick with null — the keyboard's Space.
@@ -91,6 +97,32 @@ export function Board({
       ? null
       : positionAt(tileCursor.cell.x, tileCursor.cell.y, BOARD_SHAPE.numCols)
 
+  // A bystander I alone have hit, while I am the one guessing: it is closed to
+  // me, so it reads as spent — the tan fill, no word — and keeps its arrow.
+  function isMySpentBystander(tile: GTile): boolean {
+    return isGuessing && tile.revealed?.as === 'N' && tile.revealed.arrows.has(me)
+  }
+
+  // What the tile shows, except that a bystander only one player has hit keeps
+  // the untouched shade, its arrow saying who hit it — unless it is my spent
+  // one while I guess.
+  function fillOf(tile: GTile): GKey | null {
+    if (tile.revealed === null) return null
+    if (isMySpentBystander(tile)) return 'N'
+    if (tile.revealed.as === 'N' && tile.revealed.arrows.size > 0) return null
+    return tile.revealed.as
+  }
+
+  // The end of the game and a viewed past turn draw every word. Otherwise a
+  // decided tile — one the builder says nobody may still guess: an agent
+  // contacted, or a bystander to both — drops its word once the turn that
+  // decided it is over, and my spent bystander drops it while I guess.
+  function isWordShownOn(tile: GTile): boolean {
+    if (isGameEnded || historyView.isViewing) return true
+    if (isMySpentBystander(tile)) return false
+    return tile.decidedOnTurn === null || tile.decidedOnTurn === turnNum
+  }
+
   return (
     // data-board: the e2e handle for the layout-stability test, which measures
     // this element's height across the below-board states.
@@ -112,6 +144,8 @@ export function Board({
           <Tile
             key={tile.id}
             tile={tile}
+            fill={fillOf(tile)}
+            isWordShown={isWordShownOn(tile)}
             // My key-card square, except while I am the one guessing: my own
             // key says nothing about my partner's clue.
             myKey={isGuessing ? null : tile.puzzleTile.key[me.id]!}

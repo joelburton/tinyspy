@@ -60,7 +60,7 @@ describe('a deleted game says so', () => {
       'bananagrams.stop_game', 'bananagrams.submit_timeout',
       'boggle.concede', 'boggle.replay_board', 'boggle.stop_game', 'boggle.submit_timeout',
       'boggle.submit_word',
-      'codenamesduet._require_clue_giver',
+      'codenamesduet._require_clue_giver', 'codenamesduet.decline_clue_giving',
       'codenamesduet.pass_turn', 'codenamesduet.replay_board',
       'codenamesduet.stop_game', 'codenamesduet.submit_clue',
       'codenamesduet.submit_guess', 'codenamesduet.submit_timeout',

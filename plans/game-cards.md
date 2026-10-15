@@ -363,10 +363,10 @@ lead the partner to the agents on your key. Coop only, two players.
 - **winning and losing**
   - `loses-by`
     - `loses-by-fatal-move`: any assassin
-    - `loses-by-move-budget`: the turns spent, then any miss
+    - `loses-by-move-budget`: the turns spent or nobody left to clue, then any miss
   - `announce-when` — `announce-when-decided`
 - **ending**
-  - `exhaustible-resource` — none: a spent budget begins the game's sudden death
+  - `exhaustible-resource` — none: a spent budget, or nobody left to clue, begins the game's sudden death
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
   - `hint` — an AI-suggested clue, for the clue-giver

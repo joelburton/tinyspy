@@ -31,6 +31,13 @@
   vertical-align: -0.125em;
 }
 
+/* The glyph leading a decline's row, colored the same way by the outcome
+ * class it wears. */
+.declineMark {
+  color: var(--verdict-line);
+  vertical-align: -0.125em;
+}
+
 /* Each guessed word (row 2), colored by what it REVEALED — the same agent-green
  * / neutral-tan / assassin-red key-card vocabulary the board uses for revealed
  * tiles, which is not the outcome vocabulary. The agent and the assassin wear

@@ -7,8 +7,8 @@
  * bell is told, the board's turn dim and flash and a guess's flash through the
  * log, the finished-player banners, the partner-key reveal, the action row and
  * the menu, the header's lines about the partner, the two role-specific
- * controls, the commands through the dispatcher, and the keyboard's selection
- * cursor.
+ * controls, the setup options, the commands through the dispatcher, and the
+ * keyboard's selection cursor.
  *
  * Only `db` is mocked. By default my partner (seat A) gave the clue and I (seat
  * B) am guessing, so the tiles are clickable.
@@ -20,16 +20,22 @@ import { getActions } from '@/common/actions/actionsStore'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  ZTest_installFakeStorage,
+  type ZTest_InstalledStorage,
+} from '@/common/web-storage/storage.fake'
 import type { PlayAreaLoaderProps } from '@/common/game-page/playAreaLoaderProps'
 import shared from '@/common/game-page/playArea.module.css'
 import { db } from '../db'
 import {
   ZTest_clue,
+  ZTest_decline,
   ZTest_guess,
   ZTest_makeCodenamesduetCtx,
   type ZTest_GameDataFacts,
 } from '../lib/gameData.fixture'
+import { DEFAULT_CODENAMESDUET_SETUP } from '../lib/setup'
 import type { GEventRaw, GKey } from '../types'
 import tileStyles from './Tile.module.css'
 import { PlayAreaLoader } from './PlayArea'
@@ -124,6 +130,10 @@ const press = (init: KeyboardEventInit) =>
     fireEvent.keyDown(document.body, init)
   })
 
+/** A board tile by its position — its handle, since a decided tile draws no
+ *  word to find it by. */
+const tileAt = (p: number) => document.querySelector<HTMLButtonElement>(`button[data-tile="${p}"]`)!
+
 /** A control by WHICH action it is, since its words vary per state. */
 const control = (id: string) => document.querySelector<HTMLButtonElement>(`button[data-action="${id}"]`)
 
@@ -162,7 +172,8 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
   it('holds the guess in flight after the reply, until its reveal lands', async () => {
     rpc.mockReturnValue(Promise.resolve(okEnvelope({ result: 'agent' })))
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
-    const apple = () => screen.getByRole('button', { name: /apple/i })
+    // By position: once revealed an agent's tile no longer draws its word.
+    const apple = () => tileAt(0)
     await act(async () => {
       fireEvent.click(apple())
     })
@@ -270,8 +281,8 @@ describe('codenamesduet PlayArea — the board marks', () => {
   it('flashes the tile a guess turned over, reading the guess log', () => {
     const view = render(<PlayAreaLoader {...makeCtx()} />)
     view.rerender(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 1, 'G')] })} />)
-    expect(screen.getByRole('button', { name: /berry/i }).className).toMatch(/attentionFlash/)
-    expect(screen.getByRole('button', { name: /apple/i }).className).not.toMatch(/attentionFlash/)
+    expect(tileAt(1).className).toMatch(/attentionFlash/)
+    expect(tileAt(0).className).not.toMatch(/attentionFlash/)
   })
 
   it('does not dim the board while I write the clue', () => {
@@ -456,7 +467,8 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
  */
 describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI', () => {
   it('the guesser’s Pass is a primary, normal-toned button', () => {
-    render(<PlayAreaLoader {...makeCtx()} />)
+    // A guess is in, so Pass is not waiting on one.
+    render(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 23, 'G')] })} />)
     const pass = control('act-end-turn')!
     expect(pass).toBeEnabled()
     // Weight and tone are the module's class keys — the CSS-module proxy keeps
@@ -480,6 +492,79 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
     expect(control('act-suggest-clue')).toBeEnabled()
     // The giver has no guesses to stop.
     expect(control('act-end-turn')).toBeNull()
+  })
+})
+
+/**
+ * The three setup options, on by default: Pass waits for the turn's first
+ * guess, and the clue-giver may decline — after which the info column says who
+ * clues, the header tells the partner, and nobody left to clue is sudden death.
+ */
+describe('codenamesduet PlayArea — the setup options', () => {
+  const RULEBOOK_SETUP = {
+    ...DEFAULT_CODENAMESDUET_SETUP,
+    first_clue_giver_user_id: 'u2',
+    guess_required: false,
+    strict_words: false,
+    can_decline_clue_giving: false,
+  }
+  const texts = (ctx: PlayAreaLoaderProps) =>
+    ctx.globalFeedbackSlot.peek().map((entry) => entry.message.text)
+
+  it('grays Pass until my first guess of the turn is in', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
+    expect(control('act-end-turn')).toBeDisabled()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx({ events: [PARTNER_CLUE, ZTest_guess(2, 'u1', 1, 23, 'G')] })} />)
+    expect(control('act-end-turn')).toBeEnabled()
+  })
+
+  it('without guess required, Pass is open before any guess', () => {
+    render(<PlayAreaLoader {...makeCtx({ setup: RULEBOOK_SETUP })} />)
+    expect(control('act-end-turn')).toBeEnabled()
+  })
+
+  it('offers the clue-giver Decline, unless the setup says no', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx(AS_CLUE_GIVER)} />)
+    expect(control('act-decline-clue-giving')).toBeEnabled()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx({ ...AS_CLUE_GIVER, setup: RULEBOOK_SETUP })} />)
+    expect(control('act-decline-clue-giving')).toBeNull()
+  })
+
+  it('once I decline, tells me my partner gives every clue', () => {
+    render(<PlayAreaLoader {...makeCtx({ turnNum: 2, events: [ZTest_decline(1, 'u1', 2)] })} />)
+    expect(screen.getByText(/gives every\s+remaining clue — you declined/)).toBeInTheDocument()
+    expect(screen.queryByText(/declined to\s+give clues/)).not.toBeInTheDocument()
+  })
+
+  it('once my partner declines, tells me I give every clue', () => {
+    render(<PlayAreaLoader {...makeCtx({ ...AS_CLUE_GIVER, events: [ZTest_decline(1, 'u2', 1)] })} />)
+    expect(screen.getByText(/declined to\s+give clues — you give every remaining clue/)).toBeInTheDocument()
+    expect(screen.queryByText(/you declined/)).not.toBeInTheDocument()
+  })
+
+  it('narrates my partner’s decline in the header as it lands', () => {
+    const ctx = makeCtx(AS_CLUE_GIVER)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).not.toContain('declined clues')
+    const next = {
+      ...makeCtx({ ...AS_CLUE_GIVER, events: [ZTest_decline(1, 'u2', 1)] }),
+      globalFeedbackSlot: ctx.globalFeedbackSlot,
+    }
+    rerender(<PlayAreaLoader {...next} />)
+    expect(texts(ctx)).toContain('declined clues')
+  })
+
+  it('with nobody left to clue, it is sudden death before the budget is spent', () => {
+    render(<PlayAreaLoader {...makeCtx({
+      turnNum: 2,
+      clueSeat: null,
+      suddenDeathTurn: 2,
+      events: [ZTest_decline(1, 'u2', 1), ZTest_decline(2, 'u1', 2)],
+    })} />)
+    expect(screen.getByText('Sudden death.')).toBeInTheDocument()
+    expect(screen.queryByText(/you declined/)).not.toBeInTheDocument()
   })
 })
 
@@ -575,8 +660,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
  * guesses at once. I am the guesser unless a test says otherwise.
  */
 describe('codenamesduet PlayArea — the selection cursor', () => {
-  const wordAt = (p: number) => (p === 0 ? 'apple' : p === 1 ? 'berry' : `word${p}`)
-  const tile = (p: number) => screen.getByRole('button', { name: wordAt(p) })
+  const tile = tileAt
   const boardTiles = () => Array.from({ length: 25 }, (_, p) => tile(p))
   /** The words wearing the cursor ring — at most one. */
   const ringed = () => boardTiles().filter((t) => /selectionCursor/.test(t.className)).map((t) => t.textContent)
@@ -728,5 +812,72 @@ describe('codenamesduet PlayArea — the help line', () => {
     render(<PlayAreaLoader {...makeCtx(LOST)} />)
     expect(help()).not.toBeInTheDocument()
     expect(suddenDeathHelp()).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The clue rules companion: it opens by itself at the start of a game, once —
+ * closing it marks it seen for this game — and from the help line's link while I write
+ * a clue. The lines a setup option changes follow the setup. Its "seen" mark is
+ * kept in local storage, so the shared fake stands in
+ * (`web-storage/storage.fake.ts` says why).
+ */
+describe('codenamesduet PlayArea — the clue rules', () => {
+  let storage: ZTest_InstalledStorage
+  const rules = () => screen.queryByText('Clue-giving rules')
+  // A rule's line, read whole: its key words are in <b>.
+  const says = (line: string) => document.body.textContent!.includes(line)
+  const RULEBOOK_SETUP = {
+    ...DEFAULT_CODENAMESDUET_SETUP,
+    first_clue_giver_user_id: 'u2',
+    guess_required: false,
+    strict_words: false,
+    can_decline_clue_giving: false,
+  }
+
+  beforeAll(() => {
+    storage = ZTest_installFakeStorage()
+  })
+  afterEach(() => storage.clear())
+
+  it('opens by itself on turn 1, with the lines this setup turns on', () => {
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(rules()).toBeInTheDocument()
+    expect(says('Non-hyphenated; no punctuation/digits')).toBe(true)
+    expect(says('Hyphenated words OK')).toBe(false)
+  })
+
+  it('shows the other line when strict words is off', () => {
+    render(<PlayAreaLoader {...makeCtx({ setup: RULEBOOK_SETUP })} />)
+    expect(says('Hyphenated words OK; can include digits')).toBe(true)
+    expect(says('Non-hyphenated')).toBe(false)
+  })
+
+  it('its ✕ closes it, and it does not open by itself again for this game', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(rules()).not.toBeInTheDocument()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(rules()).not.toBeInTheDocument()
+  })
+
+  it('does not open by itself past turn 1, or once the game is over', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx({ turnNum: 2 })} />)
+    expect(rules()).not.toBeInTheDocument()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx(LOST)} />)
+    expect(rules()).not.toBeInTheDocument()
+  })
+
+  it('the help line links it while I write a clue, and not while I guess', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<PlayAreaLoader {...makeCtx({ turnNum: 2 })} />)
+    expect(screen.queryByRole('button', { name: 'Rules for clues' })).not.toBeInTheDocument()
+    unmount()
+    render(<PlayAreaLoader {...makeCtx({ ...AS_CLUE_GIVER, turnNum: 2 })} />)
+    await user.click(screen.getByRole('button', { name: 'Rules for clues' }))
+    expect(rules()).toBeInTheDocument()
   })
 })

@@ -9,6 +9,9 @@
 --   submit_clue       the clue-giver gives this turn's clue
 --   submit_guess      the guesser turns a word over
 --   pass_turn         the guesser stops guessing, spending the turn
+--   decline_clue_giving
+--                     the clue-giver gives no clue, now or later; the partner
+--                     takes the clue seat, and no turn is spent
 --   submit_timeout    ends the game when the countdown runs out
 --   stop_game         stops the game, with no result
 --   replay_board      restarts the same board and keys from scratch
@@ -26,9 +29,14 @@
 --     seat, and whether this turn's clue is in (a clue event for the turn);
 --     `_point_turn` mirrors it onto common.games.current_turn_user_id.
 --   - The turn budget is `max_turns`; the turns left are worked out from it
---     and `turn_number` (_turns_remaining). Sudden death is `turn_number`
---     past `max_turns` while the game hasn't ended: no more clues, and
---     whoever still has words to find guesses.
+--     and `turn_number` (_turns_remaining). Sudden death begins when the
+--     budget is spent, or earlier when nobody is left to give a clue (both
+--     seats have declined, or have no agents left — `_seat_can_clue`): no
+--     more clues, and whoever still has words to find guesses.
+--     `sudden_death_turn` is the turn it began on, null until then.
+--   - Three setup options are columns on the game row, fixed at create:
+--     `guess_required` (no pass before a guess), `strict_words` (a clue is
+--     a to z only) and `can_decline_clue_giving` (decline_clue_giving).
 --   - The 25 words come from the word pools chosen at setup, in equal shares
 --     (create_game); `word_pool.pool` is a number, setup names it.
 --
@@ -88,7 +96,7 @@ drop function if exists codenamesduet._seat_has_agents_left(uuid, text);
 -- agents are the 'G' cells on its own key; "contacted" is the global
 -- revealed_as = 'G' (a green reveal is true for both seats the moment it
 -- happens). The rulebook turns on it twice: a seat whose agents are all found
--- gives no more clues (`_end_turn`), and in sudden death — where a guess is
+-- gives no more clues (`_seat_can_clue`), and in sudden death — where a guess is
 -- read off the PARTNER's key — a player has words to guess only while their
 -- partner's seat still has agents left.
 create or replace function codenamesduet._seat_has_agents_left(p_game_id uuid, p_seat text)
@@ -110,13 +118,58 @@ $$;
 
 revoke execute on function codenamesduet._seat_has_agents_left(uuid, text) from public;
 
+drop function if exists codenamesduet._seat_declined_clue_giving(uuid, text);
+
+-- ============================================================
+-- codenamesduet._seat_declined_clue_giving
+-- ============================================================
+-- Has this seat declined to give clues (decline_clue_giving)? Read off the
+-- log, so a Restart, which empties it, takes every decline back with it.
+create or replace function codenamesduet._seat_declined_clue_giving(p_game_id uuid, p_seat text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select exists (
+    select 1 from codenamesduet.events e
+     where e.game_id = p_game_id and e.kind = 'decline' and e.seat = p_seat
+  );
+$$;
+
+revoke execute on function codenamesduet._seat_declined_clue_giving(uuid, text) from public;
+
+drop function if exists codenamesduet._seat_can_clue(uuid, text);
+
+-- ============================================================
+-- codenamesduet._seat_can_clue
+-- ============================================================
+-- May this seat give a clue? Only while it has an agent left to clue for (the
+-- rulebook's finished player gives no more) and has not declined. When neither
+-- seat may, nobody is left to give one, and the game drops into sudden death
+-- (`_end_turn`, `decline_clue_giving`).
+create or replace function codenamesduet._seat_can_clue(p_game_id uuid, p_seat text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select codenamesduet._seat_has_agents_left(p_game_id, p_seat)
+     and not codenamesduet._seat_declined_clue_giving(p_game_id, p_seat);
+$$;
+
+revoke execute on function codenamesduet._seat_can_clue(uuid, text) from public;
+
 -- ============================================================
 -- codenamesduet._turns_remaining
 -- ============================================================
 -- The turns left in the budget. The game starts on turn 1 with all
 -- `p_max_turns` left, and each spent turn moves the turn number on by one,
--- so the budget is spent when the turn number passes `p_max_turns` — sudden
--- death, where every guess is a turn of its own and this stays 0.
+-- so the budget is spent when the turn number passes `p_max_turns`, and
+-- sudden death begins. Sudden death that began early, with nobody left to
+-- give a clue, leaves turns here that nobody will play.
 create or replace function codenamesduet._turns_remaining(p_max_turns int, p_turn_number int)
 returns int
 language sql
@@ -167,7 +220,7 @@ begin
 
   select * into g from codenamesduet.games where game_id = p_game_id;
 
-  if g.turn_number <= g.max_turns then
+  if g.sudden_death_turn is null then
     has_clue := exists (
       select 1 from codenamesduet.events e
        where e.game_id = p_game_id and e.kind = 'clue'
@@ -236,16 +289,19 @@ drop function if exists codenamesduet._write_statuses(uuid, boolean);
 --                                          players to point an arrow at; null
 --                                          until anyone guesses it
 --         guessableBy                      the players who may still guess it
---     turns: {holder, num, currClue}       the common turn, with the turn's number
---                                          and its clue, {word, count, fromAi, userId},
---                                          null until it is given
+--     turns: {holder, num, currClue, passAllowed}
+--                                          the common turn, with the turn's number,
+--                                          its clue, {word, count, fromAi, userId},
+--                                          null until it is given, and whether the
+--                                          guesser may pass yet (`guess_required`)
 --     events: [{id, userId, kind, turnNum, tookTurn, at, clueWord, clueCount,
 --               clueFromAi, tileId, result, suddenDeath}, …]
---                                          every clue, guess, pass and hint, in order;
---                                          suddenDeath, its turn past the budget
+--                                          every clue, guess, pass, hint and decline, in
+--                                          order; suddenDeath, played in sudden death
 --     players: [player, …]                 the common player, plus:
 --       clueGiver                          gives this turn's clue
 --       allAgentsFound                     every agent on this player's key is contacted
+--       declinedClueGiving                 declined to give clues for the rest of the game
 --
 --   summary_data, codenamesduet's part (the common part names and dates the
 --   game and carries its ending):
@@ -290,8 +346,9 @@ revoke execute on function codenamesduet._make_json_puzzle(uuid) from public;
 
 -- The table as it stands. A tile shows the agent or the assassin once either
 -- is contacted, for both players; short of that, a bystander once either
--- player has turned it over. A live bystander points an arrow at each player
--- who turned it over; a contacted tile points at nobody. A tile may still be
+-- player has turned it over. A bystander one player turned over points an
+-- arrow at them; one both turned over, like a contacted tile, points at
+-- nobody. A tile may still be
 -- guessed by a player until it is contacted or they have turned it over as a
 -- bystander (the Duet rule: it may be their partner's agent).
 create or replace function codenamesduet._make_json_board(p_game_id uuid)
@@ -306,6 +363,8 @@ as $$
                'revealed',
                  case when w.revealed_as is not null then
                         jsonb_build_object('as', w.revealed_as, 'arrows', '[]'::jsonb)
+                      when w.neutral_a and w.neutral_b then
+                        jsonb_build_object('as', 'N', 'arrows', '[]'::jsonb)
                       when w.neutral_a or w.neutral_b then
                         jsonb_build_object('as', 'N', 'arrows', (
                           select jsonb_agg(s.user_id order by s.seat)
@@ -330,9 +389,9 @@ revoke execute on function codenamesduet._make_json_board(uuid) from public;
 
 -- What the pair shares. A turn is used once it is over, and also the turn the
 -- game ended on when anything was played in it (a win or the assassin ends a
--- game without ending its turn); sudden death's turns are past the budget,
--- so the count stops at it. Sudden death stays true once a game that reached
--- it has ended.
+-- game without ending its turn); sudden death's turns are not the budget's,
+-- so the count stops at the turn before it began. Sudden death stays true
+-- once a game that reached it has ended.
 create or replace function codenamesduet._make_json_team(p_game_id uuid)
 returns jsonb
 language sql
@@ -350,9 +409,9 @@ as $$
                                   and e.turn_number = g.turn_number
                                   and e.kind in ('clue', 'guess', 'pass'))
                              then 1 else 0 end,
-                      g.max_turns),
+                      coalesce(g.sudden_death_turn - 1, g.max_turns)),
     'maxTurns',     g.max_turns,
-    'suddenDeath',  g.turn_number > g.max_turns)
+    'suddenDeath',  g.sudden_death_turn is not null)
     from codenamesduet.games g
     join common.games cg on cg.id = g.game_id
    where g.game_id = p_game_id;
@@ -381,9 +440,8 @@ $$;
 
 revoke execute on function codenamesduet._make_json_curr_clue(uuid) from public;
 
--- The log: every clue, guess, pass and hint, in the order of play. A row's
--- turn past the budget was played in sudden death — the comparison
--- `_make_json_team` and `submit_guess` make too.
+-- The log: every clue, guess, pass, hint and decline, in the order of play. A
+-- row on or after the turn sudden death began on was played in it.
 create or replace function codenamesduet._make_json_events(p_game_id uuid)
 returns jsonb
 language sql
@@ -402,7 +460,8 @@ as $$
            'clueFromAi', e.clue_from_ai,
            'tileId',     e.guess_position::text,
            'result',     e.guess_result,
-           'suddenDeath', e.turn_number > g.max_turns) order by e.id), '[]'::jsonb)
+           'suddenDeath', coalesce(e.turn_number >= g.sudden_death_turn, false))
+           order by e.id), '[]'::jsonb)
     from codenamesduet.events e
     join codenamesduet.games g on g.game_id = e.game_id
    where e.game_id = p_game_id;
@@ -411,7 +470,8 @@ $$;
 revoke execute on function codenamesduet._make_json_events(uuid) from public;
 
 -- Every player as codenamesduet's game_data shows them: the common player,
--- with whether they hold the clue seat and whether their agents are all found.
+-- with whether they hold the clue seat, whether their agents are all found,
+-- and whether they declined to give clues.
 create or replace function codenamesduet._make_json_players(p_game_id uuid)
 returns jsonb
 language sql
@@ -423,6 +483,8 @@ as $$
              'clueGiver',      codenamesduet._seat_of(g, cp.id) = g.current_clue_giver
                                  is true,
              'allAgentsFound', not codenamesduet._seat_has_agents_left(
+                                     p_game_id, codenamesduet._seat_of(g, cp.id)),
+             'declinedClueGiving', codenamesduet._seat_declined_clue_giving(
                                      p_game_id, codenamesduet._seat_of(g, cp.id)))
            order by cp.ord)
     from common._make_json_players(p_game_id) cp
@@ -445,7 +507,11 @@ as $$
            'turns',   (common._make_json_game_data(p_game_id) -> 'turns')
                         || jsonb_build_object(
                              'num',      g.turn_number,
-                             'currClue', codenamesduet._make_json_curr_clue(p_game_id)),
+                             'currClue', codenamesduet._make_json_curr_clue(p_game_id),
+                             'passAllowed', not g.guess_required or exists (
+                               select 1 from codenamesduet.events e
+                                where e.game_id = p_game_id and e.kind = 'guess'
+                                  and e.turn_number = g.turn_number)),
            'events',  codenamesduet._make_json_events(p_game_id),
            'players', codenamesduet._make_json_players(p_game_id))
     from codenamesduet.games g
@@ -580,27 +646,24 @@ drop function if exists codenamesduet._end_turn(uuid);
 -- codenamesduet._end_turn
 -- ============================================================
 -- Advances the turn counter and swaps the clue-giver, and drops the game into
--- sudden death when the last turn is spent. Called by submit_guess (after a
--- bystander) and pass_turn (the guesser stopping, before or after guesses).
+-- sudden death when the last turn is spent or nobody is left to give a clue.
+-- Called by submit_guess (after a bystander) and pass_turn (the guesser
+-- stopping, before or after guesses).
 --
 -- The clue-giver doesn't always strictly alternate. Per the Duet
 -- rulebook: "If all 9 words that you see as green have been covered
 -- by agent cards, tell your partner that he or she has no words left
 -- to guess. Your partner will be the one who gives clues on all
 -- remaining turns." So once a seat's agents are all contacted it gives
--- no more clues — we hand the turn to the partner only if the partner
--- still has an agent to clue, otherwise the current giver keeps it.
---
--- "Both seats done" never reaches here: _end_turn runs on a bystander or
--- a voluntary pass (never the 15th agent, which wins inside submit_guess
--- before this is called), so at least one seat always still has an
--- unfound agent. The else-branch giver is therefore always a seat with
--- agents left.
+-- no more clues, and neither does a seat that declined to
+-- (`_seat_can_clue`) — we hand the turn to the partner only if the partner
+-- may clue, otherwise the current giver keeps it if they may, and otherwise
+-- nobody is left to give a clue and sudden death begins.
 --
 -- It RETURNS the turn state it just wrote — turn number, budget and next
 -- clue-giver. Both callers answer in an envelope and put those values in its
 -- `data`, and this function is the only place that knows them: it decides
--- the next giver and whether the budget ran out.
+-- the next giver and whether sudden death began.
 create or replace function codenamesduet._end_turn(p_game_id uuid)
 returns jsonb
 language plpgsql
@@ -620,20 +683,22 @@ begin
 
   -- Who would normally pick up the clue (strict alternation)…
   candidate := case giver when 'A' then 'B' else 'A' end;
-  -- …but only if that seat still has a green agent the partner hasn't
-  -- contacted yet.
-  next_giver := case when codenamesduet._seat_has_agents_left(p_game_id, candidate)
-                     then candidate else giver end;
+  -- …but only if that seat may still give one.
+  next_giver := case
+    when codenamesduet._seat_can_clue(p_game_id, candidate) then candidate
+    when codenamesduet._seat_can_clue(p_game_id, giver) then giver
+  end;
 
-  -- The last turn spent: sudden death, which has no clues, so nobody holds
-  -- the clue seat.
+  -- The last turn spent, or nobody left to clue: sudden death, which has no
+  -- clues, so nobody holds the clue seat.
   if new_turn_number > v_max_turns then
     next_giver := null;
   end if;
 
   update codenamesduet.games
      set turn_number = new_turn_number,
-         current_clue_giver = next_giver
+         current_clue_giver = next_giver,
+         sudden_death_turn = case when next_giver is null then new_turn_number end
    where game_id = p_game_id;
 
   perform codenamesduet._point_turn(p_game_id);
@@ -667,10 +732,14 @@ drop function if exists codenamesduet.create_game(text, jsonb, uuid[]);
 --     "first_clue_giver_user_id": "<uuid; must be one of p_player_user_ids>",
 --     "timer": { "kind": ... },  (common._require_valid_timer)
 --     "word_pools": ["duet" | "codenames" | "undercover", ...]   (one or more)
+--     "guess_required": bool,
+--     "strict_words": bool,
+--     "can_decline_clue_giving": bool
 --   }
 --
 -- `turns` is copied to `max_turns`, the budget; the turns left are worked
--- out from it and `turn_number` (_turns_remaining).
+-- out from it and `turn_number` (_turns_remaining). The three options are
+-- copied to their columns, which the moves read.
 --
 -- The 25 words are dealt in EQUAL SHARES from the chosen pools — 25, 13 + 12,
 -- or 9 + 8 + 8, each extra word going to a pool picked at random — and then
@@ -705,6 +774,7 @@ declare
   pool_names constant text[] := array['duet', 'codenames', 'undercover'];
   s_pools smallint[];
   n_pools int;
+  s_option text;
 begin
   -- ─── Validate setup shape ────────────────────────────
   -- Missing-vs-bad-value split so each rejection has its own
@@ -770,6 +840,15 @@ begin
       using errcode = 'PN541', hint = 'fault', column = '_',
       detail = format('setup.word_pools %s repeats a pool', p_setup->'word_pools');
   end if;
+
+  -- The three on/off options. Faults: the setup form always sends all three.
+  foreach s_option in array array['guess_required', 'strict_words', 'can_decline_clue_giving'] loop
+    if jsonb_typeof(p_setup -> s_option) is distinct from 'boolean' then
+      raise exception 'BUG: game with no % setting', s_option
+        using errcode = 'PN629', hint = 'fault', column = '_',
+        detail = format('setup.%s absent or not a boolean', s_option);
+    end if;
+  end loop;
 
   -- ─── Validate the players + first-clue-giver ─────────
   -- codenamesduet is intrinsically 2-player.
@@ -879,10 +958,13 @@ begin
 
   insert into codenamesduet.games (
     game_id, current_clue_giver, max_turns,
-    player_a_user_id, player_b_user_id, key_card_a, key_card_b
+    player_a_user_id, player_b_user_id, key_card_a, key_card_b,
+    guess_required, strict_words, can_decline_clue_giving
   ) values (
     new_id, 'A', s_turns,
-    seat_a, seat_b, to_jsonb(a_view), to_jsonb(b_view)
+    seat_a, seat_b, to_jsonb(a_view), to_jsonb(b_view),
+    (p_setup->>'guess_required')::boolean, (p_setup->>'strict_words')::boolean,
+    (p_setup->>'can_decline_clue_giving')::boolean
   );
 
   -- Insert the 25 words.
@@ -933,13 +1015,14 @@ drop function if exists codenamesduet.submit_clue(uuid, text, int, boolean);
 -- it is taken as said — provenance, not a move to adjudicate. It defaults to
 -- false.
 --
--- It judges nothing about the clue itself: a board word, several words, any
--- count from zero up are all recorded. The players police their own clues, as
--- they would at a table (CLAUDE.md → Trust model); the form allows one digit.
+-- It judges nothing about the clue itself beyond `strict_words`, which holds
+-- it to the letters a to z: a board word, several words, any count from zero
+-- up are all recorded. The players police their own clues, as they would at a
+-- table (CLAUDE.md → Trust model); the form allows one digit.
 --
--- Five of its six raises are RACES, because every one of them turns on
--- state the clue form cannot see change under it (the sixth, PN384, is a
--- fault). The form is rendered from `current_clue_giver` and the turn's clue
+-- Five of its seven raises are RACES, because every one of them turns on
+-- state the clue form cannot see change under it (the other two, PN384 and
+-- PN630, are faults). The form is rendered from `current_clue_giver` and the turn's clue
 -- event, both of which arrive by subscription, while the Submit button
 -- unlocks the moment this RPC replies — so the window between "my move
 -- landed" and "my form knows" is real.
@@ -972,7 +1055,7 @@ begin
     -- subscription, so the form is still up when the game is already over.
     perform common._raise_game_over();
   end if;
-  if g.turn_number > g.max_turns then
+  if g.sudden_death_turn is not null then
     -- A race: the last turn was spent while this clue was being composed, and
     -- sudden death has no clues.
     raise exception 'Sudden death — no more clues'
@@ -1019,6 +1102,14 @@ begin
     raise exception 'A clue is already in for this turn'
       using errcode = 'PN372', hint = 'race', column = '_',
       detail = 'one clue per turn';
+  end if;
+
+  -- The form takes nothing but letters when the setup says so, and an AI
+  -- suggestion is cut to its letters before it fills the form.
+  if g.strict_words and lower(p_clue_word) !~ '^[a-z]+$' then
+    raise exception 'BUG: a clue with something other than letters'
+      using errcode = 'PN630', hint = 'fault', column = '_',
+      detail = 'setup.strict_words allows only a to z';
   end if;
 
   insert into codenamesduet.events (
@@ -1133,7 +1224,7 @@ begin
     -- in flight.
     perform common._raise_game_over();
   end if;
-  in_sudden_death := g.turn_number > g.max_turns;
+  in_sudden_death := g.sudden_death_turn is not null;
 
   caller_id := common._require_game_player(p_game_id);
   caller_seat := case caller_id
@@ -1300,7 +1391,7 @@ begin
 
     perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
 
-    turns_used := g.max_turns - codenamesduet._turns_remaining(g.max_turns, g.turn_number);
+    turns_used := least(g.turn_number - 1, coalesce(g.sudden_death_turn - 1, g.max_turns));
     return common._ok_envelope(
       jsonb_build_object(
         'result', end_outcome,
@@ -1378,11 +1469,11 @@ drop function if exists codenamesduet.pass_turn(uuid);
 -- ============================================================
 -- The guesser ends the turn without taking any more guesses, spending one
 -- turn. Legal even after zero guesses on the turn (e.g. "the clue makes no
--- sense, let's just move on").
+-- sense, let's just move on") unless the setup's `guess_required` says a
+-- guess comes first.
 --
 -- ONE `ok` answer, carrying the turn state the pass produced — including
--- whether it spent the last turn and dropped the game into sudden death
--- (`turns_remaining` 0). That is a state the board renders off the games
+-- whether it dropped the game into sudden death (`clue_giver` null). That is a state the board renders off the games
 -- row, not a separate answer to "did my pass go through", so it rides in
 -- `data` rather than splitting the answer in two.
 create or replace function codenamesduet.pass_turn(p_game_id uuid)
@@ -1409,7 +1500,7 @@ begin
     -- Pass button was still on screen.
     perform common._raise_game_over();
   end if;
-  if g.turn_number > g.max_turns then
+  if g.sudden_death_turn is not null then
     -- A race: the last turn was spent while the Pass button was on screen. In
     -- sudden death every guess is a turn of its own, so there is none to pass.
     raise exception 'Sudden death — no turn to pass'
@@ -1452,6 +1543,18 @@ begin
       detail = 'no clue has been submitted for this turn';
   end if;
 
+  -- A fault, not a race: Pass unlocks only once my own guess has arrived in
+  -- the log, and nobody else guesses this turn.
+  if g.guess_required and not exists (
+    select 1 from codenamesduet.events e
+    where e.game_id = p_game_id and e.kind = 'guess'
+      and e.turn_number = g.turn_number
+  ) then
+    raise exception 'BUG: a pass before any guess'
+      using errcode = 'PN631', hint = 'fault', column = '_',
+      detail = 'setup.guess_required: a guess comes before a pass';
+  end if;
+
   -- The pass is recorded against the turn it ends, before _end_turn moves it.
   insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
   values (p_game_id, caller_id, 'pass', true, g.turn_number, caller_seat);
@@ -1481,6 +1584,122 @@ $$;
 
 revoke execute on function codenamesduet.pass_turn(uuid) from public;
 grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
+
+drop function if exists codenamesduet.decline_clue_giving(uuid);
+
+-- ============================================================
+-- codenamesduet.decline_clue_giving
+-- ============================================================
+-- The clue-giver gives no clue, this turn or any later one — offered only
+-- when the setup's `can_decline_clue_giving` is on. No turn is spent: the
+-- partner takes the clue seat on the same turn and, since a seat that
+-- declined never clues again (`_seat_can_clue`), keeps it for the rest of
+-- the game. When the partner may not clue either — their agents are all
+-- found, or they declined too — nobody is left to give a clue, and sudden
+-- death begins on this turn.
+--
+-- Its races are submit_clue's, word for word: the Decline button sits on the
+-- clue form, beside Submit.
+--
+-- ONE `ok` answer, carrying who clues now: the partner, or nobody in sudden
+-- death.
+create or replace function codenamesduet.decline_clue_giving(p_game_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g codenamesduet.games%rowtype;
+  caller_seat text;
+  partner_seat text;
+  next_giver text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  select * into g from codenamesduet.games
+   where game_id = p_game_id for update;
+  if not found then
+    perform common._raise_game_deleted('codenamesduet');
+  end if;
+
+  if (select ended_at from common.games where id = p_game_id) is not null then
+    perform common._raise_game_over();
+  end if;
+  if g.sudden_death_turn is not null then
+    raise exception 'Sudden death — no more clues'
+      using errcode = 'PN632', hint = 'race', column = '_',
+      detail = 'nothing to decline in sudden death';
+  end if;
+
+  caller_id := common._require_game_player(p_game_id);
+  caller_seat := case caller_id
+                   when g.player_a_user_id then 'A'
+                   when g.player_b_user_id then 'B'
+                 end;
+
+  -- Seatless caller — see the same check in submit_clue.
+  if caller_seat is null then
+    raise exception 'BUG: a decline from a player with no seat'
+      using errcode = 'PN633', hint = 'fault', column = '_',
+      detail = 'caller matches neither player_a_user_id nor player_b_user_id';
+  end if;
+
+  -- The button is drawn only when the setup allows it.
+  if not g.can_decline_clue_giving then
+    raise exception 'BUG: a decline in a game that does not allow one'
+      using errcode = 'PN634', hint = 'fault', column = '_',
+      detail = 'setup.can_decline_clue_giving is off';
+  end if;
+
+  if caller_seat <> g.current_clue_giver then
+    raise exception 'Your partner is giving the clue now'
+      using errcode = 'PN635', hint = 'race', column = '_',
+      detail = 'the other player holds the clue-giver seat';
+  end if;
+
+  if exists (
+    select 1 from codenamesduet.events e
+    where e.game_id = p_game_id and e.kind = 'clue'
+      and e.turn_number = g.turn_number
+  ) then
+    raise exception 'A clue is already in for this turn'
+      using errcode = 'PN636', hint = 'race', column = '_',
+      detail = 'the turn''s clue is given, so there is none to decline';
+  end if;
+
+  insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
+  values (p_game_id, caller_id, 'decline', false, g.turn_number, caller_seat);
+
+  partner_seat := case caller_seat when 'A' then 'B' else 'A' end;
+  next_giver := case when codenamesduet._seat_can_clue(p_game_id, partner_seat)
+                     then partner_seat end;
+
+  update codenamesduet.games
+     set current_clue_giver = next_giver,
+         sudden_death_turn = case when next_giver is null then g.turn_number end
+   where game_id = p_game_id;
+
+  perform codenamesduet._point_turn(p_game_id);
+  perform codenamesduet._rebuild_data_cols(p_game_id, p_update_status_changed_at => true);
+
+  return common._ok_envelope(jsonb_build_object(
+    'result', 'declined',
+    'clue_giver', next_giver
+  ));
+
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common._raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
+$$;
+
+revoke execute on function codenamesduet.decline_clue_giving(uuid) from public;
+grant execute on function codenamesduet.decline_clue_giving(uuid) to authenticated;
 
 drop function if exists codenamesduet.submit_timeout(uuid);
 
@@ -1549,9 +1768,9 @@ drop function if exists codenamesduet.replay_board(uuid);
 -- ============================================================
 -- The "Restart" game-menu item / ending-row Restart: reset the working state
 -- on the SAME game row. The frozen puzzle stays — the same 25 words and the
--- same two key cards — with every reveal, neutral and event wiped, the
--- turn counter back to 1 (so the whole budget is left) and seat A clueing
--- again.
+-- same two key cards — with every reveal, neutral and event wiped (a decline
+-- with them), the turn counter back to 1 (so the whole budget is left), out
+-- of sudden death, and seat A clueing again.
 --
 -- **A mulligan, not a fresh puzzle:** the players keep whatever they learned
 -- of the key cards. A blind board is **New game**.
@@ -1590,7 +1809,8 @@ begin
 
   update codenamesduet.games
      set turn_number = 1,
-         current_clue_giver = 'A'
+         current_clue_giver = 'A',
+         sudden_death_turn = null
    where game_id = p_game_id;
 
   update common.game_players set solved_at = null where game_id = p_game_id;
@@ -1709,7 +1929,7 @@ begin
     -- out, while the form was still up.
     perform common._raise_game_over();
   end if;
-  if g.turn_number > g.max_turns then
+  if g.sudden_death_turn is not null then
     -- A race, and submit_clue's PN502 word for word: the last turn was spent
     -- while the form was still up.
     raise exception 'Sudden death — no more clues'

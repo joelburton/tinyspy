@@ -23,22 +23,29 @@ type PassAnswer = {
 
 /**
  * Pass & End Turn (`act-end-turn`): end the turn without another guess — legal
- * at any point in the guess phase, even before the first guess, and it spends
- * the turn like any other turn end. Bound while the Pass button is up; a
- * refused pass shows into the local slot as a not-ok.
+ * at any point in the guess phase, even before the first guess unless the
+ * setup's `guess_required` says one comes first, and it spends the turn like
+ * any other turn end. Bound while the Pass button is up; a refused pass shows
+ * into the local slot as a not-ok.
  *
  * No `busy` flag of its own: the action's run is single-flight, so a second
  * press while the first is out is dropped.
  */
 export function usePassTurn({
   gameId,
+  isPassAllowed,
   localFeedbackSlot,
 }: {
   gameId: string
+  // The server says a pass may go now (`turns.passAllowed`): false while the
+  // setup requires a guess first and none is in this turn.
+  isPassAllowed: boolean
   localFeedbackSlot: FeedbackSlot
 }): Action {
   return useBindAction('act-end-turn', {
-    describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
+    describe: () => (isPassAllowed
+      ? { state: 'active', label: 'Pass & End Turn' }
+      : { state: 'disabled', label: 'Pass & End Turn', tooltip: 'Guess at least one word first' }),
     run: async () => {
       const res = await runRpc<PassAnswer>(db.rpc('pass_turn',
         { p_game_id: gameId }))

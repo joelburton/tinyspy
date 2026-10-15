@@ -79,12 +79,17 @@ language sql as $$
   -- create_game and submit_timeout-specific tests pass an
   -- explicit countdown timer where they need it. word_pools is the
   -- default-default, Codenames Duet alone; create_game_test passes its own
-  -- through `codenamesduet_setup_pools` to exercise the shares.
+  -- through `codenamesduet_setup_pools` to exercise the shares. The three
+  -- options are off, the rulebook's game; a test of one turns it on with
+  -- `|| '{"guess_required": true}'`.
   select jsonb_build_object(
     'turns', turns,
     'first_clue_giver_user_id', first_user,
     'timer', jsonb_build_object('kind', 'none'),
-    'word_pools', jsonb_build_array('duet')
+    'word_pools', jsonb_build_array('duet'),
+    'guess_required', false,
+    'strict_words', false,
+    'can_decline_clue_giving', false
   );
 $$;
 

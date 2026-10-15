@@ -46,8 +46,11 @@ export type ZTest_GameDataFacts = {
   // death and once the game has ended).
   turnNum?: number
   clueSeat?: 'A' | 'B' | null
-  // Every clue, guess, pass and hint, in order. The board's marks are read off
-  // the guesses, as `submit_guess` writes them.
+  // The turn sudden death began on, when it began before the budget was
+  // spent; past the budget it is worked out.
+  suddenDeathTurn?: number
+  // Every clue, guess, pass, hint and decline, in order. The board's marks are
+  // read off the guesses, as `submit_guess` writes them.
   events?: GEventRaw[]
   ending?: GameDataRaw['ending']
   outcome?: GameDataRaw['outcome']
@@ -94,6 +97,15 @@ export function ZTest_guess(
   }
 }
 
+/** A decline to give clues, as the blob carries it. */
+export function ZTest_decline(id: number, userId: string, turnNum: number): GEventRaw {
+  return {
+    id, userId, kind: 'decline', turnNum, tookTurn: false, at: '2026-06-15T00:00:30Z',
+    clueWord: null, clueCount: null, clueFromAi: null, tileId: null, result: null,
+    suddenDeath: false,
+  }
+}
+
 /**
  * Build the `game_data` blob `codenamesduet._rebuild_data_cols` would write
  * from these facts: the deal with both keys, the table read off the guesses,
@@ -115,6 +127,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
     keyB = ZTest_KEY_B,
     turnNum = 1,
     clueSeat = 'A',
+    suddenDeathTurn,
     events = [],
     ending = null,
     outcome = null,
@@ -142,7 +155,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       id: String(pos),
       revealed: shown !== null
         ? { as: shown, arrows: [] }
-        : markedBy.length > 0 ? { as: 'N', arrows: markedBy } : null,
+        // A bystander to both points at nobody.
+        : markedBy.length > 0 ? { as: 'N', arrows: markedBy.length < 2 ? markedBy : [] } : null,
       guessableBy: shown !== null
         ? []
         : (['A', 'B'] as const).filter((s) => !neutral[s][pos]).map(idOf),
@@ -153,9 +167,13 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
   // is contacted.
   const agentsFound = (key: GKey[]) => key.every((k, pos) => k !== 'G' || revealedAs[pos] === 'G')
 
-  const playedOnTurn = events.some((e) => e.turnNum === turnNum && e.kind !== 'hint')
-  const nTurnsUsed = Math.min(turnNum - 1 + (ended && playedOnTurn ? 1 : 0), maxTurns)
-  const suddenDeath = turnNum > maxTurns
+  const playedOnTurn = events.some((e) => e.turnNum === turnNum &&
+    ['clue', 'guess', 'pass'].includes(e.kind))
+  // The turn sudden death began on, or null while it hasn't.
+  const suddenDeathFrom = suddenDeathTurn ?? (turnNum > maxTurns ? maxTurns + 1 : null)
+  const nTurnsUsed = Math.min(turnNum - 1 + (ended && playedOnTurn ? 1 : 0),
+    suddenDeathFrom === null ? maxTurns : suddenDeathFrom - 1)
+  const suddenDeath = suddenDeathFrom !== null
 
   const clue = events.find((e) => e.kind === 'clue' && e.turnNum === turnNum) ?? null
   // `_point_turn`'s rule: the clue-giver until the clue is in, then the
@@ -193,6 +211,7 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       waitingForTurn: stillPlaying && !onTurn,
       clueGiver: !ended && clueSeat === seatOf(p.id),
       allAgentsFound: agentsFound(seat === 0 ? keyA : keyB),
+      declinedClueGiving: events.some((e) => e.kind === 'decline' && e.userId === p.id),
     }
   })
 
@@ -212,6 +231,8 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       currClue: clue === null
         ? null
         : { word: clue.clueWord!, count: clue.clueCount!, fromAi: clue.clueFromAi!, userId: clue.userId },
+      passAllowed: !setup.guess_required ||
+        events.some((e) => e.kind === 'guess' && e.turnNum === turnNum),
     },
     ending,
     ended,
@@ -230,8 +251,12 @@ export function ZTest_makeGameDataRaw(facts: ZTest_GameDataFacts = {}): GGameDat
       suddenDeath,
       board: { tiles },
     },
-    // A row's turn past the budget was played in sudden death, as the builder writes it.
-    events: events.map((e) => ({ ...e, suddenDeath: e.turnNum > maxTurns })),
+    // A row on or after the turn sudden death began on was played in it, as the
+    // builder writes it.
+    events: events.map((e) => ({
+      ...e,
+      suddenDeath: suddenDeathFrom !== null && e.turnNum >= suddenDeathFrom,
+    })),
     players,
   }
 }

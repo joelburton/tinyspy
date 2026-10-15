@@ -68,6 +68,13 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
   }))
   const puzzleTilesById = new Map(puzzleTiles.map((t) => [t.id, t]))
 
+  // The turn of each tile's latest guess, which is the one that decided it
+  // once nobody may guess it.
+  const lastGuessTurn = new Map<string, number>()
+  for (const e of raw.events) {
+    if (e.kind === 'guess') lastGuessTurn.set(e.tileId!, e.turnNum)
+  }
+
   for (const t of boardRaw.tiles) {
     const tile: GTile = {
       id: t.id,
@@ -76,6 +83,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
         ? null
         : { as: t.revealed.as, arrows: new Set(t.revealed.arrows.map(playerOf)) },
       guessableBy: new Set(t.guessableBy.map(playerOf)),
+      decidedOnTurn: t.guessableBy.length === 0 ? lastGuessTurn.get(t.id) ?? null : null,
     }
     tiles.push(tile)
     tilesById.set(tile.id, tile)
@@ -101,6 +109,7 @@ export function makeGameData(raw: GGameDataRaw, myId: string): GGameData {
           fromAi: turns.currClue.fromAi,
           by: playerOf(turns.currClue.userId),
         },
+      passAllowed: turns.passAllowed,
     },
     events,
     ending: makeEnding(ending, players),

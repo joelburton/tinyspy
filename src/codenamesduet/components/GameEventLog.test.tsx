@@ -23,6 +23,8 @@
  *      WORD", filed under its guesser.
  *   7. The history link: a turn's clue id and the `#N` printed, renumbered by a
  *      filter.
+ *   8. A decline to give clues: a row of its own, unnumbered, above the clue
+ *      the partner then gives, filed under who declined.
  *
  * NOT covered: the color hookup (the key-card color on guessed words, and the
  * outcome bar). Under Vitest a CSS module is a proxy that names any key it is
@@ -35,9 +37,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GameEventLog } from './GameEventLog'
 import { makeGameData } from '../hooks/useGame'
-import { cluesOf, guessesOf } from '../lib/events'
+import { cluesOf, declinesOf, guessesOf } from '../lib/events'
 import {
   ZTest_clue,
+  ZTest_decline,
   ZTest_guess,
   ZTest_makeGameDataRaw,
 } from '../lib/gameData.fixture'
@@ -106,6 +109,7 @@ function renderLog(o: {
     <GameEventLog
       clues={cluesOf(gd.events)}
       guesses={guessesOf(gd.events, gd.puzzle.tilesById)}
+      declines={declinesOf(gd.events)}
       players={gd.players}
       myId={gd.me.id}
       turnNum={gd.turns.num}
@@ -295,4 +299,38 @@ describe('GameEventLog — the history link', () => {
       fireEvent.click(screen.getByText('#1'))
       expect(show).toHaveBeenCalledWith(12, 1)
     })
+})
+
+/**
+ * A decline spends no turn: ada declines on turn 1, and bea gives turn 1's clue.
+ */
+describe('GameEventLog — a decline', () => {
+  const events = [ZTest_decline(1, 'ada', 1), clue(2, 'bea', 1, 'THEIRS')]
+
+  it('is a row of its own, unnumbered, above the clue the partner then gives', () => {
+    renderLog({ events })
+    const rows = turnRows()
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toHaveTextContent('declined clue-giving')
+    expect(rows[0]).toHaveTextContent('ada')
+    expect(rows[0]).not.toHaveTextContent('#')
+    expect(rows[1]).toHaveTextContent('#1')
+    expect(rows[1]).toHaveTextContent('THEIRS')
+  })
+
+  it('numbers no turn while the partner is still writing the clue', () => {
+    renderLog({ events: [ZTest_decline(1, 'ada', 1)], turnNum: 1 })
+    expect(turnRows()).toHaveLength(1)
+    expect(screen.queryByText('#1')).not.toBeInTheDocument()
+  })
+
+  it('is filed under the player who declined', async () => {
+    renderLog({ events })
+    await pickFilter('bea')
+    expect(screen.queryByText('declined clue-giving')).not.toBeInTheDocument()
+    expect(screen.getByText('THEIRS')).toBeInTheDocument()
+    await pickFilter('ada')
+    expect(screen.getByText('declined clue-giving')).toBeInTheDocument()
+    expect(screen.queryByText('THEIRS')).not.toBeInTheDocument()
+  })
 })

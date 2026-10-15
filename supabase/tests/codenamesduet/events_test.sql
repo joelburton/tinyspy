@@ -204,9 +204,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
 
--- Sudden death is `turn_number` past `max_turns` on a game that hasn't ended.
+-- Sudden death is the turn it began on, here the one past the budget.
 reset role;
-update codenamesduet.games set turn_number = 10, current_clue_giver = null
+update codenamesduet.games set turn_number = 10, current_clue_giver = null, sudden_death_turn = 10
   where game_id = (select id from g2);
 
 -- The budget is 9, so sudden death is turn 10. ada guesses, judged on bea's

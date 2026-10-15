@@ -4,7 +4,7 @@ import type { Member } from '@/common/members/member'
 import { makeRosterRow, makeTimerRow } from '@/common/setup-form/setupRows'
 import type { SetupRow } from '@/common/setup-form/types'
 import type { GSetup } from '../types'
-import { listWordPoolLabels } from './setup'
+import { listWordPoolLabels, sayYesNo } from './setup'
 
 /**
  * codenamesduet's setup rows — ONE array, rendered by the info column and the
@@ -29,6 +29,13 @@ export function makeSetupRows(
       value: first?.username ?? '—',
     },
     { key: 'word_pools', label: 'Word pool', value: listWordPoolLabels(setup.word_pools) },
+    { key: 'guess_required', label: 'Guess required', value: sayYesNo(setup.guess_required) },
+    { key: 'strict_words', label: 'Strict words', value: sayYesNo(setup.strict_words) },
+    {
+      key: 'can_decline_clue_giving',
+      label: 'Can decline clue-giving',
+      value: sayYesNo(setup.can_decline_clue_giving),
+    },
     makeTimerRow(setup.timer),
   ]
 }

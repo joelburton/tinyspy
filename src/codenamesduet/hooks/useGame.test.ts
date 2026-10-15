@@ -49,11 +49,15 @@ describe('codenamesduet makeGameData — the links become players and tiles', ()
   })
 
   it('a reveal points its arrows at players, as a Set', () => {
+    // Leah's bystander alone, in turn 1: it points at her.
+    const raw = ZTest_makeGameDataRaw({ ...PLAYED, events: PLAYED.events.slice(0, 3), turnNum: 2, clueSeat: 'B' })
+    const gd = makeGameData(raw, 'u1')
+    expect(gd.me.board.tilesById.get('10')!.revealed).toEqual({ as: 'N', arrows: new Set([gd.partner]) })
+  })
+
+  it('a bystander to both, like a contacted agent, points at nobody', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw(PLAYED), 'u1')
-    const both = gd.me.board.tilesById.get('10')!.revealed!
-    expect(both.as).toBe('N')
-    expect(both.arrows.has(gd.me)).toBe(true)
-    expect(both.arrows.has(gd.partner)).toBe(true)
+    expect(gd.me.board.tilesById.get('10')!.revealed).toEqual({ as: 'N', arrows: new Set() })
     expect(gd.me.board.tilesById.get('0')!.revealed).toEqual({ as: 'G', arrows: new Set() })
   })
 

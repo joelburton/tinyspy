@@ -88,6 +88,9 @@ export function useSuggestClue({
     describe: () => ({
       state: isSubmitting || suggesting ? 'disabled' : 'active',
       label: suggesting ? 'Thinking…' : 'AI',
+      // What "AI" does, for the icon-only button on mobile, where the bubble
+      // would otherwise say only "AI".
+      tooltip: 'Suggest a clue',
     }),
     run: suggestClue,
   })

@@ -11,8 +11,8 @@ type Props = {
 /**
  * codenamesduet's help / rules modal — opened from the "Help" item in the
  * GamePage menu; the manifest's `help` contract. What your key card shows, how
- * a turn runs, the finished-player hand-off and sudden death, in the shared
- * `<GameHelpCompanion>` scaffold.
+ * a turn runs, the finished-player hand-off, sudden death and the setup
+ * options, in the shared `<GameHelpCompanion>` scaffold.
  */
 export function Help({ onClose, brand }: Props) {
   return (
@@ -63,6 +63,17 @@ export function Help({ onClose, brand }: Props) {
         <strong>sudden death</strong>: no more clues, either of you guesses from
         memory, and anything but an agent loses.
       </p>
+
+      <h3>Setup options</h3>
+      <ul>
+        <li><strong>Guess required</strong> — the guesser can't pass until they've guessed at least one word.</li>
+        <li><strong>Strict words</strong> — a clue is letters only: no spaces, hyphens or digits.</li>
+        <li>
+          <strong>Can decline clue-giving</strong> — instead of giving a clue, the clue-giver can
+          decline. No turn is spent, and their partner gives every clue for the rest of the game.
+          If nobody is left to give a clue, it's sudden death straight away.
+        </li>
+      </ul>
     </GameHelpCompanion>
   )
 }

@@ -10,6 +10,7 @@ import { FormSubmitButton } from '@/common/buttons/FormSubmitButton'
 import { IconSubmit } from '@/common/icons/icons'
 import { ActionButton } from '@/common/actions/ActionButton'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
+import { useIsMobile } from '@/common/mobile/useIsMobile'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import {
   useOfferComponentKeyGroups,
@@ -17,6 +18,7 @@ import {
 import { db } from '../db'
 import { useSuggestClue } from '../hooks/useSuggestClue'
 import { usePassTurn } from '../hooks/usePassTurn'
+import { useDeclineClueGiving } from '../hooks/useDeclineClueGiving'
 import type { GClueStrip, GPlayer, GSuggestState, GTurns } from '../types'
 
 /** A seat at the table, as the RPCs answer it. Seat A gives the first clue. */
@@ -47,6 +49,13 @@ type ClueStripProps = {
   currentClue: Clue | null
   // The other player, named in the waiting and guessing lines.
   partner: GPlayer
+  // The three setup options, as the strip applies them: Pass is grayed until
+  // the server allows it (`guess_required` waits for the turn's first guess),
+  // the word field takes only letters (`strict_words`), and the clue form
+  // offers Decline (`can_decline_clue_giving`).
+  isPassAllowed: boolean
+  isStrictWords: boolean
+  canDeclineClueGiving: boolean
   // PlayArea's below-board slot: a refused clue or pass is shown into it as a
   // not-ok rather than inline, so the row's height never changes.
   localFeedbackSlot: FeedbackSlot
@@ -61,7 +70,7 @@ type ClueStripProps = {
  *   suddenDeath      → the "Sudden death" notice
  *   myGuess          → "WORD · N" + the Pass button
  *   partnerGuessing  → "WORD · N" + "● <partner> guessing"
- *   myClue           → the clue form: count + word + Submit + AI
+ *   myClue           → the clue form: count + word + Submit + AI (+ Decline)
  *   waitingForClue   → "Waiting for <partner> to give a clue…"
  *
  * Every state is exactly ONE line, so the fixed-height slot holds and the board
@@ -75,6 +84,9 @@ export function ClueStrip({
   strip,
   currentClue,
   partner,
+  isPassAllowed,
+  isStrictWords,
+  canDeclineClueGiving,
   localFeedbackSlot,
   onSuggestionChange,
 }: ClueStripProps) {
@@ -94,7 +106,8 @@ export function ClueStrip({
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue}/>
         {strip === 'myGuess' &&
-            <PassButton gameId={gameId} localFeedbackSlot={localFeedbackSlot}/>}
+            <PassButton gameId={gameId} isPassAllowed={isPassAllowed}
+                        localFeedbackSlot={localFeedbackSlot}/>}
         {strip === 'partnerGuessing' &&
             <PartnerActivity partner={partner} activity="guessing"/>}
       </div>
@@ -105,6 +118,8 @@ export function ClueStrip({
     return (
       <ClueForm
         gameId={gameId}
+        isStrictWords={isStrictWords}
+        canDeclineClueGiving={canDeclineClueGiving}
         localFeedbackSlot={localFeedbackSlot}
         onSuggestionChange={onSuggestionChange}
       />
@@ -169,25 +184,33 @@ function PartnerWaiting({
 }
 
 /**
- * The clue-giver's clue form — count, word, Submit and AI on ONE line. A
- * refused submit shows into the local feedback slot, so the row never grows a
- * second line; an AI suggestion fills the inputs AND opens a floating panel
- * with its reasoning.
+ * The clue-giver's clue form — count, word, Submit, AI and, when the setup
+ * allows it, Decline, on ONE line. A refused submit shows into the local
+ * feedback slot, so the row never grows a second line; an AI suggestion fills
+ * the inputs AND opens a floating panel with its reasoning.
  *
  * The server (`submit_clue`) judges the move — the right seat, no clue in yet,
  * the game running; this form checks only that both fields are filled.
  *
  * **Lowercase in state, capitals on screen.** A clue is stored lowercase, as
  * the board's words are, so the word input keeps what is typed lowercase, and
- * so does the AI's suggestion; CSS draws both in capitals ("BIRD · 3").
+ * so does the AI's suggestion; CSS draws both in capitals ("BIRD · 3"). With
+ * `strict_words` both are cut to their letters too, which `submit_clue`
+ * otherwise refuses.
  */
 function ClueForm({
   gameId,
+  isStrictWords,
+  canDeclineClueGiving,
   localFeedbackSlot,
   onSuggestionChange,
 }: {
   gameId: string
-  // The slot a refused clue submit is shown into, as a not-ok.
+  // The word is the letters a to z (`strict_words`).
+  isStrictWords: boolean
+  // Decline is offered (`can_decline_clue_giving`).
+  canDeclineClueGiving: boolean
+  // The slot a refused clue submit or decline is shown into, as a not-ok.
   localFeedbackSlot: FeedbackSlot
   onSuggestionChange: (state: GSuggestState | null) => void
 }) {
@@ -203,9 +226,11 @@ function ClueForm({
   // it the giver's own.
   const [aiClue, setAiClue] = useState<{ word: string; count: number } | null>(
     null)
-  // On a phone the below-board row is tight, so the Submit + AI buttons go
-  // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
+  // On a phone the below-board row is tight, so Submit goes icon-only (label →
+  // aria-label/title); desktop and tablet keep its label. The AI button is
+  // icon-only on every mobile width, a portrait tablet included.
   const isPhone = useIsPhone()
+  const isMobile = useIsMobile()
 
   // The two fields ARE this form's ring, so Tab toggles between them and goes
   // nowhere else. It is innermost while the form is up, which is why it beats
@@ -215,6 +240,13 @@ function ClueForm({
   useTabRing([countRef, wordRef], 'keys-next-field')
   // Enter is the form's own submit, not an action; offered so Help says so.
   useOfferComponentKeyGroups(['keys-submit-clue'])
+
+  // A clue word as this game takes it: lowercase, and letters only when the
+  // setup is strict.
+  function cleanClueWord(typed: string): string {
+    const lower = typed.toLowerCase()
+    return isStrictWords ? lower.replace(/[^a-z]/g, '') : lower
+  }
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -260,10 +292,18 @@ function ClueForm({
     isSubmitting: busy,
     onSuggestionChange,
     fillClue: (suggestedWord, suggestedCount) => {
-      setWord(suggestedWord)
+      const filled = cleanClueWord(suggestedWord)
+      setWord(filled)
       setCount(String(suggestedCount))
-      setAiClue({ word: suggestedWord.trim(), count: suggestedCount })
+      setAiClue({ word: filled.trim(), count: suggestedCount })
     },
+  })
+
+  const actDeclineClueGiving = useDeclineClueGiving({
+    gameId,
+    isAllowed: canDeclineClueGiving,
+    isClueOut: busy,
+    localFeedbackSlot,
   })
 
   const submittable = count !== '' && word.trim().length > 0
@@ -298,7 +338,7 @@ function ClueForm({
           type="text"
           placeholder="word"
           value={word}
-          onChange={(e) => setWord(e.target.value.toLowerCase())}
+          onChange={(e) => setWord(cleanClueWord(e.target.value))}
           disabled={eitherBusy}
           required
           className={styles.wordInput}
@@ -319,9 +359,12 @@ function ClueForm({
             runs is the action's `describe`. */}
         <ActionButton
           action={suggestion.actSuggestClue}
-          show={isPhone ? 'icon' : 'both'}
+          show={isMobile ? 'icon' : 'both'}
           className={styles.aiBtn}
         />
+        {/* Icon-only at every width; its tooltip says what it does. Draws
+            nothing when the setup does not allow it. */}
+        <ActionButton action={actDeclineClueGiving} show="icon"/>
       </div>
     </form>
   )
@@ -329,20 +372,24 @@ function ClueForm({
 
 /**
  * End the turn without another guess — legal at any point in the guess phase,
- * even before the first guess, and it spends the turn like any other turn end.
+ * even before the first guess unless the setup requires one, and it spends
+ * the turn like any other turn end.
  */
 function PassButton({
   gameId,
+  isPassAllowed,
   localFeedbackSlot,
 }: {
   gameId: string
+  // Grayed until it is (`guess_required` waits for the turn's first guess).
+  isPassAllowed: boolean
   // The slot a refused pass is shown into, as a not-ok.
   localFeedbackSlot: FeedbackSlot
 }) {
   // Icon-only on a phone, where the below-board row is tight; the label rides
   // in the tooltip either way.
   const isPhone = useIsPhone()
-  const actEndTurn = usePassTurn({ gameId, localFeedbackSlot })
+  const actEndTurn = usePassTurn({ gameId, isPassAllowed, localFeedbackSlot })
   return <ActionButton action={actEndTurn} show={isPhone ? 'icon' : 'both'}
                        weight="primary"/>
 }

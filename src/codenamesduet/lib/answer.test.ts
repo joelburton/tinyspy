@@ -18,6 +18,7 @@ const EVERY: Array<[GAnswer['answerType'], string, string]> = [
   ['waiting_for_clue_peer', 'waiting for clue', 'neutral'],
   ['waiting_for_you_peer', 'waiting for you', 'neutral'],
   ['hint_peer', 'got hint', 'warning'],
+  ['declined_peer', 'declined clues', 'warning'],
   ['clue_ai', '', 'warning'],
 ]
 

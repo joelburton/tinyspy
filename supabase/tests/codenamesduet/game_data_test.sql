@@ -120,7 +120,10 @@ select is(
 
 select is(
   pg_temp.gd() -> 'turns',
-  jsonb_build_object('holder', (select ada from ids), 'num', 1, 'currClue', null),
+  -- `passAllowed` is true throughout: this game is the rulebook's, no guess
+  -- required (setup_options_test has the other side).
+  jsonb_build_object('holder', (select ada from ids), 'num', 1, 'currClue', null,
+    'passAllowed', true),
   'the opener holds the move on turn 1, with no clue yet');
 
 select is(
@@ -151,7 +154,8 @@ select is(
   pg_temp.gd() -> 'turns',
   jsonb_build_object('holder', (select bea from ids), 'num', 1,
     'currClue', jsonb_build_object('word', 'one', 'count', 1, 'fromAi', false,
-                                   'userId', (select ada from ids))),
+                                   'userId', (select ada from ids)),
+    'passAllowed', true),
   'the clue is the turn''s while bea guesses, and the move is hers');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -181,7 +185,8 @@ select is(
 
 select is(
   pg_temp.gd() -> 'turns',
-  jsonb_build_object('holder', (select bea from ids), 'num', 2, 'currClue', null),
+  jsonb_build_object('holder', (select bea from ids), 'num', 2, 'currClue', null,
+    'passAllowed', true),
   'the bystander ends the turn: turn 2, no clue yet, bea to clue');
 
 select is(
@@ -232,8 +237,8 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   pg_temp.tile((select bystander from pos)) -> 'revealed',
-  jsonb_build_object('as', 'N', 'arrows', jsonb_build_array((select ada from ids), (select bea from ids))),
-  'both bystanders point at both, in seat order');
+  '{"as": "N", "arrows": []}'::jsonb,
+  'a bystander to both points at nobody');
 select is(
   pg_temp.tile((select bystander from pos)) -> 'guessableBy',
   '[]'::jsonb,
@@ -271,7 +276,7 @@ select is(
 -- ============================================================
 -- The turn number is set by hand past the budget, and the page rebuilt.
 
-update codenamesduet.games set turn_number = 12, current_clue_giver = null
+update codenamesduet.games set turn_number = 12, current_clue_giver = null, sudden_death_turn = 10
  where game_id = (select id from g where name = 'late');
 select codenamesduet._rebuild_data_cols((select id from g where name = 'late'), p_update_status_changed_at => false);
 

@@ -1,0 +1,24 @@
+/* cs-unmet */
+
+/* The clue rules panel's content: the list of rules. The panel itself is the
+ * shared <Companion>. */
+
+.rules {
+  margin: 0;
+  padding-inline-start: 1.2em;
+  line-height: 1.45;
+}
+
+.rules li + li {
+  margin-top: var(--spacer-4);
+}
+
+/* A word a rule forbids is marked up as struck (`<s>`), which is what it
+ * means, but drawn unstruck behind a ❌ (U+274C). */
+.rules s {
+  text-decoration: none;
+}
+
+.rules s::before {
+  content: "\274C";
+}

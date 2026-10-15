@@ -36,7 +36,7 @@ import type {
  * A two-input game: a guess is a tile click — or the keyboard's pick and Enter
  * (the board's cursor) — and this column owns the guess
  * (`useSubmitGuess`); a clue is the `ClueStrip` form, which owns
- * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
+ * `submit_clue`, `pass_turn`, `decline_clue_giving` and the AI suggestion. Neither owns game state —
  * the reveal arrives in the next blob, and PlayArea hands this column the board
  * to render, live or a viewed turn's. Not-oks show into PlayArea's local slot,
  * the one InfoCol's Stop shows into too. See docs/playarea.md.
@@ -155,6 +155,8 @@ export function BoardCol({
         me={gd.me}
         partner={gd.partner}
         showsPartnerKey={gd.ended && partnerKeyShown}
+        isGameEnded={gd.ended}
+        turnNum={gd.turns.num}
         isInteractive={isInteractive}
         onPick={pick.choose}
         onGuess={guessTile}
@@ -183,6 +185,9 @@ export function BoardCol({
                 strip={strip}
                 currentClue={gd.turns.currClue}
                 partner={gd.partner}
+                isPassAllowed={gd.turns.passAllowed}
+                isStrictWords={gd.setup.strict_words}
+                canDeclineClueGiving={gd.setup.can_decline_clue_giving}
                 // Its not-oks go into the same slot.
                 localFeedbackSlot={localFeedbackSlot}
                 onSuggestionChange={onSuggestionChange}

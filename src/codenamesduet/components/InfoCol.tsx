@@ -11,7 +11,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
 import type { GActions, GGameData, GHistoryView } from '../types'
-import { cluesOf, guessesOf } from '../lib/events'
+import { cluesOf, declinesOf, guessesOf } from '../lib/events'
 import { GameEventLog } from './GameEventLog'
 import { KeyCard } from './KeyCard'
 import { StateLine } from './StateLine'
@@ -21,7 +21,8 @@ import styles from './InfoCol.module.css'
 /**
  * codenamesduet's info column — stateless, an arrangement of the shared
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column
- * readouts): the state line → the finished-player banners → the action row →
+ * readouts): the state line → the finished-player and declined banners → the
+ * action row →
  * help → the key-card and setup disclosures → the event log. There is no
  * opponent strip: the partner's status rides the header pill. Every command
  * arrives as an action this column places.
@@ -31,6 +32,7 @@ export function InfoCol({
   endingMessage,
   actions,
   historyView,
+  onShowClueRules,
 }: {
   gd: GGameData
   // The ending's verdict once the game is over — the action row's line — else null.
@@ -38,21 +40,31 @@ export function InfoCol({
   actions: GActions
   // The event log's `#N` opens a turn in it, and wears the ring while open.
   historyView: GHistoryView
+  // Open the clue rules companion — the help line's link while I write a clue.
+  onShowClueRules: () => void
 }) {
   // Duet's finished-player rule (enforced in `_end_turn`): once a player's
   // agents are all contacted they give no more clues, and their partner takes
   // every remaining turn. Both players are told, so the lopsided turn flow does
   // not read as a bug. Only in normal play — nobody clues in sudden death, and
   // nothing is owed once the game is over.
+  // A player who declined to give clues hands every clue over the same way,
+  // and their banner says so instead.
   const isBannerShown = !gd.ended && !gd.me.suddenDeath
-  const isMineFinished = isBannerShown && gd.me.allAgentsFound
-  const isPartnerFinished = isBannerShown && gd.partner.allAgentsFound
+  const isMineDeclined = isBannerShown && gd.me.declinedClueGiving
+  const isPartnerDeclined = isBannerShown && gd.partner.declinedClueGiving
+  const isMineFinished = isBannerShown && !isMineDeclined && gd.me.allAgentsFound
+  const isPartnerFinished = isBannerShown && !isPartnerDeclined &&
+    gd.partner.allAgentsFound
 
   // The help line is for my move: my turn on the shared pointer — and in
   // sudden death, while the game runs, for both of us, since there the line is
   // the changed rules and the pointer can name nobody.
   const isHelpShown = gd.me.stillPlaying &&
     (gd.me.onTurn || gd.me.suddenDeath)
+  // I hold the clue seat and have not given this turn's clue: the help line
+  // links the clue rules.
+  const isWritingClue = gd.me.clueGiver && gd.turns.currClue === null
   const actionRowMessage: InfoActionsMessage | undefined = endingMessage
     ? { text: endingMessage.infoColText, outcome: endingMessage.outcome }
     : undefined
@@ -84,6 +96,18 @@ export function InfoCol({
             <DotActor actor={gd.partner} fallback="Your partner"/> has no agents
             left — you
             give every remaining clue.
+          </div>
+        )}
+        {isMineDeclined && (
+          <div className={cls(styles.finishedNote, styles.clueGivingDeclined)}>
+            <DotActor actor={gd.partner} fallback="Your partner"/> gives every
+            remaining clue — you declined.
+          </div>
+        )}
+        {isPartnerDeclined && (
+          <div className={cls(styles.finishedNote, styles.clueGivingDeclined)}>
+            <DotActor actor={gd.partner} fallback="Your partner"/> declined to
+            give clues — you give every remaining clue.
           </div>
         )}
 
@@ -119,7 +143,17 @@ export function InfoCol({
                 the assassin) ends the game.
               </>
             ) : (
-              'Give clues for your agents; guess the clues your partner gives you.'
+              <>
+                Give clues for your agents; guess the clues your partner gives you.
+                {isWritingClue && (
+                  <>
+                    {' '}
+                    <button type="button" className="link-button" onClick={onShowClueRules}>
+                      Rules for clues
+                    </button>
+                  </>
+                )}
+              </>
             )}
           </p>
         )}
@@ -136,6 +170,7 @@ export function InfoCol({
       <GameEventLog
         clues={cluesOf(gd.events)}
         guesses={guessesOf(gd.events, gd.puzzle.tilesById)}
+        declines={declinesOf(gd.events)}
         players={gd.players}
         myId={gd.me.id}
         turnNum={gd.turns.num}

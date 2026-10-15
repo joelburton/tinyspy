@@ -56,8 +56,18 @@ describe('codenamesduet setup — what it offers', () => {
       'turns',
       'first_clue_giver_user_id',
       'word_pools',
+      'guess_required',
+      'strict_words',
+      'can_decline_clue_giving',
       'timer',
     ])
+  })
+
+  it('sums up each on/off option in its section summary', () => {
+    draw({ values: { strict_words: false } })
+    expect(screen.getByText('Guess required: yes')).toBeInTheDocument()
+    expect(screen.getByText('Strict words: no')).toBeInTheDocument()
+    expect(screen.getByText('Can decline clue-giving: yes')).toBeInTheDocument()
   })
 
   it('offers the three word pools in pool order, the adult one saying so', () => {
@@ -142,10 +152,20 @@ describe('codenamesduet setup — writing a setting', () => {
 
     expect(set).toHaveBeenCalledWith('word_pools', [])
   })
+
+  it('writes an on/off option as a boolean', async () => {
+    const user = userEvent.setup()
+    const { set } = draw()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Can decline clue-giving' }))
+
+    expect(set).toHaveBeenCalledWith('can_decline_clue_giving', false)
+  })
 })
 
 describe('codenamesduet setup — where a message lands', () => {
-  it.each(['turns', 'first_clue_giver_user_id', 'player_user_ids', 'word_pools'])(
+  it.each(['turns', 'first_clue_giver_user_id', 'player_user_ids', 'word_pools',
+    'guess_required', 'strict_words', 'can_decline_clue_giving'])(
     'puts one naming %s under that field',
     (field) => {
       draw({ errors: { [field]: 'something to say' } })

@@ -12,22 +12,32 @@ import {
   useEventLogPlayerPicker,
 } from '@/common/event-log/useEventLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
-import { IconAI } from '@/common/icons/icons'
+import { IconAI, IconDeclineClueGiving } from '@/common/icons/icons'
 import {
   OUTCOME_TO_VERDICT_CLASS,
 } from '@/common/game-page/outcomeToVerdictClass'
 import { answerMessage } from '../lib/answer'
 import { turnOutcome } from '../lib/turnOutcome'
-import type { GClueEvent, GGuessEvent, GHistoryView, GPlayer } from '../types'
+import type {
+  GClueEvent,
+  GDeclineEvent,
+  GGuessEvent,
+  GHistoryView,
+  GPlayer,
+} from '../types'
 import styles from './GameEventLog.module.css'
 
 /** The outcome the AI mark wears. */
 const AI_CLUE_OUTCOME = answerMessage({ answerType: 'clue_ai' }).outcome
+/** The outcome a decline's row wears. */
+const DECLINE_OUTCOME = answerMessage({ answerType: 'declined_peer' }).outcome
 
 type Props = {
-  // Every clue, and every guess with the word on its tile, in order.
+  // Every clue, every guess with the word on its tile, and every decline to
+  // give clues, in order.
   clues: GClueEvent[]
   guesses: GGuessEvent[]
+  declines: GDeclineEvent[]
   // Both players, for the picker.
   players: GPlayer[]
   // The viewer, so the picker can order them first.
@@ -73,6 +83,10 @@ type Props = {
  * data (a clue, no guess rows). All grouping is client-side (the data set is
  * tiny); the shared `<EventLog>` snaps to the latest row.
  *
+ * **A decline to give clues** is a row of its own, unnumbered since it spends
+ * no turn, above the clue the partner then gives; the picker files it under
+ * the player who declined.
+ *
  * **Sudden death** has no clue, and every guess there is a turn of its own —
  * either player may make it — so each is ONE row: "Sudden death: WORD", the word
  * in its key-card color, the guesser in the actor column. Its bar follows the
@@ -87,6 +101,7 @@ type Props = {
 export function GameEventLog({
   clues,
   guesses,
+  declines,
   players,
   myId,
   turnNum,
@@ -103,13 +118,14 @@ export function GameEventLog({
     label: 'Whose clues to show',
     emptyLabel: 'No clues yet.',
   })
-  // Turns may exist in the clue list, the guess list, or both. Union + sort
-  // ascending so the oldest turn is at the top; the shared EventLog auto-snaps to
-  // the latest.
+  // Turns may exist in the clue list, the guess list, the decline list, or
+  // several. Union + sort ascending so the oldest turn is at the top; the shared
+  // EventLog auto-snaps to the latest.
   const turnNumbers = Array.from(
     new Set([
       ...clues.map((c) => c.turnNum),
       ...guesses.map((g) => g.turnNum),
+      ...declines.map((d) => d.turnNum),
     ]),
   ).sort((a, b) => a - b)
   // The turns played in sudden death, as the builder marked their guesses.
@@ -119,15 +135,21 @@ export function GameEventLog({
   // Filtered by CLUE-GIVER (see the docstring), or for a sudden-death turn,
   // which has none, by its guesser — the person its actor column names. By hand
   // rather than through `eventLogPicker.filter`, because the log's unit is a
-  // turn number, not a row with a player.
+  // turn number, not a row with a player. Only a turn with a row of its own —
+  // a clue, or a sudden-death guess — is numbered; a turn whose clue is still
+  // being written after a decline has none yet.
   const shownTurns = turnNumbers.filter((t) => {
-    if (eventLogPicker.showsEveryone) return true
     if (suddenDeathTurns.has(t)) {
-      return guesses.some((g) => g.turnNum === t && g.by.id ===
-        eventLogPicker.picked)
+      return eventLogPicker.showsEveryone || guesses.some((g) => g.turnNum === t &&
+        g.by.id === eventLogPicker.picked)
     }
-    return clues.find((c) => c.turnNum === t)?.by.id === eventLogPicker.picked
+    const clue = clues.find((c) => c.turnNum === t)
+    if (!clue) return false
+    return eventLogPicker.showsEveryone || clue.by.id === eventLogPicker.picked
   })
+  // A decline is filed under the player who declined.
+  const shownDeclines = declines.filter((d) =>
+    eventLogPicker.showsEveryone || d.by.id === eventLogPicker.picked)
 
   // The word of a guess, in the key-card color of what it turned over.
   const guessWord = (g: GGuessEvent) => (
@@ -147,104 +169,136 @@ export function GameEventLog({
     <EventLog
       heading="Clues"
       picker={eventLogPicker}
-      shown={shownTurns}
+      shown={[...shownTurns, ...shownDeclines]}
       // An entry here is a TURN, and guesses land inside a turn that already
       // exists (they grow its second row rather than adding one), so counting
       // turns alone would miss the snap.
-      entryCount={clues.length + guesses.length}
+      entryCount={clues.length + guesses.length + declines.length}
     >
-      {shownTurns.map((t, index) => {
-        const n = index + 1
-        const clue = clues.find((c) => c.turnNum === t)
-        const suddenDeath = suddenDeathTurns.has(t)
-        const turnGuesses = guesses.filter((g) => g.turnNum === t)
-
-        if (suddenDeath) {
-          // One row per sudden-death turn — one guess, made by either player.
-          const g = turnGuesses[0]
-          if (!g) return null
-          return (
-            <tr key={t} className={gameEventLog.divider}>
-              <EventLogOutcomeBar
-                outcome={turnOutcome(turnGuesses, { suddenDeath })}/>
-              <EventLogNumber
-                n={n}
-                isOpenInHistory={historyView.viewedEventId === g.id}
-                onShowHistory={() => historyView.show(g.id, n)}
-              />
-              <td className={gameEventLog.main}>
-                <span
-                  className={styles.clueWord}>Sudden death:</span> {guessWord(g)}
-              </td>
-              <EventLogActor actor={g.by}/>
-            </tr>
-          )
-        }
-
-        if (!clue) return null
-        // A guess-less turn is still "in progress" (clue given, guesser yet to
-        // act) only while it's the current turn AND the game is live; otherwise
-        // it ended empty (a pass). See the docstring.
-        const inProgress = turnGuesses.length === 0 && t === turnNum &&
-          !isGameEnded
-        return (
-          <Fragment key={t}>
-            {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<EventLogNumber>) | count
-                WORD (`.main`, absorbs the slack) | clue-giver (<EventLogActor>, shrinks to
-                the username). `.divider` draws the line above this turn
-                (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
-                together. The `#N` handle is the turn-viewer control (see the note). */}
-            <tr className={cls(gameEventLog.divider, gameEventLog.entryHead)}>
-              <EventLogOutcomeBar outcome={turnOutcome(turnGuesses)}
-                                  rowSpan={2}/>
-              <EventLogNumber
-                n={n}
-                isOpenInHistory={historyView.viewedEventId === clue.id}
-                onShowHistory={() => historyView.show(clue.id, n)}
-              />
-              <td className={gameEventLog.main}>
-                <span className={styles.clueWord}>
-                  {clue.clueCount} <span
-                  className={styles.clueText}>{clue.clueWord}</span>
-                </span>
-                {clue.clueFromAi && (
-                  // The clue is exactly the AI's suggestion — in that answer's
-                  // outcome, which `lib/answer.ts` decides. A clue the giver
-                  // edited, or thought of alone, wears nothing.
-                  <span
-                    className={cls(styles.aiClueMark,
-                      OUTCOME_TO_VERDICT_CLASS[AI_CLUE_OUTCOME])}
-                    data-tooltip="AI clue"
-                  >
-                    <IconAI size="1em" aria-hidden/>
-                  </span>
-                )}
-              </td>
-              <EventLogActor actor={clue.by}/>
-            </tr>
-            {/* Row 2: the turn's guesses, spanning the three content columns
-                (#, clue, clue-giver) beneath the clue line. No divider class — the
-                line belongs between turns, not within one. The bar's rowSpan
-                occupies col 0 here, so this colSpan starts at the # column. */}
-            <tr className={gameEventLog.entryCont}>
-              <td colSpan={3}>
-                {turnGuesses.length === 0 ? (
-                  <span className={gameEventLog.muted}>
-                    {inProgress ? '(clue given)' : '(no guesses)'}
-                  </span>
-                ) : (
-                  turnGuesses.map((g, idx) => (
-                    <span key={g.id}>
-                      {idx > 0 && ' '}
-                      {guessWord(g)}
-                    </span>
-                  ))
-                )}
-              </td>
-            </tr>
-          </Fragment>
-        )
-      })}
+      {turnNumbers.map((t) => (
+        <Fragment key={t}>
+          {/* A decline comes before the clue its partner then gives. */}
+          {shownDeclines.filter((d) => d.turnNum === t).map((d) => (
+            <DeclineRow key={d.id} decline={d}/>
+          ))}
+          {shownTurns.includes(t) &&
+            renderTurn(t, shownTurns.indexOf(t) + 1)}
+        </Fragment>
+      ))}
     </EventLog>
+  )
+
+  // One turn's rows, numbered `n` among those shown.
+  function renderTurn(t: number, n: number) {
+    const clue = clues.find((c) => c.turnNum === t)
+    const suddenDeath = suddenDeathTurns.has(t)
+    const turnGuesses = guesses.filter((g) => g.turnNum === t)
+
+    if (suddenDeath) {
+      // One row per sudden-death turn — one guess, made by either player.
+      const g = turnGuesses[0]
+      if (!g) return null
+      return (
+        <tr className={gameEventLog.divider}>
+          <EventLogOutcomeBar
+            outcome={turnOutcome(turnGuesses, { suddenDeath })}/>
+          <EventLogNumber
+            n={n}
+            isOpenInHistory={historyView.viewedEventId === g.id}
+            onShowHistory={() => historyView.show(g.id, n)}
+          />
+          <td className={gameEventLog.main}>
+            <span
+              className={styles.clueWord}>Sudden death:</span> {guessWord(g)}
+          </td>
+          <EventLogActor actor={g.by}/>
+        </tr>
+      )
+    }
+
+    if (!clue) return null
+    // A guess-less turn is still "in progress" (clue given, guesser yet to
+    // act) only while it's the current turn AND the game is live; otherwise
+    // it ended empty (a pass). See the docstring.
+    const inProgress = turnGuesses.length === 0 && t === turnNum &&
+      !isGameEnded
+    return (
+      <>
+        {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<EventLogNumber>) | count
+            WORD (`.main`, absorbs the slack) | clue-giver (<EventLogActor>, shrinks to
+            the username). `.divider` draws the line above this turn
+            (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
+            together. The `#N` handle is the turn-viewer control (see the note). */}
+        <tr className={cls(gameEventLog.divider, gameEventLog.entryHead)}>
+          <EventLogOutcomeBar outcome={turnOutcome(turnGuesses)}
+                              rowSpan={2}/>
+          <EventLogNumber
+            n={n}
+            isOpenInHistory={historyView.viewedEventId === clue.id}
+            onShowHistory={() => historyView.show(clue.id, n)}
+          />
+          <td className={gameEventLog.main}>
+            <span className={styles.clueWord}>
+              {clue.clueCount} <span
+              className={styles.clueText}>{clue.clueWord}</span>
+            </span>
+            {clue.clueFromAi && (
+              // The clue is exactly the AI's suggestion — in that answer's
+              // outcome, which `lib/answer.ts` decides. A clue the giver
+              // edited, or thought of alone, wears nothing.
+              <span
+                className={cls(styles.aiClueMark,
+                  OUTCOME_TO_VERDICT_CLASS[AI_CLUE_OUTCOME])}
+                data-tooltip="AI clue"
+              >
+                <IconAI size="1em" aria-hidden/>
+              </span>
+            )}
+          </td>
+          <EventLogActor actor={clue.by}/>
+        </tr>
+        {/* Row 2: the turn's guesses, spanning the three content columns
+            (#, clue, clue-giver) beneath the clue line. No divider class — the
+            line belongs between turns, not within one. The bar's rowSpan
+            occupies col 0 here, so this colSpan starts at the # column. */}
+        <tr className={gameEventLog.entryCont}>
+          <td colSpan={3}>
+            {turnGuesses.length === 0 ? (
+              <span className={gameEventLog.muted}>
+                {inProgress ? '(clue given)' : '(no guesses)'}
+              </span>
+            ) : (
+              turnGuesses.map((g, idx) => (
+                <span key={g.id}>
+                  {idx > 0 && ' '}
+                  {guessWord(g)}
+                </span>
+              ))
+            )}
+          </td>
+        </tr>
+      </>
+    )
+  }
+}
+
+/**
+ * A decline to give clues, as a row of its own: the glyph Decline wears, in
+ * the outcome `lib/answer.ts` gives a partner's decline, and who declined. Not
+ * a turn — no turn is spent — so it has no number and opens nothing.
+ */
+function DeclineRow({ decline }: { decline: GDeclineEvent }) {
+  return (
+    <tr className={gameEventLog.divider}>
+      <EventLogOutcomeBar outcome={DECLINE_OUTCOME}/>
+      <td/>
+      <td className={gameEventLog.main}>
+        <span className={cls(styles.declineMark, OUTCOME_TO_VERDICT_CLASS[DECLINE_OUTCOME])}>
+          <IconDeclineClueGiving size="1em" aria-hidden/>
+        </span>{' '}
+        <span className={gameEventLog.muted}>declined clue-giving</span>
+      </td>
+      <EventLogActor actor={decline.by}/>
+    </tr>
   )
 }

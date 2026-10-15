@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'
+import { CheckboxField } from '@/common/fields/CheckboxField'
 import { CheckboxListField } from '@/common/fields/CheckboxListField'
 import { RadioRow } from '@/common/fields/RadioRow'
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { listWordPoolLabels, TURN_OPTIONS, WORD_POOLS } from '../lib/setup'
+import { listWordPoolLabels, sayYesNo, TURN_OPTIONS, WORD_POOLS } from '../lib/setup'
 import type { GSetupValues } from '../types'
 import { SetupSection } from '@/common/setup-form/SetupSection'
 
@@ -21,6 +22,9 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
  *     other as B.
  *   - **Word pool** — which lists the 25 words come from, at least one;
  *     `create_game` deals them in equal shares.
+ *   - **Guess required**, **Strict words**, **Can decline clue-giving** — the
+ *     three on/off options, a section each (`GSetupValues` says what each
+ *     does).
  *
  * and the timer. The manifest's defaults can't carry a member id (they are
  * evaluated before any club is known), so the first chosen player is seeded
@@ -100,6 +104,43 @@ export function SetupForm({
             set('word_pools', WORD_POOLS.filter((p) => ticked.has(p.name)).map((p) => p.name))
           }
         />
+      </SetupSection>
+
+      <SetupSection label={`Guess required: ${sayYesNo(s.guess_required)}`}>
+        <CheckboxField
+          help="The guesser must guess at least one word before passing."
+          name="guess_required"
+          error={errors.guess_required}
+          value={s.guess_required}
+          onChange={(guess_required) => set('guess_required', guess_required)}
+        >
+          Guess required
+        </CheckboxField>
+      </SetupSection>
+
+      <SetupSection label={`Strict words: ${sayYesNo(s.strict_words)}`}>
+        <CheckboxField
+          help="A clue may use only the letters A to Z: no spaces, hyphens or digits."
+          name="strict_words"
+          error={errors.strict_words}
+          value={s.strict_words}
+          onChange={(strict_words) => set('strict_words', strict_words)}
+        >
+          Strict words
+        </CheckboxField>
+      </SetupSection>
+
+      <SetupSection label={`Can decline clue-giving: ${sayYesNo(s.can_decline_clue_giving)}`}>
+        <CheckboxField
+          help="Instead of giving a clue, a player may decline. No turn is spent, and their partner gives every clue for the rest of the game."
+          name="can_decline_clue_giving"
+          error={errors.can_decline_clue_giving}
+          value={s.can_decline_clue_giving}
+          onChange={(can_decline_clue_giving) =>
+            set('can_decline_clue_giving', can_decline_clue_giving)}
+        >
+          Can decline clue-giving
+        </CheckboxField>
       </SetupSection>
 
       <SetupTimerSection

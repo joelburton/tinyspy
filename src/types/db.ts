@@ -263,14 +263,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "current_clue_giver": string | null,"game_id": string,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"turn_number": number
+                    "can_decline_clue_giving": boolean,"current_clue_giver": string | null,"game_id": string,"guess_required": boolean,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"strict_words": boolean,"sudden_death_turn": number | null,"turn_number": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "current_clue_giver"?: string | null,"game_id": string,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"turn_number"?: number
+                    "can_decline_clue_giving": boolean,"current_clue_giver"?: string | null,"game_id": string,"guess_required": boolean,"key_card_a": NonNullable<Json>,"key_card_b": NonNullable<Json>,"max_turns": number,"player_a_user_id": string,"player_b_user_id": string,"strict_words": boolean,"sudden_death_turn"?: number | null,"turn_number"?: number
                   }
                   Update: {
-                    "current_clue_giver"?: string | null,"game_id"?: string,"key_card_a"?: NonNullable<Json>,"key_card_b"?: NonNullable<Json>,"max_turns"?: number,"player_a_user_id"?: string,"player_b_user_id"?: string,"turn_number"?: number
+                    "can_decline_clue_giving"?: boolean,"current_clue_giver"?: string | null,"game_id"?: string,"guess_required"?: boolean,"key_card_a"?: NonNullable<Json>,"key_card_b"?: NonNullable<Json>,"max_turns"?: number,"player_a_user_id"?: string,"player_b_user_id"?: string,"strict_words"?: boolean,"sudden_death_turn"?: number | null,"turn_number"?: number
                   }
                   Relationships: [
                     
@@ -357,6 +357,12 @@ isOneToOne: false
 "_require_clue_giver":
 { Args: { "p_game_id": string }; Returns: string
                            },
+"_seat_can_clue":
+{ Args: { "p_game_id": string,"p_seat": string }; Returns: boolean
+                           },
+"_seat_declined_clue_giving":
+{ Args: { "p_game_id": string,"p_seat": string }; Returns: boolean
+                           },
 "_seat_has_agents_left":
 { Args: { "p_game_id": string,"p_seat": string }; Returns: boolean
                            },
@@ -371,6 +377,9 @@ isOneToOne: false
                            },
 "create_game":
 { Args: { "p_club_handle": string,"p_player_user_ids": (string)[],"p_setup": Json }; Returns: Json
+                           },
+"decline_clue_giving":
+{ Args: { "p_game_id": string }; Returns: Json
                            },
 "get_clue_context":
 { Args: { "p_game_id": string }; Returns: Json
@@ -1688,6 +1697,11 @@ isOneToOne: false
                            },
 "_new_bag":
 { Args: Record<PropertyKey, never>; Returns: (string)[]
+                           },
+"_passed_players":
+{ Args: { "p_game_id": string }; Returns: {
+              "user_id": string
+            }[]
                            },
 "_rebuild_data_cols":
 { Args: { "p_game_id": string,"p_update_status_changed_at": boolean }; Returns: undefined

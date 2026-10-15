@@ -24,7 +24,8 @@
  * carry the "what does a key SAY" signal; the fill carries "what happened":
  *   white  — no one has guessed it (the lightest tile shade, not the shared
  *            resting beige, which reads too close to the bystander tan)
- *   tan    — someone guessed it as a neutral (which player → triangles)
+ *   tan    — both players guessed it as a neutral (one player alone keeps the
+ *            white, and a triangle points at them)
  *   green  — we contacted an agent (global)
  *   red    — the assassin was hit (global)
  * The shared `.tile` supplies the hover ring (a box-shadow, NOT a recolor — so
@@ -103,11 +104,11 @@
   background: var(--codenamesduet-assassin-key);
 }
 
-/* Neutral-guessed triangles — above/below the word, one per player who guessed
- * this cell as a neutral, pointing toward where they sit (partner above pointing
- * up, me below pointing down). White: it reads cleanly on the saturated tile
- * backgrounds, where black (and profile colors) get lost. Shown only while the
- * cell is unrevealed — a contacted agent / hit assassin drops the markers. */
+/* Neutral-guessed triangles — above/below the word, the player who guessed this
+ * cell as a neutral, pointing toward where they sit (partner above pointing up,
+ * me below pointing down). Only a bystander one player has hit wears one, and
+ * that tile keeps the untouched fill, so the triangle is drawn in the tile's
+ * own ink, the word's color. */
 /* @@ */ .triangle {
   position: absolute;
   left: 50%;
@@ -121,9 +122,9 @@
 }
 /* @@ */ .triPartner {
   top: 4px;
-  border-bottom: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points up */
+  border-bottom: clamp(8px, 8cqi, 13px) solid var(--tile-slot-ink-color); /* points up */
 }
 /* @@ */ .triMine {
   bottom: 4px;
-  border-top: clamp(8px, 8cqi, 13px) solid var(--default-bg-color); /* points down */
+  border-top: clamp(8px, 8cqi, 13px) solid var(--tile-slot-ink-color); /* points down */
 }

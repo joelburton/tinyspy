@@ -9,7 +9,7 @@
  * game-over frame, the attention flash and the shake.
  * The marks are found by their CSS-module class, read off the stylesheet.
  */
-import { act, render, screen } from '@testing-library/react'
+import { act, cleanup, render } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Board } from './Board'
@@ -46,6 +46,8 @@ type Over = Partial<{
   moveCount: number
   isInteractive: boolean
   showsPartnerKey: boolean
+  isGameEnded: boolean
+  turnNum: number
   isViewingHistory: boolean
   pickedTile: GTile | null
   inFlightTile: GTile | null
@@ -80,6 +82,8 @@ function props(over: Over = {}, viewer = 'u1', facts: ZTest_GameDataFacts = {}):
     me: gd.me,
     partner: gd.partner,
     showsPartnerKey: o.showsPartnerKey ?? false,
+    isGameEnded: o.isGameEnded ?? false,
+    turnNum: o.turnNum ?? gd.turns.num,
     isInteractive: o.isInteractive ?? true,
     onPick: vi.fn(),
     onGuess: vi.fn(),
@@ -99,16 +103,20 @@ const tile = (container: HTMLElement, word: RegExp) =>
   [...container.querySelectorAll('button')].find((b) => word.test(b.textContent ?? ''))!
 
 describe('codenamesduet Board — the per-seat bystander lock', () => {
+  // By position: while I guess, my own bystander draws no word.
+  const apple = () => document.querySelector('button[data-tile="0"]')!
+  const berry = () => document.querySelector('button[data-tile="1"]')!
+
   it('my bystander is closed to me, my partner’s is open', () => {
     draw('u1')
-    expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /berry/i })).toBeEnabled()
+    expect(apple()).toBeDisabled()
+    expect(berry()).toBeEnabled()
   })
 
   it('the same, the other way round, for my partner', () => {
     draw('u2')
-    expect(screen.getByRole('button', { name: /berry/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
+    expect(berry()).toBeDisabled()
+    expect(apple()).toBeEnabled()
   })
 })
 
@@ -147,7 +155,8 @@ describe('codenamesduet Board — my partner’s key card', () => {
 describe('codenamesduet Board — the bystander triangles', () => {
   // Apple is my bystander, berry my partner's.
   it('draws my partner’s above the word and mine below', () => {
-    const container = drawWith()
+    // Not guessing, so both words are drawn to measure against.
+    const container = drawWith({ isInteractive: false })
     const berry = tile(container, /berry/)
     const apple = tile(container, /apple/)
     const partnerTri = berry.querySelector(`.${styles.triPartner}`)!
@@ -164,6 +173,35 @@ describe('codenamesduet Board — the bystander triangles', () => {
     expect(apple.querySelector(`.${styles.triPartner}`)).toBeNull()
   })
 
+  it('a bystander one player hit keeps the untouched fill; one both hit is tan', () => {
+    // Apple and berry are each one player's; then bea hits apple too.
+    const events = [...BYSTANDERS, ZTest_clue(5, 'u1', 3, 'z', 1), ZTest_guess(6, 'u2', 3, 0, 'N')]
+    const gd = makeGameData(ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: KEY, turnNum: 4, events }), 'u1')
+    const container = drawWith({ tiles: gd.me.board.tiles, turnNum: 4 })
+    const tileAt = (id: string) => container.querySelector(`button[data-tile="${id}"]`)!
+    expect(tileAt('1')).toHaveClass(styles.bgWhite)
+    expect(tileAt('1')).not.toHaveClass(styles.bgNeutral)
+    expect(tileAt('0')).toHaveClass(styles.bgNeutral)
+  })
+
+  it('while I guess, my own bystander is tan and wordless, and keeps its arrow', () => {
+    // Apple is my bystander, berry my partner's.
+    const tileAt = (c: HTMLElement, id: string) => c.querySelector(`button[data-tile="${id}"]`)!
+    const guessing = drawWith()
+    expect(tileAt(guessing, '0')).toHaveClass(styles.bgNeutral)
+    expect(tileAt(guessing, '0').textContent).toBe('')
+    expect(tileAt(guessing, '0').querySelector(`.${styles.triMine}`)).not.toBeNull()
+    // My partner's is still mine to guess: untouched, with its word.
+    expect(tileAt(guessing, '1')).toHaveClass(styles.bgWhite)
+    expect(tileAt(guessing, '1').textContent).toBe('berry')
+    cleanup()
+
+    // Not guessing: my bystander is like any one-sided one.
+    const waiting = drawWith({ isInteractive: false })
+    expect(tileAt(waiting, '0')).toHaveClass(styles.bgWhite)
+    expect(tileAt(waiting, '0').textContent).toBe('apple')
+  })
+
   it('drops both once the word is contacted — the builder points it at nobody', () => {
     const agentKey: GKey[] = [...'GGNNNNNNNNNAANNNNNNNNNNNN'] as GKey[]
     const events = [
@@ -175,6 +213,52 @@ describe('codenamesduet Board — the bystander triangles', () => {
     const gd = makeGameData(ZTest_makeGameDataRaw({ words: WORDS, keyA: KEY, keyB: agentKey, turnNum: 3, events }), 'u1')
     const container = drawWith({ tiles: gd.me.board.tiles })
     expect(container.querySelectorAll(`.${styles.triPartner}, .${styles.triMine}`)).toHaveLength(0)
+  })
+})
+
+/**
+ * A decided tile — nobody may still guess it — drops its word once the turn
+ * that decided it is over: here apple, a bystander to both, and word2, a
+ * contacted agent, both decided on turn 3. Berry, a bystander to my partner
+ * alone, is still open to me and keeps its word.
+ */
+describe('codenamesduet Board — the words on decided tiles', () => {
+  const tiles = (turnNum: number) => makeGameData(ZTest_makeGameDataRaw({
+    words: WORDS, keyA: KEY, keyB: KEY, turnNum,
+    events: [
+      ...BYSTANDERS,
+      ZTest_clue(5, 'u2', 3, 'z', 2),
+      ZTest_guess(6, 'u1', 3, 2, 'G'),
+      ZTest_guess(7, 'u2', 3, 0, 'N'),
+    ],
+  }), 'u1').me.board.tiles
+  const wordOn = (c: HTMLElement, id: string) =>
+    c.querySelector(`button[data-tile="${id}"]`)!.textContent
+
+  it('keeps the words through the turn that decided them', () => {
+    const container = drawWith({ tiles: tiles(3), turnNum: 3 })
+    expect(wordOn(container, '0')).toBe('apple')
+    expect(wordOn(container, '2')).toBe('word2')
+  })
+
+  it('drops them once that turn is over', () => {
+    const container = drawWith({ tiles: tiles(4), turnNum: 4 })
+    expect(wordOn(container, '0')).toBe('')
+    expect(wordOn(container, '2')).toBe('')
+    expect(wordOn(container, '1')).toBe('berry')
+    expect(wordOn(container, '3')).toBe('word3')
+  })
+
+  it('draws every word once the game is over', () => {
+    const container = drawWith({ tiles: tiles(4), turnNum: 4, isGameEnded: true })
+    expect(wordOn(container, '0')).toBe('apple')
+    expect(wordOn(container, '2')).toBe('word2')
+  })
+
+  it('draws every word on a viewed past turn', () => {
+    const container = drawWith({ tiles: tiles(4), turnNum: 4, isViewingHistory: true })
+    expect(wordOn(container, '0')).toBe('apple')
+    expect(wordOn(container, '2')).toBe('word2')
   })
 })
 

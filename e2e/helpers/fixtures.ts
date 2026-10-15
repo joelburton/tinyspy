@@ -1312,6 +1312,9 @@ export async function createCodenamesduetGame(
         first_clue_giver_user_id: firstClueGiverUserId,
         timer: { kind: 'none' },
         word_pools: ['duet'],
+        guess_required: false,
+        strict_words: false,
+        can_decline_clue_giving: false,
       },
       p_player_user_ids: club.members.map((m) => m.userId),
     })

@@ -17,12 +17,23 @@ import type { GSetup, GWordPool } from '../types'
  * players who want extra pressure.
  *
  * The board's words default to the Codenames Duet list alone, the game's own.
+ *
+ * The three on/off options default on.
  */
 export const DEFAULT_CODENAMESDUET_SETUP: GSetup = {
   turns: 9,
   first_clue_giver_user_id: '',
   timer: { kind: 'none' },
   word_pools: ['duet'],
+  guess_required: true,
+  strict_words: true,
+  can_decline_clue_giving: true,
+}
+
+/** A setup option's yes/no, as the setup dialog's summary and the setup rows
+ *  say it. */
+export function sayYesNo(isOn: boolean): string {
+  return isOn ? 'yes' : 'no'
 }
 
 /** The allowed `turns` values — drives the radio rendering. */

@@ -19,6 +19,7 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { ClueStrip } from './ClueStrip'
 import { makeGameData } from '../hooks/useGame'
@@ -28,6 +29,8 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 /** My partner, named in the waiting and guessing lines. */
 const PARTNER = makeGameData(ZTest_makeGameDataRaw(), 'u1').partner
+/** The three setup options as the rulebook's game has them: all off. */
+const RULEBOOK = { isPassAllowed: true, isStrictWords: false, canDeclineClueGiving: false }
 // The two envelope readers the form calls: the AI answers with one suggestion,
 // and a submitted clue lands. `db.rpc` is still called with the arguments, which
 // is what these cases read.
@@ -48,6 +51,7 @@ describe('codenamesduet ClueStrip — input tagging', () => {
         strip="myClue"
         currentClue={null}
         partner={PARTNER}
+        {...RULEBOOK}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -69,6 +73,7 @@ describe('codenamesduet ClueStrip — the count', () => {
         strip="myClue"
         currentClue={null}
         partner={PARTNER}
+        {...RULEBOOK}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -92,6 +97,7 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
         strip="myClue"
         currentClue={null}
         partner={PARTNER}
+        {...RULEBOOK}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
       />,
@@ -150,6 +156,7 @@ describe('codenamesduet ClueStrip — what it shows', () => {
         strip="myClue"
         currentClue={null}
         partner={PARTNER}
+        {...RULEBOOK}
         localFeedbackSlot={createFeedbackSlot('local')}
         onSuggestionChange={vi.fn()}
         {...over}
@@ -172,5 +179,84 @@ describe('codenamesduet ClueStrip — what it shows', () => {
     fireEvent.submit(container.querySelector('form')!)
     await waitFor(() => expect(word).toHaveValue(''))
     expect(count).toHaveValue('')
+  })
+})
+
+describe('codenamesduet ClueStrip — the setup options', () => {
+  const draw = (over: Partial<ComponentProps<typeof ClueStrip>> = {}) =>
+    render(
+      <ClueStrip
+        gameId="g1"
+        strip="myClue"
+        currentClue={null}
+        partner={PARTNER}
+        {...RULEBOOK}
+        localFeedbackSlot={createFeedbackSlot('local')}
+        onSuggestionChange={vi.fn()}
+        {...over}
+      />,
+    ).container
+  const wordInput = (container: HTMLElement) =>
+    container.querySelector('input[placeholder="word"]') as HTMLInputElement
+
+  beforeEach(() => vi.mocked(db.rpc).mockClear())
+
+  it('with strict words, the word field keeps only letters', async () => {
+    const user = userEvent.setup()
+    const container = draw({ isStrictWords: true })
+    await user.type(wordInput(container), 'Ice-cream 2')
+    expect(wordInput(container).value).toBe('icecream')
+  })
+
+  it('without, it keeps what is typed, lowercase', async () => {
+    const user = userEvent.setup()
+    const container = draw()
+    await user.type(wordInput(container), 'Ice-cream 2')
+    expect(wordInput(container).value).toBe('ice-cream 2')
+  })
+
+  it('with strict words, an AI suggestion is cut to its letters too', async () => {
+    vi.mocked(runEdgeFn).mockResolvedValueOnce({
+      type: 'ok',
+      data: { result: 'suggested', suggestion: { clue: 'ice cream', count: 2, reasoning: 'r' } },
+    } as Awaited<ReturnType<typeof runEdgeFn>>)
+    const container = draw({ isStrictWords: true })
+    fireEvent.click(container.querySelector('button[data-action="act-suggest-clue"]')!)
+    await waitFor(() => expect(wordInput(container)).toHaveValue('icecream'))
+  })
+
+  it('the AI button says what it does in its tooltip', () => {
+    expect(draw().querySelector('button[data-action="act-suggest-clue"]'))
+      .toHaveAttribute('data-tooltip', 'Suggest a clue')
+  })
+
+  it('offers Decline, red and icon-only, only when the setup allows it', () => {
+    expect(draw().querySelector('[data-action="act-decline-clue-giving"]')).toBeNull()
+    const decline = draw({ canDeclineClueGiving: true })
+      .querySelector('button[data-action="act-decline-clue-giving"]')!
+    expect(decline).toHaveAttribute('data-tooltip', 'Decline to give clues for rest of game')
+    expect(decline).toHaveTextContent('')
+  })
+
+  it('Decline calls decline_clue_giving', async () => {
+    vi.mocked(runRpc).mockResolvedValueOnce({ type: 'ok', data: { result: 'declined' } } as
+      Awaited<ReturnType<typeof runRpc>>)
+    const container = draw({ canDeclineClueGiving: true })
+    fireEvent.click(container.querySelector('button[data-action="act-decline-clue-giving"]')!)
+    await waitFor(() =>
+      expect(db.rpc).toHaveBeenCalledWith('decline_clue_giving', { p_game_id: 'g1' }))
+  })
+
+  it('grays Pass, saying why, until the server allows it', () => {
+    const myGuess = {
+      strip: 'myGuess' as const,
+      currentClue: { word: 'wave', count: 2, fromAi: false, by: PARTNER },
+    }
+    const pass = (container: HTMLElement) =>
+      container.querySelector('button[data-action="act-end-turn"]') as HTMLButtonElement
+    const grayed = pass(draw({ ...myGuess, isPassAllowed: false }))
+    expect(grayed).toBeDisabled()
+    expect(grayed).toHaveAttribute('data-tooltip', 'Guess at least one word first')
+    expect(pass(draw({ ...myGuess, isPassAllowed: true }))).toBeEnabled()
   })
 })

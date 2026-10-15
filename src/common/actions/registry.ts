@@ -16,6 +16,7 @@ import {
   IconDelete,
   IconChat,
   IconConcede,
+  IconDeclineClueGiving,
   IconEndTurn,
   IconExchange,
   IconHelp,
@@ -253,6 +254,11 @@ export const ACTIONS = {
   // the guesser reaches for.
   'act-pass': { label: 'Pass', icon: IconEndTurn, tone: 'caution' },
   'act-end-turn': { label: 'End turn', icon: IconEndTurn },
+  // codenamesduet's clue-giver gives no clue, now or for the rest of the game,
+  // and the partner clues from then on. Destructive: it cannot be taken back.
+  'act-decline-clue-giving': {
+    label: 'Decline clues', icon: IconDeclineClueGiving, tone: 'destructive',
+  },
   'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
   'act-share-preview': { label: 'Show move to team', icon: IconShare },
   // scrabble's Recall: take every STAGED tile back to the rack at once. Distinct

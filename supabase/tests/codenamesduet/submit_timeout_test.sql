@@ -48,12 +48,8 @@ select (codenamesduet.create_game(
   (select handle from club),
   -- Setup includes a 10-minute countdown timer, the only kind that
   -- expires; the RPC itself doesn't wait for time to pass.
-  jsonb_build_object(
-    'turns', 9,
-    'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
-    'timer', jsonb_build_object('kind', 'countdown', 'seconds', 600),
-    'word_pools', jsonb_build_array('duet')
-  ),
+  pg_temp.codenamesduet_setup()
+    || jsonb_build_object('timer', jsonb_build_object('kind', 'countdown', 'seconds', 600)),
   pg_temp.codenamesduet_players()
 )->'data'->>'id')::uuid as id;
 

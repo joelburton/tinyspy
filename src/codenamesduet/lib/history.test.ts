@@ -6,7 +6,7 @@
  *   1. INCLUSIVE folding — viewing turn N reflects every guess with turn ≤ N, and
  *      NOT any later turn's guesses.
  *   2. The builder's rule — a bystander shows `N` and points at its guesser; a
- *      contacted agent or the assassin points at nobody.
+ *      bystander to both, a contacted agent or the assassin points at nobody.
  *   3. The lit tiles — exactly those guessed DURING the viewed turn.
  */
 import { describe, expect, it } from 'vitest'
@@ -43,6 +43,14 @@ describe('replayTurn', () => {
     const { tiles } = replay(3, 2)
     expect([...tileOf(tiles, '1').revealed!.arrows]).toEqual([gd.me])
     expect(tileOf(tiles, '0')).toMatchObject({ revealed: { arrows: new Set() } })
+  })
+
+  it('points a bystander to both at nobody', () => {
+    // bea turns tile 1 over too, on turn 4.
+    const events = [...EVENTS.slice(0, 6), ZTest_clue(8, 'u1', 4, 'y', 1), ZTest_guess(9, 'u2', 4, 1, 'N')]
+    const both = makeGameData(ZTest_makeGameDataRaw({ events, turnNum: 5, clueSeat: 'B' }), 'u1')
+    const { tiles } = replayTurn(both.events, both.puzzle.tiles, 8, 4)!
+    expect(tileOf(tiles, '1').revealed).toEqual({ as: 'N', arrows: new Set() })
   })
 
   it('lights exactly the tiles decided during the viewed turn', () => {

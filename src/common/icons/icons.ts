@@ -82,6 +82,11 @@ export {
   // It stops just your turn and hands play on, so it wears amber rather than
   // red. Worn by both `act-end-turn` and `act-pass`.
   Octagon as IconEndTurn,
+  // decline to give clues for the rest of the game — codenamesduet's
+  // `act-decline-clue-giving`, on the clue form. The crossed-out speech bubble
+  // reads as "I'm not speaking", and it is no octagon: declining spends no
+  // turn, where IconEndTurn's stop sign ends one.
+  MessageSquareOff as IconDeclineClueGiving,
   // STOP PLAYING — worn by `act-stop-game` and `act-concede` alike, since a game
   // offers one or the other and never both at once (a race that can also stop
   // the whole table asks about it inside Concede's question).

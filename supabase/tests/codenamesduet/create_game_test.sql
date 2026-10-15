@@ -49,7 +49,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(49);
+select plan(55);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -297,12 +297,8 @@ select lives_ok(
   format(
     $q$ select (codenamesduet.create_game(
       %L,
-      jsonb_build_object(
-        'turns', 9,
-        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
-        'timer', jsonb_build_object('kind', 'countup'),
-        'word_pools', jsonb_build_array('duet')
-      ),
+      pg_temp.codenamesduet_setup()
+        || jsonb_build_object('timer', jsonb_build_object('kind', 'countup')),
       pg_temp.codenamesduet_players()
     )->'data'->>'id')::uuid as id;$q$,
     (select handle from club2)
@@ -698,6 +694,63 @@ select is(
     where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
   '["undercover", "duet", "codenames"]'::jsonb,
   'saved defaults: codenamesduet saves word_pools as chosen'
+);
+
+-- ============================================================
+-- The three on/off options
+-- ============================================================
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup() - 'guess_required', pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN629"}'::jsonb,
+  'create_game: missing setup.guess_required is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup() || '{"strict_words": "yes"}', pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN629"}'::jsonb,
+  'create_game: a setup.strict_words that is not a boolean is a fault'
+);
+
+select pg_temp.envelope_is(
+  codenamesduet.create_game((select handle from club2),
+    pg_temp.codenamesduet_setup() - 'can_decline_clue_giving', pg_temp.codenamesduet_players()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN629"}'::jsonb,
+  'create_game: missing setup.can_decline_clue_giving is a fault'
+);
+
+create temp table with_options on commit drop as
+select (codenamesduet.create_game((select handle from club2),
+  pg_temp.codenamesduet_setup()
+    || '{"guess_required": true, "strict_words": false, "can_decline_clue_giving": true}',
+  pg_temp.codenamesduet_players()
+)->'data'->>'id')::uuid as id;
+
+select is(
+  (select array[guess_required, strict_words, can_decline_clue_giving]
+     from codenamesduet.games where game_id = (select id from with_options)),
+  array[true, false, true],
+  'create_game: the three options land on the game row as chosen'
+);
+
+select is(
+  (select sudden_death_turn from codenamesduet.games where game_id = (select id from with_options)),
+  null,
+  'create_game: a new game is not in sudden death'
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select default_setup - 'timer' - 'word_pools' - 'turns' from common.clubs_gametypes
+    where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
+  '{"guess_required": true, "strict_words": false, "can_decline_clue_giving": true}'::jsonb,
+  'saved defaults: codenamesduet saves the three options as chosen'
 );
 
 -- ── PN093: an unseeded word pool ──

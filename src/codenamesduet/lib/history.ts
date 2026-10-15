@@ -10,7 +10,7 @@
  * dealt tiles with every guess up to that turn folded on, by the builder's own
  * rule (supabase/sql/codenamesduet.sql → `_make_json_board`): an agent or the
  * assassin shows for both and points at nobody; a bystander shows `N` and
- * points at whoever turned it over.
+ * points at whoever turned it over — nobody, once both have.
  *
  * **Folded by turn.** The log lists TURNS — a clue and the guesses that
  * answered it, or in sudden death a single guess — and LINKS a turn by an event
@@ -70,14 +70,20 @@ export function replayTurn(
 
   const tiles: GTile[] = puzzleTiles.map((puzzleTile) => {
     const contacted = shown.get(puzzleTile.id)
-    const arrows = bystanderBy.get(puzzleTile.id)
+    const bystanderTo = bystanderBy.get(puzzleTile.id)
+    // A bystander to both points at nobody.
+    const arrows = bystanderTo !== undefined && bystanderTo.size < 2
+      ? bystanderTo
+      : new Set<GPlayer>()
     return {
       id: puzzleTile.id,
       puzzleTile,
       revealed: contacted !== undefined
         ? { as: contacted, arrows: new Set<GPlayer>() }
-        : arrows !== undefined ? { as: 'N', arrows } : null,
+        : bystanderTo !== undefined ? { as: 'N', arrows } : null,
       guessableBy: new Set<GPlayer>(),
+      // A past board draws every word, so when a tile was decided is moot.
+      decidedOnTurn: null,
     }
   })
 

@@ -27,6 +27,8 @@ export function answerMessage(answer: GAnswer): AnswerMessage {
 
     case 'hint_peer':
       return { outcome: 'warning', text: 'got hint' }
+    case 'declined_peer':
+      return { outcome: 'warning', text: 'declined clues' }
 
     case 'clue_ai':
       return { outcome: 'warning', text: '' }
