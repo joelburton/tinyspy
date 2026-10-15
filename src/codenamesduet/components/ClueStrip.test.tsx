@@ -14,7 +14,8 @@
  * (the shell actions reach it through `inField: 'game-inputs'`); this pins that
  * the actual clue inputs carry the tag.
  */
-import { fireEvent, render, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -238,11 +239,29 @@ describe('codenamesduet ClueStrip — the setup options', () => {
     expect(decline).toHaveTextContent('')
   })
 
-  it('Decline calls decline_clue_giving', async () => {
+  it('Decline asks first — no turn spent, no more clues — and Cancel sends nothing', async () => {
+    const user = userEvent.setup()
+    const container = draw({ canDeclineClueGiving: true })
+    render(<ConfirmationHost/>)
+    await user.click(container.querySelector('button[data-action="act-decline-clue-giving"]')!)
+    expect(screen.getByText(
+      "This doesn't cost you a turn, but you can't give a clue for the rest of the game.",
+    )).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(db.rpc).not.toHaveBeenCalledWith('decline_clue_giving', expect.anything())
+  })
+
+  it('Decline, confirmed, calls decline_clue_giving', async () => {
+    const user = userEvent.setup()
     vi.mocked(runRpc).mockResolvedValueOnce({ type: 'ok', data: { result: 'declined' } } as
       Awaited<ReturnType<typeof runRpc>>)
     const container = draw({ canDeclineClueGiving: true })
-    fireEvent.click(container.querySelector('button[data-action="act-decline-clue-giving"]')!)
+    render(<ConfirmationHost/>)
+    await user.click(container.querySelector('button[data-action="act-decline-clue-giving"]')!)
+    // The question's answer, not the clue form's own Decline beside it.
+    const answer = screen.getAllByRole('button', { name: 'Decline clues' })
+      .find((b) => !b.hasAttribute('data-action'))!
+    await user.click(answer)
     await waitFor(() =>
       expect(db.rpc).toHaveBeenCalledWith('decline_clue_giving', { p_game_id: 'g1' }))
   })

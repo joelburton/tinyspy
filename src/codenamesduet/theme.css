@@ -26,13 +26,11 @@
      and stay separate on purpose: they are the key card's vocabulary, not an
      outcome's, and move with this game's palette, not with the outcome one. */
 /* @@ */   --codenamesduet-agent:               #2e7d32;
-/* @@ */   --codenamesduet-agent-soft-banner:   rgb(46 125 50 / 18%);
-/* @@ */   --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
+/* @@ */   --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable as text */
 
   /* Neutral bystander — warm tan, low-key on the board. */
 /* @@ */   --codenamesduet-neutral:             #b4986e;
-/* @@ */   --codenamesduet-neutral-soft-bright: rgb(180 152 110 / 30%);
-/* @@ */   --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
+/* @@ */   --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable as text */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
      panel's border and the info column's SUDDEN DEATH lead-in. */

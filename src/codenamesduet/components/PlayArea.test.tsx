@@ -544,6 +544,16 @@ describe('codenamesduet PlayArea — the setup options', () => {
     expect(screen.queryByText(/you declined/)).not.toBeInTheDocument()
   })
 
+  it('says my partner has no agents left, rather than that they declined, when both are true', () => {
+    // My partner (seat A) declined, and their one agent, 23, has been found.
+    render(<PlayAreaLoader {...makeCtx({
+      ...AS_CLUE_GIVER,
+      events: [ZTest_decline(1, 'u2', 1), ZTest_guess(2, 'u1', 1, 23, 'G')],
+    })} />)
+    expect(screen.getByText(/has no agents\s+left — you\s+give every remaining clue/)).toBeInTheDocument()
+    expect(screen.queryByText(/declined to\s+give clues/)).not.toBeInTheDocument()
+  })
+
   it('narrates my partner’s decline in the header as it lands', () => {
     const ctx = makeCtx(AS_CLUE_GIVER)
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
@@ -849,7 +859,7 @@ describe('codenamesduet PlayArea — the clue rules', () => {
 
   it('shows the other line when strict words is off', () => {
     render(<PlayAreaLoader {...makeCtx({ setup: RULEBOOK_SETUP })} />)
-    expect(says('Hyphenated words OK; can include digits')).toBe(true)
+    expect(says('Hyphenated words & digits OK')).toBe(true)
     expect(says('Non-hyphenated')).toBe(false)
   })
 

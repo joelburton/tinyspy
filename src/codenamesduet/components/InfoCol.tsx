@@ -49,13 +49,14 @@ export function InfoCol({
   // not read as a bug. Only in normal play — nobody clues in sudden death, and
   // nothing is owed once the game is over.
   // A player who declined to give clues hands every clue over the same way,
-  // and their banner says so instead.
+  // and has a banner of their own — unless their agents are all found too,
+  // where the finished-player banner says it.
   const isBannerShown = !gd.ended && !gd.me.suddenDeath
-  const isMineDeclined = isBannerShown && gd.me.declinedClueGiving
-  const isPartnerDeclined = isBannerShown && gd.partner.declinedClueGiving
-  const isMineFinished = isBannerShown && !isMineDeclined && gd.me.allAgentsFound
-  const isPartnerFinished = isBannerShown && !isPartnerDeclined &&
-    gd.partner.allAgentsFound
+  const isMineFinished = isBannerShown && gd.me.allAgentsFound
+  const isPartnerFinished = isBannerShown && gd.partner.allAgentsFound
+  const isMineDeclined = isBannerShown && !isMineFinished && gd.me.declinedClueGiving
+  const isPartnerDeclined = isBannerShown && !isPartnerFinished &&
+    gd.partner.declinedClueGiving
 
   // The help line is for my move: my turn on the shared pointer — and in
   // sudden death, while the game runs, for both of us, since there the line is

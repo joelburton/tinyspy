@@ -116,6 +116,14 @@ const CONCEDE_OR_STOP_GAME_CONFIRM: ConfirmOptions = {
   cancelLabel: 'Keep playing',
 }
 
+/** codenamesduet's decline-to-give-clues question: it spends no turn, but it
+ *  cannot be taken back, and the button sits beside Submit. */
+const DECLINE_CLUE_GIVING_CONFIRM: ConfirmOptions = {
+  title: 'Decline to give clues?',
+  message: "This doesn't cost you a turn, but you can't give a clue for the rest of the game.",
+  confirmLabel: 'Decline clues',
+}
+
 /** The whole-grid reveal's question. The other two scopes ask nothing: Letter
  *  and Word are the ordinary hint ladder, and confirming a hint you just asked
  *  for is noise. Filling every answer is the one that ends the puzzle for the
@@ -255,9 +263,11 @@ export const ACTIONS = {
   'act-pass': { label: 'Pass', icon: IconEndTurn, tone: 'caution' },
   'act-end-turn': { label: 'End turn', icon: IconEndTurn },
   // codenamesduet's clue-giver gives no clue, now or for the rest of the game,
-  // and the partner clues from then on. Destructive: it cannot be taken back.
+  // and the partner clues from then on. Destructive: it cannot be taken back,
+  // so it asks first.
   'act-decline-clue-giving': {
     label: 'Decline clues', icon: IconDeclineClueGiving, tone: 'destructive',
+    confirm: DECLINE_CLUE_GIVING_CONFIRM,
   },
   'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
   'act-share-preview': { label: 'Show move to team', icon: IconShare },

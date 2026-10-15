@@ -454,7 +454,8 @@ leave the frontend silent, because the tile's color arriving IS the answer.
 while the blob's `passAllowed` is false; `passed` says nothing either, since
 the new turn arrives in the next blob. **A decline** is the clue form's red,
 icon-only Decline clues button, shown only when the setup allows it; its
-tooltip is "Decline to give clues for rest of game", and `declined` says
+tooltip is "Decline to give clues for rest of game", it asks first (no turn
+spent, no clue for the rest of the game), and `declined` says
 nothing, since the clue seat leaving arrives in the next blob. With **Strict
 words** the word field takes only letters, and an AI suggestion fills it cut to
 its letters. An ending is not answered
@@ -606,10 +607,11 @@ What is codenamesduet's own:
   the turn too, but their move is the clue form. The bell is the page's, on
   the shared pointer.
 - **The finished-player banner** tells each player, in the info column, when
-  one of them has found all their agents: in green to the one who finished,
-  in tan to their partner, who now gives every clue. **The declined banner**
-  says the same of a decline, in tan to both, and takes the finished-player
-  banner's place when both are true.
+  one of them has found all their agents: outlined in green to the one who
+  finished, in tan to their partner, who now gives every clue — a border, no
+  wash, so it reads plainly. **The declined banner** says the same of a
+  decline, outlined in tan to both; when a player has both declined and run
+  out of agents, the finished-player banner is the one shown.
 - **The key card** is a disclosure in the info column: my side as a 5×5 grid of
   colors, with no words, for a player who wants to see the whole card at once.
 - **The event log is a table of turns**: the clue, who gave it and whether it

@@ -51,9 +51,9 @@ export function ClueRulesCompanion({
           <small>(EARTHQUAKE: <s>QUAKING</s>, <s>EARTHENWARE</s>)</small>
         </li>
         <li>
-          Can give <b>"zero clues"</b> like "<code>0 ANIMAL</code>"
+          Can give <b>"zero clues"</b> like "<code>0 BIRD</code>"
           <br/>
-          <small>(Can be subtle clue to pick other things)</small>
+          <small>(Can be clue to pick other animals)</small>
         </li>
       </ul>
     </Companion>

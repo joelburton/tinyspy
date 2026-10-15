@@ -21,11 +21,12 @@
   border-radius: var(--radius-md);
 }
 
-/* To the player who finished: the "agent" green soft-banner fill, so it reads
- * as an accomplishment, not a warning. */
+/* To the player who finished: outlined in the agent green, so it reads as an
+ * accomplishment, not a warning. A border and no fill, so the text keeps the
+ * page's own color and reads plainly. */
 /* @@ */ .finishedNote.mineFinished {
-  background: var(--codenamesduet-agent-soft-banner);
-  color: var(--codenamesduet-agent-text);
+  border: var(--border-width-line-thick) solid var(--codenamesduet-agent);
+  color: var(--page-text-color);
 }
 
 /* To their partner, who now gives every clue: informational rather than
@@ -33,6 +34,6 @@
  * give clues is the same news to both players, in the same tan. */
 /* @@ */ .finishedNote.partnerFinished,
 .finishedNote.clueGivingDeclined {
-  background: var(--codenamesduet-neutral-soft-bright);
-  color: var(--codenamesduet-neutral-text);
+  border: var(--border-width-line-thick) solid var(--codenamesduet-neutral);
+  color: var(--page-text-color);
 }

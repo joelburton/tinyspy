@@ -7,9 +7,8 @@
   `-edge-color`); `theme.css` has none. `--codenamesduet-agent` and
   `-assassin` each fill a tile, draw its edge and color log text — one name
   for three jobs, so a reader of `Board.module.css` can't tell which change
-  moves what. The pale backgrounds are named three ways (`-agent-soft-banner`,
-  `-neutral-soft-bright`, `-assassin-soft`), and `-agent-key` / `-neutral-key`
-  / `-assassin-key` are the key card's fills.
+  moves what. The one pale background is `-assassin-soft`, and `-agent-key` /
+  `-neutral-key` / `-assassin-key` are the key card's fills.
 
 ## Soon
 
