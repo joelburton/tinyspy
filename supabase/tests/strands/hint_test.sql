@@ -19,7 +19,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(19);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -254,6 +254,63 @@ select is(
   (select count(*) from strands.events where game_id = (select id from game)),
   0::bigint,
   'a replay clears the hint rows too — a restart is indistinguishable from a fresh game'
+);
+
+-- ============================================================
+-- The spangram is rung last
+-- ============================================================
+-- It gives away the most of the grid, so a hint rings a theme word while any
+-- is left. The bar is refilled and the ring cleared by hand between spends:
+-- thirty draws, so a random pick can't miss the spangram by luck.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table glast on commit drop as
+select (strands.create_game(
+  (select handle from club), pg_temp.strands_setup((select puzzle_id from fix)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+
+create function pg_temp.spend_fresh_hint(p_game_id uuid) returns jsonb
+language plpgsql as $$
+declare v_coords jsonb;
+begin
+  update strands.players
+     set hint_points = 99, active_hint_coords = null
+   where game_id = p_game_id;
+  perform pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+  perform strands.spend_hint(p_game_id);
+  reset role;
+  select active_hint_coords into v_coords from strands.players
+   where game_id = p_game_id and user_id = 'ada11111-1111-1111-1111-111111111111';
+  return v_coords;
+end;
+$$;
+
+create temp table rung (coords jsonb) on commit drop;
+do $$
+begin
+  for i in 1..30 loop
+    insert into rung select pg_temp.spend_fresh_hint((select id from glast));
+  end loop;
+end;
+$$;
+select is(
+  (select count(*) from rung
+    where strands._path_key(coords) = strands._path_key(pg_temp.strands_row_path(4))),
+  0::bigint,
+  'a hint never rings the spangram while a theme word is unfound'
+);
+
+-- Every theme word found (every row but 4): the spangram is all that is left.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select strands.submit_path((select id from glast), pg_temp.strands_row_path(r))
+  from generate_series(0, 7) r where r <> 4;
+reset role;
+select is(
+  strands._path_key(pg_temp.spend_fresh_hint((select id from glast))),
+  strands._path_key(pg_temp.strands_row_path(4)),
+  'with every theme word found, the hint rings the spangram'
 );
 
 -- ============================================================

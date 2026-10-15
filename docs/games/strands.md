@@ -282,7 +282,7 @@ where the timer is merely how a session stops.
 |---|---|
 | `create_game(p_club_handle, p_setup, p_player_user_ids, p_mode)` | Copies the puzzle onto the row, builds the page blobs, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <title>"` — the puzzle's title is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
 | `submit_path(p_game_id, p_path)` | The move RPC: answers `{result, hint_points}` — the verdict, and the caller's bar after the move — with no outcome. See the order below. |
-| `spend_hint(p_game_id)` | Picks a **random** unfound puzzle word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted'}` alone; the ring lands with the blobs. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the ended-game gate should already have caught. |
+| `spend_hint(p_game_id)` | Picks a **random** unfound theme word, the spangram only once none is left, and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted'}` alone; the ring lands with the blobs. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the ended-game gate should already have caught. |
 | `stop_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the timer, and the restart. |
 
 **Every RPC that changes the game ends by rebuilding the page blobs** — a trace,
@@ -788,7 +788,7 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 |---|---|
 | `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, the coop solve = board consumed, a trace into a deleted game |
 | `validation_test.sql` | every malformed-path shape gets its **designed** P0001 (planted one by one — the original guard used `rs @> array[null]`, which can never match, so this file exists to fail on a regression to that); integral floats normalize instead |
-| `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement, a hint asked of a deleted game |
+| `hint_test.sql` | spend semantics: random pick persisted, the spangram rung last, coords only, one at a time, cleared by placement, a hint asked of a deleted game |
 | `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
 | `compete_test.sql` | the race: per-player boards, what the blob carries of a rival, fewest-hints ranking, concede-with-a-solver |
 | `conceded_test.sql` | a conceder gets no more moves; a solver's concede is refused and her solve stays ranked; all-conceded → `conceded`; a racer's hint rings her own board alone |

@@ -1401,8 +1401,9 @@ drop function if exists strands.spend_hint(uuid);
 -- ============================================================
 -- strands.spend_hint — cash the bar for a revealed word
 -- ============================================================
--- Picks a RANDOM unfound puzzle word and publishes its COORDS (never its word:
--- a hint rings the tiles and leaves the player to work out the order).
+-- Picks a RANDOM unfound theme word — the spangram only when none is left —
+-- and publishes its COORDS (never its word: a hint rings the tiles and leaves
+-- the player to work out the order).
 --
 -- Server-side by necessity, not preference: the coop hint pool is SHARED, so
 -- every player must see the same revealed word. A client-side pick would show
@@ -1483,19 +1484,22 @@ begin
 
   -- A word already found is not worth revealing. WHOSE finds count is the
   -- board's own rule — shared in coop, your own in compete. By PLACEMENT, so
-  -- a word found via the other equivalent trace counts as found.
-  select tw->'coords' into coords
-    from jsonb_array_elements(
-           g.solution->'themeWords' || jsonb_build_array(g.solution->'spangram')
-         ) tw
+  -- a word found via the other equivalent trace counts as found. The spangram
+  -- is rung only once no theme word is left: it gives away the most of the
+  -- grid, and finding it is the solve's best moment.
+  select tw.word->'coords' into coords
+    from (select t, false as is_spangram
+            from jsonb_array_elements(g.solution->'themeWords') t
+          union all
+          select g.solution->'spangram', true) tw(word, is_spangram)
    where not exists (
      select 1 from strands.events gu
       where gu.game_id = p_game_id
         and gu.result in ('theme', 'spangram')
-        and strands._path_key(gu.path) = strands._path_key(tw->'coords')
+        and strands._path_key(gu.path) = strands._path_key(tw.word->'coords')
         and (v_mode = 'coop' or gu.user_id = caller_id)
    )
-   order by random()
+   order by tw.is_spangram, random()
    limit 1;
 
   if coords is null then
