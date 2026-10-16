@@ -2,6 +2,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import type { BrowserContext } from '@playwright/test'
 import { createClient, type Session } from '@supabase/supabase-js'
 
 /**
@@ -1322,10 +1323,27 @@ export async function createCodenamesduetGame(
 }
 
 /**
+ * Open a codenamesduet game in this context with its clue rules already seen,
+ * so the companion that opens by itself on turn 1 (`useClueRules`) does not
+ * cover the board a spec is about. Seeds the "seen" mark into localStorage
+ * before the app's JS runs, as `signIn` seeds the session. The one spec that
+ * is about the companion leaves it out.
+ */
+export async function skipCodenamesduetClueRules(
+  context: BrowserContext,
+  gameId: string,
+): Promise<void> {
+  await context.addInitScript(
+    ([key]) => window.localStorage.setItem(key, '1'),
+    [`puzpuzpuz:codenamesduet:clueRulesSeen:${gameId}`] as const,
+  )
+}
+
+/**
  * Put a fresh codenamesduet game straight into sudden death, through psql as
- * the superuser: the turn past the budget (sudden death is `turn_number >
- * max_turns`), nobody holding the clue, the turn re-pointed and the page blob
- * rebuilt. Playing nine real turns to get there would make a display spec
+ * the superuser: the turn past the budget, recorded as the turn sudden death
+ * began on (`sudden_death_turn`), nobody holding the clue, the turn re-pointed
+ * and the page blob rebuilt. Playing nine real turns to get there would make a display spec
  * about sudden death mostly about everything else.
  */
 export function putCodenamesduetInSuddenDeath(gameId: string): void {
@@ -1337,7 +1355,8 @@ export function putCodenamesduetInSuddenDeath(gameId: string): void {
       '-v', 'ON_ERROR_STOP=1', '-q',
       '-c',
       `update codenamesduet.games
-          set turn_number = max_turns + 1, current_clue_giver = null
+          set turn_number = max_turns + 1, current_clue_giver = null,
+              sudden_death_turn = max_turns + 1
         where game_id = '${gameId}';
        select codenamesduet._point_turn('${gameId}');
        select codenamesduet._rebuild_data_cols('${gameId}', p_update_status_changed_at => false);`,

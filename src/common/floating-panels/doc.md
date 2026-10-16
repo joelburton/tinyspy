@@ -99,9 +99,11 @@ sees it; one that holds focus, like the menu, handles the key on its own element
 and stops it there instead. `guards/escapeListeners.test.ts` holds the line,
 because the wrong version of this fails silently and reads as correct.
 
-Tab is not a family's decision. Every panel is a ring, so focus cannot walk out
-behind any of them — which is what lets a modal's scrim claim the page is inert
-without the keyboard quietly disproving it. Enter is the action dispatcher's,
+Every panel is a Tab ring, so focus cannot walk out behind any of them — which
+is what lets a modal's scrim claim the page is inert without the keyboard
+quietly disproving it. The companion family's ring holds Tab only while the
+keyboard is inside it, since the page under a companion stays live
+(keyboard/doc.md has the rule). Enter is the action dispatcher's,
 and it stands down inside a panel, which is what the shell's
 `data-floating-panel` marker is for.
 

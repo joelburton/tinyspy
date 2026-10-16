@@ -293,6 +293,9 @@ export function FloatingPanel({
         fitContent={fitContent}
         density={resolvedDensity}
         reserveKeyboard={reserveKeyboard}
+        // The page under a companion stays live: its tab ring keeps Tab unless
+        // the keyboard is in the companion.
+        holdsTabOnlyWhileFocused={family === 'companion'}
       >
         {children}
       </PanelRnd>
@@ -329,6 +332,7 @@ function PanelRnd({
   fitContent = false,
   density,
   reserveKeyboard = false,
+  holdsTabOnlyWhileFocused,
   children,
 }: {
   panelId: string
@@ -348,6 +352,9 @@ function PanelRnd({
   fitContent?: boolean
   density: PanelDensity | undefined
   reserveKeyboard?: boolean
+  // The panel's tab ring holds Tab only while the keyboard is inside it
+  // (`useTabRing`'s `onlyWhileFocused`).
+  holdsTabOnlyWhileFocused: boolean
   children: ReactNode
 }) {
   // ── Keyboard-aware clamp (opt-in via `reserveKeyboard`, phones only) ────
@@ -375,9 +382,10 @@ function PanelRnd({
   const contentRef = useRef<HTMLDivElement>(null)
 
   // Every panel is a tab ring: Tab cycles the ✕ and the body's own controls and
-  // cannot reach the page behind. Every family, not just the dimming ones.
+  // cannot reach the page behind — a companion's only while the keyboard is in
+  // it (`holdsTabOnlyWhileFocused`).
   const shellRef = useRef<HTMLDivElement>(null)
-  useTabRing({ within: shellRef })
+  useTabRing({ within: shellRef, onlyWhileFocused: holdsTabOnlyWhileFocused })
   // The latest rect and setter in refs, so the observer below installs ONCE
   // (its deps are just [fitContent]) and still reads current values. Synced in
   // a passive effect — never written during render (react-compiler forbids it).

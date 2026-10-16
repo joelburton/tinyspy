@@ -6,6 +6,7 @@ import {
   createClubWithMembers,
   createCodenamesduetGame,
   putCodenamesduetInSuddenDeath,
+  skipCodenamesduetClueRules,
   type E2EClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
@@ -33,6 +34,8 @@ async function openBoth(browser: Browser, club: E2EClub, gameId: string) {
   const ctxBob = await browser.newContext()
   await signIn(ctxAlice, alice.session)
   await signIn(ctxBob, bob.session)
+  await skipCodenamesduetClueRules(ctxAlice, gameId)
+  await skipCodenamesduetClueRules(ctxBob, gameId)
   const pageAlice = await ctxAlice.newPage()
   const pageBob = await ctxBob.newPage()
   await pageBob.goto(url)

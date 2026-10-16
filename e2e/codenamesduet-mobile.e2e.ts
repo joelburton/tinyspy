@@ -1,7 +1,11 @@
 // cs-unmet
 
 import { test, expect, type Browser } from '@playwright/test'
-import { createClubWithMembers, createCodenamesduetGame } from './helpers/fixtures'
+import {
+  createClubWithMembers,
+  createCodenamesduetGame,
+  skipCodenamesduetClueRules,
+} from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -25,10 +29,12 @@ async function setup(browser: Browser, aliceCtx: Parameters<Browser['newContext'
 
   const ctxBob = await browser.newContext()
   await signIn(ctxBob, bob.session)
+  await skipCodenamesduetClueRules(ctxBob, game.id)
   await (await ctxBob.newPage()).goto(url)
 
   const ctxAlice = await browser.newContext(aliceCtx)
   await signIn(ctxAlice, alice.session)
+  await skipCodenamesduetClueRules(ctxAlice, game.id)
   const page = await ctxAlice.newPage()
   await page.goto(url)
   await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })

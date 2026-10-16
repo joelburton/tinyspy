@@ -259,3 +259,41 @@ describe('useTabRing — a ring declared as `within` an element', () => {
     expect(document.activeElement).toBe(page[1]!.current)
   })
 })
+
+/**
+ * A companion's ring: it floats over a page that stays live, so it takes Tab
+ * only while the keyboard is inside it — open with focus on the page, the
+ * page's ring keeps Tab, and the ✕ never traps it.
+ */
+describe('useTabRing — onlyWhileFocused', () => {
+  function companion(): HTMLElement {
+    const el = document.createElement('div')
+    el.innerHTML = '<button id="x">✕</button>'
+    document.body.append(el)
+    return el
+  }
+
+  it('leaves Tab to the page ring while the keyboard is outside it', () => {
+    const page = stops(2)
+    renderHook(() => useTabRing(page))
+    const el = companion()
+    renderHook(() => useTabRing({ within: { current: el }, onlyWhileFocused: true }))
+
+    page[0]!.current!.focus()
+    pressTab()
+    expect(document.activeElement).toBe(page[1]!.current)
+    pressTab()
+    expect(document.activeElement).toBe(page[0]!.current)
+  })
+
+  it('takes Tab while the keyboard is inside it', () => {
+    const page = stops(2)
+    renderHook(() => useTabRing(page))
+    const el = companion()
+    renderHook(() => useTabRing({ within: { current: el }, onlyWhileFocused: true }))
+
+    document.getElementById('x')!.focus()
+    pressTab()
+    expect(document.activeElement).toBe(document.getElementById('x'))
+  })
+})

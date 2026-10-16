@@ -147,6 +147,13 @@ innermost, so Tab cannot reach the page its scrim has already made unclickable.
 `tabindex="-1"` still means "focusable by code, not by Tab", the one way a
 panel can keep something out.
 
+**A companion's ring holds Tab only while the keyboard is inside it**
+(`onlyWhileFocused`). A companion has no scrim — the page under it stays live —
+so merely being open must not take Tab from the page: the rules or a suggestion
+panel opened over a clue form would otherwise park Tab on its ✕, its only stop.
+Click into a companion and its ring is innermost again; chat's composer cycles
+as before.
+
 **Every play surface declares its ring in its PlayArea**, and for all of them
 but codenamesduet that ring is empty — a board is clicked and typed at, so there
 is nowhere for Tab to go. codenamesduet's clue form is two real `<input>`s and

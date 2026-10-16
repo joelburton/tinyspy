@@ -1,7 +1,11 @@
 // cs-unmet
 
 import { test, expect, type Page } from '@playwright/test'
-import { createClubWithMembers, createCodenamesduetGame } from './helpers/fixtures'
+import {
+  createClubWithMembers,
+  createCodenamesduetGame,
+  skipCodenamesduetClueRules,
+} from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -48,6 +52,8 @@ test.describe('codenamesduet below-board layout stability', () => {
     const ctxBob = await browser.newContext()
     await signIn(ctxAlice, alice.session)
     await signIn(ctxBob, bob.session)
+    await skipCodenamesduetClueRules(ctxAlice, game.id)
+    await skipCodenamesduetClueRules(ctxBob, game.id)
     const pageAlice = await ctxAlice.newPage()
     const pageBob = await ctxBob.newPage()
     await pageBob.goto(url)
@@ -202,6 +208,8 @@ test.describe('codenamesduet new game', () => {
     const ctxBob = await browser.newContext()
     await signIn(ctxAlice, alice.session)
     await signIn(ctxBob, bob.session)
+    await skipCodenamesduetClueRules(ctxAlice, game.id)
+    await skipCodenamesduetClueRules(ctxBob, game.id)
     const pageAlice = await ctxAlice.newPage()
     const pageBob = await ctxBob.newPage()
     await pageAlice.goto(url)

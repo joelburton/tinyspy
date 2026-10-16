@@ -2,7 +2,11 @@
 
 import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
-import { createClubWithMembers, createCodenamesduetGame } from './helpers/fixtures'
+import {
+  createClubWithMembers,
+  createCodenamesduetGame,
+  skipCodenamesduetClueRules,
+} from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -29,6 +33,7 @@ test.describe('codenamesduet — print board', () => {
     for (const m of [alice, bob]) {
       const ctx = await browser.newContext()
       await signIn(ctx, m.session)
+      await skipCodenamesduetClueRules(ctx, game.id)
       const page = await ctx.newPage()
       await page.goto(`/g/${game.gametype}/${game.id}`)
       ctxs.push({ ctx, page })

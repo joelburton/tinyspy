@@ -25,8 +25,15 @@ export type TabStop = RefObject<HTMLElement | null>
  * only list anyone would ever write is "all of them, in order", and it would
  * drift the first time a field was added. Its stops are read at keypress, in DOM
  * order, which is also what keeps a form whose fields come and go honest.
+ *
+ * **`onlyWhileFocused`** makes a panel's ring count only while the keyboard is
+ * inside it. A companion floats over a page that stays live, so it must not
+ * take Tab from the page's own ring merely by being open — a companion whose
+ * only stop is its ✕ would otherwise park Tab there for good.
  */
-export type Ring = TabStop[] | { within: RefObject<HTMLElement | null> }
+export type Ring =
+  | TabStop[]
+  | { within: RefObject<HTMLElement | null>; onlyWhileFocused?: boolean }
 
 /**
  * THE LIVE RINGS, and which one is innermost: the one that RENDERED last.
@@ -46,12 +53,23 @@ export type Ring = TabStop[] | { within: RefObject<HTMLElement | null> }
 const rings: Array<{ ring: RefObject<Ring>; order: number }> = []
 let renderSeq = 0
 
-/** The live ring that rendered last. */
+/** The live ring that rendered last. A ring that holds Tab only while focused
+ *  (`onlyWhileFocused`) is passed over while the keyboard is elsewhere. */
 function innermost(): (typeof rings)[number] | undefined {
-  return rings.reduce<(typeof rings)[number] | undefined>(
-    (best, r) => (best === undefined || r.order > best.order ? r : best),
-    undefined,
-  )
+  return rings
+    .filter((r) => isHoldingTab(r.ring.current))
+    .reduce<(typeof rings)[number] | undefined>(
+      (best, r) => (best === undefined || r.order > best.order ? r : best),
+      undefined,
+    )
+}
+
+/** Does this ring take Tab right now? Always, unless it asks to only while the
+ *  keyboard is inside it. */
+function isHoldingTab(ring: Ring): boolean {
+  if (Array.isArray(ring) || !ring.onlyWhileFocused) return true
+  const within = ring.within.current
+  return within !== null && within.contains(document.activeElement)
 }
 
 /** A stop that is not currently on screen is not a stop. The club page renders
@@ -104,7 +122,8 @@ function liveStops(ring: Ring): HTMLElement[] {
  *
  * **Innermost wins.** A dialog's ring beats the page's while the dialog is
  * open, and the page gets it back when it closes. Every ring listens, but only
- * the innermost acts.
+ * the innermost acts. A companion's ring (`onlyWhileFocused`) wins only while
+ * the keyboard is inside it.
  *
  * **Why not native Tab.** It cannot express any of this. Even a page with
  * exactly one tab stop still hands Tab to the browser chrome — the browser
