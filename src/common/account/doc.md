@@ -12,7 +12,8 @@ would make a club's history lie. A color from the palette, which is the thing
 you can change, because the color is how you find yourself on a board and a
 player who cannot stand theirs is stuck with it everywhere. Whether the app
 plays sounds for you, which you can change too, since a bell is an
-interruption not everyone wants. And a flag saying whether you may curate the
+interruption not everyone wants. Whether a win pops its celebration, for the
+same reason. And a flag saying whether you may curate the
 dictionary, granted by hand in the database rather than earned or requested. There is no profile page, no avatar and no bio: this
 is a venue for people who already know each other, and the question the app
 has to answer is which of them you are.
@@ -47,11 +48,12 @@ editing my profile" is not worth restoring across a navigation.
 
 **Saving the dialog is the profile's only write path.** `common.profiles` has
 no update policy or grant, so a plain write from the frontend cannot reach it;
-the color and the "Enable sounds" setting go together in one
-`common.update_profile` call. When it answers, the dialog tells the shared
-profile store what the server now holds, and every reader repaints at once:
-the menu dot, the players strip, the event log — and the next sound, which
-`sounds/playSound` checks against the setting. The picker itself is not this
+the color, the "Enable sounds" setting and the "Don't display celebration
+modal" setting go together in one `common.update_profile` call. When it
+answers, the dialog tells the shared profile store what the server now holds,
+and every reader repaints at once: the menu dot, the players strip, the event
+log — and the next sound, which `sounds/playSound` checks against the setting,
+and the next win, which `ending/useCelebration` does. The picker itself is not this
 folder's — it is `fields/ColorChoiceField`, a field like any other, shared with
 the first-run claim screen so the choice looks the same whether you are making
 it for the first time or changing your mind; the palette it offers has eight

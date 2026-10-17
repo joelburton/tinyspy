@@ -624,14 +624,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "ai_member": boolean,"can_edit_words": boolean,"color": string,"created_at": string,"sounds_enabled": boolean,"theme": string | null,"user_id": string,"username": string
+                    "ai_member": boolean,"can_edit_words": boolean,"color": string,"created_at": string,"hide_celebrations": boolean,"sounds_enabled": boolean,"theme": string | null,"user_id": string,"username": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_member"?: boolean,"can_edit_words"?: boolean,"color": string,"created_at"?: string,"sounds_enabled"?: boolean,"theme"?: string | null,"user_id": string,"username": string
+                    "ai_member"?: boolean,"can_edit_words"?: boolean,"color": string,"created_at"?: string,"hide_celebrations"?: boolean,"sounds_enabled"?: boolean,"theme"?: string | null,"user_id": string,"username": string
                   }
                   Update: {
-                    "ai_member"?: boolean,"can_edit_words"?: boolean,"color"?: string,"created_at"?: string,"sounds_enabled"?: boolean,"theme"?: string | null,"user_id"?: string,"username"?: string
+                    "ai_member"?: boolean,"can_edit_words"?: boolean,"color"?: string,"created_at"?: string,"hide_celebrations"?: boolean,"sounds_enabled"?: boolean,"theme"?: string | null,"user_id"?: string,"username"?: string
                   }
                   Relationships: [
                     
@@ -888,7 +888,7 @@ isOneToOne: false
 { Args: { "target_game": string }; Returns: Json
                            },
 "update_profile":
-{ Args: { "new_color": string,"new_sounds_enabled": boolean }; Returns: Json
+{ Args: { "new_color": string,"new_hide_celebrations": boolean,"new_sounds_enabled": boolean }; Returns: Json
                            },
 "update_word":
 { Args: { "note"?: string,"patch": Json,"target_word": string }; Returns: Json

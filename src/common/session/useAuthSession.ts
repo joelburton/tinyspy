@@ -124,7 +124,7 @@ export function useAuthSession() {
       const res = await readRows(
         db
           .from('profiles')
-          .select('username, color, can_edit_words, sounds_enabled')
+          .select('username, color, can_edit_words, sounds_enabled, hide_celebrations')
           .eq('user_id', next.user.id),
         // `presentFaults: false` because a failed probe becomes the whole page
         // below, and the modal on top of it would say the same thing twice.

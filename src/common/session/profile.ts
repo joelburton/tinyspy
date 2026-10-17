@@ -14,4 +14,8 @@ export type Profile = {
    *  theirs, the win jingle, every sound. `common/sounds/playSound` reads it,
    *  so no caller decides for itself. Set from the Edit profile dialog. */
   sounds_enabled: boolean
+  /** Does a win skip its celebration modal (and so its jingle) for this user?
+   *  `ending/useCelebration` reads it, so no game decides for itself. Set from
+   *  the Edit profile dialog. */
+  hide_celebrations: boolean
 }

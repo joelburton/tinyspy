@@ -6,7 +6,8 @@
 -- What is called from outside SQL (no leading `_`):
 --
 --   claim_username             creates a new player's profile and solo club
---   update_profile             changes your color and sound setting
+--   update_profile             changes your color, sound and celebration
+--                              settings
 --   create_club                makes a club of named friends, the caller
 --                              included
 --   set_club_gametypes         sets which games a club lists, and each
@@ -464,7 +465,8 @@ grant execute on function common._is_club_member(text) to authenticated;
 -- │  THE VIEW FIRST. Every column it holds is public by design:
 -- │  username and color ARE the player-identity vocabulary
 -- │  rendered to every club member, user_id has to be resolvable
--- │  for club creation, theme and sounds_enabled are UI
+-- │  for club creation, theme, sounds_enabled and
+-- │  hide_celebrations are UI
 -- │  preferences, can_edit_words is a curation flag, and
 -- │  ai_member says an account is a bot — none of which says
 -- │  anything about a person. So a "safe columns only" view
@@ -497,7 +499,8 @@ create policy timers_select on common.timers
   );
 
 -- No UPDATE policy on profiles. `username` is immutable in v1 (change
--- it by delete-and-recreate). `color` and `sounds_enabled` ARE changeable,
+-- it by delete-and-recreate). `color`, `sounds_enabled` and
+-- `hide_celebrations` ARE changeable,
 -- but only through the security-definer `common.update_profile` RPC
 -- (caller-scoped), so no direct-UPDATE policy is needed — writes go
 -- through the RPC like every other mutation.
@@ -3461,15 +3464,17 @@ grant execute on function common.claim_username(text, text) to authenticated;
 
 -- Dropped here because this file is re-applied rather than diffed, so a
 -- retired signature has to say so: `update_profile_color(text)` is the
--- color-only write this function replaced.
+-- color-only write this function replaced, and `update_profile(text,
+-- boolean)` the one before the celebration setting.
 drop function if exists common.update_profile_color(text);
 drop function if exists common.update_profile(text, boolean);
 
 -- ============================================================
 -- common.update_profile — save your own profile settings
 -- ============================================================
--- The profile's editable fields, saved together: your player color and
--- whether the app plays sounds for you (username is still immutable in v1).
+-- The profile's editable fields, saved together: your player color, whether
+-- the app plays sounds for you, and whether a win skips its celebration
+-- modal (username is still immutable in v1).
 -- One call because the "Edit profile" dialog saves them with one button,
 -- and a half-saved profile is not a state worth having to explain.
 -- Security-definer + caller-scoped (only ever writes auth.uid()'s own row),
@@ -3479,7 +3484,8 @@ drop function if exists common.update_profile(text, boolean);
 -- is a validation — the picker offers the eight palette swatches and the sound
 -- setting is a checkbox, so every way this can refuse is a bug or a dead
 -- session rather than a choice a player made.
-create or replace function common.update_profile(new_color text, new_sounds_enabled boolean)
+create or replace function common.update_profile(
+  new_color text, new_sounds_enabled boolean, new_hide_celebrations boolean)
 returns jsonb
 language plpgsql
 security definer
@@ -3516,9 +3522,17 @@ begin
       detail = 'new_sounds_enabled must be true or false';
   end if;
 
+  -- PN637. Same as PN501, for the celebration checkbox.
+  if new_hide_celebrations is null then
+    raise exception 'BUG: celebration setting missing'
+      using errcode = 'PN637', hint = 'fault', column = '_',
+      detail = 'new_hide_celebrations must be true or false';
+  end if;
+
   update common.profiles
      set color = new_color,
-         sounds_enabled = new_sounds_enabled
+         sounds_enabled = new_sounds_enabled,
+         hide_celebrations = new_hide_celebrations
    where user_id = caller_id;
   -- PN034. The profile row behind this JWT is gone — a db:reset under a live
   -- tab, or a deleted account. The same condition claim_username reports as
@@ -3544,8 +3558,8 @@ exception when others then
 end;
 $$;
 
-revoke execute on function common.update_profile(text, boolean) from public;
-grant execute on function common.update_profile(text, boolean) to authenticated;
+revoke execute on function common.update_profile(text, boolean, boolean) from public;
+grant execute on function common.update_profile(text, boolean, boolean) to authenticated;
 -- GRANTED to authenticated: read through security_invoker views (the
 -- letter-mask filter the word games' pickers use), so the caller needs it.
 revoke execute on function common.word_letter_mask(text) from public;

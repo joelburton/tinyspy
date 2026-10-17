@@ -18,7 +18,7 @@ import { renderHook, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { getMyProfile, setMyProfile, setMyProfileFields, useMyProfile } from './myProfileStore'
 
-const ADA = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true }
+const ADA = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true, hide_celebrations: false }
 
 beforeEach(() => {
   setMyProfile(null)
@@ -62,10 +62,10 @@ describe('the profile store', () => {
     })
 
     act(() => {
-      setMyProfileFields({ color: '#2980b9', sounds_enabled: false })
+      setMyProfileFields({ color: '#2980b9', sounds_enabled: false, hide_celebrations: true })
     })
 
-    const saved = { ...ADA, color: '#2980b9', sounds_enabled: false }
+    const saved = { ...ADA, color: '#2980b9', sounds_enabled: false, hide_celebrations: true }
     expect(menu.result.current).toEqual(saved)
     expect(greeting.result.current).toEqual(saved)
   })
@@ -76,7 +76,7 @@ describe('the profile store', () => {
     const reader = renderHook(() => useMyProfile())
 
     act(() => {
-      setMyProfileFields({ color: '#2980b9', sounds_enabled: false })
+      setMyProfileFields({ color: '#2980b9', sounds_enabled: false, hide_celebrations: true })
     })
 
     expect(reader.result.current).toBeNull()

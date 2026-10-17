@@ -32,6 +32,7 @@ vi.mock('../session/myProfileStore', () => ({
     color: 'red',
     can_edit_words: false,
     sounds_enabled: true,
+    hide_celebrations: false,
   }),
 }))
 

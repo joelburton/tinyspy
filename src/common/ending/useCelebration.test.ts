@@ -11,11 +11,19 @@
  *   3. stay dismissed after close across re-renders while still won;
  *   4. re-arm when `won` flips back false (replay-board reopens the
  *      game), so win → restart → win celebrates again.
+ *
+ * And over all four, the player's "Don't display celebration modal" setting:
+ * with it on, nothing ever opens.
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
+import { setMyProfile } from '../session/myProfileStore'
 import { useCelebration } from './useCelebration'
+
+afterEach(() => {
+  setMyProfile(null)
+})
 
 describe('useCelebration', () => {
   it('stays closed when the game is already won on mount', () => {
@@ -66,5 +74,17 @@ describe('useCelebration', () => {
     // …and the second solve celebrates again.
     rerender({ won: true })
     expect(result.current.isOpen).toBe(true)
+  })
+
+  it('never pops for a player who hides celebrations', () => {
+    setMyProfile({
+      username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true, hide_celebrations: true,
+    })
+    const { result, rerender } = renderHook(({ won }: { won: boolean }) => useCelebration(won), {
+      initialProps: { won: false },
+    })
+
+    rerender({ won: true })
+    expect(result.current.isOpen).toBe(false)
   })
 })

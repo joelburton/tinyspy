@@ -13,7 +13,7 @@ carry each function's full contract and outcomes. How every RPC answers is
 
 | table | what it holds |
 |---|---|
-| `profiles` | one row per auth user: `username` (immutable), `color` (from the eight-color palette), `sounds_enabled`, `ai_member` (scrabble's AI opponents, ordinary accounts in every other way), `can_edit_words`, and `theme`, reserved and unread. Written only by RPCs |
+| `profiles` | one row per auth user: `username` (immutable), `color` (from the eight-color palette), `sounds_enabled`, `hide_celebrations`, `ai_member` (scrabble's AI opponents, ordinary accounts in every other way), `can_edit_words`, and `theme`, reserved and unread. Written only by RPCs |
 | `clubs` | a fixed-membership room: `handle` (the URL key and primary key), `name` (at most 20 characters), `created_by`, `is_solo`, generated from the handle, and `can_edit_settings`, which gates the Edit club dialog and is flipped only by hand ([Paw protection](#paw-protection--a-daily-cap-per-gametype)) |
 | `clubs_members` | who is in each club. Fixed at creation |
 | `gametypes` | the registered gametypes, one row per sibling (`wordle_coop`, `wordle_compete`), each registered by its game's migration: `min_players`, `default_enroll` and `brand` (the user-facing name, the same on both siblings) |

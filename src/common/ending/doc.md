@@ -106,6 +106,12 @@ the game stays won; what re-arms it is the flip back to false — which is what 
 replay-board does when it reopens the game — so win → restart → win
 celebrates both times.
 
+**A player can turn the moment off.** "Don't display celebration modal" in the
+Edit profile dialog (`common.profiles.hide_celebrations`) is read inside
+`useCelebration`, so no game has to remember it: with it on, the hook never
+opens, and the jingle — which the modal plays — never plays either. Off by
+default.
+
 **`endingMessage.ts` sits here, but the message's vocabulary is
 [`common/feedback`](../feedback/doc.md)'s.** The file lives in this folder
 because the message is an ending's; what it may SAY — the terse pill label, the

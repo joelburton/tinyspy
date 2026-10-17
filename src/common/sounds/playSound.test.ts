@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setMyProfile } from '../session/myProfileStore'
 import { playSound } from './playSound'
 
-const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true }
+const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true, hide_celebrations: false }
 
 let play: ReturnType<typeof vi.spyOn>
 let pause: ReturnType<typeof vi.spyOn>

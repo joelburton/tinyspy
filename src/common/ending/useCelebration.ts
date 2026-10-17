@@ -1,12 +1,15 @@
 // cs-blessed-ending
 
 import { useState } from 'react'
+import { useMyProfile } from '../session/myProfileStore'
 
 /**
  * One-shot celebration state — pops `<CelebrationBlockingModal>` at the MOMENT of a
  * win, and only then.
  *
- * Three rules:
+ * Three rules, and the player's own setting over all of them: with "Don't
+ * display celebration modal" on (`hide_celebrations`), it never opens — and so
+ * the jingle, which is the modal's, never plays.
  *
  *   1. **Never show on mount.** Opening an already-won game (deep link,
  *      refresh) is reviewing history, not winning — the moment has passed, so
@@ -35,6 +38,7 @@ export function useCelebration(won: boolean): {
   isOpen: boolean
   close: () => void
 } {
+  const isHidden = useMyProfile()?.hide_celebrations === true
   const [isOpen, setIsOpen] = useState(false)
 
   // Detected during render (React's endorsed "storing information from previous
@@ -44,7 +48,7 @@ export function useCelebration(won: boolean): {
   const [prevWon, setPrevWon] = useState(won)
   if (won !== prevWon) {
     setPrevWon(won)
-    if (won) setIsOpen(true)
+    if (won && !isHidden) setIsOpen(true)
   }
 
   return {

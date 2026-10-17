@@ -1,7 +1,7 @@
 // cs-blessed-account
 
 /**
- * YOUR COLOR AND YOUR SOUNDS — what a save sends, and where a refusal from
+ * YOUR COLOR, YOUR SOUNDS AND YOUR CELEBRATIONS — what a save sends, and where a refusal from
  * `common.update_profile` lands.
  *
  * The field this form routes to is a GROUP of swatches with no single control,
@@ -26,6 +26,7 @@ vi.mock('../session/myProfileStore', () => ({
   // the form under test never has the shape the app gives it.
   useMyProfile: () => ({
     username: 'joel', color: 'red', can_edit_words: false, sounds_enabled: true,
+    hide_celebrations: false,
   }),
   setMyProfileFields: mockSetFields,
 }))
@@ -116,8 +117,27 @@ describe('EditProfileModal — saving', () => {
     await save()
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
-    expect(mockRpc).toHaveBeenCalledWith('update_profile', { new_color: 'red', new_sounds_enabled: false })
+    expect(mockRpc).toHaveBeenCalledWith('update_profile', {
+      new_color: 'red', new_sounds_enabled: false, new_hide_celebrations: false,
+    })
     // The store learns what the server now holds, so the next sound obeys it.
-    expect(mockSetFields).toHaveBeenCalledWith({ color: 'red', sounds_enabled: false })
+    expect(mockSetFields).toHaveBeenCalledWith({ color: 'red', sounds_enabled: false, hide_celebrations: false })
+  })
+
+  it('starts "Don\'t display celebration modal" on your setting, and saves it turned on', async () => {
+    mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'saved' } }, error: null })
+    const { onSaved } = draw()
+
+    const box = screen.getByRole('checkbox', { name: "Don't display celebration modal" })
+    expect(box).not.toBeChecked()
+    await userEvent.setup().click(box)
+    await save()
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(mockRpc).toHaveBeenCalledWith('update_profile', {
+      new_color: 'red', new_sounds_enabled: true, new_hide_celebrations: true,
+    })
+    // The store learns it too, so the next win obeys it.
+    expect(mockSetFields).toHaveBeenCalledWith({ color: 'red', sounds_enabled: true, hide_celebrations: true })
   })
 })

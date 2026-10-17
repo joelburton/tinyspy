@@ -25,7 +25,7 @@ type Props = {
 
 /** What the form holds, keyed by the name it is SENT AS — both are
  *  `common.update_profile`'s own parameters. */
-type Values = { new_color: string; new_sounds_enabled: boolean }
+type Values = { new_color: string; new_sounds_enabled: boolean; new_hide_celebrations: boolean }
 
 /** What `common.update_profile` puts in `data`. It writes no message — the
  *  dialog closes and the settings take effect, which says it — so `result` is
@@ -37,12 +37,13 @@ type SavedAnswer = { result: 'saved' }
  * submenu of whichever page menu is on screen. The page underneath stays
  * mounted and live behind it.
  *
- * It edits two things, starting on what you have: your player color, through
- * `<ColorChoiceField>`, and "Enable sounds", which turns every sound the app
- * plays on or off. The username is shown and cannot be changed. Saving sends
- * both in one `common.update_profile` call and then tells the shared profile
- * store what the server now holds, so the menu dot repaints and the next sound
- * obeys the new setting.
+ * It edits three things, starting on what you have: your player color,
+ * through `<ColorChoiceField>`; "Enable sounds", which turns every sound the
+ * app plays on or off; and "Don't display celebration modal", which skips a
+ * win's celebration and its jingle. The username is shown and cannot be
+ * changed. Saving sends all three in one `common.update_profile` call and then
+ * tells the shared profile store what the server now holds, so the menu dot
+ * repaints and the next sound and the next win obey the new settings.
  *
  * Mount it to open and unmount it to close — it holds no open/closed state of
  * its own, and `onSaved` / `onCancel` are how it asks to be unmounted.
@@ -52,22 +53,27 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
 
-  async function onSubmit({ new_color, new_sounds_enabled }: Values) {
+  async function onSubmit({ new_color, new_sounds_enabled, new_hide_celebrations }: Values) {
     setBusy(true)
     setErrors({})
     const res = await runRpc<SavedAnswer>(
-      commonDb.rpc('update_profile', { new_color, new_sounds_enabled }),
+      commonDb.rpc('update_profile', { new_color, new_sounds_enabled, new_hide_celebrations }),
     )
     if (res.type === 'not-ok') {
       setBusy(false)
       // Every outcome here is a fault — the picker offers eight swatches and
-      // the sounds row is a checkbox — so this line is what remains once the
+      // the other rows are checkboxes — so this line is what remains once the
       // modal is dismissed rather than the primary way anyone hears about it.
       setErrors({ [res.field ?? FORM_ERROR_KEYNAME]: res.message })
       return
     } else if (res.type === 'ok' && res.data.result === 'saved') {
-      // Live-update the menu dot, and every later sound, from what was saved.
-      setMyProfileFields({ color: new_color, sounds_enabled: new_sounds_enabled })
+      // Live-update the menu dot, every later sound and every later win, from
+      // what was saved.
+      setMyProfileFields({
+        color: new_color,
+        sounds_enabled: new_sounds_enabled,
+        hide_celebrations: new_hide_celebrations,
+      })
       onSaved()
       return
     } else {
@@ -103,6 +109,7 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
           initialValues={{
             new_color: profile.color,
             new_sounds_enabled: profile.sounds_enabled,
+            new_hide_celebrations: profile.hide_celebrations,
           } satisfies Values}
           onSubmit={onSubmit}
         >
@@ -131,6 +138,16 @@ export function EditProfileModal({ onSaved, onCancel }: Props) {
                 disabled={busy}
               >
                 Enable sounds
+              </CheckboxField>
+
+              <CheckboxField
+                name="new_hide_celebrations"
+                value={values.new_hide_celebrations}
+                onChange={(v) => set('new_hide_celebrations', v)}
+                error={errors.new_hide_celebrations}
+                disabled={busy}
+              >
+                Don't display celebration modal
               </CheckboxField>
 
               <FailureLine>{errors[FORM_ERROR_KEYNAME]}</FailureLine>

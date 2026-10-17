@@ -70,7 +70,9 @@ export function getMyProfile(): Profile | null {
  * optimistic — it tells the store what the server already holds, and every
  * reader repaints at once.
  */
-export function setMyProfileFields(fields: Pick<Profile, 'color' | 'sounds_enabled'>) {
+export function setMyProfileFields(
+  fields: Pick<Profile, 'color' | 'sounds_enabled' | 'hide_celebrations'>,
+) {
   if (myProfile) {
     myProfile = { ...myProfile, ...fields }
     notify()
