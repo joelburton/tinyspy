@@ -18,7 +18,7 @@ Eighteen games are live today (the parenthetical in each entry is the game's in-
 - **strands** (PaulPath) — Strands-style word search: trace hidden theme words that tile the whole board.
 - **waffle** (SyrupSwap) — Waffle-style swap-to-solve grid puzzle.
 - **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
-- **wordle** (WordNerd) — Wordle-style guess-the-word.
+- **wordle** (WordNerd) — Wordle-style: guess the hidden word.
 - **wordleone** (WordNerdier) — Wordle-in-1-style: one row is already colored, and the hidden word is the only one that fits it.
 - **wordsy** (FlipWord) — [Wordsy](https://boardgamegeek.com/boardgame/208480/wordsy): everyone writes one word a round from eight consonant cards worth 5, 4, 3 and 2; the first word in starts the clock. Coop plays the rulebook's solo card, alone or as a team, for a title.
 - **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the center.
