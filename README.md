@@ -8,7 +8,7 @@ Eighteen games are live today (the parenthetical in each entry is the game's in-
 - **boggle** (MothCubes) — Boggle-style: find words in a grid of lettered dice.
 - **codenamesduet** (TinySpy) — [Codenames Duet](https://czechgames.com/en/codenames-duet/): two players give clues to each other to find all the agents before the turns run out.
 - **connections** (WordKnit) — Connections-style: sort sixteen words into four hidden groups.
-- **crosswords** (CrossPlay) — a collaborative/competitive crossword.
+- **crosswords** (CrossPlay) — a collaborative or competitive crossword.
 - **letterboxed** (SnakeBox) — Letter-Boxed-style: chain words around a square of twelve letters, each word starting where the last one ended.
 - **psychicnum** (PsychicNum) — a deliberately tiny toy that keeps the multi-game wiring honest, with the smallest possible game-logic surface.
 - **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
